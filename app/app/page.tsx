@@ -1,4 +1,48 @@
-export default function Home() {
+ default function Home() {
+         return (
+                   <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+                         <header className="container mx-auto px-4 py-6">
+                                 <nav className="flex justify-between items-center">
+                                           <div className="text-2xl font-bold text-blue-600">CVMatch AI</div>div>
+                                           <a
+                                                             href="/login"
+                                                             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 trans"
+                                                           >
+                                                       Se connecter
+                                           </a>a>
+                                 </nav>nav>
+                         </header>header>
+                         <section className="container mx-auto px-4 py-20 text-center">
+                                 <h1 className="text-5xl font-bold mb-6 bg-blue-600 to-purple-600 bg-cli">
+                                           Ton CV parfait en 20 secondes
+                                 </h1>h1>
+                                 <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+                                           L IA qui genere le CV optimal pour chaque offre d emploi. Analyse de match, optimisation ATS, et generation automatique.
+                                 </p>p>
+                                 <a
+                                                 href="/signup"
+                                                 className="inline-block px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 trans"
+                                               >
+                                           Commencer gratuitement
+                                 </a>a>
+                         </section>section>
+                         <section className="container mx-auto px-4 py-16">
+                                 <div className="grid md:grid-cols-3 gap-8">
+                                           <div className="p-6 bg-white rounded-xl shadow-lg">
+                                                       <div className="text-4xl mb-4">⚡</div>div>
+                                                       <h3 className="text-xl font-bold mb-2">Analyse de Match</h3>h3>
+                                                       <p className="text-gray-600">Score objectif entre ton profil et chaque offre d emploi.
+                                                       </p>div>
+                                                     <div className="p-6 bg-white rounded-xl shadow-lg">
+                                                                 <div className="text-4xl mb-4">🔍</div>div>
+                                                                 <h3 className="text-xl font-bold mb-2">Opportunites Cachees</h3>h3>
+                                                                 <p className="text-gray-600">L IA suggere des postes auxquels tu n a pas pense.
+                                                                 </p>div>
+                                                     </div>div>
+                                           </div>section>
+                                 </div>main>
+                           );
+                               }</main>export default function Home() {
       return (
               <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
                     <header className="container mx-auto px-4 py-6">
