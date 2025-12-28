@@ -1,5 +1,6 @@
 
 import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export const runtime = "edge";
@@ -14,10 +15,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing files or userId" }, { status: 400 });
         }
 
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createSupabaseClient();
 
         const uploads = [];
 

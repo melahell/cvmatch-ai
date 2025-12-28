@@ -2,31 +2,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClient } from "@/lib/supabase";
 import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import Cookies from "js-cookie";
-
-
+import { JobAnalysis, UserProfile } from "@/types";
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState<any>(null);
-    const [topJobs, setTopJobs] = useState<any[]>([]);
+    const [profile, setProfile] = useState<UserProfile["profil"] | null>(null);
+    const [topJobs, setTopJobs] = useState<any[]>([]); // Keeping any for topJobs as structure varies
     const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
     const [userName, setUserName] = useState("Candidat");
 
     useEffect(() => {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createSupabaseClient();
         async function fetchData() {
             setUserName(Cookies.get("userName") || "Candidat");
             const userId = Cookies.get("userId");
+            const userName = Cookies.get("userName");
 
             if (!userId) {
                 // No user ? Redirect to login (Real Auth)
@@ -34,27 +31,42 @@ export default function DashboardPage() {
                 return;
             }
 
-            // 1. Fetch RAG Profile
+            // 1. Fetch RAG Data
             const { data: ragData } = await supabase
                 .from("rag_metadata")
-                .select("*")
+                .select("completeness_details, top_10_jobs")
                 .eq("user_id", userId)
                 .single();
 
             if (ragData) {
-                setProfile(ragData.completeness_details?.profil);
-                setTopJobs(ragData.top_10_jobs || []);
+                setProfile(ragData.completeness_details?.profil); // Type is now compatible
+                if (ragData.top_10_jobs) {
+                    setTopJobs(ragData.top_10_jobs);
+                }
+
+                // 2. Fetch Stats
+                const { count: appliedCount } = await supabase
+                    .from("job_analyses")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", userId)
+                    .neq("application_status", "pending");
+
+                const { count: analysesCount } = await supabase
+                    .from("job_analyses")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", userId);
+
+                const { count: cvCount } = await supabase
+                    .from("cv_generations")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", userId);
+
+                setStats({
+                    analyses: analysesCount || 0,
+                    cvs: cvCount || 0,
+                    applied: appliedCount || 0
+                });
             }
-
-            // 2. Fetch Stats
-            const { count: analysesCount } = await supabase.from("job_analyses").select("*", { count: 'exact' }).eq("user_id", userId);
-            const { count: cvsCount } = await supabase.from("cv_generations").select("*", { count: 'exact' }).eq("user_id", userId);
-
-            setStats({
-                analyses: analysesCount || 0,
-                cvs: cvsCount || 0,
-                applied: 0 // Placeholder as we don't track 'applied' click event yet deeply
-            });
 
             setLoading(false);
         }

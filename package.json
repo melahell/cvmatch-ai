@@ -1,6 +1,6 @@
 {
     "name": "cvmatch-ai",
-    "version": "0.1.0",
+    "version": "1.1.0",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -12,7 +12,9 @@
         "@google/generative-ai": "^0.21.0",
         "@octokit/rest": "^21.0.0",
         "@radix-ui/react-label": "^2.1.8",
+        "@radix-ui/react-separator": "^1.1.8",
         "@radix-ui/react-slot": "^1.2.4",
+        "@supabase/auth-helpers-nextjs": "^0.15.0",
         "@supabase/ssr": "^0.5.0",
         "@supabase/supabase-js": "^2.45.0",
         "@types/js-cookie": "^3.0.6",
@@ -42,6 +44,7 @@
         "eslint": "^8",
         "eslint-config-next": "14.2.0",
         "postcss": "^8.5.6",
+        "semver": "^7.7.3",
         "tailwindcss": "^3.4.0",
         "typescript": "^5",
         "vitest": "^4.0.16"

@@ -2,13 +2,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClient } from "@/lib/supabase";
 import { Loader2, ExternalLink, Calendar, Briefcase, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import Cookies from "js-cookie";
+import { JobAnalysis } from "@/types";
 
 const STATUS_COLORS: any = {
     pending: "bg-slate-100 text-slate-700",
@@ -19,14 +20,11 @@ const STATUS_COLORS: any = {
 };
 
 export default function TrackingPage() {
-    const [jobs, setJobs] = useState<any[]>([]);
+    const [jobs, setJobs] = useState<JobAnalysis[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createSupabaseClient();
         async function fetchJobs() {
             const userId = Cookies.get("userId");
             if (!userId) return;
@@ -43,11 +41,8 @@ export default function TrackingPage() {
         fetchJobs();
     }, []);
 
-    const updateStatus = async (id: string, newStatus: string) => {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+    const updateStatus = async (id: string, newStatus: JobAnalysis["application_status"]) => {
+        const supabase = createSupabaseClient();
 
         // Optimistic update
         setJobs(jobs.map(j => j.id === id ? { ...j, application_status: newStatus } : j));
@@ -102,7 +97,7 @@ export default function TrackingPage() {
                                 <select
                                     className={`text-sm border rounded px-2 py-1 ${STATUS_COLORS[job.application_status || 'pending']}`}
                                     value={job.application_status || 'pending'}
-                                    onChange={(e) => updateStatus(job.id, e.target.value)}
+                                    onChange={(e) => updateStatus(job.id, e.target.value as JobAnalysis["application_status"])}
                                 >
                                     <option value="pending">À faire</option>
                                     <option value="applied">Postulé</option>

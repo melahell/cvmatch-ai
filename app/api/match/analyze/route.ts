@@ -1,17 +1,16 @@
 
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
+import { JobAnalysis } from "@/types";
+import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
 
 // Edge runtime to mock quickly, but scraping usually needs Node 
 // Let's use Node runtime for robustness with potential scraping libraries
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createSupabaseClient();
     try {
         const { userId, jobUrl, jobText } = await req.json();
 
@@ -71,35 +70,7 @@ export async function POST(req: Request) {
         }
 
         // 3. Analyze Match with Gemini
-        const userProfile = JSON.stringify(ragData.completeness_details);
-
-        const prompt = `
-      Tu es un expert RH / Career Coach.
-
-      PROFIL DU CANDIDAT :
-      ${userProfile}
-
-      OFFRE D'EMPLOI :
-      ${fullJobText}
-
-      MISSION :
-      Analyse le match entre ce profil et cette offre.
-
-      OUTPUT (JSON uniquement) :
-      {
-        "match_score": 0-100,
-        "match_level": "Excellent|Très bon|Bon|Moyen|Faible",
-        "recommendation": "Oui fortement|Oui|Peut-être|Non recommandé",
-        "strengths": [
-          { "point": "string", "match_percent": 0-100 }
-        ],
-        "gaps": [
-          { "point": "string", "severity": "Bloquant|Important", "suggestion": "string" }
-        ],
-        "missing_keywords": ["string"],
-        "key_insight": "string (1 phrase synthèse)"
-      }
-    `;
+        const prompt = getMatchAnalysisPrompt(ragData.completeness_details, fullJobText);
 
         const result = await models.flash.generateContent(prompt);
         const responseText = result.response.text();

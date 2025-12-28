@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import VersionOverlay from "@/components/VersionOverlay";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
                     inter.variable
                 )}
             >
+                <VersionOverlay />
                 {children}
             </body>
         </html>

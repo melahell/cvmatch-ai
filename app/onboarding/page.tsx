@@ -1,12 +1,12 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload, CheckCircle, FileText } from "lucide-react";
+import { Loader2, Upload, CheckCircle, FileText, ArrowRight } from "lucide-react";
 import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { createSupabaseClient } from "@/lib/supabase";
 
 export default function OnboardingPage() {
     const router = useRouter();
@@ -17,6 +17,9 @@ export default function OnboardingPage() {
     const [progress, setProgress] = useState(0);
 
     const [userId, setUserId] = useState<string | null>(null);
+
+    // Initialisation Supabase
+    const supabase = createSupabaseClient();
 
     useEffect(() => {
         const storedId = Cookies.get("userId");
@@ -124,7 +127,7 @@ export default function OnboardingPage() {
                 <CardContent>
                     <div
                         className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50" : "border-slate-200"
-                            }`}
+                            } `}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
                         onDragOver={handleDrag}

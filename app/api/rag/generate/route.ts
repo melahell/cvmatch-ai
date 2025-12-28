@@ -1,19 +1,16 @@
-
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
 import { pushToGitHub } from "@/lib/github";
-const pdf = require("pdf-parse");
+import { createSupabaseClient } from "@/lib/supabase";
 import mammoth from "mammoth";
+const pdf = require("pdf-parse");
+import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
 
 // We use Node.js runtime because pdf-parse/mammoth might rely on node APIs not available in Edge
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    const supabase = createSupabaseClient();
     try {
         const { userId } = await req.json();
 
@@ -42,7 +39,7 @@ export async function POST(req: Request) {
                 .download(doc.storage_path);
 
             if (downloadError) {
-                console.error(`Error downloading ${doc.filename}:`, downloadError);
+                console.error(`Error downloading ${doc.filename}: `, downloadError);
                 continue;
             }
 
@@ -61,7 +58,7 @@ export async function POST(req: Request) {
                 text = buffer.toString("utf-8");
             }
 
-            allExtractedText += `\n--- DOCUMENT: ${doc.filename} ---\n${text}\n`;
+            allExtractedText += `\n-- - DOCUMENT: ${doc.filename} ---\n${text} \n`;
 
             // Update status to processing (or completed if we do it all now)
             await supabase
@@ -71,51 +68,7 @@ export async function POST(req: Request) {
         }
 
         // 3. Process with Gemini
-        const prompt = `
-      Tu es un expert en extraction et structuration de données professionnelles.
-
-      DOCUMENTS FOURNIS :
-      ${allExtractedText}
-
-      MISSION :
-      Extrais et structure TOUTES les informations selon ce schéma JSON.
-      
-      SCHÉMA CIBLE (JSON uniquement) :
-      {
-        "profil": {
-          "nom": "string",
-          "prenom": "string",
-          "titre_principal": "string",
-          "localisation": "string",
-          "contact": { "email": "string", "telephone": "string", "linkedin": "string" },
-          "elevator_pitch": "string (2-3 phrases max)"
-        },
-        "experiences": [
-          {
-            "poste": "string",
-            "entreprise": "string",
-            "debut": "YYYY-MM",
-            "fin": "YYYY-MM|null",
-            "actuel": boolean,
-            "realisations": [
-               { "description": "string", "impact": "string (quantifié)" }
-            ],
-            "technologies": ["string"]
-          }
-        ],
-        "competences": {
-          "techniques": ["string"],
-          "soft_skills": ["string"]
-        },
-        "formations": [
-          { "diplome": "string", "ecole": "string", "annee": "YYYY" }
-        ],
-        "langues": { "langue": "niveau" }
-      }
-
-      OUTPUT :
-      JSON valide uniquement. Pas de markdown, pas de \`\`\`json.
-    `;
+        const prompt = getRAGExtractionPrompt(allExtractedText);
 
         const result = await models.flash.generateContent(prompt);
         const responseText = result.response.text();
@@ -132,31 +85,7 @@ export async function POST(req: Request) {
         }
 
         // 4. Generate Top 10 Jobs
-        const jobPrompt = `
-          Analyse ce profil professionnel (JSON) et suggère les 10 postes les PLUS adaptés.
-          
-          PROFIL :
-          ${JSON.stringify(ragData)}
-          
-          RÈGLES :
-          - Mélange postes ÉVIDENTS et CACHÉS (opportunités ignorées)
-          - Variété de secteurs
-          - Fourchette salariale réaliste France/Europe 2025 (en k€)
-          
-          OUTPUT (JSON Array) :
-          [
-            {
-              "rang": 1,
-              "titre_poste": "string",
-              "match_score": 0-100,
-              "salaire_min": number,
-              "salaire_max": number,
-              "raison": "string (court)",
-              "secteurs": ["string"]
-            }
-          ]
-        `;
-
+        const jobPrompt = getTopJobsPrompt(ragData);
         const jobResult = await models.flash.generateContent(jobPrompt);
         const jobResponseText = jobResult.response.text();
         const jobJsonString = jobResponseText.replace(/```json/g, "").replace(/```/g, "").trim();
