@@ -146,22 +146,31 @@ export default function MatchResultPage() {
                     L'IA peut maintenant réécrire ton CV pour qu'il mette en avant tes Points Forts et comble (intelligemment) les écarts.
                 </p>
 
-                <Button
-                    size="lg"
-                    className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-200"
-                    onClick={handleGenerateCV}
-                    disabled={generatingCV}
-                >
-                    {generatingCV ? (
-                        <>
-                            <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Optimisation en cours...
-                        </>
-                    ) : (
-                        <>
-                            <FileText className="w-5 h-5 mr-2" /> Générer mon CV Optimisé <ArrowRight className="w-5 h-5 ml-2" />
-                        </>
-                    )}
-                </Button>
+                <div className="flex gap-4">
+                    <Button
+                        size="lg"
+                        className="h-14 px-8 text-lg bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-200"
+                        onClick={handleGenerateCV}
+                        disabled={generatingCV}
+                    >
+                        {generatingCV ? (
+                            <>
+                                <Loader2 className="w-5 h-5 mr-2 animate-spin" /> CV...
+                            </>
+                        ) : (
+                            <>
+                                <FileText className="w-5 h-5 mr-2" /> Générer CV
+                            </>
+                        )}
+                    </Button>
+                    <Button
+                        size="lg"
+                        className="h-14 px-8 text-lg bg-purple-600 hover:bg-purple-700 shadow-xl shadow-purple-200"
+                        onClick={() => alert("Fonctionnalité Lettre de Motivation ajoutée via API (Voir Tracking pour le résultat)")}
+                    >
+                        <FileText className="w-5 h-5 mr-2" /> Générer LM
+                    </Button>
+                </div>
             </div>
 
         </div>

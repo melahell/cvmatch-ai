@@ -2,6 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
+import { pushToGitHub } from "@/lib/github";
 const pdf = require("pdf-parse");
 import mammoth from "mammoth";
 

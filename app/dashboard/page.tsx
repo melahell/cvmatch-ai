@@ -3,18 +3,22 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Loader2, Briefcase, TrendingUp, DollarSign } from "lucide-react";
+import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import Cookies from "js-cookie";
 
-// Mock User ID (Match with Onboarding)
+// Mock User ID (Fallback)
 const USER_ID = "user_123_mock";
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<any>(null);
     const [topJobs, setTopJobs] = useState<any[]>([]);
+    const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
+    const [userName, setUserName] = useState("Candidat");
 
     useEffect(() => {
         const supabase = createClient(
@@ -22,16 +26,31 @@ export default function DashboardPage() {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
         async function fetchData() {
-            const { data, error } = await supabase
+            setUserName(Cookies.get("userName") || "Candidat");
+            const userId = Cookies.get("userId"); // Should use real ID if logged in
+
+            // 1. Fetch RAG Profile
+            const { data: ragData } = await supabase
                 .from("rag_metadata")
                 .select("*")
-                .eq("user_id", USER_ID)
+                .eq("user_id", userId || USER_ID)
                 .single();
 
-            if (data) {
-                setProfile(data.completeness_details?.profil);
-                setTopJobs(data.top_10_jobs || []);
+            if (ragData) {
+                setProfile(ragData.completeness_details?.profil);
+                setTopJobs(ragData.top_10_jobs || []);
             }
+
+            // 2. Fetch Stats
+            const { count: analysesCount } = await supabase.from("job_analyses").select("*", { count: 'exact' }).eq("user_id", userId || USER_ID);
+            const { count: cvsCount } = await supabase.from("cv_generations").select("*", { count: 'exact' }).eq("user_id", userId || USER_ID);
+
+            setStats({
+                analyses: analysesCount || 0,
+                cvs: cvsCount || 0,
+                applied: 0 // Placeholder as we don't track 'applied' click event yet deeply
+            });
+
             setLoading(false);
         }
         fetchData();
@@ -46,74 +65,113 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="container mx-auto max-w-5xl py-10 px-4">
+        <div className="container mx-auto py-8 px-4">
 
-            {/* Header Profile */}
-            <header className="mb-10 flex justify-between items-center">
+            {/* WELCOME HEADER */}
+            <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">
-                        Bonjour {profile?.prenom || "Candidat"} 👋
-                    </h1>
-                    <p className="text-slate-500 text-lg mt-2">
-                        {profile?.titre_principal || "Analyse de profil en cours..."}
-                    </p>
+                    <h1 className="text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || userName} 👋</h1>
+                    <p className="text-slate-500">Prêt à décrocher le job de vos rêves ?</p>
                 </div>
-                <a href="/dashboard/analyze">
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                        + Nouvelle Analyse
-                    </Button>
-                </a>
-            </header>
-
-            {/* Top 10 Jobs Section */}
-            <section>
-                <div className="flex items-center gap-3 mb-6">
-                    <TrendingUp className="w-6 h-6 text-blue-600" />
-                    <h2 className="text-2xl font-bold text-slate-800">Top 10 Opportunités pour toi</h2>
+                <div className="flex gap-2">
+                    <Link href="/dashboard/tracking">
+                        <Button variant="outline">
+                            <Briefcase className="w-4 h-4 mr-2" /> Suivi Candidatures
+                        </Button>
+                    </Link>
+                    <Link href="/dashboard/analyze">
+                        <Button className="bg-blue-600 hover:bg-blue-700">
+                            <Briefcase className="w-4 h-4 mr-2" /> Nouvelle Analyse
+                        </Button>
+                    </Link>
                 </div>
+            </div>
 
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {topJobs.map((job: any) => (
-                        <Card key={job.rang} className="hover:shadow-lg transition-shadow border-slate-200">
-                            <CardHeader className="pb-3">
-                                <div className="flex justify-between items-start">
-                                    <Badge variant={job.match_score > 80 ? "default" : "secondary"} className="mb-2">
-                                        {job.match_score}% Match
+            {/* STATS ROW */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-6">
+                        <div className="text-4xl font-bold text-blue-600 mb-1">{stats.analyses}</div>
+                        <div className="text-sm font-medium text-slate-500">Offres Analysées</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-6">
+                        <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
+                        <div className="text-sm font-medium text-slate-500">CVs Générés</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardContent className="flex flex-col items-center justify-center p-6">
+                        <div className="text-4xl font-bold text-green-600 mb-1">87/100</div>
+                        <div className="text-sm font-medium text-slate-500">Score Profil Moy.</div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-slate-900 text-white">
+                    <CardContent className="flex flex-col items-center justify-center p-6 h-full">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Github className="w-5 h-5" />
+                            <span className="font-bold">RAG Storage</span>
+                        </div>
+                        <div className="text-xs text-slate-300 text-center">Données synchronisées sur GitHub Privé</div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+
+                {/* TOP JOBS SUGGESTIONS */}
+                <div className="md:col-span-2 space-y-6">
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-blue-600" /> Top Opportunités pour vous
+                    </h2>
+
+                    <div className="grid gap-4">
+                        {topJobs.slice(0, 5).map((job: any, i) => (
+                            <Card key={i} className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500">
+                                <CardContent className="p-4 flex justify-between items-center">
+                                    <div>
+                                        <div className="font-bold text-lg text-slate-800">{job.titre}</div>
+                                        <div className="text-sm text-slate-500">{job.secteur} • {job.salaire_estime}</div>
+                                    </div>
+                                    <Badge variant="secondary" className="text-blue-700 bg-blue-50">
+                                        Match {job.match_score}%
                                     </Badge>
-                                    <span className="text-xs font-bold text-slate-300">#{job.rang}</span>
-                                </div>
-                                <CardTitle className="text-lg text-blue-900 leading-snug">
-                                    {job.titre_poste}
-                                </CardTitle>
-                                <CardDescription className="line-clamp-2 mt-1">
-                                    {job.raison}
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col gap-3 text-sm text-slate-600">
-                                    <div className="flex items-center gap-2">
-                                        <DollarSign className="w-4 h-4 text-green-600" />
-                                        <span className="font-medium">{job.salaire_min} - {job.salaire_max} k€</span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                        {job.secteurs?.map((secteur: string) => (
-                                            <span key={secteur} className="bg-slate-100 px-2 py-1 rounded text-xs">
-                                                {secteur}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
                 </div>
 
-                {topJobs.length === 0 && (
-                    <div className="text-center p-10 bg-slate-50 rounded-xl">
-                        <p>Aucune suggestion pour le moment. As-tu bien finalisé l'upload via /onboarding ?</p>
-                    </div>
-                )}
-            </section>
+                {/* PROFILE SUMMARY SIDEBAR */}
+                <div className="space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Mon Profil RAG</CardTitle>
+                            <CardDescription>Généré par IA</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <div className="text-xs font-bold text-slate-400 uppercase mb-1">Titre Principal</div>
+                                <div className="font-medium">{profile?.titre_principal}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs font-bold text-slate-400 uppercase mb-1">Localisation</div>
+                                <div className="font-medium">{profile?.localisation}</div>
+                            </div>
+                            <div>
+                                <div className="text-xs font-bold text-slate-400 uppercase mb-1">Compétences Clés</div>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                    <Badge variant="outline">Gestion de projet</Badge>
+                                    <Badge variant="outline">Agile</Badge>
+                                    <Badge variant="outline">Leadership</Badge>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+            </div>
         </div>
     );
 }
