@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-// Mock User ID
-const USER_ID = "user_123_mock";
+import Cookies from "js-cookie";
 
 export default function MatchResultPage() {
     const { id } = useParams();
@@ -48,7 +47,7 @@ export default function MatchResultPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    userId: USER_ID,
+                    userId: Cookies.get("userId"),
                     analysisId: id,
                     template: "standard"
                 }),

@@ -10,8 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import Cookies from "js-cookie";
 
-// Mock User ID (Fallback)
-const USER_ID = "user_123_mock";
+
 
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
@@ -27,13 +26,19 @@ export default function DashboardPage() {
         );
         async function fetchData() {
             setUserName(Cookies.get("userName") || "Candidat");
-            const userId = Cookies.get("userId"); // Should use real ID if logged in
+            const userId = Cookies.get("userId");
+
+            if (!userId) {
+                // No user ? Redirect to login (Real Auth)
+                window.location.href = "/login";
+                return;
+            }
 
             // 1. Fetch RAG Profile
             const { data: ragData } = await supabase
                 .from("rag_metadata")
                 .select("*")
-                .eq("user_id", userId || USER_ID)
+                .eq("user_id", userId)
                 .single();
 
             if (ragData) {
@@ -42,8 +47,8 @@ export default function DashboardPage() {
             }
 
             // 2. Fetch Stats
-            const { count: analysesCount } = await supabase.from("job_analyses").select("*", { count: 'exact' }).eq("user_id", userId || USER_ID);
-            const { count: cvsCount } = await supabase.from("cv_generations").select("*", { count: 'exact' }).eq("user_id", userId || USER_ID);
+            const { count: analysesCount } = await supabase.from("job_analyses").select("*", { count: 'exact' }).eq("user_id", userId);
+            const { count: cvsCount } = await supabase.from("cv_generations").select("*", { count: 'exact' }).eq("user_id", userId);
 
             setStats({
                 analyses: analysesCount || 0,

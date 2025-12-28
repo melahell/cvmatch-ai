@@ -44,11 +44,14 @@ export async function POST(req: Request) {
         const result = await models.flash.generateContent(prompt);
         const letter = result.response.text();
 
-        // 3. Save
+        // 3. Save to Match Report (JSON Storage)
+        // We store the cover letter inside the match_report JSONB to allow flexibility without schema migration.
+        const { data: currentAnalysis } = await supabase.from("job_analyses").select("match_report").eq("id", analysisId).single();
+        const updatedReport = { ...currentAnalysis?.match_report, cover_letter: letter };
+
         await supabase.from("job_analyses").update({
             lm_generated: true,
-            lm_url: "stored_in_notes_for_poc", // Ideally valid storage, for now let's just mark generated
-            notes: letter // Hack for POC storage to avoid creating new table or column if not exists
+            match_report: updatedReport
         }).eq("id", analysisId);
 
         return NextResponse.json({ success: true, letter });

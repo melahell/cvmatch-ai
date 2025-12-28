@@ -37,12 +37,37 @@ export async function POST(req: Request) {
         // For POC, if URL is provided, we just assume the user pasted text or we fail gracefully if no text.
         // Ideally we would use Puppeteer/Playwright here.
         if (jobUrl && !jobText) {
-            // Mock fetch for POC
-            fullJobText = `Poste: Senior Project Manager chez TechCorp.
-       Mission: Gérer des projets IT complexes using Agile methodology.
-       Requis: 5 ans XP, Anglais courant, Certification PMP.
-       Salaire: 60-70k.
-       (Note: Ceci est un contenu mocké car le scraping n'est pas encore implémenté)`;
+            try {
+                const cheerio = await import("cheerio");
+                const response = await fetch(jobUrl, {
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    }
+                });
+
+                if (!response.ok) throw new Error(`Failed to fetch URL: ${response.status}`);
+
+                const html = await response.text();
+                const $ = cheerio.load(html);
+
+                // Remove scripts, styles
+                $('script').remove();
+                $('style').remove();
+
+                // Strategy: Try to find common job board containers, else body
+                // Simple generic extraction for POC "Zero Mock"
+                fullJobText = $('body').text().replace(/\s+/g, ' ').trim();
+
+                if (fullJobText.length < 50) {
+                    throw new Error("Content too short, possibly blocked by bot protection");
+                }
+            } catch (err: any) {
+                console.error("Scraping failed", err);
+                // Strict "Zero Simulation": Do not fallback to mock.
+                return NextResponse.json({
+                    error: `Impossible de lire l'offre depuis l'URL (${err.message}). Merci de copier-coller le texte de l'annonce.`
+                }, { status: 400 });
+            }
         }
 
         // 3. Analyze Match with Gemini

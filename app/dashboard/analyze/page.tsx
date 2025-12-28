@@ -11,8 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 
-// Mock User ID
-const USER_ID = "user_123_mock";
+import Cookies from "js-cookie";
 
 export default function AnalyzePage() {
     const router = useRouter();
@@ -30,7 +29,7 @@ export default function AnalyzePage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    userId: USER_ID,
+                    userId: Cookies.get("userId"),
                     jobUrl: mode === "url" ? url : undefined,
                     jobText: mode === "text" ? text : undefined,
                 }),

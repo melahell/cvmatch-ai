@@ -168,11 +168,7 @@ export async function POST(req: Request) {
         }
 
         // 5. Save RAG Metadata to Supabase
-        // Calculate a simple completeness score (mock logic for now)
         const completenessScore = 85;
-
-        // Generate Top 10 Jobs (Mock or secondary call - let's do a quick secondary call if possible, or just mock for POC speed)
-        // For POC speed, let's just save the RAG data for now.
 
         // Check if entry exists
         const { data: existingRag } = await supabase
