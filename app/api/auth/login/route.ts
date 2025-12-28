@@ -2,7 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-export const runtime = "edge"; // Can be edge for speed
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
     const supabase = createClient(
