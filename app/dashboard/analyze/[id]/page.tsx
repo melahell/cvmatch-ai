@@ -12,11 +12,6 @@ import { Badge } from "@/components/ui/badge";
 // Mock User ID
 const USER_ID = "user_123_mock";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function MatchResultPage() {
     const { id } = useParams();
     const router = useRouter();
@@ -25,6 +20,10 @@ export default function MatchResultPage() {
     const [generatingCV, setGeneratingCV] = useState(false);
 
     useEffect(() => {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
         async function fetchAnalysis() {
             if (!id) return;
 

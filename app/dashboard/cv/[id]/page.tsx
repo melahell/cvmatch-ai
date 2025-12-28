@@ -9,17 +9,16 @@ import { Button } from "@/components/ui/button";
 import { StandardTemplate } from "@/components/cv/StandardTemplate";
 import Link from "next/link";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function CVViewPage() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
     const [cvData, setCvData] = useState<any>(null);
 
     useEffect(() => {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
         async function fetchCV() {
             if (!id) return;
 

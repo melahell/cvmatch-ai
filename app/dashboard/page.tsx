@@ -11,17 +11,16 @@ import { Button } from "@/components/ui/button";
 // Mock User ID (Match with Onboarding)
 const USER_ID = "user_123_mock";
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<any>(null);
     const [topJobs, setTopJobs] = useState<any[]>([]);
 
     useEffect(() => {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
         async function fetchData() {
             const { data, error } = await supabase
                 .from("rag_metadata")
