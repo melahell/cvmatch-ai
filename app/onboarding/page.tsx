@@ -1,9 +1,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Upload, CheckCircle, FileText } from "lucide-react";
+import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -15,10 +16,16 @@ export default function OnboardingPage() {
     const [processing, setProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
 
-    // Mock User ID (For POC, ideally comes from Auth Context)
-    // In a real flow, you'd get this from supabase.auth.getUser()
-    // For now, we'll prompt or use a hardcoded one if auth isn't set up fully
-    const [userId, setUserId] = useState("user_123_mock");
+    const [userId, setUserId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const storedId = Cookies.get("userId");
+        if (!storedId) {
+            router.push("/login"); // Redirect if no auth
+        } else {
+            setUserId(storedId);
+        }
+    }, [router]);
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -61,7 +68,7 @@ export default function OnboardingPage() {
         try {
             // 1. Upload
             const formData = new FormData();
-            formData.append("userId", userId);
+            formData.append("userId", userId || "");
             files.forEach((file) => formData.append("files", file));
 
             const uploadRes = await fetch("/api/rag/upload", {
@@ -192,10 +199,7 @@ export default function OnboardingPage() {
                 </CardContent>
             </Card>
 
-            {/* Dev Helper */}
-            <div className="mt-8 p-4 bg-yellow-50 text-xs text-yellow-800 rounded border border-yellow-200">
-                <span className="font-bold">DEV MODE:</span> Using Mock User ID: {userId}
-            </div>
+            {/* Dev Helper removed for production */}
         </div>
     );
 }
