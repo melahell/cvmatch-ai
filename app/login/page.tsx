@@ -27,7 +27,7 @@ export default function LoginPage() {
                 provider: 'google',
                 options: {
                     // Explicitly use production URL to ensure Vercel deployment works
-                    redirectTo: `https://cvmatch-ai-prod.vercel.app/auth/callback`,
+                    redirectTo: `https://cvmatch-ai-prod.vercel.app/auth/confirm`,
                 },
                 flowType: 'pkce',
             });
