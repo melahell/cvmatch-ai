@@ -26,8 +26,8 @@ export default function LoginPage() {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    // Dynamic redirect based on current origin
-                    redirectTo: `${window.location.origin}/auth/callback`,
+                    // Explicitly use production URL to ensure Vercel deployment works
+                    redirectTo: `https://cvmatch-ai-prod.vercel.app/auth/callback`,
                 },
             });
             if (error) throw error;
