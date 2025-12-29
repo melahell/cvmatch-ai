@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
+import Cookies from "js-cookie";
 import { Loader2, ArrowRight, Sparkles, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator"; // Assuming you have or will mock this
-import Cookies from "js-cookie";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
@@ -17,6 +17,47 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState("");
     const [name, setName] = useState("");
+
+    // Fallback: Handle OAuth tokens if Supabase redirects to /login instead of /auth/confirm
+    useEffect(() => {
+        const handleOAuthFallback = async () => {
+            const hash = window.location.hash;
+            if (hash && hash.includes("access_token")) {
+                setLoading(true);
+                const supabase = createSupabaseClient();
+                const params = new URLSearchParams(hash.replace("#", "?"));
+                const access_token = params.get("access_token");
+                const refresh_token = params.get("refresh_token");
+
+                if (access_token && refresh_token) {
+                    try {
+                        const { data, error } = await supabase.auth.setSession({
+                            access_token,
+                            refresh_token,
+                        });
+
+                        if (error) throw error;
+                        if (data.session) {
+                            const userId = data.session.user.id;
+                            const userName = data.session.user.user_metadata.full_name ||
+                                data.session.user.user_metadata.name || "User";
+
+                            Cookies.set("userId", userId, { expires: 7 });
+                            Cookies.set("userName", userName, { expires: 7 });
+
+                            router.replace("/dashboard");
+                            return;
+                        }
+                    } catch (err: any) {
+                        console.error("OAuth Fallback Error:", err);
+                    }
+                }
+                setLoading(false);
+            }
+        };
+
+        handleOAuthFallback();
+    }, [router]);
 
     const handleGoogleLogin = async () => {
         setLoading(true);
