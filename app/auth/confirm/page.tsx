@@ -36,23 +36,26 @@ export default function AuthCallbackPage() {
             }
         });
 
-        // Fallback: Check if we already have a session (e.g. Implicit flow finished before listener)
+        // Fallback: Check if we already have a session
         supabase.auth.getSession().then(({ data: { session }, error }) => {
             if (error) {
                 console.error("Auth Error:", error);
-                router.replace("/login?error=" + error.message);
-            }
-            if (session) {
-                // Already handled by onAuthStateChange usually, but good fallback
+                // DEBUG MODE: Display error instead of redirecting
+                setStatus(`ERREUR: ${error.message || JSON.stringify(error)}`);
+            } else if (session) {
+                // Handled by onAuthStateChange
             } else {
-                // No session found? 
-                // Wait a bit, sometimes the hash parsing takes a ms
+                // No session found?
                 setTimeout(() => {
+                    const hash = window.location.hash;
                     if (!Cookies.get("userId")) {
-                        // Still no user? Maybe just landed here empty?
-                        // Don't redirect immediately to avoid loops if loading
+                        if (hash && hash.includes("access_token")) {
+                            setStatus(`Token détecté mais session non établie. Hash: ${hash.substring(0, 50)}...`);
+                        } else {
+                            setStatus("Aucune session trouvée. Veuillez réessayer.");
+                        }
                     }
-                }, 2000);
+                }, 4000);
             }
         });
 
