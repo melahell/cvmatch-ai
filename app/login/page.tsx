@@ -29,6 +29,7 @@ export default function LoginPage() {
                     // Explicitly use production URL to ensure Vercel deployment works
                     redirectTo: `https://cvmatch-ai-prod.vercel.app/auth/callback`,
                 },
+                flowType: 'pkce',
             });
             if (error) throw error;
         } catch (err: any) {
