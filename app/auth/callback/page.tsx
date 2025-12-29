@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 export default function AuthCallbackPage() {
     const router = useRouter();
     const [status, setStatus] = useState("Authentification en cours...");
+    // Force Vercel Redeploy to clear stale route handler
 
     useEffect(() => {
         const supabase = createSupabaseClient();
