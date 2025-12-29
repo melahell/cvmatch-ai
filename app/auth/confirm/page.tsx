@@ -13,55 +13,71 @@ export default function AuthCallbackPage() {
     // Force Vercel Redeploy to clear stale route handler
 
     useEffect(() => {
-        const supabase = createSupabaseClient();
+        const handleAuth = async () => {
+            const supabase = createSupabaseClient();
 
-        // 1. Handle OAuth Callback
-        // Supabase.js automatically parses the URL hash (#access_token) or query (?code)
-        // when we subscribe to onAuthStateChange or getSession.
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (event === "SIGNED_IN" && session) {
-                setStatus("Connexion réussie ! Redirection...");
+            try {
+                // 1. Try Manual Hash Parsing (Brute Force)
+                // This bypasses issues where the SDK might fail to auto-detect the hash
+                const hash = window.location.hash;
+                if (hash && hash.includes("access_token")) {
+                    const params = new URLSearchParams(hash.replace("#", "?")); // treat hash as query params for parsing
+                    const access_token = params.get("access_token");
+                    const refresh_token = params.get("refresh_token");
 
-                // 2. Persist User Info in Cookies (matching our app's logic)
-                const userId = session.user.id;
-                const userName = session.user.user_metadata.full_name || session.user.user_metadata.name || "User";
+                    if (access_token && refresh_token) {
+                        const { data, error } = await supabase.auth.setSession({
+                            access_token,
+                            refresh_token,
+                        });
 
-                Cookies.set("userId", userId, { expires: 7 });
-                Cookies.set("userName", userName, { expires: 7 });
-
-                // 3. Redirect to Dashboard
-                router.replace("/dashboard");
-            } else if (event === "osignout") {
-                // Handle odd edge cases
-            }
-        });
-
-        // Fallback: Check if we already have a session
-        supabase.auth.getSession().then(({ data: { session }, error }) => {
-            if (error) {
-                console.error("Auth Error:", error);
-                // DEBUG MODE: Display error instead of redirecting
-                setStatus(`ERREUR: ${error.message || JSON.stringify(error)}`);
-            } else if (session) {
-                // Handled by onAuthStateChange
-            } else {
-                // No session found?
-                setTimeout(() => {
-                    const hash = window.location.hash;
-                    if (!Cookies.get("userId")) {
-                        if (hash && hash.includes("access_token")) {
-                            setStatus(`Token détecté mais session non établie. Hash: ${hash.substring(0, 50)}...`);
-                        } else {
-                            setStatus("Aucune session trouvée. Veuillez réessayer.");
+                        if (error) throw error;
+                        if (data.session) {
+                            finalizeLogin(data.session);
+                            return;
                         }
                     }
-                }, 4000);
-            }
-        });
+                }
 
-        return () => {
-            subscription.unsubscribe();
+                // 2. Fallback to standard SDK detection (PKCE code or existing session)
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) throw error;
+
+                if (session) {
+                    finalizeLogin(session);
+                } else {
+                    // 3. Listener for late-arriving events
+                    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                        if (event === "SIGNED_IN" && session) {
+                            finalizeLogin(session);
+                        }
+                    });
+
+                    // Cleanup usage
+                    return () => subscription.unsubscribe();
+                }
+
+            } catch (error: any) {
+                console.error("Auth Fail:", error);
+                // In Debug/Dev mode, we might want to show this, but for the user let's try to be helpful
+                setStatus(`Erreur d'authentification: ${error.message}`);
+                // Optional: redirect to login after delay
+                setTimeout(() => router.replace("/login"), 5000);
+            }
         };
+
+        const finalizeLogin = (session: any) => {
+            setStatus("Succès ! Connexion en cours...");
+            const userId = session.user.id;
+            const userName = session.user.user_metadata.full_name || session.user.user_metadata.name || "User";
+
+            Cookies.set("userId", userId, { expires: 7 });
+            Cookies.set("userName", userName, { expires: 7 });
+
+            router.replace("/dashboard");
+        };
+
+        handleAuth();
     }, [router]);
 
     return (
