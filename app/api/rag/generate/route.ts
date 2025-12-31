@@ -74,7 +74,7 @@ export async function POST(req: Request) {
         let useProModel = true; // Start with Pro, fallback to Flash if quota exceeded
 
         // Smart generation with automatic fallback
-        async function generateWithFallback(prompt: string | any[]): Promise<any> {
+        const generateWithFallback = async (prompt: string | any[]): Promise<any> => {
             try {
                 if (useProModel) {
                     return await proModel.generateContent(prompt);
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
                 }
             }
             return await flashModel.generateContent(prompt);
-        }
+        };
 
         let processedCount = 0;
         const processingResults: any[] = [];
