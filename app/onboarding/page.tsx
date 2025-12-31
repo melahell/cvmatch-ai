@@ -114,17 +114,52 @@ export default function OnboardingPage() {
 
     return (
         <div className="container mx-auto max-w-2xl py-20 px-4">
+            {/* Step Indicator */}
+            <div className="flex items-center justify-center mb-8">
+                <div className="flex items-center gap-2">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${files.length > 0 ? "bg-green-500 text-white" : "bg-blue-600 text-white"}`}>
+                        {files.length > 0 ? <CheckCircle className="w-5 h-5" /> : "1"}
+                    </div>
+                    <span className="text-sm font-medium">Documents</span>
+                </div>
+                <div className="w-12 h-0.5 bg-slate-200 mx-2" />
+                <div className="flex items-center gap-2">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${processing ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"}`}>
+                        {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : "2"}
+                    </div>
+                    <span className="text-sm font-medium text-slate-500">Analyse IA</span>
+                </div>
+                <div className="w-12 h-0.5 bg-slate-200 mx-2" />
+                <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold">3</div>
+                    <span className="text-sm font-medium text-slate-500">Terminé</span>
+                </div>
+            </div>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold text-center">
                         Commençons par ton profil 🚀
                     </CardTitle>
                     <CardDescription className="text-center">
-                        Uploade ton CV actuel, ton profil LinkedIn (PDF) ou tout autre document pertinent.
-                        L'IA va automatiquement structurer tes compétences.
+                        L'IA va automatiquement structurer tes compétences et générer des recommandations personnalisées.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {/* Guidance Section */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+                            <FileText className="w-4 h-4" /> Quels documents uploader ?
+                        </h3>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-blue-700">✅ CV (PDF, DOCX)</div>
+                            <div className="text-blue-700">✅ Profil LinkedIn</div>
+                            <div className="text-blue-600 opacity-75">💡 Certifications</div>
+                            <div className="text-blue-600 opacity-75">💡 Portfolio</div>
+                        </div>
+                        <p className="mt-2 text-xs text-blue-600">Plus tu uploades de documents, plus l'analyse sera précise !</p>
+                    </div>
+
                     <div
                         className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50" : "border-slate-200"
                             } `}

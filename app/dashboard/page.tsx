@@ -178,8 +178,10 @@ export default function DashboardPage() {
                             <Card key={i} className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500">
                                 <CardContent className="p-4 flex justify-between items-center">
                                     <div>
-                                        <div className="font-bold text-lg text-slate-800">{job.titre}</div>
-                                        <div className="text-sm text-slate-500">{job.secteur} • {job.salaire_estime}</div>
+                                        <div className="font-bold text-lg text-slate-800">{job.titre_poste || "Poste non défini"}</div>
+                                        <div className="text-sm text-slate-500">
+                                            {job.secteurs?.join(", ") || "Secteur varié"} • {job.salaire_min}k€ - {job.salaire_max}k€
+                                        </div>
                                     </div>
                                     <Badge variant="secondary" className="text-blue-700 bg-blue-50">
                                         Match {job.match_score}%
