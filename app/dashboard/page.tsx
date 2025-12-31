@@ -16,6 +16,8 @@ export default function DashboardPage() {
     const [profile, setProfile] = useState<UserProfile["profil"] | null>(null);
     const [topJobs, setTopJobs] = useState<any[]>([]); // Keeping any for topJobs as structure varies
     const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
+    const [completenessScore, setCompletenessScore] = useState(0);
+    const [skills, setSkills] = useState<string[]>([]);
     const [userName, setUserName] = useState("Candidat");
 
     useEffect(() => {
@@ -34,15 +36,19 @@ export default function DashboardPage() {
             // 1. Fetch RAG Data
             const { data: ragData } = await supabase
                 .from("rag_metadata")
-                .select("completeness_details, top_10_jobs")
+                .select("completeness_details, top_10_jobs, completeness_score")
                 .eq("user_id", userId)
                 .single();
 
             if (ragData) {
                 setProfile(ragData.completeness_details?.profil); // Type is now compatible
+                setCompletenessScore(ragData.completeness_score || 0);
                 if (ragData.top_10_jobs) {
                     setTopJobs(ragData.top_10_jobs);
                 }
+                // Extract skills from profile
+                const profileSkills = ragData.completeness_details?.competences?.techniques?.slice(0, 5) || [];
+                setSkills(profileSkills);
 
                 // 2. Fetch Stats
                 const { count: appliedCount } = await supabase
@@ -120,7 +126,7 @@ export default function DashboardPage() {
                 </Card>
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center p-6">
-                        <div className="text-4xl font-bold text-green-600 mb-1">87/100</div>
+                        <div className="text-4xl font-bold text-green-600 mb-1">{completenessScore}/100</div>
                         <div className="text-sm font-medium text-slate-500">Score Profil Moy.</div>
                     </CardContent>
                 </Card>
@@ -179,9 +185,11 @@ export default function DashboardPage() {
                             <div>
                                 <div className="text-xs font-bold text-slate-400 uppercase mb-1">Compétences Clés</div>
                                 <div className="flex flex-wrap gap-2 mt-1">
-                                    <Badge variant="outline">Gestion de projet</Badge>
-                                    <Badge variant="outline">Agile</Badge>
-                                    <Badge variant="outline">Leadership</Badge>
+                                    {skills.length > 0 ? skills.map((skill, i) => (
+                                        <Badge key={i} variant="outline">{skill}</Badge>
+                                    )) : (
+                                        <span className="text-sm text-slate-400">Aucune compétence enregistrée</span>
+                                    )}
                                 </div>
                             </div>
                         </CardContent>

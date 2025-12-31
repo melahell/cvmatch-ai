@@ -97,7 +97,28 @@ export async function POST(req: Request) {
         }
 
         // 5. Save RAG Metadata to Supabase
-        const completenessScore = 85;
+        // Calculate completeness score dynamically based on RAG content
+        const calculateCompletenessScore = (data: any): number => {
+            let score = 0;
+            const weights = {
+                profil: 20,        // Has basic profile info
+                experiences: 30,   // Has work experience
+                competences: 25,   // Has skills
+                formations: 15,    // Has education
+                projets: 10        // Has projects
+            };
+
+            if (data?.profil?.nom || data?.profil?.prenom) score += weights.profil;
+            if (data?.experiences?.length > 0) score += Math.min(weights.experiences, data.experiences.length * 10);
+            if (data?.competences?.techniques?.length > 0) score += Math.min(weights.competences, data.competences.techniques.length * 5);
+            if (data?.formations?.length > 0) score += Math.min(weights.formations, data.formations.length * 7);
+            if (data?.projets?.length > 0) score += Math.min(weights.projets, data.projets.length * 5);
+
+            return Math.min(100, score);
+        };
+
+        const completenessScore = calculateCompletenessScore(ragData);
+
 
         // Check if entry exists
         const { data: existingRag } = await supabase
