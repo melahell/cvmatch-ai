@@ -8,6 +8,29 @@ import { getDocumentProxy, extractText } from "unpdf";
 export const runtime = "nodejs";
 export const maxDuration = 60; // Allow up to 60 seconds for processing
 
+// Retry wrapper with exponential backoff for rate limits
+async function callWithRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 30000
+): Promise<T> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            const isRateLimit = error.message?.includes("429") || error.message?.includes("quota");
+            if (isRateLimit && attempt < maxRetries - 1) {
+                const delay = baseDelay * Math.pow(2, attempt); // 30s, 60s, 120s
+                console.log(`Rate limited, waiting ${delay / 1000}s before retry ${attempt + 2}/${maxRetries}`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw new Error("Max retries exceeded");
+}
+
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
 
@@ -44,7 +67,7 @@ export async function POST(req: Request) {
         }
 
         let allExtractedText = "";
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         let processedCount = 0;
         const processingResults: any[] = [];
 
@@ -133,7 +156,7 @@ export async function POST(req: Request) {
 
         // 3. Process with Gemini to structure the RAG
         const prompt = getRAGExtractionPrompt(allExtractedText);
-        const result = await model.generateContent(prompt);
+        const result = await callWithRetry(() => model.generateContent(prompt));
         const responseText = result.response.text();
 
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -150,7 +173,7 @@ export async function POST(req: Request) {
         let top10Jobs: any[] = [];
         try {
             const jobPrompt = getTopJobsPrompt(ragData);
-            const jobResult = await model.generateContent(jobPrompt);
+            const jobResult = await callWithRetry(() => model.generateContent(jobPrompt));
             const jobJsonString = jobResult.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
             top10Jobs = JSON.parse(jobJsonString);
         } catch (e) {
