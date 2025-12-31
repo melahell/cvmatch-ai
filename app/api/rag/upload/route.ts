@@ -14,6 +14,31 @@ export async function POST(req: Request) {
         }
 
         const supabase = createSupabaseClient();
+
+        // First, ensure user exists in users table (auto-create if not)
+        const { data: existingUser, error: userCheckError } = await supabase
+            .from("users")
+            .select("id")
+            .eq("id", userId)
+            .single();
+
+        if (!existingUser) {
+            // Create user in users table
+            const { error: createUserError } = await supabase
+                .from("users")
+                .insert({
+                    id: userId,
+                    email: `user-${userId.slice(0, 8)}@temp.com`, // Temporary email
+                    user_id: userId.slice(0, 20), // Required field
+                    onboarding_completed: false
+                });
+
+            if (createUserError) {
+                console.error("Failed to create user:", createUserError);
+                // Continue anyway, maybe user exists but RLS blocked the select
+            }
+        }
+
         const uploads = [];
         let successCount = 0;
 
@@ -24,6 +49,7 @@ export async function POST(req: Request) {
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
             const path = `${userId}/${timestamp}_${safeName}`;
 
+            // Upload to storage
             const { data, error } = await supabase.storage
                 .from("documents")
                 .upload(path, buffer, {
@@ -36,9 +62,9 @@ export async function POST(req: Request) {
                 uploads.push({
                     filename: file.name,
                     error: error.message,
-                    hint: error.message.includes("not found") ? "Bucket 'documents' does not exist in Supabase Storage" : undefined
+                    hint: error.message.includes("not found") ? "Bucket 'documents' does not exist" : undefined
                 });
-                continue; // Skip to next file
+                continue;
             }
 
             // Record in database
@@ -60,13 +86,11 @@ export async function POST(req: Request) {
             }
         }
 
-        // If NO files were uploaded successfully, return error
         if (successCount === 0) {
             return NextResponse.json({
                 success: false,
                 error: "All uploads failed",
-                uploads,
-                hint: "Make sure the 'documents' bucket exists in Supabase Storage"
+                uploads
             }, { status: 500 });
         }
 
