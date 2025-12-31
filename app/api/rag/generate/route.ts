@@ -2,13 +2,23 @@ import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
+import { getDocumentProxy, extractText } from "unpdf";
 
-export const runtime = "edge";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Use Node.js runtime for env vars and libraries
+export const runtime = "nodejs";
+export const maxDuration = 60; // Allow up to 60 seconds for processing
 
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
+
+    // Check API key first
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("GEMINI_API_KEY not found in environment");
+        return NextResponse.json({ error: "Server configuration error: Missing AI API key" }, { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
 
     try {
         const { userId } = await req.json();
@@ -17,13 +27,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing userId" }, { status: 400 });
         }
 
-        // 1. Fetch ALL documents for this user (pending OR processed)
-        // We want to use the extracted_text from processed ones too
+        // 1. Fetch ALL documents for this user
         const { data: docs, error: dbError } = await supabase
             .from("uploaded_documents")
             .select("*")
             .eq("user_id", userId)
-            .in("extraction_status", ["pending", "processed"]);
+            .in("extraction_status", ["pending", "processed", "failed"]);
 
         if (dbError) {
             console.error("DB Error:", dbError);
@@ -31,25 +40,22 @@ export async function POST(req: Request) {
         }
 
         if (!docs || docs.length === 0) {
-            return NextResponse.json({ message: "No documents found" });
+            return NextResponse.json({ message: "No documents found for this user" });
         }
 
         let allExtractedText = "";
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
         let processedCount = 0;
+        const processingResults: any[] = [];
 
         // 2. Extract text from each document
         for (const doc of docs) {
             try {
-                // If already processed, use stored text
-                if (doc.extraction_status === "processed" && doc.extracted_text) {
+                // If already processed with text, use it
+                if (doc.extracted_text && doc.extracted_text.trim().length > 0) {
                     allExtractedText += `\n--- DOCUMENT: ${doc.filename} ---\n${doc.extracted_text}\n`;
                     processedCount++;
-                    continue;
-                }
-
-                // Skip if already failed
-                if (doc.extraction_status === "failed") {
+                    processingResults.push({ filename: doc.filename, status: "used_cached" });
                     continue;
                 }
 
@@ -60,63 +66,69 @@ export async function POST(req: Request) {
 
                 if (downloadError) {
                     console.error(`Error downloading ${doc.filename}:`, downloadError);
-                    await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
+                    processingResults.push({ filename: doc.filename, status: "download_failed", error: downloadError.message });
                     continue;
                 }
 
                 let text = "";
                 const arrayBuffer = await fileData.arrayBuffer();
 
-                // For text files, decode directly
-                if (doc.file_type === "txt" || doc.file_type === "md" || doc.file_type === "json") {
-                    const decoder = new TextDecoder("utf-8");
-                    text = decoder.decode(arrayBuffer);
-                } else if (doc.file_type === "pdf" || doc.file_type === "docx") {
-                    // For PDFs/DOCX, try Gemini Vision but handle failure gracefully
+                // Extract based on file type
+                if (doc.file_type === "pdf") {
+                    // Use unpdf for PDF extraction
                     try {
-                        const base64Data = btoa(
-                            new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), "")
-                        );
-
-                        const mimeType = doc.file_type === "pdf"
-                            ? "application/pdf"
-                            : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-                        const result = await model.generateContent([
-                            {
-                                inlineData: {
-                                    mimeType,
-                                    data: base64Data
-                                }
-                            },
-                            "Extrais tout le texte de ce document. Retourne uniquement le contenu texte brut."
-                        ]);
-                        text = result.response.text();
-                    } catch (extractError: any) {
-                        console.error(`Gemini extraction failed for ${doc.filename}:`, extractError.message);
+                        const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+                        const { text: pdfText } = await extractText(pdf, { mergePages: true });
+                        text = pdfText;
+                    } catch (pdfError: any) {
+                        console.error(`PDF extraction failed for ${doc.filename}:`, pdfError.message);
+                        processingResults.push({ filename: doc.filename, status: "extraction_failed", error: pdfError.message });
                         await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
                         continue;
                     }
+                } else if (doc.file_type === "docx") {
+                    // For DOCX, use mammoth (dynamic import to avoid Edge issues)
+                    try {
+                        const mammoth = await import("mammoth");
+                        const buffer = Buffer.from(arrayBuffer);
+                        const result = await mammoth.extractRawText({ buffer });
+                        text = result.value;
+                    } catch (docxError: any) {
+                        console.error(`DOCX extraction failed for ${doc.filename}:`, docxError.message);
+                        processingResults.push({ filename: doc.filename, status: "extraction_failed", error: docxError.message });
+                        await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
+                        continue;
+                    }
+                } else {
+                    // Plain text files (txt, md, json, csv, etc.)
+                    const decoder = new TextDecoder("utf-8");
+                    text = decoder.decode(arrayBuffer);
                 }
 
                 if (text.trim()) {
                     allExtractedText += `\n--- DOCUMENT: ${doc.filename} ---\n${text}\n`;
                     processedCount++;
+                    processingResults.push({ filename: doc.filename, status: "extracted" });
 
                     await supabase
                         .from("uploaded_documents")
-                        .update({ extraction_status: "processed", extracted_text: text.slice(0, 10000) })
+                        .update({ extraction_status: "processed", extracted_text: text.slice(0, 50000) })
                         .eq("id", doc.id);
+                } else {
+                    processingResults.push({ filename: doc.filename, status: "empty_content" });
                 }
 
             } catch (docError: any) {
                 console.error(`Error processing ${doc.filename}:`, docError.message);
-                await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
+                processingResults.push({ filename: doc.filename, status: "error", error: docError.message });
             }
         }
 
         if (!allExtractedText.trim()) {
-            return NextResponse.json({ error: "No text could be extracted from any document" }, { status: 400 });
+            return NextResponse.json({
+                error: "No text could be extracted from any document",
+                processingResults
+            }, { status: 400 });
         }
 
         // 3. Process with Gemini to structure the RAG
@@ -130,8 +142,8 @@ export async function POST(req: Request) {
         try {
             ragData = JSON.parse(jsonString);
         } catch (e) {
-            console.error("Failed to parse RAG JSON:", responseText.slice(0, 500));
-            return NextResponse.json({ error: "Failed to parse AI response" }, { status: 500 });
+            console.error("Failed to parse RAG JSON:", responseText.slice(0, 1000));
+            return NextResponse.json({ error: "AI returned invalid format, please try again" }, { status: 500 });
         }
 
         // 4. Generate Top 10 Jobs
@@ -142,7 +154,7 @@ export async function POST(req: Request) {
             const jobJsonString = jobResult.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
             top10Jobs = JSON.parse(jobJsonString);
         } catch (e) {
-            console.warn("Failed to generate Top 10 Jobs");
+            console.warn("Failed to generate Top 10 Jobs, continuing without");
         }
 
         // 5. Calculate completeness score
@@ -192,6 +204,7 @@ export async function POST(req: Request) {
             success: true,
             processedDocuments: processedCount,
             completenessScore,
+            processingResults,
             data: ragData
         });
 
