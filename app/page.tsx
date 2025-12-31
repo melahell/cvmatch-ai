@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, Sparkles, Zap, Shield, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import packageJson from "@/package.json";
 
 export default function LandingPage() {
     return (
@@ -48,7 +49,7 @@ export default function LandingPage() {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                             </span>
-                            Nouvelle version V1.2.1 disponible
+                            Nouvelle version v{packageJson.version} disponible
                         </div>
                     </motion.div>
 
