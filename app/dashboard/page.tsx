@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github } from "lucide-react";
+import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github, Upload, PlusCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -130,16 +130,40 @@ export default function DashboardPage() {
                         <div className="text-sm font-medium text-slate-500">Score Profil Moy.</div>
                     </CardContent>
                 </Card>
-                <Card className="bg-slate-900 text-white">
-                    <CardContent className="flex flex-col items-center justify-center p-6 h-full">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Github className="w-5 h-5" />
-                            <span className="font-bold">RAG Storage</span>
-                        </div>
-                        <div className="text-xs text-slate-300 text-center">Données synchronisées sur GitHub Privé</div>
-                    </CardContent>
-                </Card>
+                <Link href="/onboarding">
+                    <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
+                        <CardContent className="flex flex-col items-center justify-center p-6 h-full">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Upload className="w-5 h-5" />
+                                <span className="font-bold">RAG Storage</span>
+                            </div>
+                            <div className="text-xs text-slate-300 text-center">Cliquez pour créer/modifier votre profil</div>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
+
+            {/* CTA BANNER FOR EMPTY PROFILE */}
+            {completenessScore === 0 && (
+                <Link href="/onboarding">
+                    <Card className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
+                        <CardContent className="flex items-center justify-between p-6">
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/20 rounded-full">
+                                    <PlusCircle className="w-8 h-8" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold">Créez votre profil RAG</h3>
+                                    <p className="text-blue-100">Uploadez votre CV pour débloquer l'analyse IA et les recommandations personnalisées</p>
+                                </div>
+                            </div>
+                            <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
+                                Commencer <Upload className="w-4 h-4 ml-2" />
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </Link>
+            )}
 
             <div className="grid md:grid-cols-3 gap-8">
 
@@ -197,6 +221,6 @@ export default function DashboardPage() {
                 </div>
 
             </div>
-        </div>
+        </div >
     );
 }
