@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         }
 
         let allExtractedText = "";
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
         let processedCount = 0;
         const processingResults: any[] = [];
 
