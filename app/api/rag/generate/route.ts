@@ -67,7 +67,27 @@ export async function POST(req: Request) {
         }
 
         let allExtractedText = "";
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
+
+        // Tiered model strategy: Pro for critical tasks, Flash as fallback
+        const proModel = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+        const flashModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        let useProModel = true; // Start with Pro, fallback to Flash if quota exceeded
+
+        // Smart generation with automatic fallback
+        async function generateWithFallback(prompt: string | any[]): Promise<any> {
+            try {
+                if (useProModel) {
+                    return await proModel.generateContent(prompt);
+                }
+            } catch (error: any) {
+                if (error.message?.includes("429") || error.message?.includes("quota")) {
+                    console.log("Pro model quota exceeded, switching to Flash");
+                    useProModel = false;
+                }
+            }
+            return await flashModel.generateContent(prompt);
+        }
+
         let processedCount = 0;
         const processingResults: any[] = [];
 
@@ -156,7 +176,7 @@ export async function POST(req: Request) {
 
         // 3. Process with Gemini to structure the RAG
         const prompt = getRAGExtractionPrompt(allExtractedText);
-        const result = await callWithRetry(() => model.generateContent(prompt));
+        const result = await callWithRetry(() => generateWithFallback(prompt));
         const responseText = result.response.text();
 
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -173,7 +193,7 @@ export async function POST(req: Request) {
         let top10Jobs: any[] = [];
         try {
             const jobPrompt = getTopJobsPrompt(ragData);
-            const jobResult = await callWithRetry(() => model.generateContent(jobPrompt));
+            const jobResult = await callWithRetry(() => generateWithFallback(jobPrompt));
             const jobJsonString = jobResult.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
             top10Jobs = JSON.parse(jobJsonString);
         } catch (e) {
