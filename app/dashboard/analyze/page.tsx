@@ -35,16 +35,21 @@ export default function AnalyzePage() {
                 }),
             });
 
-            if (!res.ok) throw new Error("Analysis failed");
-
             const data = await res.json();
-            console.log("Analysis Result:", data);
 
+            if (!res.ok) {
+                // Display actual API error message
+                const errorMsg = data.error || "Une erreur est survenue";
+                alert(`⚠️ ${errorMsg}`);
+                return;
+            }
+
+            console.log("Analysis Result:", data);
             router.push(`/dashboard/analyze/${data.analysis_id}`);
 
-        } catch (error) {
-            console.error(error);
-            alert("Erreur lors de l'analyse");
+        } catch (error: any) {
+            console.error("Analyze error:", error);
+            alert("❌ Erreur de connexion. Vérifiez votre connexion internet et réessayez.");
         } finally {
             setLoading(false);
         }
