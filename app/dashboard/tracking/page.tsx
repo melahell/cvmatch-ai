@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUpDown, Trash2, ChevronRight } from "lucide-react";
+import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUpDown, Trash2, ChevronRight, LayoutGrid, LayoutList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,6 +44,7 @@ export default function TrackingPage() {
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState<SortOption>("date");
     const [sortAsc, setSortAsc] = useState(false);
+    const [compactView, setCompactView] = useState(false);
 
     useEffect(() => {
         if (authLoading || !userId) return;
@@ -217,7 +218,7 @@ export default function TrackingPage() {
                             className="gap-1"
                         >
                             <ArrowUpDown className="w-3 h-3" />
-                            Date
+                            <span className="hidden sm:inline">Date</span>
                         </Button>
                         <Button
                             variant={sortBy === "score" ? "secondary" : "outline"}
@@ -226,7 +227,7 @@ export default function TrackingPage() {
                             className="gap-1"
                         >
                             <ArrowUpDown className="w-3 h-3" />
-                            Score
+                            <span className="hidden sm:inline">Score</span>
                         </Button>
                         <Button
                             variant={sortBy === "status" ? "secondary" : "outline"}
@@ -235,7 +236,16 @@ export default function TrackingPage() {
                             className="gap-1"
                         >
                             <ArrowUpDown className="w-3 h-3" />
-                            Statut
+                            <span className="hidden sm:inline">Statut</span>
+                        </Button>
+                        <div className="border-l border-slate-200 mx-1" />
+                        <Button
+                            variant={compactView ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => setCompactView(!compactView)}
+                            title={compactView ? "Vue détaillée" : "Vue compacte"}
+                        >
+                            {compactView ? <LayoutGrid className="w-4 h-4" /> : <LayoutList className="w-4 h-4" />}
                         </Button>
                     </div>
                 </div>
@@ -245,8 +255,8 @@ export default function TrackingPage() {
                     <button
                         onClick={() => setFilter("all")}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "all"
-                                ? "bg-slate-900 text-white"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            ? "bg-slate-900 text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                             }`}
                     >
                         Toutes ({stats.total})
@@ -254,8 +264,8 @@ export default function TrackingPage() {
                     <button
                         onClick={() => setFilter("pending")}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "pending"
-                                ? "bg-slate-700 text-white"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            ? "bg-slate-700 text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                             }`}
                     >
                         À faire ({stats.pending})
@@ -263,8 +273,8 @@ export default function TrackingPage() {
                     <button
                         onClick={() => setFilter("applied")}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "applied"
-                                ? "bg-blue-600 text-white"
-                                : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                             }`}
                     >
                         Postulé ({stats.applied})
@@ -272,8 +282,8 @@ export default function TrackingPage() {
                     <button
                         onClick={() => setFilter("interviewing")}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "interviewing"
-                                ? "bg-purple-600 text-white"
-                                : "bg-purple-50 text-purple-700 hover:bg-purple-100"
+                            ? "bg-purple-600 text-white"
+                            : "bg-purple-50 text-purple-700 hover:bg-purple-100"
                             }`}
                     >
                         Entretien ({stats.interviewing})
@@ -281,8 +291,8 @@ export default function TrackingPage() {
                     <button
                         onClick={() => setFilter("offer")}
                         className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "offer"
-                                ? "bg-green-600 text-white"
-                                : "bg-green-50 text-green-700 hover:bg-green-100"
+                            ? "bg-green-600 text-white"
+                            : "bg-green-50 text-green-700 hover:bg-green-100"
                             }`}
                     >
                         Offre ({stats.offer})
@@ -290,7 +300,7 @@ export default function TrackingPage() {
                 </div>
 
                 {/* Jobs List */}
-                <div className="grid gap-3">
+                <div className={`grid ${compactView ? "gap-2" : "gap-3"}`}>
                     {processedJobs.map((job) => {
                         const status = STATUS_CONFIG[job.application_status || "pending"];
 
@@ -328,10 +338,10 @@ export default function TrackingPage() {
                                         <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap md:flex-nowrap">
                                             {/* Match Score */}
                                             <div className={`px-3 py-1 rounded-full text-sm font-bold ${job.match_score >= 80
-                                                    ? "bg-green-100 text-green-700"
-                                                    : job.match_score >= 60
-                                                        ? "bg-yellow-100 text-yellow-700"
-                                                        : "bg-red-100 text-red-700"
+                                                ? "bg-green-100 text-green-700"
+                                                : job.match_score >= 60
+                                                    ? "bg-yellow-100 text-yellow-700"
+                                                    : "bg-red-100 text-red-700"
                                                 }`}>
                                                 {job.match_score}%
                                             </div>
