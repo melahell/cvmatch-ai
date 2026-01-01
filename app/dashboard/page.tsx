@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github, Upload, PlusCircle } from "lucide-react";
+import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github, Upload, PlusCircle, User, Calendar, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +18,8 @@ export default function DashboardPage() {
     const [completenessScore, setCompletenessScore] = useState(0);
     const [skills, setSkills] = useState<string[]>([]);
     const [userName, setUserName] = useState("Candidat");
+    const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
+    const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const supabase = createSupabaseClient();
@@ -72,6 +73,18 @@ export default function DashboardPage() {
                     cvs: cvCount || 0,
                     applied: appliedCount || 0
                 });
+            }
+
+            // 3. Fetch Uploaded Documents
+            const { data: docs } = await supabase
+                .from("uploaded_documents")
+                .select("id, filename, created_at, file_type")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false })
+                .limit(5);
+
+            if (docs) {
+                setUploadedDocs(docs);
             }
 
             setLoading(false);
@@ -194,29 +207,66 @@ export default function DashboardPage() {
 
                 {/* PROFILE SUMMARY SIDEBAR */}
                 <div className="space-y-6">
+                    {/* Profile Card with Photo */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Mon Profil RAG</CardTitle>
-                            <CardDescription>Généré par IA</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-1">Titre Principal</div>
-                                <div className="font-medium">{profile?.titre_principal}</div>
-                            </div>
-                            <div>
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-1">Localisation</div>
-                                <div className="font-medium">{profile?.localisation}</div>
-                            </div>
-                            <div>
-                                <div className="text-xs font-bold text-slate-400 uppercase mb-1">Compétences Clés</div>
-                                <div className="flex flex-wrap gap-2 mt-1">
-                                    {skills.length > 0 ? skills.map((skill, i) => (
-                                        <Badge key={i} variant="outline">{skill}</Badge>
-                                    )) : (
-                                        <span className="text-sm text-slate-400">Aucune compétence enregistrée</span>
-                                    )}
+                        <CardContent className="p-6">
+                            <div className="flex items-center gap-4 mb-4">
+                                {/* Photo or Placeholder */}
+                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                                    {profile?.prenom?.[0]}{profile?.nom?.[0]}
                                 </div>
+                                <div>
+                                    <div className="font-bold text-lg">{profile?.prenom} {profile?.nom}</div>
+                                    <div className="text-sm text-slate-500">{profile?.titre_principal}</div>
+                                </div>
+                            </div>
+                            <div className="text-sm text-slate-500 mb-2">📍 {profile?.localisation}</div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Documents List */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm flex items-center gap-2">
+                                <FileText className="w-4 h-4" /> Documents uploadés ({uploadedDocs.length})
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            {uploadedDocs.length > 0 ? uploadedDocs.map((doc) => (
+                                <div key={doc.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
+                                    <span className="truncate max-w-[150px]">{doc.filename}</span>
+                                    <span className="text-xs text-slate-400">
+                                        {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                                    </span>
+                                </div>
+                            )) : (
+                                <div className="text-sm text-slate-400">Aucun document</div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Link to Mes Informations */}
+                    <Link href="/dashboard/profile">
+                        <Card className="hover:bg-slate-50 cursor-pointer transition-colors">
+                            <CardContent className="p-4 flex items-center justify-between">
+                                <span className="font-medium text-blue-600">📝 Mes informations</span>
+                                <ExternalLink className="w-4 h-4 text-blue-600" />
+                            </CardContent>
+                        </Card>
+                    </Link>
+
+                    {/* Skills Card */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Compétences Clés</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                                {skills.length > 0 ? skills.map((skill, i) => (
+                                    <Badge key={i} variant="outline">{skill}</Badge>
+                                )) : (
+                                    <span className="text-sm text-slate-400">Aucune compétence</span>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
