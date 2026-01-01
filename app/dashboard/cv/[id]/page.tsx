@@ -57,19 +57,21 @@ export default function CVViewPage() {
 
             {/* Navbar (Hidden in Print) */}
             <div className="bg-white border-b sticky top-0 z-10 print:hidden">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/dashboard" className="text-slate-500 hover:text-slate-900">
+                <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Link href="/dashboard/tracking" className="text-slate-500 hover:text-slate-900">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
-                        <h1 className="font-bold text-lg">Aperçu du CV</h1>
+                        <h1 className="font-bold text-base sm:text-lg">Aperçu du CV</h1>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={handlePrint}>
-                            <Download className="w-4 h-4 mr-2" /> PDF
+                        <Button variant="outline" size="sm" onClick={handlePrint}>
+                            <Download className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">PDF</span>
                         </Button>
-                        <Button onClick={handlePrint}>
-                            <Printer className="w-4 h-4 mr-2" /> Imprimer
+                        <Button size="sm" onClick={handlePrint}>
+                            <Printer className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Imprimer</span>
                         </Button>
                     </div>
                 </div>

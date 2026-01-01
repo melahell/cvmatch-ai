@@ -137,13 +137,13 @@ export default function CVEditorPage() {
         <div className="min-h-screen bg-slate-50 pb-20">
             {/* Header */}
             <div className="bg-white border-b sticky top-0 z-10">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/dashboard/cvs" className="text-slate-500 hover:text-slate-900">
+                <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Link href="/dashboard/tracking" className="text-slate-500 hover:text-slate-900">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
-                        <h1 className="font-bold text-lg">Éditer le CV</h1>
-                        <div className="flex items-center gap-2 text-sm">
+                        <h1 className="font-bold text-base sm:text-lg">Éditer le CV</h1>
+                        <div className="flex items-center gap-2 text-sm hidden sm:flex">
                             {saving && (
                                 <span className="text-slate-400 flex items-center gap-1">
                                     <Loader2 className="w-3 h-3 animate-spin" /> Sauvegarde...
@@ -151,19 +151,21 @@ export default function CVEditorPage() {
                             )}
                             {saved && (
                                 <span className="text-green-600 flex items-center gap-1">
-                                    <Check className="w-3 h-3" /> Sauvegardé
+                                    <Check className="w-3 h-3" /> OK
                                 </span>
                             )}
                         </div>
                     </div>
                     <div className="flex gap-2">
                         <Link href={`/dashboard/cv/${id}`}>
-                            <Button variant="outline">
-                                <Eye className="w-4 h-4 mr-2" /> Aperçu
+                            <Button variant="outline" size="sm">
+                                <Eye className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Aperçu</span>
                             </Button>
                         </Link>
-                        <Button onClick={handleExportPDF}>
-                            <Download className="w-4 h-4 mr-2" /> PDF
+                        <Button onClick={handleExportPDF} size="sm">
+                            <Download className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">PDF</span>
                         </Button>
                     </div>
                 </div>
@@ -183,7 +185,7 @@ export default function CVEditorPage() {
                     </CardHeader>
                     {expandedSections.profil && (
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <Label>Prénom</Label>
                                     <Input

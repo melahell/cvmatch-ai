@@ -100,24 +100,24 @@ export default function DashboardPage() {
             <div className="container mx-auto py-8 px-4">
 
                 {/* WELCOME HEADER */}
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || authUserName} 👋</h1>
-                        <p className="text-slate-500">Prêt à décrocher le job de vos rêves ?</p>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || authUserName} 👋</h1>
+                        <p className="text-slate-500 text-sm md:text-base">Prêt à décrocher le job de vos rêves ?</p>
                     </div>
-                    <div className="flex gap-2">
-                        <Link href="/dashboard/tracking">
-                            <Button variant="outline">
+                    <div className="flex gap-2 flex-wrap">
+                        <Link href="/dashboard/tracking" className="hidden md:block">
+                            <Button variant="outline" size="sm">
                                 <FileText className="w-4 h-4 mr-2" /> Mes CVs
                             </Button>
                         </Link>
-                        <Link href="/dashboard/tracking">
-                            <Button variant="outline">
-                                <Briefcase className="w-4 h-4 mr-2" /> Suivi Candidatures
+                        <Link href="/dashboard/tracking" className="hidden lg:block">
+                            <Button variant="outline" size="sm">
+                                <Briefcase className="w-4 h-4 mr-2" /> Suivi
                             </Button>
                         </Link>
                         <Link href="/dashboard/analyze">
-                            <Button className="bg-blue-600 hover:bg-blue-700">
+                            <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
                                 <Briefcase className="w-4 h-4 mr-2" /> Nouvelle Analyse
                             </Button>
                         </Link>

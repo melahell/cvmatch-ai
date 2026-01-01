@@ -134,28 +134,28 @@ export default function ProfilePage() {
         <DashboardLayout>
             <div className="container mx-auto py-8 px-4 max-w-4xl">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+                    <div className="flex items-center gap-3">
                         <Link href="/dashboard">
                             <Button variant="ghost" size="sm">
-                                <ArrowLeft className="w-4 h-4 mr-2" /> Retour
+                                <ArrowLeft className="w-4 h-4" />
                             </Button>
                         </Link>
-                        <h1 className="text-2xl font-bold">Mes Informations</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold">Mes Informations</h1>
                     </div>
-                    <Button onClick={saveProfile} disabled={saving}>
+                    <Button onClick={saveProfile} disabled={saving} size="sm">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
                         Enregistrer
                     </Button>
                 </div>
 
                 {/* Legend */}
-                <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                <div className="mb-6 p-3 sm:p-4 bg-slate-50 rounded-lg">
                     <div className="text-sm font-medium mb-2">Pondération :</div>
-                    <div className="flex gap-4 text-xs">
-                        <span className="flex items-center gap-1"><Badge className="bg-green-100 text-green-700">🔥 Important</Badge> = Toujours inclus, mis en avant</span>
-                        <span className="flex items-center gap-1"><Badge className="bg-blue-100 text-blue-700">✅ Inclus</Badge> = Inclus par défaut</span>
-                        <span className="flex items-center gap-1"><Badge className="bg-red-100 text-red-700">❌ Exclu</Badge> = Jamais dans le CV</span>
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs">
+                        <span className="flex items-center gap-1"><Badge className="bg-green-100 text-green-700 shrink-0">🔥 Important</Badge> <span className="text-slate-600">= Mis en avant</span></span>
+                        <span className="flex items-center gap-1"><Badge className="bg-blue-100 text-blue-700 shrink-0">✅ Inclus</Badge> <span className="text-slate-600">= Par défaut</span></span>
+                        <span className="flex items-center gap-1"><Badge className="bg-red-100 text-red-700 shrink-0">❌ Exclu</Badge> <span className="text-slate-600">= Jamais</span></span>
                     </div>
                 </div>
 
