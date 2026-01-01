@@ -34,9 +34,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        return NextResponse.json({
-            error: "Configuration serveur manquante. Contactez l'administrateur."
-        }, { status: 500 });
+        return NextResponse.json({ error: "Configuration serveur manquante." }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -45,12 +43,15 @@ export async function POST(req: Request) {
     let useFallback = false;
 
     try {
-        const { userId, jobUrl, jobText } = await req.json();
+        const body = await req.json();
+        const { userId, jobUrl, jobText, fileData, fileName, fileType } = body;
 
-        if (!userId || (!jobUrl && !jobText)) {
-            return NextResponse.json({
-                error: "Données manquantes. Veuillez fournir une URL ou un texte d'offre."
-            }, { status: 400 });
+        if (!userId) {
+            return NextResponse.json({ error: "Utilisateur non identifié." }, { status: 400 });
+        }
+
+        if (!jobUrl && !jobText && !fileData) {
+            return NextResponse.json({ error: "Fournissez une URL, un texte ou un fichier." }, { status: 400 });
         }
 
         // 1. Get User RAG Profile
@@ -62,29 +63,54 @@ export async function POST(req: Request) {
 
         if (dbError || !ragData?.completeness_details) {
             return NextResponse.json({
-                error: "Profil introuvable. Uploadez d'abord vos documents dans 'Gérer mon profil'."
+                error: "Profil introuvable. Uploadez vos documents dans 'Gérer mon profil'."
             }, { status: 404 });
         }
 
-        // 2. Get Job Content
         let fullJobText = jobText || "";
 
-        if (jobUrl && !jobText) {
+        // 2A. Extract text from file using Gemini Vision
+        if (fileData && !fullJobText) {
+            try {
+                const base64Data = fileData.split(",")[1];
+                const mimeType = fileType || "image/png";
+
+                const extractionPrompt = [
+                    { inlineData: { mimeType, data: base64Data } },
+                    "Extrais le texte complet de cette offre d'emploi. Retourne uniquement le texte brut."
+                ];
+
+                const model = useFallback ? fallbackModel : flashModel;
+                const extractResult = await callWithRetry(() => model.generateContent(extractionPrompt));
+                fullJobText = extractResult.response.text();
+
+                if (fullJobText.length < 50) {
+                    return NextResponse.json({ error: "Fichier illisible. Essayez un texte copié-collé." }, { status: 400 });
+                }
+            } catch (err: any) {
+                console.error("File extraction error:", err.message);
+                if (err.message?.includes("429") || err.message?.includes("quota")) {
+                    return NextResponse.json({ error: "Service IA surchargé. Réessayez dans 1 minute." }, { status: 503 });
+                }
+                return NextResponse.json({ error: "Erreur lecture fichier. Essayez un autre format." }, { status: 400 });
+            }
+        }
+
+        // 2B. Scrape URL if provided
+        if (jobUrl && !fullJobText) {
             try {
                 const cheerio = await import("cheerio");
                 const response = await fetch(jobUrl, {
                     headers: {
                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-                        "Accept": "text/html,application/xhtml+xml",
-                        "Accept-Language": "fr-FR,fr;q=0.9"
+                        "Accept": "text/html",
+                        "Accept-Language": "fr-FR"
                     },
                     redirect: "follow"
                 });
 
                 if (!response.ok) {
-                    return NextResponse.json({
-                        error: "Ce site bloque la lecture automatique. Copiez-collez le texte dans l'onglet 'Via Texte'."
-                    }, { status: 400 });
+                    return NextResponse.json({ error: "Site inaccessible. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
                 }
 
                 const html = await response.text();
@@ -96,23 +122,17 @@ export async function POST(req: Request) {
                     const found = $(sel).text().replace(/\s+/g, ' ').trim();
                     if (found && found.length > content.length) content = found;
                 }
-
                 fullJobText = content;
 
                 if (fullJobText.length < 100) {
-                    return NextResponse.json({
-                        error: "Contenu insuffisant récupéré. Copiez-collez le texte dans l'onglet 'Via Texte'."
-                    }, { status: 400 });
+                    return NextResponse.json({ error: "Contenu insuffisant. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
                 }
-            } catch (err: any) {
-                console.error("Scraping error:", err.message);
-                return NextResponse.json({
-                    error: "Impossible de lire cette URL. Utilisez l'onglet 'Via Texte'."
-                }, { status: 400 });
+            } catch {
+                return NextResponse.json({ error: "URL illisible. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
             }
         }
 
-        // 3. Analyze with Gemini + retry + fallback
+        // 3. Analyze Match with Gemini + fallback
         const prompt = getMatchAnalysisPrompt(ragData.completeness_details, fullJobText);
 
         const generateWithFallback = async () => {
@@ -121,7 +141,6 @@ export async function POST(req: Request) {
                 return await model.generateContent(prompt);
             } catch (error: any) {
                 if (!useFallback && (error.message?.includes("429") || error.message?.includes("quota"))) {
-                    console.log("Switching to fallback model");
                     useFallback = true;
                     return await fallbackModel.generateContent(prompt);
                 }
@@ -132,11 +151,8 @@ export async function POST(req: Request) {
         let result;
         try {
             result = await callWithRetry(generateWithFallback);
-        } catch (retryError: any) {
-            console.error("All retries failed:", retryError.message);
-            return NextResponse.json({
-                error: "Service IA temporairement surchargé. Réessayez dans quelques minutes."
-            }, { status: 503 });
+        } catch {
+            return NextResponse.json({ error: "Service IA surchargé. Réessayez dans quelques minutes." }, { status: 503 });
         }
 
         const responseText = result.response.text();
@@ -145,20 +161,17 @@ export async function POST(req: Request) {
         let matchData;
         try {
             matchData = JSON.parse(jsonString);
-        } catch (e) {
-            console.error("Parse error:", responseText.substring(0, 500));
-            return NextResponse.json({
-                error: "Erreur d'analyse IA. Réessayez ou simplifiez le texte de l'offre."
-            }, { status: 500 });
+        } catch {
+            return NextResponse.json({ error: "Erreur d'analyse. Réessayez avec moins de texte." }, { status: 500 });
         }
 
         // 4. Save to DB
-        const { data: insertData, error: insertError } = await supabase
+        const { data: insertData } = await supabase
             .from("job_analyses")
             .insert({
                 user_id: userId,
                 job_url: jobUrl,
-                job_description: fullJobText,
+                job_description: fullJobText.substring(0, 10000),
                 match_score: matchData.match_score,
                 match_level: matchData.match_level,
                 match_report: matchData,
@@ -170,10 +183,6 @@ export async function POST(req: Request) {
             .select("id")
             .single();
 
-        if (insertError) {
-            console.error("DB Insert Error:", insertError);
-        }
-
         return NextResponse.json({
             success: true,
             analysis_id: insertData?.id,
@@ -182,8 +191,6 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error("Analyze Error:", error);
-        return NextResponse.json({
-            error: "Une erreur inattendue s'est produite. Réessayez."
-        }, { status: 500 });
+        return NextResponse.json({ error: "Erreur inattendue. Réessayez." }, { status: 500 });
     }
 }
