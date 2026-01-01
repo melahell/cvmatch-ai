@@ -173,117 +173,114 @@ export default function DashboardPage() {
                 </Link>
             )}
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-6">
 
-                {/* TOP JOBS SUGGESTIONS */}
-                <div className="md:col-span-2 space-y-6">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-blue-600" /> Top Opportunités pour vous
-                    </h2>
+                {/* PROFILE SECTION - 2 columns */}
+                <div className="md:col-span-2 space-y-4">
 
-                    <div className="grid gap-4">
-                        {topJobs.slice(0, 5).map((job: any, i) => (
-                            <Card key={i} className="border-l-4 border-l-blue-500">
-                                <CardContent className="p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <div className="font-bold text-lg text-slate-800">{job.titre_poste || "Poste non défini"}</div>
-                                            <div className="text-sm text-slate-500">
-                                                {job.secteurs?.join(", ") || "Secteur varié"} • {job.salaire_min}k€ - {job.salaire_max}k€
-                                            </div>
-                                        </div>
-                                        <Badge variant="secondary" className="text-slate-600 bg-slate-100">
-                                            Match {job.match_score}%
-                                        </Badge>
-                                    </div>
-                                    <div className="flex justify-end">
-                                        <Link href="/dashboard/analyze">
-                                            <Button size="sm" variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50">
-                                                🔍 Analyser une offre similaire
-                                            </Button>
-                                        </Link>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-
-                {/* PROFILE SUMMARY SIDEBAR */}
-                <div className="space-y-6">
-                    {/* Profile Card with Photo */}
+                    {/* Profile Card with Direct Photo Upload */}
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4 mb-4">
-                                {/* Photo or Placeholder with Upload */}
-                                <div className="relative group">
+                                {/* Avatar with direct upload */}
+                                <label className="relative group cursor-pointer">
                                     <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
                                         {profile?.prenom?.[0]}{profile?.nom?.[0]}
                                     </div>
-                                    <Link href="/onboarding">
-                                        <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                            <Camera className="w-5 h-5 text-white" />
-                                        </div>
-                                    </Link>
-                                </div>
+                                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Camera className="w-5 h-5 text-white" />
+                                    </div>
+                                    <input type="file" accept="image/*" className="hidden" />
+                                </label>
                                 <div>
                                     <div className="font-bold text-lg">{profile?.prenom} {profile?.nom}</div>
                                     <div className="text-sm text-slate-500">{profile?.titre_principal}</div>
                                 </div>
                             </div>
-                            <div className="text-sm text-slate-500 mb-2">📍 {profile?.localisation}</div>
+                            {profile?.localisation && (
+                                <div className="text-sm text-slate-500">📍 {profile?.localisation}</div>
+                            )}
                         </CardContent>
                     </Card>
 
-                    {/* Documents List */}
+                    {/* Documents */}
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Documents uploadés ({uploadedDocs.length})
+                                <FileText className="w-4 h-4" /> Documents ({uploadedDocs.length})
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-2">
-                            {uploadedDocs.length > 0 ? uploadedDocs.map((doc) => (
-                                <div key={doc.id} className="flex items-center justify-between text-sm py-1 border-b last:border-0">
-                                    <span className="truncate max-w-[150px]">{doc.filename}</span>
-                                    <span className="text-xs text-slate-400">
-                                        {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                                    </span>
+                        <CardContent>
+                            {uploadedDocs.length > 0 ? (
+                                <div className="space-y-1">
+                                    {uploadedDocs.map((doc) => (
+                                        <div key={doc.id} className="flex justify-between text-sm py-1">
+                                            <span className="truncate text-slate-600">{doc.filename}</span>
+                                            <span className="text-xs text-slate-400">
+                                                {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                                            </span>
+                                        </div>
+                                    ))}
                                 </div>
-                            )) : (
+                            ) : (
                                 <div className="text-sm text-slate-400">Aucun document</div>
                             )}
                         </CardContent>
                     </Card>
 
-                    {/* Link to Mes Informations */}
-                    <Link href="/dashboard/profile">
-                        <Card className="hover:bg-slate-50 cursor-pointer transition-colors">
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <span className="font-medium text-blue-600">📝 Mes informations</span>
-                                <ExternalLink className="w-4 h-4 text-blue-600" />
-                            </CardContent>
-                        </Card>
-                    </Link>
-
-                    {/* Skills Card */}
+                    {/* Skills */}
                     <Card>
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Compétences Clés</CardTitle>
+                            <CardTitle className="text-sm">Compétences clés</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="flex flex-wrap gap-2">
                                 {skills.length > 0 ? skills.map((skill: any, i) => (
-                                    <Badge key={i} variant="outline">{typeof skill === "string" ? skill : skill.nom || skill}</Badge>
+                                    <Badge key={i} variant="outline" className="text-xs">
+                                        {typeof skill === "string" ? skill : skill.nom}
+                                    </Badge>
                                 )) : (
-                                    <span className="text-sm text-slate-400">Aucune compétence</span>
+                                    <span className="text-sm text-slate-400">Aucune</span>
                                 )}
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Link to profile */}
+                    <Link href="/dashboard/profile">
+                        <Card className="hover:bg-slate-50 cursor-pointer transition-colors">
+                            <CardContent className="p-4 flex items-center justify-between">
+                                <span className="text-sm font-medium text-blue-600">📝 Mes informations</span>
+                                <ExternalLink className="w-4 h-4 text-slate-400" />
+                            </CardContent>
+                        </Card>
+                    </Link>
+                </div>
+
+                {/* TOP JOBS - 1 column, compact */}
+                <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" /> Postes suggérés
+                    </h3>
+                    {topJobs.length > 0 ? (
+                        <div className="space-y-2">
+                            {topJobs.slice(0, 5).map((job: any, i) => (
+                                <div key={i} className="p-2 bg-slate-50 rounded text-xs">
+                                    <div className="font-medium text-slate-600 truncate">{job.titre_poste || "Poste"}</div>
+                                    <div className="text-slate-400 flex justify-between mt-1">
+                                        <span className="truncate">{job.secteurs?.[0] || "Tech"}</span>
+                                        <span className="font-medium">{job.match_score}%</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-xs text-slate-400 p-2">Uploadez un CV pour voir les suggestions</div>
+                    )}
                 </div>
 
             </div>
-        </div >
+        </div>
     );
 }
+
