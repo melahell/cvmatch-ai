@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github, Upload, PlusCircle, User, Calendar, ExternalLink } from "lucide-react";
+import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github, Upload, PlusCircle, User, Calendar, ExternalLink, Camera } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -148,9 +148,9 @@ export default function DashboardPage() {
                         <CardContent className="flex flex-col items-center justify-center p-6 h-full">
                             <div className="flex items-center gap-2 mb-2">
                                 <Upload className="w-5 h-5" />
-                                <span className="font-bold">RAG Storage</span>
+                                <span className="font-bold">Gérer mon profil</span>
                             </div>
-                            <div className="text-xs text-slate-300 text-center">Cliquez pour créer/modifier votre profil</div>
+                            <div className="text-xs text-slate-300 text-center">Ajouter des documents ou mettre à jour</div>
                         </CardContent>
                     </Card>
                 </Link>
@@ -188,17 +188,26 @@ export default function DashboardPage() {
 
                     <div className="grid gap-4">
                         {topJobs.slice(0, 5).map((job: any, i) => (
-                            <Card key={i} className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500">
-                                <CardContent className="p-4 flex justify-between items-center">
-                                    <div>
-                                        <div className="font-bold text-lg text-slate-800">{job.titre_poste || "Poste non défini"}</div>
-                                        <div className="text-sm text-slate-500">
-                                            {job.secteurs?.join(", ") || "Secteur varié"} • {job.salaire_min}k€ - {job.salaire_max}k€
+                            <Card key={i} className="border-l-4 border-l-blue-500">
+                                <CardContent className="p-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <div className="font-bold text-lg text-slate-800">{job.titre_poste || "Poste non défini"}</div>
+                                            <div className="text-sm text-slate-500">
+                                                {job.secteurs?.join(", ") || "Secteur varié"} • {job.salaire_min}k€ - {job.salaire_max}k€
+                                            </div>
                                         </div>
+                                        <Badge variant="secondary" className="text-slate-600 bg-slate-100">
+                                            Match {job.match_score}%
+                                        </Badge>
                                     </div>
-                                    <Badge variant="secondary" className="text-blue-700 bg-blue-50">
-                                        Match {job.match_score}%
-                                    </Badge>
+                                    <div className="flex justify-end">
+                                        <Link href="/dashboard/analyze">
+                                            <Button size="sm" variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50">
+                                                🔍 Analyser une offre similaire
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </CardContent>
                             </Card>
                         ))}
@@ -211,9 +220,16 @@ export default function DashboardPage() {
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-4 mb-4">
-                                {/* Photo or Placeholder */}
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                                    {profile?.prenom?.[0]}{profile?.nom?.[0]}
+                                {/* Photo or Placeholder with Upload */}
+                                <div className="relative group">
+                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                                        {profile?.prenom?.[0]}{profile?.nom?.[0]}
+                                    </div>
+                                    <Link href="/onboarding">
+                                        <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                            <Camera className="w-5 h-5 text-white" />
+                                        </div>
+                                    </Link>
                                 </div>
                                 <div>
                                     <div className="font-bold text-lg">{profile?.prenom} {profile?.nom}</div>
