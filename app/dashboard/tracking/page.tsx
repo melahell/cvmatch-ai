@@ -1,23 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar } from "lucide-react";
+import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUpDown, Trash2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { JobAnalysis } from "@/types";
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-    pending: { label: "À faire", bg: "bg-slate-100", text: "text-slate-700" },
-    applied: { label: "Postulé", bg: "bg-blue-100", text: "text-blue-700" },
-    interviewing: { label: "Entretien", bg: "bg-purple-100", text: "text-purple-700" },
-    rejected: { label: "Refusé", bg: "bg-red-100", text: "text-red-700" },
-    offer: { label: "Offre reçue", bg: "bg-green-100", text: "text-green-700" },
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
+    pending: { label: "À faire", bg: "bg-slate-100", text: "text-slate-700", dot: "bg-slate-400" },
+    applied: { label: "Postulé", bg: "bg-blue-100", text: "text-blue-700", dot: "bg-blue-500" },
+    interviewing: { label: "Entretien", bg: "bg-purple-100", text: "text-purple-700", dot: "bg-purple-500" },
+    rejected: { label: "Refusé", bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500" },
+    offer: { label: "Offre reçue", bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" },
 };
 
 function formatRelativeDate(dateString: string): string {
@@ -33,11 +34,16 @@ function formatRelativeDate(dateString: string): string {
     return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 }
 
+type SortOption = "date" | "score" | "status";
+
 export default function TrackingPage() {
     const { userId, isLoading: authLoading } = useAuth();
     const [jobs, setJobs] = useState<JobAnalysis[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>("all");
+    const [search, setSearch] = useState("");
+    const [sortBy, setSortBy] = useState<SortOption>("date");
+    const [sortAsc, setSortAsc] = useState(false);
 
     useEffect(() => {
         if (authLoading || !userId) return;
@@ -65,6 +71,13 @@ export default function TrackingPage() {
             .eq("id", id);
     };
 
+    const deleteJob = async (id: string) => {
+        if (!confirm("Supprimer cette candidature ?")) return;
+        const supabase = createSupabaseClient();
+        setJobs(jobs.filter(j => j.id !== id));
+        await supabase.from("job_analyses").delete().eq("id", id);
+    };
+
     // Stats
     const stats = {
         total: jobs.length,
@@ -74,8 +87,55 @@ export default function TrackingPage() {
         offer: jobs.filter(j => j.application_status === "offer").length,
     };
 
-    // Filtered jobs
-    const filteredJobs = filter === "all" ? jobs : jobs.filter(j => j.application_status === filter);
+    // Progress calculation
+    const progressPercent = jobs.length > 0
+        ? Math.round(((stats.applied + stats.interviewing + stats.offer) / stats.total) * 100)
+        : 0;
+
+    // Filtered & sorted jobs
+    const processedJobs = useMemo(() => {
+        let result = [...jobs];
+
+        // Filter by status
+        if (filter !== "all") {
+            result = result.filter(j => j.application_status === filter);
+        }
+
+        // Search
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            result = result.filter(j =>
+                (j.job_title?.toLowerCase().includes(q)) ||
+                (j.company?.toLowerCase().includes(q)) ||
+                (j.location?.toLowerCase().includes(q))
+            );
+        }
+
+        // Sort
+        result.sort((a, b) => {
+            let comparison = 0;
+            if (sortBy === "date") {
+                comparison = new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime();
+            } else if (sortBy === "score") {
+                comparison = (b.match_score || 0) - (a.match_score || 0);
+            } else if (sortBy === "status") {
+                const order = ["offer", "interviewing", "applied", "pending", "rejected"];
+                comparison = order.indexOf(a.application_status || "pending") - order.indexOf(b.application_status || "pending");
+            }
+            return sortAsc ? -comparison : comparison;
+        });
+
+        return result;
+    }, [jobs, filter, search, sortBy, sortAsc]);
+
+    const toggleSort = (option: SortOption) => {
+        if (sortBy === option) {
+            setSortAsc(!sortAsc);
+        } else {
+            setSortBy(option);
+            setSortAsc(false);
+        }
+    };
 
     if (loading || authLoading) {
         return (
@@ -87,7 +147,14 @@ export default function TrackingPage() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto py-8 px-4">
+            <div className="container mx-auto py-6 px-4">
+                {/* Breadcrumb */}
+                <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                    <Link href="/dashboard" className="hover:text-blue-600">Dashboard</Link>
+                    <ChevronRight className="w-4 h-4" />
+                    <span className="text-slate-900 font-medium">Candidatures</span>
+                </div>
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
@@ -96,7 +163,7 @@ export default function TrackingPage() {
                             Mes Candidatures
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">
-                            Suivez l'avancement de vos candidatures
+                            {stats.total} candidature{stats.total > 1 ? "s" : ""} • {progressPercent}% en cours
                         </p>
                     </div>
                     <Link href="/dashboard/analyze">
@@ -106,7 +173,74 @@ export default function TrackingPage() {
                     </Link>
                 </div>
 
-                {/* Stats Pills */}
+                {/* Progress Bar */}
+                {jobs.length > 0 && (
+                    <div className="mb-6">
+                        <div className="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>Progression des candidatures</span>
+                            <span>{progressPercent}%</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
+                                style={{ width: `${progressPercent}%` }}
+                            />
+                        </div>
+                        <div className="flex justify-between text-xs text-slate-400 mt-1">
+                            <span>{stats.pending} à faire</span>
+                            <span>{stats.applied} postulé</span>
+                            <span>{stats.interviewing} entretien</span>
+                            <span>{stats.offer} offre</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Search & Filters Row */}
+                <div className="flex flex-col md:flex-row gap-4 mb-6">
+                    {/* Search */}
+                    <div className="relative flex-1 max-w-md">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input
+                            placeholder="Rechercher par poste, entreprise..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="pl-10"
+                        />
+                    </div>
+
+                    {/* Sort Buttons */}
+                    <div className="flex gap-2">
+                        <Button
+                            variant={sortBy === "date" ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSort("date")}
+                            className="gap-1"
+                        >
+                            <ArrowUpDown className="w-3 h-3" />
+                            Date
+                        </Button>
+                        <Button
+                            variant={sortBy === "score" ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSort("score")}
+                            className="gap-1"
+                        >
+                            <ArrowUpDown className="w-3 h-3" />
+                            Score
+                        </Button>
+                        <Button
+                            variant={sortBy === "status" ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => toggleSort("status")}
+                            className="gap-1"
+                        >
+                            <ArrowUpDown className="w-3 h-3" />
+                            Statut
+                        </Button>
+                    </div>
+                </div>
+
+                {/* Filter Pills */}
                 <div className="flex flex-wrap gap-2 mb-6">
                     <button
                         onClick={() => setFilter("all")}
@@ -156,47 +290,44 @@ export default function TrackingPage() {
                 </div>
 
                 {/* Jobs List */}
-                <div className="grid gap-4">
-                    {filteredJobs.map((job) => {
+                <div className="grid gap-3">
+                    {processedJobs.map((job) => {
                         const status = STATUS_CONFIG[job.application_status || "pending"];
 
                         return (
-                            <Card key={job.id} className="hover:shadow-lg transition-all border-l-4 border-l-transparent hover:border-l-blue-500">
-                                <CardContent className="p-5">
+                            <Card key={job.id} className="hover:shadow-lg transition-all group">
+                                <CardContent className="p-4 md:p-5">
                                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                        {/* Job Info */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-start gap-3">
-                                                <div className="p-2 bg-slate-100 rounded-lg shrink-0">
-                                                    <Building2 className="w-5 h-5 text-slate-600" />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <h2 className="font-bold text-lg text-slate-900 truncate">
-                                                        {job.job_title || "Poste à définir"}
-                                                    </h2>
-                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 mt-1">
-                                                        <span className="font-medium text-slate-700">
-                                                            {job.company || "Entreprise"}
-                                                        </span>
-                                                        {job.location && (
-                                                            <span className="flex items-center gap-1">
-                                                                <MapPin className="w-3 h-3" />
-                                                                {job.location}
-                                                            </span>
-                                                        )}
+                                        {/* Status Dot + Job Info */}
+                                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                                            <div className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${status.dot}`} />
+                                            <div className="min-w-0 flex-1">
+                                                <h2 className="font-bold text-lg text-slate-900 truncate">
+                                                    {job.job_title || "Poste à définir"}
+                                                </h2>
+                                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 mt-1">
+                                                    <span className="flex items-center gap-1 font-medium text-slate-700">
+                                                        <Building2 className="w-3 h-3" />
+                                                        {job.company || "Entreprise"}
+                                                    </span>
+                                                    {job.location && (
                                                         <span className="flex items-center gap-1">
-                                                            <Calendar className="w-3 h-3" />
-                                                            {formatRelativeDate(job.submitted_at)}
+                                                            <MapPin className="w-3 h-3" />
+                                                            {job.location}
                                                         </span>
-                                                    </div>
+                                                    )}
+                                                    <span className="flex items-center gap-1 text-slate-400">
+                                                        <Calendar className="w-3 h-3" />
+                                                        {formatRelativeDate(job.submitted_at)}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {/* Score & Status */}
-                                        <div className="flex items-center gap-3 shrink-0">
+                                        {/* Score + Status + Actions */}
+                                        <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap md:flex-nowrap">
                                             {/* Match Score */}
-                                            <div className={`px-3 py-1.5 rounded-full text-sm font-bold ${job.match_score >= 80
+                                            <div className={`px-3 py-1 rounded-full text-sm font-bold ${job.match_score >= 80
                                                     ? "bg-green-100 text-green-700"
                                                     : job.match_score >= 60
                                                         ? "bg-yellow-100 text-yellow-700"
@@ -207,7 +338,7 @@ export default function TrackingPage() {
 
                                             {/* Status Dropdown */}
                                             <select
-                                                className={`text-sm font-medium border-0 rounded-lg px-3 py-2 cursor-pointer ${status.bg} ${status.text}`}
+                                                className={`text-sm font-medium border-0 rounded-lg px-3 py-1.5 cursor-pointer ${status.bg} ${status.text}`}
                                                 value={job.application_status || "pending"}
                                                 onChange={(e) => updateStatus(job.id, e.target.value as JobAnalysis["application_status"])}
                                             >
@@ -217,22 +348,31 @@ export default function TrackingPage() {
                                                 <option value="rejected">Refusé</option>
                                                 <option value="offer">Offre reçue</option>
                                             </select>
-                                        </div>
 
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-2 shrink-0">
-                                            <Link href={`/dashboard/analyze/${job.id}`}>
-                                                <Button variant="outline" size="sm">
-                                                    Analyse
-                                                </Button>
-                                            </Link>
-                                            {job.job_url && (
-                                                <a href={job.job_url} target="_blank" rel="noopener noreferrer">
-                                                    <Button variant="ghost" size="sm">
-                                                        <ExternalLink className="w-4 h-4" />
+                                            {/* Actions */}
+                                            <div className="flex items-center gap-1">
+                                                <Link href={`/dashboard/analyze/${job.id}`}>
+                                                    <Button variant="outline" size="sm">
+                                                        Voir
                                                     </Button>
-                                                </a>
-                                            )}
+                                                </Link>
+                                                {job.job_url && (
+                                                    <a href={job.job_url} target="_blank" rel="noopener noreferrer">
+                                                        <Button variant="ghost" size="sm" title="Voir l'offre">
+                                                            <ExternalLink className="w-4 h-4" />
+                                                        </Button>
+                                                    </a>
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onClick={() => deleteJob(job.id)}
+                                                    title="Supprimer"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -241,23 +381,30 @@ export default function TrackingPage() {
                     })}
 
                     {/* Empty State */}
-                    {filteredJobs.length === 0 && (
+                    {processedJobs.length === 0 && (
                         <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
                             <Briefcase className="w-12 h-12 mx-auto text-slate-300 mb-4" />
                             <h3 className="text-lg font-medium text-slate-600 mb-2">
-                                {filter === "all"
-                                    ? "Aucune candidature"
-                                    : `Aucune candidature "${STATUS_CONFIG[filter]?.label}"`
+                                {search
+                                    ? "Aucun résultat"
+                                    : filter === "all"
+                                        ? "Aucune candidature"
+                                        : `Aucune candidature "${STATUS_CONFIG[filter]?.label}"`
                                 }
                             </h3>
                             <p className="text-slate-400 mb-4">
-                                Analysez une offre d'emploi pour commencer
+                                {search
+                                    ? "Essayez une autre recherche"
+                                    : "Analysez une offre d'emploi pour commencer"
+                                }
                             </p>
-                            <Link href="/dashboard/analyze">
-                                <Button>
-                                    <Plus className="w-4 h-4 mr-2" /> Analyser une offre
-                                </Button>
-                            </Link>
+                            {!search && (
+                                <Link href="/dashboard/analyze">
+                                    <Button>
+                                        <Plus className="w-4 h-4 mr-2" /> Analyser une offre
+                                    </Button>
+                                </Link>
+                            )}
                         </div>
                     )}
                 </div>
