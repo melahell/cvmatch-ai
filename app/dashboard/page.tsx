@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Briefcase, FileText, Upload, Camera, PlusCircle, TrendingUp, ExternalLink } from "lucide-react";
+import { Briefcase, FileText, Upload, Camera, PlusCircle, TrendingUp, ExternalLink, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ export default function DashboardPage() {
     const [topJobs, setTopJobs] = useState<any[]>([]);
     const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
     const [completenessScore, setCompletenessScore] = useState(0);
+    const [completenessBreakdown, setCompletenessBreakdown] = useState<any[]>([]);
     const [skills, setSkills] = useState<string[]>([]);
     const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
 
@@ -32,13 +33,16 @@ export default function DashboardPage() {
             // 1. Fetch RAG Data
             const { data: ragData } = await supabase
                 .from("rag_metadata")
-                .select("completeness_details, top_10_jobs, completeness_score")
+                .select("completeness_details, top_10_jobs, completeness_score, completeness_breakdown")
                 .eq("user_id", userId)
                 .single();
 
             if (ragData) {
-                setProfile(ragData.completeness_details?.profil); // Type is now compatible
+                setProfile(ragData.completeness_details?.profil);
                 setCompletenessScore(ragData.completeness_score || 0);
+                if (ragData.completeness_breakdown) {
+                    setCompletenessBreakdown(ragData.completeness_breakdown);
+                }
                 if (ragData.top_10_jobs) {
                     setTopJobs(ragData.top_10_jobs);
                 }
@@ -140,25 +144,27 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     </Link>
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center p-4">
-                            <CircularProgress
-                                value={completenessScore}
-                                max={100}
-                                size={80}
-                                label="/ 100"
-                            />
-                            <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
-                        </CardContent>
-                    </Card>
-                    <Link href="/onboarding">
+                    <Link href="/dashboard/profile/rag">
+                        <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                            <CardContent className="flex flex-col items-center justify-center p-4">
+                                <CircularProgress
+                                    value={completenessScore}
+                                    max={100}
+                                    size={80}
+                                    label="/ 100"
+                                />
+                                <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                    <Link href="/dashboard/profile/rag">
                         <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
                             <CardContent className="flex flex-col items-center justify-center p-6 h-full">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Upload className="w-5 h-5" />
                                     <span className="font-bold">Gérer mon profil</span>
                                 </div>
-                                <div className="text-xs text-slate-300 text-center">Ajouter des documents ou mettre à jour</div>
+                                <div className="text-xs text-slate-300 text-center">Voir, éditer ou ajouter des documents</div>
                             </CardContent>
                         </Card>
                     </Link>
@@ -181,6 +187,33 @@ export default function DashboardPage() {
                                 <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
                                     Commencer <Upload className="w-4 h-4 ml-2" />
                                 </Button>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                )}
+
+                {/* What's missing to reach 100% */}
+                {completenessScore > 0 && completenessScore < 100 && completenessBreakdown.length > 0 && (
+                    <Link href="/dashboard/profile/rag">
+                        <Card className="mb-6 border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow">
+                            <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="p-2 bg-amber-100 rounded-full">
+                                        <Target className="w-5 h-5 text-amber-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="font-medium text-amber-900 mb-2">Pour atteindre 100% de complétion :</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {completenessBreakdown
+                                                .filter((item: any) => item.missing)
+                                                .map((item: any, i: number) => (
+                                                    <Badge key={i} variant="outline" className="bg-white border-amber-300 text-amber-800 text-xs">
+                                                        {item.missing}
+                                                    </Badge>
+                                                ))}
+                                        </div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
                     </Link>
@@ -217,29 +250,34 @@ export default function DashboardPage() {
                         </Card>
 
                         {/* Documents */}
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm flex items-center gap-2">
-                                    <FileText className="w-4 h-4" /> Documents ({uploadedDocs.length})
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {uploadedDocs.length > 0 ? (
-                                    <div className="space-y-1">
-                                        {uploadedDocs.map((doc) => (
-                                            <div key={doc.id} className="flex justify-between text-sm py-1">
-                                                <span className="truncate text-slate-600">{doc.filename}</span>
-                                                <span className="text-xs text-slate-400">
-                                                    {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                                                </span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-sm text-slate-400">Aucun document</div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <Link href="/dashboard/profile/rag?tab=docs">
+                            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm flex items-center gap-2">
+                                        <FileText className="w-4 h-4" /> Documents ({uploadedDocs.length})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    {uploadedDocs.length > 0 ? (
+                                        <div className="space-y-1">
+                                            {uploadedDocs.slice(0, 3).map((doc) => (
+                                                <div key={doc.id} className="flex justify-between text-sm py-1">
+                                                    <span className="truncate text-slate-600">{doc.filename}</span>
+                                                    <span className="text-xs text-slate-400">
+                                                        {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                            {uploadedDocs.length > 3 && (
+                                                <div className="text-xs text-blue-600">+{uploadedDocs.length - 3} autres...</div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-sm text-slate-400">Aucun document</div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </Link>
 
                         {/* Skills */}
                         <Card>

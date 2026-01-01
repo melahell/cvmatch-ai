@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import {
     FileText, Trash2, Download, RefreshCw, User, Briefcase, Code,
     GraduationCap, Languages, Plus, Save, AlertTriangle, ChevronDown,
-    ChevronUp, Loader2, Check, X, Edit3, Eye
+    ChevronUp, Loader2, Check, X, Edit3, Eye, Target
 } from "lucide-react";
 import Link from "next/link";
 
@@ -61,14 +62,25 @@ const safeString = (val: any): string => {
     return JSON.stringify(val);
 };
 
-export default function RAGManagementPage() {
+function RAGContent() {
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get("tab");
     const { userId, isLoading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [documents, setDocuments] = useState<Document[]>([]);
     const [ragData, setRagData] = useState<RAGData | null>(null);
     const [customNotes, setCustomNotes] = useState("");
     const [completenessScore, setCompletenessScore] = useState(0);
+    const [completenessBreakdown, setCompletenessBreakdown] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState<"docs" | "rag" | "reset">("rag");
+
+    // Initialize activeTab from URL param once it's available
+    useEffect(() => {
+        if (tabParam) {
+            setActiveTab(tabParam === "docs" ? "docs" : tabParam === "reset" ? "reset" : "rag");
+        }
+    }, [tabParam]);
+
     const [editMode, setEditMode] = useState(false);
     const [saving, setSaving] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
@@ -102,13 +114,14 @@ export default function RAGManagementPage() {
         // Fetch RAG metadata
         const { data: rag } = await supabase
             .from("rag_metadata")
-            .select("completeness_details, completeness_score, custom_notes")
+            .select("completeness_details, completeness_score, completeness_breakdown, custom_notes")
             .eq("user_id", userId)
             .single();
 
         if (rag) {
             setRagData(rag.completeness_details);
             setCompletenessScore(rag.completeness_score || 0);
+            setCompletenessBreakdown(rag.completeness_breakdown || []);
             setCustomNotes(rag.custom_notes || "");
         }
 
@@ -252,6 +265,47 @@ export default function RAGManagementPage() {
                         <AlertTriangle className="w-4 h-4 inline mr-2" /> Reset
                     </button>
                 </div>
+
+                {/* Missing items to reach 100% */}
+                {completenessScore > 0 && completenessScore < 100 && completenessBreakdown.length > 0 && (
+                    <Card className="mb-6 border-amber-200 bg-amber-50">
+                        <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-amber-100 rounded-full shrink-0">
+                                    <Target className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-medium text-amber-900 mb-2">Pour atteindre 100% ({completenessScore}% actuel) :</h4>
+                                    <div className="space-y-2">
+                                        {completenessBreakdown
+                                            .filter((item: any) => item.missing)
+                                            .map((item: any, i: number) => (
+                                                <div key={i} className="flex items-center gap-2 text-sm">
+                                                    <div className="w-20 text-xs text-amber-700">{item.category}</div>
+                                                    <div className="flex-1 bg-amber-100 rounded-full h-2">
+                                                        <div
+                                                            className="bg-amber-500 h-2 rounded-full"
+                                                            style={{ width: `${(item.score / item.max) * 100}%` }}
+                                                        />
+                                                    </div>
+                                                    <div className="text-xs text-amber-800">{item.score}/{item.max}</div>
+                                                </div>
+                                            ))}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 mt-3">
+                                        {completenessBreakdown
+                                            .filter((item: any) => item.missing)
+                                            .map((item: any, i: number) => (
+                                                <Badge key={i} variant="outline" className="bg-white border-amber-300 text-amber-800 text-xs">
+                                                    {item.missing}
+                                                </Badge>
+                                            ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Tab Content */}
                 {activeTab === "docs" && (
@@ -477,5 +531,13 @@ export default function RAGManagementPage() {
                 )}
             </div>
         </DashboardLayout>
+    );
+}
+
+export default function RAGManagementPage() {
+    return (
+        <Suspense fallback={<DashboardLayout><LoadingSpinner fullScreen /></DashboardLayout>}>
+            <RAGContent />
+        </Suspense>
     );
 }

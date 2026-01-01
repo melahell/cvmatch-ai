@@ -103,7 +103,7 @@ OUTPUT (JSON uniquement) :
 }
 `;
 
-export const getCVOptimizationPrompt = (profile: any, jobDescription: string) => `
+export const getCVOptimizationPrompt = (profile: any, jobDescription: string, customNotes?: string) => `
 Tu es un expert en rédaction de CV (CV Writer) spécialisé dans l'optimisation ATS.
 
 CANDIDAT (JSON) :
@@ -112,6 +112,15 @@ ${JSON.stringify(profile)}
 OFFRE D'EMPLOI :
 ${jobDescription}
 
+${customNotes ? `
+NOTES PERSONNELLES DU CANDIDAT :
+${customNotes}
+
+INSTRUCTION IMPORTANTE:
+Si les notes personnelles contiennent des informations pertinentes pour ce poste, intègre-les de manière professionnelle dans le CV.
+Reformule-les correctement (sans fautes, ton professionnel) et positionne-les stratégiquement là où elles auront le plus d'impact.
+` : ''}
+
 MISSION:
 Réécris le contenu du CV pour qu'il corresponde PARFAITEMENT à l'offre d'emploi, tout en restant VERIDIQUE.
 
@@ -119,6 +128,7 @@ ACTIONS:
 1. Réécris le "profil.elevator_pitch" pour qu'il résonne avec la mission.
 2. Pour chaque expérience, sélectionne les 3-4 bullets les plus pertinents et réécris-les avec des mots-clés de l'offre.
 3. Mets en avant les compétences techniques citées dans l'offre.
+4. Si des notes personnelles sont fournies, intègre les informations pertinentes.
 
 OUTPUT (JSON uniquement, structure identique au CANDIDAT, mais contenu optimisé) :
 {

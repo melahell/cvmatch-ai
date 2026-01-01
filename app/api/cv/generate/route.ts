@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
         const { data: ragData, error: ragError } = await supabase
             .from("rag_metadata")
-            .select("completeness_details")
+            .select("completeness_details, custom_notes")
             .eq("user_id", userId)
             .single();
 
@@ -37,11 +37,12 @@ export async function POST(req: Request) {
         }
 
         const profile = ragData.completeness_details;
+        const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
 
         // 2. Optimization Prompt
         // We ask Gemini to rewrite the profile summary and experience bullets.
-        const prompt = getCVOptimizationPrompt(profile, jobDescription);
+        const prompt = getCVOptimizationPrompt(profile, jobDescription, customNotes);
 
         const result = await models.flash.generateContent(prompt);
         const responseText = result.response.text();

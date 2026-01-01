@@ -200,18 +200,70 @@ export async function POST(req: Request) {
             console.warn("Failed to generate Top 10 Jobs, continuing without");
         }
 
-        // 5. Calculate completeness score
-        const calculateCompletenessScore = (data: any): number => {
-            let score = 0;
-            if (data?.profil?.nom || data?.profil?.prenom) score += 20;
-            if (data?.experiences?.length > 0) score += Math.min(30, data.experiences.length * 10);
-            if (data?.competences?.techniques?.length > 0) score += Math.min(25, data.competences.techniques.length * 5);
-            if (data?.formations?.length > 0) score += Math.min(15, data.formations.length * 7);
-            if (data?.projets?.length > 0) score += Math.min(10, data.projets.length * 5);
-            return Math.min(100, score);
+        // 5. Calculate completeness score with breakdown
+        const calculateCompletenessWithBreakdown = (data: any) => {
+            const breakdown: { category: string; score: number; max: number; missing?: string }[] = [];
+            let total = 0;
+
+            // Profil (20 points)
+            const hasProfile = data?.profil?.nom && data?.profil?.prenom && data?.profil?.titre_principal;
+            const profileScore = hasProfile ? 20 : (data?.profil?.nom || data?.profil?.prenom) ? 10 : 0;
+            breakdown.push({
+                category: "Identité",
+                score: profileScore,
+                max: 20,
+                missing: !hasProfile ? "Ajoutez nom, prénom et titre principal" : undefined
+            });
+            total += profileScore;
+
+            // Expériences (30 points)
+            const expCount = data?.experiences?.length || 0;
+            const expScore = Math.min(30, expCount * 10);
+            breakdown.push({
+                category: "Expériences",
+                score: expScore,
+                max: 30,
+                missing: expCount < 3 ? `${3 - expCount} expérience(s) recommandée(s) en plus` : undefined
+            });
+            total += expScore;
+
+            // Compétences (25 points)
+            const techCount = data?.competences?.techniques?.length || 0;
+            const techScore = Math.min(25, techCount * 5);
+            breakdown.push({
+                category: "Compétences techniques",
+                score: techScore,
+                max: 25,
+                missing: techCount < 5 ? `Ajoutez ${5 - techCount} compétence(s) technique(s)` : undefined
+            });
+            total += techScore;
+
+            // Formations (15 points)
+            const formCount = data?.formations?.length || 0;
+            const formScore = Math.min(15, formCount * 7);
+            breakdown.push({
+                category: "Formations",
+                score: formScore,
+                max: 15,
+                missing: formCount === 0 ? "Ajoutez au moins une formation" : undefined
+            });
+            total += formScore;
+
+            // Projets/Langues (10 points)
+            const hasLangOrProj = (data?.langues && Object.keys(data.langues).length > 0) || data?.projets?.length > 0;
+            const extraScore = hasLangOrProj ? 10 : 0;
+            breakdown.push({
+                category: "Langues/Projets",
+                score: extraScore,
+                max: 10,
+                missing: !hasLangOrProj ? "Ajoutez des langues ou projets personnels" : undefined
+            });
+            total += extraScore;
+
+            return { score: Math.min(100, total), breakdown };
         };
 
-        const completenessScore = calculateCompletenessScore(ragData);
+        const { score: completenessScore, breakdown: completenessBreakdown } = calculateCompletenessWithBreakdown(ragData);
 
         // 6. Save RAG Metadata
         const { data: existingRag } = await supabase
@@ -225,6 +277,7 @@ export async function POST(req: Request) {
                 .from("rag_metadata")
                 .update({
                     completeness_score: completenessScore,
+                    completeness_breakdown: completenessBreakdown,
                     completeness_details: ragData,
                     top_10_jobs: top10Jobs,
                     last_updated: new Date().toISOString()
@@ -236,6 +289,7 @@ export async function POST(req: Request) {
                 .insert({
                     user_id: userId,
                     completeness_score: completenessScore,
+                    completeness_breakdown: completenessBreakdown,
                     completeness_details: ragData,
                     top_10_jobs: top10Jobs
                 });
