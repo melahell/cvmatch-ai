@@ -262,8 +262,8 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="flex flex-wrap gap-2">
-                                {skills.length > 0 ? skills.map((skill, i) => (
-                                    <Badge key={i} variant="outline">{skill}</Badge>
+                                {skills.length > 0 ? skills.map((skill: any, i) => (
+                                    <Badge key={i} variant="outline">{typeof skill === "string" ? skill : skill.nom || skill}</Badge>
                                 )) : (
                                     <span className="text-sm text-slate-400">Aucune compétence</span>
                                 )}
