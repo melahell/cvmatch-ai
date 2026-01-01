@@ -1,47 +1,13 @@
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-// Retry wrapper with exponential backoff
-async function callWithRetry<T>(
-    fn: () => Promise<T>,
-    maxRetries: number = 3,
-    baseDelay: number = 10000
-): Promise<T> {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-            return await fn();
-        } catch (error: any) {
-            const isRateLimit = error.message?.includes("429") || error.message?.includes("quota") || error.message?.includes("Too Many");
-            if (isRateLimit && attempt < maxRetries - 1) {
-                const delay = baseDelay * Math.pow(2, attempt);
-                console.log(`Rate limited, waiting ${delay / 1000}s before retry ${attempt + 2}/${maxRetries}`);
-                await new Promise(r => setTimeout(r, delay));
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw new Error("Max retries exceeded");
-}
-
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        return NextResponse.json({ error: "Configuration serveur manquante." }, { status: 500 });
-    }
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Same models as RAG generate
-    const flashModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
-    let useFallback = false;
 
     try {
         const body = await req.json();
@@ -70,7 +36,7 @@ export async function POST(req: Request) {
 
         let fullJobText = jobText || "";
 
-        // 2A. Extract text from file using Gemini Vision
+        // 2A. Extract text from file using Gemini Vision with cascade
         if (fileData && !fullJobText) {
             try {
                 const base64Data = fileData.split(",")[1];
@@ -81,19 +47,20 @@ export async function POST(req: Request) {
                     "Extrais le texte complet de cette offre d'emploi. Retourne uniquement le texte brut."
                 ];
 
-                const model = useFallback ? fallbackModel : flashModel;
-                const extractResult = await callWithRetry(() => model.generateContent(extractionPrompt));
-                fullJobText = extractResult.response.text();
+                const { result, modelUsed } = await callWithRetry(() =>
+                    generateWithCascade(extractionPrompt)
+                );
+                console.log(`File extraction with: ${modelUsed}`);
+                fullJobText = result.response.text();
 
                 if (fullJobText.length < 50) {
                     return NextResponse.json({ error: "Fichier illisible. Essayez un texte copié-collé." }, { status: 400 });
                 }
             } catch (err: any) {
                 console.error("File extraction error:", err.message);
-                if (err.message?.includes("429") || err.message?.includes("quota")) {
-                    return NextResponse.json({ error: "Service IA surchargé. Réessayez dans 1 minute." }, { status: 503 });
-                }
-                return NextResponse.json({ error: "Erreur lecture fichier. Essayez un autre format." }, { status: 400 });
+                return NextResponse.json({
+                    error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
+                }, { status: 503 });
             }
         }
 
@@ -133,27 +100,21 @@ export async function POST(req: Request) {
             }
         }
 
-        // 3. Analyze Match with Gemini + fallback
+        // 3. Analyze Match with Gemini cascade
         const prompt = getMatchAnalysisPrompt(ragData.completeness_details, fullJobText);
 
-        const generateWithFallback = async () => {
-            const model = useFallback ? fallbackModel : flashModel;
-            try {
-                return await model.generateContent(prompt);
-            } catch (error: any) {
-                if (!useFallback && (error.message?.includes("429") || error.message?.includes("quota"))) {
-                    useFallback = true;
-                    return await fallbackModel.generateContent(prompt);
-                }
-                throw error;
-            }
-        };
-
         let result;
+        let modelUsed;
         try {
-            result = await callWithRetry(generateWithFallback);
-        } catch {
-            return NextResponse.json({ error: "Service IA surchargé. Réessayez dans quelques minutes." }, { status: 503 });
+            const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
+            result = cascadeResult.result;
+            modelUsed = cascadeResult.modelUsed;
+            console.log(`Match analysis with: ${modelUsed}`);
+        } catch (err: any) {
+            console.error("All models failed:", err.message);
+            return NextResponse.json({
+                error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
+            }, { status: 503 });
         }
 
         const responseText = result.response.text();
@@ -187,7 +148,8 @@ export async function POST(req: Request) {
         return NextResponse.json({
             success: true,
             analysis_id: insertData?.id,
-            match: matchData
+            match: matchData,
+            model_used: modelUsed
         });
 
     } catch (error: any) {
