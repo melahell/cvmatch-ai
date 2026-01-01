@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 
@@ -123,118 +123,124 @@ export default function ProfilePage() {
     };
 
     if (loading || authLoading) {
-        return <LoadingSpinner fullScreen />;
+        return (
+            <DashboardLayout>
+                <LoadingSpinner fullScreen />
+            </DashboardLayout>
+        );
     }
 
     return (
-        <div className="container mx-auto py-8 px-4 max-w-4xl">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                    <Link href="/dashboard">
-                        <Button variant="ghost" size="sm">
-                            <ArrowLeft className="w-4 h-4 mr-2" /> Retour
-                        </Button>
-                    </Link>
-                    <h1 className="text-2xl font-bold">Mes Informations</h1>
+        <DashboardLayout>
+            <div className="container mx-auto py-8 px-4 max-w-4xl">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                    <div className="flex items-center gap-4">
+                        <Link href="/dashboard">
+                            <Button variant="ghost" size="sm">
+                                <ArrowLeft className="w-4 h-4 mr-2" /> Retour
+                            </Button>
+                        </Link>
+                        <h1 className="text-2xl font-bold">Mes Informations</h1>
+                    </div>
+                    <Button onClick={saveProfile} disabled={saving}>
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                        Enregistrer
+                    </Button>
                 </div>
-                <Button onClick={saveProfile} disabled={saving}>
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                    Enregistrer
-                </Button>
-            </div>
 
-            {/* Legend */}
-            <div className="mb-6 p-4 bg-slate-50 rounded-lg">
-                <div className="text-sm font-medium mb-2">Pondération :</div>
-                <div className="flex gap-4 text-xs">
-                    <span className="flex items-center gap-1"><Badge className="bg-green-100 text-green-700">🔥 Important</Badge> = Toujours inclus, mis en avant</span>
-                    <span className="flex items-center gap-1"><Badge className="bg-blue-100 text-blue-700">✅ Inclus</Badge> = Inclus par défaut</span>
-                    <span className="flex items-center gap-1"><Badge className="bg-red-100 text-red-700">❌ Exclu</Badge> = Jamais dans le CV</span>
+                {/* Legend */}
+                <div className="mb-6 p-4 bg-slate-50 rounded-lg">
+                    <div className="text-sm font-medium mb-2">Pondération :</div>
+                    <div className="flex gap-4 text-xs">
+                        <span className="flex items-center gap-1"><Badge className="bg-green-100 text-green-700">🔥 Important</Badge> = Toujours inclus, mis en avant</span>
+                        <span className="flex items-center gap-1"><Badge className="bg-blue-100 text-blue-700">✅ Inclus</Badge> = Inclus par défaut</span>
+                        <span className="flex items-center gap-1"><Badge className="bg-red-100 text-red-700">❌ Exclu</Badge> = Jamais dans le CV</span>
+                    </div>
                 </div>
-            </div>
 
-            {/* Profile */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <User className="w-5 h-5" /> Profil
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    <div><strong>Nom :</strong> {ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
-                    <div><strong>Titre :</strong> {ragData?.profil?.titre_principal}</div>
-                    <div><strong>Localisation :</strong> {ragData?.profil?.localisation}</div>
-                </CardContent>
-            </Card>
+                {/* Profile */}
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <User className="w-5 h-5" /> Profil
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                        <div><strong>Nom :</strong> {ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
+                        <div><strong>Titre :</strong> {ragData?.profil?.titre_principal}</div>
+                        <div><strong>Localisation :</strong> {ragData?.profil?.localisation}</div>
+                    </CardContent>
+                </Card>
 
-            {/* Experiences */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Briefcase className="w-5 h-5" /> Expériences ({ragData?.experiences?.length || 0})
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {ragData?.experiences?.map((exp: any, i: number) => (
-                        <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
-                            <div>
-                                <div className="font-medium">{exp.poste}</div>
-                                <div className="text-sm text-slate-500">{exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}</div>
-                            </div>
-                            <WeightBadge
-                                weight={exp.weight || "inclus"}
-                                onChange={(w) => updateWeight("experiences", i, w)}
-                            />
-                        </div>
-                    ))}
-                </CardContent>
-            </Card>
-
-            {/* Compétences */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Wrench className="w-5 h-5" /> Compétences Techniques ({ragData?.competences?.techniques?.length || 0})
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                        {ragData?.competences?.techniques?.map((skill: any, i: number) => (
-                            <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                                <span className="text-sm">{typeof skill === "string" ? skill : skill.nom}</span>
+                {/* Experiences */}
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Briefcase className="w-5 h-5" /> Expériences ({ragData?.experiences?.length || 0})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {ragData?.experiences?.map((exp: any, i: number) => (
+                            <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
+                                <div>
+                                    <div className="font-medium">{exp.poste}</div>
+                                    <div className="text-sm text-slate-500">{exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}</div>
+                                </div>
                                 <WeightBadge
-                                    weight={skill.weight || "inclus"}
-                                    onChange={(w) => updateWeight("competences.techniques", i, w)}
+                                    weight={exp.weight || "inclus"}
+                                    onChange={(w) => updateWeight("experiences", i, w)}
                                 />
                             </div>
                         ))}
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
 
-            {/* Formations */}
-            <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <GraduationCap className="w-5 h-5" /> Formations ({ragData?.formations?.length || 0})
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {ragData?.formations?.map((f: any, i: number) => (
-                        <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
-                            <div>
-                                <div className="font-medium">{f.diplome}</div>
-                                <div className="text-sm text-slate-500">{f.ecole} • {f.annee}</div>
-                            </div>
-                            <WeightBadge
-                                weight={f.weight || "inclus"}
-                                onChange={(w) => updateWeight("formations", i, w)}
-                            />
+                {/* Compétences */}
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Wrench className="w-5 h-5" /> Compétences Techniques ({ragData?.competences?.techniques?.length || 0})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                            {ragData?.competences?.techniques?.map((skill: any, i: number) => (
+                                <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                                    <span className="text-sm">{typeof skill === "string" ? skill : skill.nom}</span>
+                                    <WeightBadge
+                                        weight={skill.weight || "inclus"}
+                                        onChange={(w) => updateWeight("competences.techniques", i, w)}
+                                    />
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </CardContent>
-            </Card>
-        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Formations */}
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <GraduationCap className="w-5 h-5" /> Formations ({ragData?.formations?.length || 0})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {ragData?.formations?.map((f: any, i: number) => (
+                            <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
+                                <div>
+                                    <div className="font-medium">{f.diplome}</div>
+                                    <div className="text-sm text-slate-500">{f.ecole} • {f.annee}</div>
+                                </div>
+                                <WeightBadge
+                                    weight={f.weight || "inclus"}
+                                    onChange={(w) => updateWeight("formations", i, w)}
+                                />
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            </div>
+        </DashboardLayout>
     );
 }

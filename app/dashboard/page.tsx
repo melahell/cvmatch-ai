@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CircularProgress } from "@/components/ui/CircularProgress";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { UserProfile } from "@/types";
@@ -87,207 +88,213 @@ export default function DashboardPage() {
     }, [userId, authLoading]);
 
     if (loading || authLoading) {
-        return <LoadingSpinner fullScreen />;
+        return (
+            <DashboardLayout>
+                <LoadingSpinner fullScreen />
+            </DashboardLayout>
+        );
     }
 
     return (
-        <div className="container mx-auto py-8 px-4">
+        <DashboardLayout>
+            <div className="container mx-auto py-8 px-4">
 
-            {/* WELCOME HEADER */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || authUserName} 👋</h1>
-                    <p className="text-slate-500">Prêt à décrocher le job de vos rêves ?</p>
-                </div>
-                <div className="flex gap-2">
-                    <Link href="/dashboard/tracking">
-                        <Button variant="outline">
-                            <FileText className="w-4 h-4 mr-2" /> Mes CVs
-                        </Button>
-                    </Link>
-                    <Link href="/dashboard/tracking">
-                        <Button variant="outline">
-                            <Briefcase className="w-4 h-4 mr-2" /> Suivi Candidatures
-                        </Button>
-                    </Link>
-                    <Link href="/dashboard/analyze">
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                            <Briefcase className="w-4 h-4 mr-2" /> Nouvelle Analyse
-                        </Button>
-                    </Link>
-                </div>
-            </div>
-
-            {/* STATS ROW */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center p-6">
-                        <div className="text-4xl font-bold text-blue-600 mb-1">{stats.analyses}</div>
-                        <div className="text-sm font-medium text-slate-500">Offres Analysées</div>
-                    </CardContent>
-                </Card>
-                <Link href="/dashboard/tracking">
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
-                        <CardContent className="flex flex-col items-center justify-center p-6 h-full">
-                            <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
-                            <div className="text-sm font-medium text-slate-500">CVs Générés</div>
-                        </CardContent>
-                    </Card>
-                </Link>
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center p-4">
-                        <CircularProgress
-                            value={completenessScore}
-                            max={100}
-                            size={80}
-                            label="/ 100"
-                        />
-                        <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
-                    </CardContent>
-                </Card>
-                <Link href="/onboarding">
-                    <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
-                        <CardContent className="flex flex-col items-center justify-center p-6 h-full">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Upload className="w-5 h-5" />
-                                <span className="font-bold">Gérer mon profil</span>
-                            </div>
-                            <div className="text-xs text-slate-300 text-center">Ajouter des documents ou mettre à jour</div>
-                        </CardContent>
-                    </Card>
-                </Link>
-            </div>
-
-            {/* CTA BANNER FOR EMPTY PROFILE */}
-            {completenessScore === 0 && (
-                <Link href="/onboarding">
-                    <Card className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
-                        <CardContent className="flex items-center justify-between p-6">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-white/20 rounded-full">
-                                    <PlusCircle className="w-8 h-8" />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold">Créez votre profil RAG</h3>
-                                    <p className="text-blue-100">Uploadez votre CV pour débloquer l'analyse IA et les recommandations personnalisées</p>
-                                </div>
-                            </div>
-                            <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
-                                Commencer <Upload className="w-4 h-4 ml-2" />
+                {/* WELCOME HEADER */}
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || authUserName} 👋</h1>
+                        <p className="text-slate-500">Prêt à décrocher le job de vos rêves ?</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <Link href="/dashboard/tracking">
+                            <Button variant="outline">
+                                <FileText className="w-4 h-4 mr-2" /> Mes CVs
                             </Button>
+                        </Link>
+                        <Link href="/dashboard/tracking">
+                            <Button variant="outline">
+                                <Briefcase className="w-4 h-4 mr-2" /> Suivi Candidatures
+                            </Button>
+                        </Link>
+                        <Link href="/dashboard/analyze">
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Briefcase className="w-4 h-4 mr-2" /> Nouvelle Analyse
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+
+                {/* STATS ROW */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <Card>
+                        <CardContent className="flex flex-col items-center justify-center p-6">
+                            <div className="text-4xl font-bold text-blue-600 mb-1">{stats.analyses}</div>
+                            <div className="text-sm font-medium text-slate-500">Offres Analysées</div>
                         </CardContent>
                     </Card>
-                </Link>
-            )}
-
-            <div className="grid md:grid-cols-3 gap-6">
-
-                {/* PROFILE SECTION - 2 columns */}
-                <div className="md:col-span-2 space-y-4">
-
-                    {/* Profile Card with Direct Photo Upload */}
+                    <Link href="/dashboard/tracking">
+                        <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
+                            <CardContent className="flex flex-col items-center justify-center p-6 h-full">
+                                <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
+                                <div className="text-sm font-medium text-slate-500">CVs Générés</div>
+                            </CardContent>
+                        </Card>
+                    </Link>
                     <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-4 mb-4">
-                                {/* Avatar with direct upload */}
-                                <label className="relative group cursor-pointer">
-                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                                        {profile?.prenom?.[0]}{profile?.nom?.[0]}
-                                    </div>
-                                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Camera className="w-5 h-5 text-white" />
-                                    </div>
-                                    <input type="file" accept="image/*" className="hidden" />
-                                </label>
-                                <div>
-                                    <div className="font-bold text-lg">{profile?.prenom} {profile?.nom}</div>
-                                    <div className="text-sm text-slate-500">{profile?.titre_principal}</div>
+                        <CardContent className="flex flex-col items-center justify-center p-4">
+                            <CircularProgress
+                                value={completenessScore}
+                                max={100}
+                                size={80}
+                                label="/ 100"
+                            />
+                            <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
+                        </CardContent>
+                    </Card>
+                    <Link href="/onboarding">
+                        <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
+                            <CardContent className="flex flex-col items-center justify-center p-6 h-full">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Upload className="w-5 h-5" />
+                                    <span className="font-bold">Gérer mon profil</span>
                                 </div>
-                            </div>
-                            {profile?.localisation && (
-                                <div className="text-sm text-slate-500">📍 {profile?.localisation}</div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Documents */}
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm flex items-center gap-2">
-                                <FileText className="w-4 h-4" /> Documents ({uploadedDocs.length})
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {uploadedDocs.length > 0 ? (
-                                <div className="space-y-1">
-                                    {uploadedDocs.map((doc) => (
-                                        <div key={doc.id} className="flex justify-between text-sm py-1">
-                                            <span className="truncate text-slate-600">{doc.filename}</span>
-                                            <span className="text-xs text-slate-400">
-                                                {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-sm text-slate-400">Aucun document</div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Skills */}
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Compétences clés</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {skills.length > 0 ? skills.map((skill: any, i) => (
-                                    <Badge key={i} variant="outline" className="text-xs">
-                                        {typeof skill === "string" ? skill : skill.nom}
-                                    </Badge>
-                                )) : (
-                                    <span className="text-sm text-slate-400">Aucune</span>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Link to profile */}
-                    <Link href="/dashboard/profile">
-                        <Card className="hover:bg-slate-50 cursor-pointer transition-colors">
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <span className="text-sm font-medium text-blue-600">📝 Mes informations</span>
-                                <ExternalLink className="w-4 h-4 text-slate-400" />
+                                <div className="text-xs text-slate-300 text-center">Ajouter des documents ou mettre à jour</div>
                             </CardContent>
                         </Card>
                     </Link>
                 </div>
 
-                {/* TOP JOBS - 1 column, compact */}
-                <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-slate-500 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" /> Postes suggérés
-                    </h3>
-                    {topJobs.length > 0 ? (
-                        <div className="space-y-2">
-                            {topJobs.slice(0, 5).map((job: any, i) => (
-                                <div key={i} className="p-2 bg-slate-50 rounded text-xs">
-                                    <div className="font-medium text-slate-600 truncate">{job.titre_poste || "Poste"}</div>
-                                    <div className="text-slate-400 flex justify-between mt-1">
-                                        <span className="truncate">{job.secteurs?.[0] || "Tech"}</span>
-                                        <span className="font-medium">{job.match_score}%</span>
+                {/* CTA BANNER FOR EMPTY PROFILE */}
+                {completenessScore === 0 && (
+                    <Link href="/onboarding">
+                        <Card className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
+                            <CardContent className="flex items-center justify-between p-6">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-white/20 rounded-full">
+                                        <PlusCircle className="w-8 h-8" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">Créez votre profil RAG</h3>
+                                        <p className="text-blue-100">Uploadez votre CV pour débloquer l'analyse IA et les recommandations personnalisées</p>
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-xs text-slate-400 p-2">Uploadez un CV pour voir les suggestions</div>
-                    )}
-                </div>
+                                <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
+                                    Commencer <Upload className="w-4 h-4 ml-2" />
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </Link>
+                )}
 
+                <div className="grid md:grid-cols-3 gap-6">
+
+                    {/* PROFILE SECTION - 2 columns */}
+                    <div className="md:col-span-2 space-y-4">
+
+                        {/* Profile Card with Direct Photo Upload */}
+                        <Card>
+                            <CardContent className="p-6">
+                                <div className="flex items-center gap-4 mb-4">
+                                    {/* Avatar with direct upload */}
+                                    <label className="relative group cursor-pointer">
+                                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                                            {profile?.prenom?.[0]}{profile?.nom?.[0]}
+                                        </div>
+                                        <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Camera className="w-5 h-5 text-white" />
+                                        </div>
+                                        <input type="file" accept="image/*" className="hidden" />
+                                    </label>
+                                    <div>
+                                        <div className="font-bold text-lg">{profile?.prenom} {profile?.nom}</div>
+                                        <div className="text-sm text-slate-500">{profile?.titre_principal}</div>
+                                    </div>
+                                </div>
+                                {profile?.localisation && (
+                                    <div className="text-sm text-slate-500">📍 {profile?.localisation}</div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Documents */}
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                    <FileText className="w-4 h-4" /> Documents ({uploadedDocs.length})
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {uploadedDocs.length > 0 ? (
+                                    <div className="space-y-1">
+                                        {uploadedDocs.map((doc) => (
+                                            <div key={doc.id} className="flex justify-between text-sm py-1">
+                                                <span className="truncate text-slate-600">{doc.filename}</span>
+                                                <span className="text-xs text-slate-400">
+                                                    {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-sm text-slate-400">Aucun document</div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Skills */}
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm">Compétences clés</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-wrap gap-2">
+                                    {skills.length > 0 ? skills.map((skill: any, i) => (
+                                        <Badge key={i} variant="outline" className="text-xs">
+                                            {typeof skill === "string" ? skill : skill.nom}
+                                        </Badge>
+                                    )) : (
+                                        <span className="text-sm text-slate-400">Aucune</span>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Link to profile */}
+                        <Link href="/dashboard/profile">
+                            <Card className="hover:bg-slate-50 cursor-pointer transition-colors">
+                                <CardContent className="p-4 flex items-center justify-between">
+                                    <span className="text-sm font-medium text-blue-600">📝 Mes informations</span>
+                                    <ExternalLink className="w-4 h-4 text-slate-400" />
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    </div>
+
+                    {/* TOP JOBS - 1 column, compact */}
+                    <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4" /> Postes suggérés
+                        </h3>
+                        {topJobs.length > 0 ? (
+                            <div className="space-y-2">
+                                {topJobs.slice(0, 5).map((job: any, i) => (
+                                    <div key={i} className="p-2 bg-slate-50 rounded text-xs">
+                                        <div className="font-medium text-slate-600 truncate">{job.titre_poste || "Poste"}</div>
+                                        <div className="text-slate-400 flex justify-between mt-1">
+                                            <span className="truncate">{job.secteurs?.[0] || "Tech"}</span>
+                                            <span className="font-medium">{job.match_score}%</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-xs text-slate-400 p-2">Uploadez un CV pour voir les suggestions</div>
+                        )}
+                    </div>
+
+                </div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 }
 
