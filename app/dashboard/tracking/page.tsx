@@ -1,14 +1,15 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, ExternalLink, Calendar, Briefcase, CheckCircle, XCircle } from "lucide-react";
+import { ExternalLink, Calendar, Briefcase, CheckCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
-import Cookies from "js-cookie";
 import { JobAnalysis } from "@/types";
 
 const STATUS_COLORS: any = {
@@ -20,15 +21,15 @@ const STATUS_COLORS: any = {
 };
 
 export default function TrackingPage() {
+    const { userId, isLoading: authLoading } = useAuth();
     const [jobs, setJobs] = useState<JobAnalysis[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (authLoading || !userId) return;
+
         const supabase = createSupabaseClient();
         async function fetchJobs() {
-            const userId = Cookies.get("userId");
-            if (!userId) return;
-
             const { data, error } = await supabase
                 .from("job_analyses")
                 .select("*")
@@ -39,7 +40,7 @@ export default function TrackingPage() {
             setLoading(false);
         }
         fetchJobs();
-    }, []);
+    }, [userId, authLoading]);
 
     const updateStatus = async (id: string, newStatus: JobAnalysis["application_status"]) => {
         const supabase = createSupabaseClient();
@@ -53,7 +54,7 @@ export default function TrackingPage() {
             .eq("id", id);
     };
 
-    if (loading) return <div className="flex h-screen justify-center items-center"><Loader2 className="animate-spin" /></div>;
+    if (loading || authLoading) return <LoadingSpinner fullScreen />;
 
     return (
         <div className="container mx-auto py-8">

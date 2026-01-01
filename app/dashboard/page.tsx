@@ -2,37 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, Briefcase, FileText, CheckCircle, TrendingUp, Github, Upload, PlusCircle, User, Calendar, ExternalLink, Camera } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Briefcase, FileText, Upload, Camera, PlusCircle, TrendingUp, ExternalLink } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { CircularProgress } from "@/components/ui/CircularProgress";
+import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
-import Cookies from "js-cookie";
-import { JobAnalysis, UserProfile } from "@/types";
+import { UserProfile } from "@/types";
 
 export default function DashboardPage() {
+    const { userId, userName: authUserName, isLoading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<UserProfile["profil"] | null>(null);
-    const [topJobs, setTopJobs] = useState<any[]>([]); // Keeping any for topJobs as structure varies
+    const [topJobs, setTopJobs] = useState<any[]>([]);
     const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
     const [completenessScore, setCompletenessScore] = useState(0);
     const [skills, setSkills] = useState<string[]>([]);
-    const [userName, setUserName] = useState("Candidat");
     const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
-    const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
     useEffect(() => {
+        if (authLoading || !userId) return;
+
         const supabase = createSupabaseClient();
         async function fetchData() {
-            setUserName(Cookies.get("userName") || "Candidat");
-            const userId = Cookies.get("userId");
-            const userName = Cookies.get("userName");
-
-            if (!userId) {
-                // No user ? Redirect to login (Real Auth)
-                window.location.href = "/login";
-                return;
-            }
 
             // 1. Fetch RAG Data
             const { data: ragData } = await supabase
@@ -90,14 +84,10 @@ export default function DashboardPage() {
             setLoading(false);
         }
         fetchData();
-    }, []);
+    }, [userId, authLoading]);
 
-    if (loading) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            </div>
-        );
+    if (loading || authLoading) {
+        return <LoadingSpinner fullScreen />;
     }
 
     return (
@@ -106,7 +96,7 @@ export default function DashboardPage() {
             {/* WELCOME HEADER */}
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || userName} 👋</h1>
+                    <h1 className="text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || authUserName} 👋</h1>
                     <p className="text-slate-500">Prêt à décrocher le job de vos rêves ?</p>
                 </div>
                 <div className="flex gap-2">

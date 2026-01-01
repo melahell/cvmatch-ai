@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, ArrowLeft, Save, Briefcase, GraduationCap, Wrench, User } from "lucide-react";
+import { Save, Briefcase, GraduationCap, Wrench, User, Loader2, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
-import Cookies from "js-cookie";
 
 type WeightValue = "important" | "inclus" | "exclu";
 
@@ -44,22 +45,16 @@ const WeightBadge = ({ weight, onChange }: { weight: WeightValue; onChange: (w: 
 };
 
 export default function ProfilePage() {
-    const router = useRouter();
+    const { userId, isLoading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [ragData, setRagData] = useState<any>(null);
-    const [userId, setUserId] = useState<string | null>(null);
     const supabase = createSupabaseClient();
 
     useEffect(() => {
-        const id = Cookies.get("userId");
-        if (!id) {
-            router.push("/login");
-            return;
-        }
-        setUserId(id);
-        fetchProfile(id);
-    }, []);
+        if (authLoading || !userId) return;
+        fetchProfile(userId);
+    }, [userId, authLoading]);
 
     const fetchProfile = async (uid: string) => {
         const { data } = await supabase
@@ -127,12 +122,8 @@ export default function ProfilePage() {
         alert("Profil sauvegardé !");
     };
 
-    if (loading) {
-        return (
-            <div className="flex h-screen items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            </div>
-        );
+    if (loading || authLoading) {
+        return <LoadingSpinner fullScreen />;
     }
 
     return (
