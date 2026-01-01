@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -10,11 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-
-import Cookies from "js-cookie";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AnalyzePage() {
     const router = useRouter();
+    const { userId } = useAuth();
     const [loading, setLoading] = useState(false);
     const [mode, setMode] = useState<"url" | "text">("url");
     const [url, setUrl] = useState("");
@@ -22,6 +21,7 @@ export default function AnalyzePage() {
 
     const handleAnalyze = async () => {
         if ((mode === "url" && !url) || (mode === "text" && !text)) return;
+        if (!userId) return;
 
         setLoading(true);
         try {
@@ -29,7 +29,7 @@ export default function AnalyzePage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    userId: Cookies.get("userId"),
+                    userId,
                     jobUrl: mode === "url" ? url : undefined,
                     jobText: mode === "text" ? text : undefined,
                 }),

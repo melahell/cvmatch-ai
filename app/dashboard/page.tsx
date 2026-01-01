@@ -128,9 +128,14 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
                 <Card>
-                    <CardContent className="flex flex-col items-center justify-center p-6">
-                        <div className="text-4xl font-bold text-green-600 mb-1">{completenessScore}/100</div>
-                        <div className="text-sm font-medium text-slate-500">Score Profil Moy.</div>
+                    <CardContent className="flex flex-col items-center justify-center p-4">
+                        <CircularProgress
+                            value={completenessScore}
+                            max={100}
+                            size={80}
+                            label="/ 100"
+                        />
+                        <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
                     </CardContent>
                 </Card>
                 <Link href="/onboarding">

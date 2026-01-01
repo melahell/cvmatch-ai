@@ -253,8 +253,10 @@ export default function OnboardingPage() {
                     </div>
 
                     <div
-                        className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50" : "border-slate-200"
-                            } `}
+                        className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${dragActive
+                            ? "border-blue-500 bg-blue-50 scale-[1.02] shadow-lg"
+                            : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
+                            }`}
                         onDragEnter={handleDrag}
                         onDragLeave={handleDrag}
                         onDragOver={handleDrag}
