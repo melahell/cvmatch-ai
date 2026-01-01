@@ -38,8 +38,9 @@ export async function POST(req: Request) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const flashModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Same models as RAG generate
+    const flashModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const fallbackModel = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
     let useFallback = false;
 
     try {

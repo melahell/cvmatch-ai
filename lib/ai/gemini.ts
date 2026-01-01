@@ -1,4 +1,3 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY;
@@ -9,8 +8,9 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey || "dummy-key");
 
+// Gemini 3 models (2025-2026)
 export const models = {
-    flash: genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" }),
-    pro: genAI.getGenerativeModel({ model: "gemini-pro" }),
-    vision: genAI.getGenerativeModel({ model: "gemini-pro-vision" }),
+    flash: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
+    pro: genAI.getGenerativeModel({ model: "gemini-3-pro-preview" }),
+    vision: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
 };
