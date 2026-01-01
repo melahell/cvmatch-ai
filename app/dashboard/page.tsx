@@ -49,30 +49,30 @@ export default function DashboardPage() {
                 // Extract skills from profile
                 const profileSkills = ragData.completeness_details?.competences?.techniques?.slice(0, 5) || [];
                 setSkills(profileSkills);
-
-                // 2. Fetch Stats
-                const { count: appliedCount } = await supabase
-                    .from("job_analyses")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId)
-                    .neq("application_status", "pending");
-
-                const { count: analysesCount } = await supabase
-                    .from("job_analyses")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId);
-
-                const { count: cvCount } = await supabase
-                    .from("cv_generations")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId);
-
-                setStats({
-                    analyses: analysesCount || 0,
-                    cvs: cvCount || 0,
-                    applied: appliedCount || 0
-                });
             }
+
+            // 2. Fetch Stats
+            const { count: appliedCount } = await supabase
+                .from("job_analyses")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId)
+                .neq("application_status", "pending");
+
+            const { count: analysesCount } = await supabase
+                .from("job_analyses")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId);
+
+            const { count: cvCount } = await supabase
+                .from("cv_generations")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId);
+
+            setStats({
+                analyses: analysesCount || 0,
+                cvs: cvCount || 0,
+                applied: appliedCount || 0
+            });
 
             // 3. Fetch Uploaded Documents
             const { data: docs } = await supabase
