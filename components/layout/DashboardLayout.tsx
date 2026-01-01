@@ -102,7 +102,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                             Mon Profil
                                         </button>
                                     </Link>
-                                    <Link href="/onboarding">
+                                    <Link href="/dashboard/profile/rag">
                                         <button
                                             className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                             onClick={() => setMenuOpen(false)}
@@ -136,8 +136,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                         return (
                             <Link key={item.href} href={item.href}>
                                 <div className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${isActive
-                                        ? "text-blue-600 bg-blue-50"
-                                        : "text-slate-500 hover:text-slate-700"
+                                    ? "text-blue-600 bg-blue-50"
+                                    : "text-slate-500 hover:text-slate-700"
                                     }`}>
                                     <item.icon className="w-5 h-5" />
                                     <span className="text-xs font-medium">{item.label}</span>
