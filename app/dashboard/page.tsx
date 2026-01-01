@@ -100,7 +100,7 @@ export default function DashboardPage() {
                     <p className="text-slate-500">Prêt à décrocher le job de vos rêves ?</p>
                 </div>
                 <div className="flex gap-2">
-                    <Link href="/dashboard/cvs">
+                    <Link href="/dashboard/tracking">
                         <Button variant="outline">
                             <FileText className="w-4 h-4 mr-2" /> Mes CVs
                         </Button>
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                         <div className="text-sm font-medium text-slate-500">Offres Analysées</div>
                     </CardContent>
                 </Card>
-                <Link href="/dashboard/cvs">
+                <Link href="/dashboard/tracking">
                     <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
                         <CardContent className="flex flex-col items-center justify-center p-6 h-full">
                             <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
