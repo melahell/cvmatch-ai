@@ -133,6 +133,9 @@ export async function POST(req: Request) {
             .insert({
                 user_id: userId,
                 job_url: jobUrl,
+                job_title: matchData.job_title || null,
+                company: matchData.company || null,
+                location: matchData.location || null,
                 job_description: fullJobText.substring(0, 10000),
                 match_score: matchData.match_score,
                 match_level: matchData.match_level,

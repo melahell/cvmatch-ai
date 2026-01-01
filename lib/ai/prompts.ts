@@ -86,6 +86,9 @@ Analyse le match entre ce profil et cette offre.
 
 OUTPUT (JSON uniquement) :
 {
+  "job_title": "Titre exact du poste (ex: Product Manager Senior)",
+  "company": "Nom de l'entreprise (ex: BNP Paribas)",
+  "location": "Localisation si mentionné (ex: Paris, Remote)",
   "match_score": 0-100,
   "match_level": "Excellent|Très bon|Bon|Moyen|Faible",
   "recommendation": "Oui fortement|Oui|Peut-être|Non recommandé",
