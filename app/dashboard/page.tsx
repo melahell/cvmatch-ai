@@ -100,6 +100,11 @@ export default function DashboardPage() {
                     <p className="text-slate-500">Prêt à décrocher le job de vos rêves ?</p>
                 </div>
                 <div className="flex gap-2">
+                    <Link href="/dashboard/cvs">
+                        <Button variant="outline">
+                            <FileText className="w-4 h-4 mr-2" /> Mes CVs
+                        </Button>
+                    </Link>
                     <Link href="/dashboard/tracking">
                         <Button variant="outline">
                             <Briefcase className="w-4 h-4 mr-2" /> Suivi Candidatures
@@ -121,12 +126,14 @@ export default function DashboardPage() {
                         <div className="text-sm font-medium text-slate-500">Offres Analysées</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center p-6">
-                        <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
-                        <div className="text-sm font-medium text-slate-500">CVs Générés</div>
-                    </CardContent>
-                </Card>
+                <Link href="/dashboard/cvs">
+                    <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
+                        <CardContent className="flex flex-col items-center justify-center p-6 h-full">
+                            <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
+                            <div className="text-sm font-medium text-slate-500">CVs Générés</div>
+                        </CardContent>
+                    </Card>
+                </Link>
                 <Card>
                     <CardContent className="flex flex-col items-center justify-center p-4">
                         <CircularProgress
