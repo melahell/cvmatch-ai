@@ -40,31 +40,62 @@ export async function POST(req: Request) {
                 const cheerio = await import("cheerio");
                 const response = await fetch(jobUrl, {
                     headers: {
-                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    }
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8"
+                    },
+                    redirect: "follow"
                 });
 
-                if (!response.ok) throw new Error(`Failed to fetch URL: ${response.status}`);
+                if (!response.ok) {
+                    console.error(`URL fetch failed: ${response.status} ${response.statusText}`);
+                    return NextResponse.json({
+                        error: `Le site a refusé l'accès (erreur ${response.status}). Copiez-collez le texte de l'annonce dans l'onglet "Via Texte".`
+                    }, { status: 400 });
+                }
 
                 const html = await response.text();
                 const $ = cheerio.load(html);
 
-                // Remove scripts, styles
-                $('script').remove();
-                $('style').remove();
+                // Remove scripts, styles, navigation
+                $('script, style, nav, header, footer, aside').remove();
 
-                // Strategy: Try to find common job board containers, else body
-                // Simple generic extraction for POC "Zero Mock"
-                fullJobText = $('body').text().replace(/\s+/g, ' ').trim();
+                // Try to find job content in common patterns
+                let content = "";
+                const selectors = [
+                    '[class*="job-description"]',
+                    '[class*="job-content"]',
+                    '[class*="description"]',
+                    'article',
+                    'main',
+                    '.content',
+                    '#content'
+                ];
+
+                for (const sel of selectors) {
+                    const found = $(sel).text().trim();
+                    if (found && found.length > content.length) {
+                        content = found;
+                    }
+                }
+
+                // Fallback to body
+                if (content.length < 100) {
+                    content = $('body').text().replace(/\s+/g, ' ').trim();
+                }
+
+                fullJobText = content;
 
                 if (fullJobText.length < 50) {
-                    throw new Error("Content too short, possibly blocked by bot protection");
+                    console.error("Content too short:", fullJobText.substring(0, 200));
+                    return NextResponse.json({
+                        error: "Ce site nécessite une connexion ou bloque les robots. Copiez-collez le texte de l'annonce dans l'onglet 'Via Texte'."
+                    }, { status: 400 });
                 }
             } catch (err: any) {
-                console.error("Scraping failed", err);
-                // Strict "Zero Simulation": Do not fallback to mock.
+                console.error("Scraping error:", err.message);
                 return NextResponse.json({
-                    error: `Impossible de lire l'offre depuis l'URL (${err.message}). Merci de copier-coller le texte de l'annonce.`
+                    error: `Impossible de lire cette URL. Utilisez l'onglet "Via Texte" pour coller le contenu de l'offre.`
                 }, { status: 400 });
             }
         }
