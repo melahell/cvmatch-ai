@@ -53,6 +53,14 @@ interface RAGData {
     langues?: Record<string, string>;
 }
 
+// Helper to safely render any value as string
+const safeString = (val: any): string => {
+    if (val === null || val === undefined) return "";
+    if (typeof val === "string") return val;
+    if (typeof val === "number") return String(val);
+    return JSON.stringify(val);
+};
+
 export default function RAGManagementPage() {
     const { userId, isLoading: authLoading } = useAuth();
     const [loading, setLoading] = useState(true);
@@ -373,13 +381,13 @@ export default function RAGManagementPage() {
                                         <CardContent className="space-y-4">
                                             {ragData?.experiences?.map((exp, i) => (
                                                 <div key={i} className="border-l-2 border-blue-200 pl-4 py-2">
-                                                    <div className="font-medium">{exp.poste}</div>
-                                                    <div className="text-sm text-slate-600">{exp.entreprise}</div>
-                                                    <div className="text-xs text-slate-400">{exp.debut} → {exp.fin || "Présent"}</div>
-                                                    {exp.technologies?.length > 0 && (
+                                                    <div className="font-medium">{safeString(exp.poste)}</div>
+                                                    <div className="text-sm text-slate-600">{safeString(exp.entreprise)}</div>
+                                                    <div className="text-xs text-slate-400">{safeString(exp.debut)} → {safeString(exp.fin) || "Présent"}</div>
+                                                    {Array.isArray(exp.technologies) && exp.technologies.length > 0 && (
                                                         <div className="flex flex-wrap gap-1 mt-2">
                                                             {exp.technologies.map((tech, j) => (
-                                                                <Badge key={j} variant="secondary" className="text-xs">{tech}</Badge>
+                                                                <Badge key={j} variant="secondary" className="text-xs">{safeString(tech)}</Badge>
                                                             ))}
                                                         </div>
                                                     )}
@@ -402,16 +410,16 @@ export default function RAGManagementPage() {
                                             <div className="mb-3">
                                                 <label className="text-xs text-slate-500 mb-1 block">Techniques</label>
                                                 <div className="flex flex-wrap gap-1">
-                                                    {ragData?.competences?.techniques?.map((c, i) => (
-                                                        <Badge key={i} className="bg-blue-100 text-blue-700">{c}</Badge>
+                                                    {Array.isArray(ragData?.competences?.techniques) && ragData?.competences?.techniques?.map((c, i) => (
+                                                        <Badge key={i} className="bg-blue-100 text-blue-700">{safeString(c)}</Badge>
                                                     ))}
                                                 </div>
                                             </div>
                                             <div>
                                                 <label className="text-xs text-slate-500 mb-1 block">Soft Skills</label>
                                                 <div className="flex flex-wrap gap-1">
-                                                    {ragData?.competences?.soft_skills?.map((c, i) => (
-                                                        <Badge key={i} className="bg-green-100 text-green-700">{c}</Badge>
+                                                    {Array.isArray(ragData?.competences?.soft_skills) && ragData?.competences?.soft_skills?.map((c, i) => (
+                                                        <Badge key={i} className="bg-green-100 text-green-700">{safeString(c)}</Badge>
                                                     ))}
                                                 </div>
                                             </div>
