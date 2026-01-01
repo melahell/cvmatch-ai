@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload, CheckCircle, FileText, ArrowRight } from "lucide-react";
+import { Loader2, Upload, CheckCircle, FileText, ArrowRight, Camera, Info, ExternalLink, X } from "lucide-react";
 import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,6 +15,9 @@ export default function OnboardingPage() {
     const [uploading, setUploading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [showLinkedInGuide, setShowLinkedInGuide] = useState(false);
 
     const [userId, setUserId] = useState<string | null>(null);
 
@@ -60,6 +63,23 @@ export default function OnboardingPage() {
 
     const removeFile = (index: number) => {
         setFiles((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const photo = e.target.files[0];
+            setProfilePhoto(photo);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPhotoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(photo);
+        }
+    };
+
+    const removePhoto = () => {
+        setProfilePhoto(null);
+        setPhotoPreview(null);
     };
 
     const startProcess = async () => {
@@ -146,6 +166,41 @@ export default function OnboardingPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {/* LinkedIn Export Guide Modal */}
+                    {showLinkedInGuide && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl max-w-md w-full p-6 relative">
+                                <button onClick={() => setShowLinkedInGuide(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                                    <X className="w-5 h-5" />
+                                </button>
+                                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                                    <Info className="w-5 h-5 text-blue-600" /> Comment exporter ton profil LinkedIn ?
+                                </h3>
+                                <ol className="space-y-3 text-sm">
+                                    <li className="flex gap-2">
+                                        <span className="font-bold text-blue-600">1.</span>
+                                        <span>Va sur <a href="https://www.linkedin.com/in/" target="_blank" className="text-blue-600 underline">ton profil LinkedIn</a></span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="font-bold text-blue-600">2.</span>
+                                        <span>Clique sur le bouton <strong>"Plus"</strong> (sous ta photo)</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="font-bold text-blue-600">3.</span>
+                                        <span>Sélectionne <strong>"Enregistrer au format PDF"</strong></span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="font-bold text-blue-600">4.</span>
+                                        <span>Uploade le PDF ici !</span>
+                                    </li>
+                                </ol>
+                                <Button onClick={() => setShowLinkedInGuide(false)} className="w-full mt-4">
+                                    C'est compris !
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Guidance Section */}
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                         <h3 className="font-semibold text-blue-800 flex items-center gap-2">
@@ -153,11 +208,48 @@ export default function OnboardingPage() {
                         </h3>
                         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                             <div className="text-blue-700">✅ CV (PDF, DOCX)</div>
-                            <div className="text-blue-700">✅ Profil LinkedIn</div>
+                            <button
+                                onClick={() => setShowLinkedInGuide(true)}
+                                className="text-blue-700 text-left hover:underline flex items-center gap-1"
+                            >
+                                ✅ Profil LinkedIn <Info className="w-3 h-3" />
+                            </button>
                             <div className="text-blue-600 opacity-75">💡 Certifications</div>
                             <div className="text-blue-600 opacity-75">💡 Portfolio</div>
                         </div>
-                        <p className="mt-2 text-xs text-blue-600">Plus tu uploades de documents, plus l'analyse sera précise !</p>
+                    </div>
+
+                    {/* Photo Upload Section */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            📷 Photo de profil (optionnel - pour ton CV)
+                        </label>
+                        <div className="flex items-center gap-4">
+                            {photoPreview ? (
+                                <div className="relative">
+                                    <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-full object-cover border-2 border-blue-500" />
+                                    <button
+                                        onClick={removePhoto}
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <label className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
+                                    <Camera className="w-6 h-6 text-gray-400" />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handlePhotoChange}
+                                    />
+                                </label>
+                            )}
+                            <div className="text-xs text-gray-500">
+                                {photoPreview ? "Photo ajoutée ✓" : "Clique pour ajouter ta photo"}
+                            </div>
+                        </div>
                     </div>
 
                     <div
