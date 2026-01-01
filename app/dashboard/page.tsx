@@ -131,22 +131,22 @@ export default function DashboardPage() {
                 {/* STATS ROW */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                     <Card>
-                        <CardContent className="flex flex-col items-center justify-center p-6">
+                        <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                             <div className="text-4xl font-bold text-blue-600 mb-1">{stats.analyses}</div>
                             <div className="text-sm font-medium text-slate-500">Offres Analysées</div>
                         </CardContent>
                     </Card>
-                    <Link href="/dashboard/tracking">
+                    <Link href="/dashboard/tracking" className="block h-full">
                         <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
-                            <CardContent className="flex flex-col items-center justify-center p-6 h-full">
+                            <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                                 <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
                                 <div className="text-sm font-medium text-slate-500">CVs Générés</div>
                             </CardContent>
                         </Card>
                     </Link>
-                    <Link href="/dashboard/profile/rag">
-                        <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                            <CardContent className="flex flex-col items-center justify-center p-4">
+                    <Link href="/dashboard/profile/rag" className="block h-full">
+                        <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
+                            <CardContent className="flex flex-col items-center justify-center p-4 text-center h-full">
                                 <CircularProgress
                                     value={completenessScore}
                                     max={100}
@@ -157,9 +157,9 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     </Link>
-                    <Link href="/dashboard/profile/rag">
+                    <Link href="/dashboard/profile/rag" className="block h-full">
                         <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
-                            <CardContent className="flex flex-col items-center justify-center p-6 h-full">
+                            <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Upload className="w-5 h-5" />
                                     <span className="font-bold">Gérer mon profil</span>
@@ -171,9 +171,10 @@ export default function DashboardPage() {
                 </div>
 
                 {/* CTA BANNER FOR EMPTY PROFILE */}
-                {completenessScore === 0 && (
-                    <Link href="/onboarding">
-                        <Card className="mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
+                {/* CTA BANNER FOR EMPTY PROFILE - Only show if no docs and score is 0 */}
+                {completenessScore === 0 && uploadedDocs.length === 0 && (
+                    <Link href="/onboarding" className="block mb-8">
+                        <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
                             <CardContent className="flex items-center justify-between p-6">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-white/20 rounded-full">
@@ -193,9 +194,10 @@ export default function DashboardPage() {
                 )}
 
                 {/* What's missing to reach 100% */}
+                {/* What's missing to reach 100% */}
                 {completenessScore > 0 && completenessScore < 100 && completenessBreakdown.length > 0 && (
-                    <Link href="/dashboard/profile/rag">
-                        <Card className="mb-6 border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow">
+                    <Link href="/dashboard/profile/rag" className="block mb-6">
+                        <Card className="border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                                 <div className="flex items-start gap-3">
                                     <div className="p-2 bg-amber-100 rounded-full">
@@ -250,7 +252,7 @@ export default function DashboardPage() {
                         </Card>
 
                         {/* Documents */}
-                        <Link href="/dashboard/profile/rag?tab=docs">
+                        <Link href="/dashboard/profile/rag?tab=docs" className="block">
                             <Card className="cursor-pointer hover:shadow-md transition-shadow">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm flex items-center gap-2">
