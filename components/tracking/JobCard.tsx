@@ -70,6 +70,11 @@ export function JobCard({ job, variant, onDelete, onStatusChange, isSelected = f
                                     <p className="text-xs text-slate-500 truncate">
                                         {job.company || "Entreprise"} {job.location && `• ${job.location}`}
                                     </p>
+                                    {/* Mobile date - Item 25 */}
+                                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                        <Calendar className="w-3 h-3" />
+                                        {formatRelativeDate(job.submitted_at)}
+                                    </p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">

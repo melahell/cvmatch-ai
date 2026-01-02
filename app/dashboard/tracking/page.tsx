@@ -262,6 +262,27 @@ export default function TrackingPage() {
                         </div>
                     </div>
 
+                    {/* Score Legend - Item 23 */}
+                    {jobs.length > 0 && (
+                        <div className="mb-4 p-3 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border border-slate-200">
+                            <p className="text-xs font-semibold text-slate-700 mb-2">Légende Score de Match :</p>
+                            <div className="flex flex-wrap gap-3 text-xs">
+                                <span className="flex items-center gap-1.5">
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span className="font-medium text-slate-700">≥80% Excellent</span>
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <span className="font-medium text-slate-700">60-79% Bon</span>
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                    <span className="font-medium text-slate-700">&lt;60% Faible</span>
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Progress Bar */}
                     {jobs.length > 0 && (
                         <div className="mb-6">
@@ -429,16 +450,19 @@ export default function TrackingPage() {
                             <div className="text-center py-16 bg-white rounded-xl border-2 border-dashed border-slate-200">
                                 <Briefcase className="w-12 h-12 mx-auto text-slate-300 mb-4" />
                                 <h3 className="text-lg font-medium text-slate-600 mb-2">
-                                    {search
-                                        ? "Aucun résultat"
-                                        : filter === "all"
-                                            ? "Aucune candidature"
-                                            : `Aucune candidature "${STATUS_CONFIG[filter]?.label}"`
+                                    {/* Item 24: Context-aware empty state */}
+                                    {search && filter !== "all"
+                                        ? `Aucun résultat pour "${search}" dans "${STATUS_CONFIG[filter]?.label}"`
+                                        : search
+                                            ? `Aucun résultat pour "${search}"`
+                                            : filter === "all"
+                                                ? "Aucune candidature"
+                                                : `Aucune candidature "${STATUS_CONFIG[filter]?.label}"`
                                     }
                                 </h3>
                                 <p className="text-slate-400 mb-4">
                                     {search
-                                        ? "Essayez une autre recherche"
+                                        ? "Essayez une autre recherche ou modifiez les filtres"
                                         : "Analysez une offre d'emploi pour commencer"
                                     }
                                 </p>
