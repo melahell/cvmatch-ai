@@ -12,6 +12,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { UserProfile } from "@/types";
+import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
 
 export default function DashboardPage() {
     const { userId, userName: authUserName, isLoading: authLoading } = useAuth();
@@ -33,19 +34,23 @@ export default function DashboardPage() {
             // 1. Fetch RAG Data
             const { data: ragData } = await supabase
                 .from("rag_metadata")
-                .select("completeness_details, top_10_jobs, completeness_score, completeness_breakdown")
+                // Only select columns we are SURE exist to avoid 400 error
+                .select("completeness_details, completeness_score")
                 .eq("user_id", userId)
                 .single();
 
             if (ragData) {
                 setProfile(ragData.completeness_details?.profil);
-                setCompletenessScore(ragData.completeness_score || 0);
-                if (ragData.completeness_breakdown) {
-                    setCompletenessBreakdown(ragData.completeness_breakdown);
+
+                // Calculate breakdown client-side to be safe
+                if (ragData.completeness_details) {
+                    const { score, breakdown } = calculateCompletenessWithBreakdown(ragData.completeness_details);
+                    setCompletenessScore(score);
+                    setCompletenessBreakdown(breakdown);
+                } else {
+                    setCompletenessScore(ragData.completeness_score || 0);
                 }
-                if (ragData.top_10_jobs) {
-                    setTopJobs(ragData.top_10_jobs);
-                }
+
                 // Extract skills from profile
                 const profileSkills = ragData.completeness_details?.competences?.techniques?.slice(0, 5) || [];
                 setSkills(profileSkills);

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
@@ -114,15 +115,24 @@ function RAGContent() {
         // Fetch RAG metadata
         const { data: rag } = await supabase
             .from("rag_metadata")
-            .select("completeness_details, completeness_score, completeness_breakdown, custom_notes")
+            // Removed completeness_breakdown to avoid 400 if column missing
+            .select("completeness_details, completeness_score, custom_notes")
             .eq("user_id", userId)
             .single();
 
         if (rag) {
             setRagData(rag.completeness_details);
-            setCompletenessScore(rag.completeness_score || 0);
-            setCompletenessBreakdown(rag.completeness_breakdown || []);
             setCustomNotes(rag.custom_notes || "");
+
+            // Calculate locally
+            if (rag.completeness_details) {
+                const { score, breakdown } = calculateCompletenessWithBreakdown(rag.completeness_details);
+                setCompletenessScore(score);
+                setCompletenessBreakdown(breakdown);
+            } else {
+                setCompletenessScore(rag.completeness_score || 0);
+                setCompletenessBreakdown([]);
+            }
         }
 
         setLoading(false);
