@@ -179,11 +179,25 @@ export async function POST(req: Request) {
         const result = await callWithRetry(() => generateWithFallback(prompt));
         const responseText = result.response.text();
 
+        // DEBUG: Log what Gemini actually returns
+        console.log('=== GEMINI RAG RESPONSE ===');
+        console.log('Response length:', responseText.length);
+        console.log('First 2000 chars:', responseText.slice(0, 2000));
+
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
         let ragData;
 
         try {
             ragData = JSON.parse(jsonString);
+
+            // DEBUG: Log the parsed structure
+            console.log('=== PARSED RAG DATA ===');
+            console.log('Keys:', Object.keys(ragData));
+            console.log('Has profil?', !!ragData.profil);
+            console.log('Has experiences?', !!ragData.experiences, 'Count:', ragData.experiences?.length || 0);
+            console.log('Has competences?', !!ragData.competences);
+            console.log('Has formations?', !!ragData.formations, 'Count:', ragData.formations?.length || 0);
+            console.log('Full structure sample:', JSON.stringify(ragData, null, 2).slice(0, 1000));
         } catch (e) {
             console.error("Failed to parse RAG JSON:", responseText.slice(0, 1000));
             return NextResponse.json({ error: "AI returned invalid format, please try again" }, { status: 500 });
