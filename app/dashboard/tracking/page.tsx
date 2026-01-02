@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
-import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUpDown, Trash2, ChevronRight, LayoutGrid, LayoutList } from "lucide-react";
+import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUpDown, Trash2, ChevronRight, LayoutGrid, LayoutList, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,10 +10,13 @@ import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { StatusDropdown } from "@/components/tracking/StatusDropdown";
 import { useAuth } from "@/hooks/useAuth";
 import { useJobAnalyses } from "@/hooks/useJobAnalyses";
 import Link from "next/link";
 import { JobAnalysis } from "@/types";
+import React from "react";
+import { exportJobsToCSV } from "@/lib/utils/export-csv";
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; dot: string }> = {
     pending: { label: "À faire", bg: "bg-slate-100", text: "text-slate-700", dot: "bg-slate-400" },
@@ -149,11 +152,22 @@ export default function TrackingPage() {
                             {stats.total} candidature{stats.total > 1 ? "s" : ""} • {progressPercent}% en cours
                         </p>
                     </div>
-                    <Link href="/dashboard/analyze">
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                            <Plus className="w-4 h-4 mr-2" /> Nouvelle Analyse
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => exportJobsToCSV(processedJobs)}
+                            disabled={jobs.length === 0}
+                            className="gap-2"
+                        >
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">Exporter CSV</span>
                         </Button>
-                    </Link>
+                        <Link href="/dashboard/analyze">
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Plus className="w-4 h-4 mr-2" /> Nouvelle Analyse
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Progress Bar */}
@@ -287,9 +301,9 @@ export default function TrackingPage() {
                         const status = STATUS_CONFIG[job.application_status || "pending"];
 
                         return (
-                            <>
+                            <React.Fragment key={job.id}>
+                                {/* Mobile Card */}
                                 <SwipeableCard
-                                    key={job.id}
                                     onDelete={() => handleDeleteJob(job.id)}
                                     className="md:hidden"
                                 >
@@ -314,25 +328,19 @@ export default function TrackingPage() {
                                                         }`}>
                                                         {job.match_score}%
                                                     </span>
-                                                    <select
-                                                        className={`text-xs font-medium border-0 rounded px-2 py-1 ${status.bg} ${status.text}`}
-                                                        value={job.application_status || "pending"}
-                                                        onChange={(e) => updateStatus(job.id, e.target.value as JobAnalysis["application_status"])}
-                                                    >
-                                                        <option value="pending">À faire</option>
-                                                        <option value="applied">Postulé</option>
-                                                        <option value="interviewing">Entretien</option>
-                                                        <option value="rejected">Refusé</option>
-                                                        <option value="offer">Offre</option>
-                                                    </select>
+                                                    <StatusDropdown
+                                                        currentStatus={job.application_status || "pending"}
+                                                        onStatusChange={(status) => updateStatus(job.id, status as JobAnalysis["application_status"])}
+                                                        size="sm"
+                                                    />
                                                 </div>
                                             </div>
                                         </CardContent>
                                     </Card>
                                 </SwipeableCard>
 
-                                {/* Desktop card - shown on md+ screens */}
-                                <Card key={`desktop-${job.id}`} className="hover:shadow-lg transition-all group hidden md:block">
+                                {/* Desktop Card */}
+                                <Card className="hover:shadow-lg transition-all group hidden md:block">
                                     <CardContent className="p-4 md:p-5">
                                         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                                             {/* Status Dot + Job Info */}
@@ -373,18 +381,11 @@ export default function TrackingPage() {
                                                     {job.match_score}%
                                                 </div>
 
-                                                {/* Status Dropdown */}
-                                                <select
-                                                    className={`text-sm font-medium border-0 rounded-lg px-3 py-1.5 cursor-pointer ${status.bg} ${status.text}`}
-                                                    value={job.application_status || "pending"}
-                                                    onChange={(e) => updateStatus(job.id, e.target.value as JobAnalysis["application_status"])}
-                                                >
-                                                    <option value="pending">À faire</option>
-                                                    <option value="applied">Postulé</option>
-                                                    <option value="interviewing">Entretien</option>
-                                                    <option value="rejected">Refusé</option>
-                                                    <option value="offer">Offre reçue</option>
-                                                </select>
+                                                {/* Status Dropdown with Confirmation */}
+                                                <StatusDropdown
+                                                    currentStatus={job.application_status || "pending"}
+                                                    onStatusChange={(status) => updateStatus(job.id, status as JobAnalysis["application_status"])}
+                                                />
 
                                                 {/* Actions */}
                                                 <div className="flex items-center gap-1">
@@ -414,7 +415,7 @@ export default function TrackingPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            </>
+                            </React.Fragment>
                         );
                     })}
 
