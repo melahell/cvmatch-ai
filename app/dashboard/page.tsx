@@ -34,7 +34,9 @@ export default function DashboardPage() {
             // 1. Fetch RAG Data
             const { data: ragData, error: ragError } = await supabase
                 .from("rag_metadata")
-                .select("completeness_details,top_10_jobs,completeness_score,completeness_breakdown")
+                // ONLY select columns that exist in DB (confirmed via inspection)
+                // completeness_breakdown does NOT exist (42703 error)
+                .select("completeness_details,top_10_jobs,completeness_score,custom_notes")
                 .eq("user_id", userId)
                 .single();
 
@@ -46,10 +48,8 @@ export default function DashboardPage() {
                 setProfile(ragData.completeness_details?.profil);
                 setCompletenessScore(ragData.completeness_score || 0);
 
-                if (ragData.completeness_breakdown) {
-                    setCompletenessBreakdown(ragData.completeness_breakdown);
-                } else if (ragData.completeness_details) {
-                    // Fallback to calculation if DB field is empty but details exist
+                // Calculate breakdown from details (since not stored in DB)
+                if (ragData.completeness_details) {
                     const { breakdown } = calculateCompletenessWithBreakdown(ragData.completeness_details);
                     setCompletenessBreakdown(breakdown);
                 }

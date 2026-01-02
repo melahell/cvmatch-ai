@@ -115,7 +115,7 @@ function RAGContent() {
         // Fetch RAG metadata
         const { data: rag, error: ragError } = await supabase
             .from("rag_metadata")
-            .select("completeness_details,completeness_score,completeness_breakdown,custom_notes")
+            .select("completeness_details,completeness_score,custom_notes")
             .eq("user_id", userId)
             .single();
 
@@ -128,10 +128,9 @@ function RAGContent() {
             setCompletenessScore(rag.completeness_score || 0);
             setCustomNotes(rag.custom_notes || "");
 
-            if (rag.completeness_breakdown) {
-                setCompletenessBreakdown(rag.completeness_breakdown);
-            } else if (rag.completeness_details) {
-                // Fallback to calculation if DB field is empty
+
+            // Calculate breakdown from details (since not stored in DB)
+            if (rag.completeness_details) {
                 const { breakdown } = calculateCompletenessWithBreakdown(rag.completeness_details);
                 setCompletenessBreakdown(breakdown);
             } else {
