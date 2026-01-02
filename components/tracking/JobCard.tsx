@@ -154,10 +154,10 @@ export function JobCard({ job, variant, onDelete, onStatusChange, isSelected = f
                                 <TooltipTrigger asChild>
                                     <div
                                         className={`px-3 py-1 rounded-full text-sm font-bold cursor-help ${job.match_score >= 80
-                                                ? "bg-green-100 text-green-700"
-                                                : job.match_score >= 60
-                                                    ? "bg-yellow-100 text-yellow-700"
-                                                    : "bg-red-100 text-red-700"
+                                            ? "bg-green-100 text-green-700"
+                                            : job.match_score >= 60
+                                                ? "bg-yellow-100 text-yellow-700"
+                                                : "bg-red-100 text-red-700"
                                             }`}
                                     >
                                         {job.match_score}%
@@ -177,8 +177,8 @@ export function JobCard({ job, variant, onDelete, onStatusChange, isSelected = f
                             {/* Actions */}
                             <div className="flex items-center gap-1">
                                 <Link href={`/dashboard/analyze/${job.id}`}>
-                                    <Button variant="outline" size="sm">
-                                        Voir
+                                    <Button variant="outline" size="sm" className="gap-1.5">
+                                        Détails
                                     </Button>
                                 </Link>
                                 {job.job_url && (
