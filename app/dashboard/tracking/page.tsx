@@ -235,9 +235,14 @@ export default function TrackingPage() {
                                 <Briefcase className="w-6 h-6 text-blue-600" />
                                 Mes Candidatures
                             </h1>
-                            <p className="text-slate-500 text-sm mt-1">
-                                {stats.total} candidature{stats.total > 1 ? "s" : ""} • {progressPercent}% en cours
-                            </p>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm text-slate-600">
+                                    <span className="font-bold text-lg text-blue-600">{stats.total}</span> candidature{stats.total > 1 ? 's' : ''}
+                                </span>
+                                <span className="text-sm text-slate-600">
+                                    <span className="font-bold text-lg text-green-600">{progressPercent}%</span> en cours
+                                </span>
+                            </div>
                         </div>
                         <div className="flex gap-2">
                             <Button
