@@ -58,8 +58,36 @@ export default function TrackingPage() {
 
     const [filter, setFilter] = useState<string>("all");
     const [search, setSearch] = useState("");
-    const [sortBy, setSortBy] = useState<SortOption>("date");
-    const [sortAsc, setSortAsc] = useState(false);
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+
+    // Debounce search (300ms)
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(search);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [search]);
+    // Load sort preferences from localStorage
+    const [sortBy, setSortBy] = useState<"date" | "score" | "status">(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('tracking_sort_by');
+            return (saved as any) || 'date';
+        }
+        return 'date';
+    });
+    const [sortAsc, setSortAsc] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('tracking_sort_asc');
+            return saved === 'true';
+        }
+        return false;
+    });
+
+    // Persist sort preferences
+    useEffect(() => {
+        localStorage.setItem('tracking_sort_by', sortBy);
+        localStorage.setItem('tracking_sort_asc', String(sortAsc));
+    }, [sortBy, sortAsc]);
     const [compactView, setCompactView] = useState(false);
 
     const handleDeleteJob = async (id: string) => {
@@ -104,13 +132,13 @@ export default function TrackingPage() {
             result = result.filter(j => j.application_status === filter);
         }
 
-        // Search
-        if (search.trim()) {
-            const q = search.toLowerCase();
-            result = result.filter(j =>
-                (j.job_title?.toLowerCase().includes(q)) ||
-                (j.company?.toLowerCase().includes(q)) ||
-                (j.location?.toLowerCase().includes(q))
+        // Filter by search (debounced)
+        if (debouncedSearch) {
+            const searchLower = debouncedSearch.toLowerCase();
+            result = result.filter(job =>
+                (job.job_title?.toLowerCase().includes(searchLower)) ||
+                (job.company?.toLowerCase().includes(searchLower)) ||
+                (job.location?.toLowerCase().includes(searchLower))
             );
         }
 
@@ -129,7 +157,7 @@ export default function TrackingPage() {
         });
 
         return result;
-    }, [jobs, filter, search, sortBy, sortAsc]);
+    }, [jobs, filter, debouncedSearch, sortBy, sortAsc]);
 
     const toggleSort = (option: SortOption) => {
         if (sortBy === option) {
@@ -198,7 +226,7 @@ export default function TrackingPage() {
                             </div>
                             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-500"
+                                    className="h-full bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-1000 ease-out"
                                     style={{ width: `${progressPercent}%` }}
                                 />
                             </div>
