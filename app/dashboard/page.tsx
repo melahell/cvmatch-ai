@@ -9,107 +9,77 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { useAuth } from "@/hooks/useAuth";
+import { useRAGData } from "@/hooks/useRAGData";
 import Link from "next/link";
-import { UserProfile } from "@/types";
-import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
-import { normalizeRAGData } from "@/lib/utils/normalize-rag";
-import { useState as useStateHook } from "react";
+import { logger } from "@/lib/utils/logger";
 
 export default function DashboardPage() {
     const { userId, userName: authUserName, isLoading: authLoading } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [profile, setProfile] = useState<UserProfile["profil"] | null>(null);
-    const [topJobs, setTopJobs] = useState<any[]>([]);
-    const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
-    const [completenessScore, setCompletenessScore] = useState(0);
-    const [completenessBreakdown, setCompletenessBreakdown] = useState<any[]>([]);
-    const [skills, setSkills] = useState<string[]>([]);
-    const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
 
+    // Use centralized RAG data hook
+    const { data: ragData, loading: ragLoading, error: ragError, refetch: refetchRAG } = useRAGData(userId);
+
+    const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
+    const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
+    const [statsLoading, setStatsLoading] = useState(true);
+
+    // Fetch stats and documents separately (not covered by useRAGData)
     useEffect(() => {
         if (authLoading || !userId) return;
 
         const supabase = createSupabaseClient();
-        async function fetchData() {
+        async function fetchStatsAndDocs() {
+            try {
 
-            // 1. Fetch RAG Data
-            const { data: ragData, error: ragError } = await supabase
-                .from("rag_metadata")
-                // ONLY select columns that exist in DB (confirmed via inspection)
-                // completeness_breakdown does NOT exist (42703 error)
-                .select("completeness_details,top_10_jobs,completeness_score,custom_notes")
-                .eq("user_id", userId)
-                .single();
+                // Fetch Stats
+                const { count: appliedCount } = await supabase
+                    .from("job_analyses")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", userId)
+                    .neq("application_status", "pending");
 
-            if (ragError) {
-                console.error("Error fetching RAG data:", ragError);
-            }
+                const { count: analysesCount } = await supabase
+                    .from("job_analyses")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", userId);
 
-            if (ragData) {
-                // Normalize data to handle both flat and nested structures
-                const normalized = normalizeRAGData(ragData.completeness_details);
+                const { count: cvCount } = await supabase
+                    .from("cv_generations")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", userId);
 
-                // For display, we want just the profil part
-                setProfile(normalized?.profil || null);
-                setCompletenessScore(ragData.completeness_score || 0);
+                setStats({
+                    analyses: analysesCount || 0,
+                    cvs: cvCount || 0,
+                    applied: appliedCount || 0
+                });
 
-                // Calculate breakdown from details (since not stored in DB)
-                if (normalized) {
-                    const { breakdown } = calculateCompletenessWithBreakdown(normalized);
-                    setCompletenessBreakdown(breakdown);
+                // Fetch Uploaded Documents
+                const { data: docs } = await supabase
+                    .from("uploaded_documents")
+                    .select("id, filename, created_at, file_type")
+                    .eq("user_id", userId)
+                    .order("created_at", { ascending: false })
+                    .limit(5);
+
+                if (docs) {
+                    setUploadedDocs(docs || []);
                 }
-
-                if (ragData.top_10_jobs) {
-                    setTopJobs(ragData.top_10_jobs);
-                }
-
-                // Extract skills from profile
-                const profileSkills = normalized?.competences?.techniques?.slice(0, 5) || [];
-                setSkills(profileSkills);
+            } catch (error) {
+                logger.error('Error fetching stats and documents:', error);
+            } finally {
+                setStatsLoading(false);
             }
-
-            // 2. Fetch Stats
-            const { count: appliedCount } = await supabase
-                .from("job_analyses")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", userId)
-                .neq("application_status", "pending");
-
-            const { count: analysesCount } = await supabase
-                .from("job_analyses")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", userId);
-
-            const { count: cvCount } = await supabase
-                .from("cv_generations")
-                .select("*", { count: "exact", head: true })
-                .eq("user_id", userId);
-
-            setStats({
-                analyses: analysesCount || 0,
-                cvs: cvCount || 0,
-                applied: appliedCount || 0
-            });
-
-            // 3. Fetch Uploaded Documents
-            const { data: docs } = await supabase
-                .from("uploaded_documents")
-                .select("id, filename, created_at, file_type")
-                .eq("user_id", userId)
-                .order("created_at", { ascending: false })
-                .limit(5);
-
-            if (docs) {
-                setUploadedDocs(docs);
-            }
-
-            setLoading(false);
         }
-        fetchData();
-    }, [userId, authLoading]);
+        fetchStatsAndDocs();
+    }, [authLoading, userId]);
 
-    if (loading || authLoading) {
+    // Combined loading state
+    const loading = ragLoading || statsLoading || authLoading;
+
+    if (loading) {
         return (
             <DashboardLayout>
                 <LoadingSpinner fullScreen />
@@ -124,7 +94,7 @@ export default function DashboardPage() {
                 {/* WELCOME HEADER */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {profile?.prenom || authUserName} 👋</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profile?.prenom || authUserName} 👋</h1>
                         <p className="text-slate-500 text-sm md:text-base">Prêt à décrocher le job de vos rêves ?</p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -166,7 +136,7 @@ export default function DashboardPage() {
                         <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
                             <CardContent className="flex flex-col items-center justify-center p-4 text-center h-full">
                                 <CircularProgress
-                                    value={completenessScore}
+                                    value={ragData?.score || 0}
                                     max={100}
                                     size={80}
                                     label="/ 100"
@@ -188,9 +158,8 @@ export default function DashboardPage() {
                     </Link>
                 </div>
 
-                {/* CTA BANNER FOR EMPTY PROFILE */}
                 {/* CTA BANNER FOR EMPTY PROFILE - Only show if no docs and score is 0 */}
-                {completenessScore === 0 && uploadedDocs.length === 0 && (
+                {(ragData?.score || 0) === 0 && uploadedDocs.length === 0 && (
                     <Link href="/onboarding" className="block mb-8">
                         <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
                             <CardContent className="flex items-center justify-between p-6">
@@ -212,8 +181,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* What's missing to reach 100% */}
-                {/* What's missing to reach 100% */}
-                {completenessScore > 0 && completenessScore < 100 && completenessBreakdown.length > 0 && (
+                {(ragData?.score || 0) > 0 && (ragData?.score || 0) < 100 && ragData && ragData.breakdown.length > 0 && (
                     <Link href="/dashboard/profile/rag" className="block mb-6">
                         <Card className="border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
@@ -224,7 +192,7 @@ export default function DashboardPage() {
                                     <div className="flex-1">
                                         <h4 className="font-medium text-amber-900 mb-2">Pour atteindre 100% de complétion :</h4>
                                         <div className="flex flex-wrap gap-2">
-                                            {completenessBreakdown
+                                            {ragData.breakdown
                                                 .filter((item: any) => item.missing)
                                                 .map((item: any, i: number) => (
                                                     <Badge key={i} variant="outline" className="bg-white border-amber-300 text-amber-800 text-xs">
@@ -251,10 +219,10 @@ export default function DashboardPage() {
                                     {/* Avatar with direct upload */}
                                     <label className="relative group cursor-pointer">
                                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                                            {profile?.photo_url ? (
-                                                <img src={profile.photo_url} alt="Photo de profil" className="w-full h-full object-cover" />
+                                            {ragData?.profile?.photo_url ? (
+                                                <img src={ragData.profile.photo_url} alt="Photo de profil" className="w-full h-full object-cover" />
                                             ) : (
-                                                <span>{profile?.prenom?.[0]}{profile?.nom?.[0]}</span>
+                                                <span>{ragData?.profile?.prenom?.[0]}{ragData?.profile?.nom?.[0]}</span>
                                             )}
                                         </div>
                                         <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -333,10 +301,8 @@ export default function DashboardPage() {
                                                         return;
                                                     }
 
-                                                    // Update local state (just the profile part for display)
-                                                    if (profile) {
-                                                        setProfile({ ...profile, photo_url: signedData.signedUrl });
-                                                    }
+                                                    // Update local state via refetch
+                                                    refetchRAG();
                                                     alert('Photo de profil mise à jour !');
                                                 } catch (error) {
                                                     console.error('Photo upload error:', error);
@@ -346,12 +312,12 @@ export default function DashboardPage() {
                                         />
                                     </label>
                                     <div>
-                                        <div className="font-bold text-lg">{profile?.prenom} {profile?.nom}</div>
-                                        <div className="text-sm text-slate-500">{profile?.titre_principal}</div>
+                                        <div className="font-bold text-lg">{ragData?.profile?.prenom} {ragData?.profile?.nom}</div>
+                                        <div className="text-sm text-slate-500">{ragData?.profile?.titre_principal}</div>
                                     </div>
                                 </div>
-                                {profile?.localisation && (
-                                    <div className="text-sm text-slate-500">📍 {profile?.localisation}</div>
+                                {ragData?.profile?.localisation && (
+                                    <div className="text-sm text-slate-500">📍 {ragData?.profile?.localisation}</div>
                                 )}
                             </CardContent>
                         </Card>
@@ -393,7 +359,7 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-wrap gap-2">
-                                    {skills.length > 0 ? skills.map((skill: any, i) => (
+                                    {ragData && ragData.skills.length > 0 ? ragData.skills.map((skill: any, i: number) => (
                                         <Badge key={i} variant="outline" className="text-xs">
                                             {typeof skill === "string" ? skill : skill.nom}
                                         </Badge>
@@ -420,11 +386,11 @@ export default function DashboardPage() {
                         <h3 className="text-sm font-medium text-slate-500 flex items-center gap-2">
                             <TrendingUp className="w-4 h-4" /> Postes suggérés
                         </h3>
-                        {topJobs.length > 0 ? (
+                        {ragData && ragData.topJobs.length > 0 ? (
                             <div className="space-y-2">
-                                {topJobs.slice(0, 5).map((job: any, i) => (
+                                {ragData.topJobs.slice(0, 5).map((job: any, i: number) => (
                                     <div key={i} className="p-2 bg-slate-50 rounded text-xs">
-                                        <div className="font-medium text-slate-600 truncate">{job.titre_poste || "Poste"}</div>
+                                        <div className="font-medium text-slate-600 truncate">{job.ligne || job.titre_poste || "Poste"}</div>
                                         <div className="text-slate-400 flex justify-between mt-1">
                                             <span className="truncate">{job.secteurs?.[0] || "Tech"}</span>
                                             <span className="font-medium">{job.match_score}%</span>
