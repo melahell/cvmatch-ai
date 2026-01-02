@@ -11,6 +11,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatusDropdown } from "@/components/tracking/StatusDropdown";
+import { JobCard } from "@/components/tracking/JobCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useJobAnalyses } from "@/hooks/useJobAnalyses";
 import Link from "next/link";
@@ -319,141 +320,32 @@ export default function TrackingPage() {
 
                     {/* Jobs List */}
                     <div className={`grid ${compactView ? "gap-2" : "gap-3"}`}>
-                        {processedJobs.map((job) => {
-                            const status = STATUS_CONFIG[job.application_status || "pending"];
+                        {processedJobs.map((job) => (
+                            <React.Fragment key={job.id}>
+                                {/* Mobile Card */}
+                                <SwipeableCard
+                                    onDelete={() => handleDeleteJob(job.id)}
+                                    className="md:hidden"
+                                >
+                                    <JobCard
+                                        job={job}
+                                        variant="mobile"
+                                        onDelete={handleDeleteJob}
+                                        onStatusChange={(id, status) => updateStatus(id, status as JobAnalysis["application_status"])}
+                                    />
+                                </SwipeableCard>
 
-                            return (
-                                <React.Fragment key={job.id}>
-                                    {/* Mobile Card */}
-                                    <SwipeableCard
-                                        onDelete={() => handleDeleteJob(job.id)}
-                                        className="md:hidden"
-                                    >
-                                        <Card className="hover:shadow-lg transition-all group rounded-none border-0 shadow-none">
-                                            <CardContent className="p-4">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${status.dot}`} />
-                                                        <div className="min-w-0 flex-1">
-                                                            <h2 className="font-semibold text-sm text-slate-900 truncate">
-                                                                {job.job_title || "Poste"}
-                                                            </h2>
-                                                            <p className="text-xs text-slate-500 truncate">
-                                                                {job.company || "Entreprise"} {job.location && `• ${job.location}`}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 shrink-0">
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <span className={`text-xs font-bold px-2 py-0.5 rounded cursor-help ${job.match_score >= 80 ? "bg-green-100 text-green-700"
-                                                                    : job.match_score >= 60 ? "bg-yellow-100 text-yellow-700"
-                                                                        : "bg-red-100 text-red-700"
-                                                                    }`}>
-                                                                    {job.match_score}%
-                                                                </span>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>
-                                                                <p>Match entre votre profil et cette offre</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                        <StatusDropdown
-                                                            currentStatus={job.application_status || "pending"}
-                                                            onStatusChange={(status) => updateStatus(job.id, status as JobAnalysis["application_status"])}
-                                                            size="sm"
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    </SwipeableCard>
-
-                                    {/* Desktop Card */}
-                                    <Card className="hover:shadow-lg transition-all group hidden md:block">
-                                        <CardContent className="p-4 md:p-5">
-                                            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                                                {/* Status Dot + Job Info */}
-                                                <div className="flex items-start gap-3 flex-1 min-w-0">
-                                                    <div className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${status.dot}`} />
-                                                    <div className="min-w-0 flex-1">
-                                                        <h2 className="font-bold text-lg text-slate-900 truncate">
-                                                            {job.job_title || "Poste à définir"}
-                                                        </h2>
-                                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 mt-1">
-                                                            <span className="flex items-center gap-1 font-medium text-slate-700">
-                                                                <Building2 className="w-3 h-3" />
-                                                                {job.company || "Entreprise"}
-                                                            </span>
-                                                            {job.location && (
-                                                                <span className="flex items-center gap-1">
-                                                                    <MapPin className="w-3 h-3" />
-                                                                    {job.location}
-                                                                </span>
-                                                            )}
-                                                            <span className="flex items-center gap-1 text-slate-400">
-                                                                <Calendar className="w-3 h-3" />
-                                                                {formatRelativeDate(job.submitted_at)}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Score + Status + Actions */}
-                                                <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap md:flex-nowrap">
-                                                    {/* Match Score with Tooltip */}
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <div className={`px-3 py-1 rounded-full text-sm font-bold cursor-help ${job.match_score >= 80
-                                                                ? "bg-green-100 text-green-700"
-                                                                : job.match_score >= 60
-                                                                    ? "bg-yellow-100 text-yellow-700"
-                                                                    : "bg-red-100 text-red-700"
-                                                                }`}>
-                                                                {job.match_score}%
-                                                            </div>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p>Match entre votre profil et cette offre</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-
-                                                    {/* Status Dropdown with Confirmation */}
-                                                    <StatusDropdown
-                                                        currentStatus={job.application_status || "pending"}
-                                                        onStatusChange={(status) => updateStatus(job.id, status as JobAnalysis["application_status"])}
-                                                    />
-
-                                                    {/* Actions */}
-                                                    <div className="flex items-center gap-1">
-                                                        <Link href={`/dashboard/analyze/${job.id}`}>
-                                                            <Button variant="outline" size="sm">
-                                                                Voir
-                                                            </Button>
-                                                        </Link>
-                                                        {job.job_url && (
-                                                            <a href={job.job_url} target="_blank" rel="noopener noreferrer">
-                                                                <Button variant="ghost" size="sm" title="Voir l'offre">
-                                                                    <ExternalLink className="w-4 h-4" />
-                                                                </Button>
-                                                            </a>
-                                                        )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                            onClick={() => handleDeleteJob(job.id)}
-                                                            title="Supprimer"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </React.Fragment>
-                            );
-                        })}
+                                {/* Desktop Card */}
+                                <div className="hidden md:block">
+                                    <JobCard
+                                        job={job}
+                                        variant="desktop"
+                                        onDelete={handleDeleteJob}
+                                        onStatusChange={(id, status) => updateStatus(id, status as JobAnalysis["application_status"])}
+                                    />
+                                </div>
+                            </React.Fragment>
+                        ))}
 
                         {/* Empty State */}
                         {processedJobs.length === 0 && (
@@ -484,7 +376,7 @@ export default function TrackingPage() {
                         )}
                     </div>
                 </div>
-            </TooltipProvider>
-        </DashboardLayout>
+            </TooltipProvider >
+        </DashboardLayout >
     );
 }
