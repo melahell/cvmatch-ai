@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { BulkToolbar } from "@/components/tracking/BulkToolbar";
 import { JobCard } from "@/components/tracking/JobCard";
 import { useAuth } from "@/hooks/useAuth";
@@ -89,6 +90,7 @@ export default function TrackingPage() {
         localStorage.setItem('tracking_sort_asc', String(sortAsc));
     }, [sortBy, sortAsc]);
     const [compactView, setCompactView] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState<{ id: string, title: string } | null>(null);
 
     // Bulk selection state
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -130,18 +132,20 @@ export default function TrackingPage() {
         const jobToDelete = jobs.find(j => j.id === id);
         if (!jobToDelete) return;
 
-        // Soft delete with undo option
-        const dismissed = deleteJobFn(id);
+        // Open confirmation dialog instead of browser confirm
+        setDeleteConfirm({
+            id,
+            title: jobToDelete.job_title || "cette candidature"
+        });
+    };
 
-        toast.success(`Candidature "${jobToDelete.job_title}" supprimée`, {
+    const confirmDelete = async () => {
+        if (!deleteConfirm) return;
+
+        await deleteJobFn(deleteConfirm.id);
+        setDeleteConfirm(null);
+        toast.success(`Candidature supprimée`, {
             duration: 5000,
-            action: {
-                label: "Annuler",
-                onClick: async () => {
-                    // Restore job (would need API endpoint for restore)
-                    window.location.reload(); // Temporary - reload to restore
-                },
-            },
         });
     };
 
@@ -383,7 +387,7 @@ export default function TrackingPage() {
                     </div>
 
                     {/* Jobs List */}
-                    <div className={`grid ${compactView ? "gap-2" : "gap-3"}`}>
+                    <div className={`grid ${compactView ? "gap-3" : "gap-4"}`}>
                         {processedJobs.map((job) => (
                             <React.Fragment key={job.id}>
                                 {/* Mobile Card */}
@@ -453,6 +457,25 @@ export default function TrackingPage() {
                     onArchiveAll={handleBulkArchive}
                     onChangeStatusAll={handleBulkStatusChange}
                 />
+
+                {/* Delete Confirmation Dialog */}
+                <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Voulez-vous vraiment supprimer "{deleteConfirm?.title}" ?
+                                Cette action est irréversible.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+                                Supprimer
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </TooltipProvider >
         </DashboardLayout >
     );
