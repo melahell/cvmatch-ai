@@ -132,7 +132,7 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     </Link>
-                    <Link href="/dashboard/profile/rag" className="block h-full">
+                    <Link href="/dashboard/profile" className="block h-full">
                         <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
                             <CardContent className="flex flex-col items-center justify-center p-4 text-center h-full">
                                 <CircularProgress
@@ -145,7 +145,7 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     </Link>
-                    <Link href="/dashboard/profile/rag" className="block h-full">
+                    <Link href="/dashboard/profile" className="block h-full">
                         <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
                             <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                                 <div className="flex items-center gap-2 mb-2">
@@ -182,7 +182,7 @@ export default function DashboardPage() {
 
                 {/* What's missing to reach 100% */}
                 {(ragData?.score || 0) > 0 && (ragData?.score || 0) < 100 && ragData && ragData.breakdown.length > 0 && (
-                    <Link href="/dashboard/profile/rag" className="block mb-6">
+                    <Link href="/dashboard/profile" className="block mb-6">
                         <Card className="border-amber-200 bg-amber-50 cursor-pointer hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                                 <div className="flex items-start gap-3">
@@ -323,7 +323,7 @@ export default function DashboardPage() {
                         </Card>
 
                         {/* Documents */}
-                        <Link href="/dashboard/profile/rag?tab=docs" className="block">
+                        <Link href="/dashboard/profile?tab=docs" className="block">
                             <Card className="cursor-pointer hover:shadow-md transition-shadow">
                                 <CardHeader className="pb-2">
                                     <CardTitle className="text-sm flex items-center gap-2">

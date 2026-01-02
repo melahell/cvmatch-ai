@@ -1,103 +1,98 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createSupabaseClient } from "@/lib/supabase";
-import { Save, Briefcase, GraduationCap, Wrench, User, Loader2, ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
-import Link from "next/link";
+import { useRAGData } from "@/hooks/useRAGData";
+import { useDocuments } from "@/hooks/useDocuments";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2 } from "lucide-react";
+import { OverviewTab } from "@/components/profile/OverviewTab";
+import { WeightTab } from "@/components/profile/WeightTab";
+import { DocumentsTab } from "@/components/profile/DocumentsTab";
+import { AdvancedTab } from "@/components/profile/AdvancedTab";
+import { createSupabaseClient } from "@/lib/supabase";
+import { logger } from "@/lib/utils/logger";
 
-type WeightValue = "important" | "inclus" | "exclu";
-
-const WeightBadge = ({ weight, onChange }: { weight: WeightValue; onChange: (w: WeightValue) => void }) => {
-    const weights: WeightValue[] = ["important", "inclus", "exclu"];
-    const idx = weights.indexOf(weight);
-
-    const cycle = () => {
-        const nextIdx = (idx + 1) % weights.length;
-        onChange(weights[nextIdx]);
-    };
-
-    const styles = {
-        important: "bg-green-100 text-green-700 border-green-300 hover:bg-green-200",
-        inclus: "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200",
-        exclu: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
-    };
-
-    const labels = {
-        important: "🔥 Important",
-        inclus: "✅ Inclus",
-        exclu: "❌ Exclu"
-    };
-
-    return (
-        <button
-            onClick={cycle}
-            className={`px-2 py-1 text-xs font-medium rounded border transition-colors ${styles[weight]}`}
-        >
-            {labels[weight]}
-        </button>
-    );
-};
-
-export default function ProfilePage() {
+function ProfileContent() {
+    const searchParams = useSearchParams();
+    const activeTab = searchParams.get("tab") || "vue";
     const { userId, isLoading: authLoading } = useAuth();
-    const [loading, setLoading] = useState(true);
+
+    // Use centralized hooks
+    const { data: ragData, loading: ragLoading, error: ragError, refetch: refetchRAG } = useRAGData(userId);
+    const { data: documents, loading: docsLoading, deleteDocument, refetch: refetchDocs } = useDocuments(userId);
+
+    // Local state for tab-specific functions
     const [saving, setSaving] = useState(false);
-    const [ragData, setRagData] = useState<any>(null);
-    const supabase = createSupabaseClient();
+    const [regenerating, setRegenerating] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [customNotes, setCustomNotes] = useState("");
+    const [localRAGData, setLocalRAGData] = useState(ragData);
 
-    useEffect(() => {
-        if (authLoading || !userId) return;
-        fetchProfile(userId);
-    }, [userId, authLoading]);
+    // Sync ragData to local state when it changes
+    useState(() => {
+        if (ragData) {
+            setLocalRAGData(addDefaultWeights(ragData));
+            // Load custom notes from DB if available
+            if (userId) {
+                loadCustomNotes(userId);
+            }
+        }
+    });
 
-    const fetchProfile = async (uid: string) => {
+    const loadCustomNotes = async (uid: string) => {
+        const supabase = createSupabaseClient();
         const { data } = await supabase
             .from("rag_metadata")
-            .select("completeness_details")
+            .select("custom_notes")
             .eq("user_id", uid)
             .single();
 
-        if (data?.completeness_details) {
-            // Add default weights if missing
-            const enriched = addDefaultWeights(data.completeness_details);
-            setRagData(enriched);
+        if (data?.custom_notes) {
+            setCustomNotes(data.custom_notes);
         }
-        setLoading(false);
     };
 
     const addDefaultWeights = (data: any) => {
+        if (!data) return data;
+
+        const enriched = { ...data };
+
         // Add weight to experiences
-        if (data.experiences) {
-            data.experiences = data.experiences.map((exp: any) => ({
+        if (enriched.experiences) {
+            enriched.experiences = enriched.experiences.map((exp: any) => ({
                 ...exp,
                 weight: exp.weight || "inclus"
             }));
         }
+
         // Add weight to skills
-        if (data.competences?.techniques) {
-            data.competences.techniques = data.competences.techniques.map((skill: string | any) =>
+        if (enriched.competences?.techniques) {
+            enriched.competences.techniques = enriched.competences.techniques.map((skill: string | any) =>
                 typeof skill === "string" ? { nom: skill, weight: "inclus" } : { ...skill, weight: skill.weight || "inclus" }
             );
         }
+
         // Add weight to formations
-        if (data.formations) {
-            data.formations = data.formations.map((f: any) => ({
+        if (enriched.formations) {
+            enriched.formations = enriched.formations.map((f: any) => ({
                 ...f,
                 weight: f.weight || "inclus"
             }));
         }
-        return data;
+
+        return enriched;
     };
 
-    const updateWeight = (section: string, index: number, newWeight: WeightValue) => {
-        setRagData((prev: any) => {
+    const handleWeightChange = (section: string, index: number, newWeight: "important" | "inclus" | "exclu") => {
+        setLocalRAGData((prev: any) => {
+            if (!prev) return prev;
             const updated = { ...prev };
+
             if (section === "experiences") {
                 updated.experiences[index].weight = newWeight;
             } else if (section === "competences.techniques") {
@@ -105,24 +100,119 @@ export default function ProfilePage() {
             } else if (section === "formations") {
                 updated.formations[index].weight = newWeight;
             }
+
             return updated;
         });
     };
 
-    const saveProfile = async () => {
-        if (!userId || !ragData) return;
+    const saveWeights = async () => {
+        if (!userId || !localRAGData) return;
+
         setSaving(true);
+        try {
+            const supabase = createSupabaseClient();
+            const { error } = await supabase
+                .from("rag_metadata")
+                .update({
+                    completeness_details: localRAGData,
+                    custom_notes: customNotes
+                })
+                .eq("user_id", userId);
 
-        await supabase
-            .from("rag_metadata")
-            .update({ completeness_details: ragData })
-            .eq("user_id", userId);
+            if (error) throw error;
 
-        setSaving(false);
-        alert("Profil sauvegardé !");
+            logger.success("Profil sauvegardé !");
+            alert("✅ Profil sauvegardé avec succès !");
+            await refetchRAG();
+        } catch (e) {
+            logger.error("Error saving profile:", e);
+            alert("❌ Erreur lors de la sauvegarde");
+        } finally {
+            setSaving(false);
+        }
     };
 
-    if (loading || authLoading) {
+    const regenerateProfile = async () => {
+        if (!userId) return;
+
+        setRegenerating(true);
+        try {
+            const res = await fetch("/api/rag/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId })
+            });
+
+            if (res.ok) {
+                await refetchRAG();
+                alert("✅ Profil régénéré avec succès !");
+            } else {
+                const error = await res.json();
+                alert("⚠️ Erreur: " + (error.error || "Échec de la régénération"));
+            }
+        } catch (e) {
+            logger.error("Error regenerating profile:", e);
+            alert("❌ Erreur réseau");
+        } finally {
+            setRegenerating(false);
+        }
+    };
+
+    const handleUpload = async (file: File) => {
+        if (!userId) return;
+
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("userId", userId);
+
+            const res = await fetch("/api/rag/upload", {
+                method: "POST",
+                body: formData
+            });
+
+            if (res.ok) {
+                await refetchDocs();
+                alert("✅ Document uploadé avec succès ! Régénérez le profil pour l'inclure.");
+            } else {
+                const error = await res.json();
+                alert("⚠️ Erreur: " + (error.error || "Échec de l'upload"));
+            }
+        } catch (e) {
+            logger.error("Error uploading document:", e);
+            alert("❌ Erreur réseau");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleReset = async () => {
+        if (!userId) return;
+
+        try {
+            const res = await fetch("/api/profile/reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId })
+            });
+
+            if (res.ok) {
+                setLocalRAGData(null);
+                setCustomNotes("");
+                await refetchRAG();
+                await refetchDocs();
+                alert("✅ Profil réinitialisé avec succès");
+            } else {
+                alert("❌ Erreur lors de la réinitialisation");
+            }
+        } catch (e) {
+            logger.error("Error resetting profile:", e);
+            alert("❌ Erreur réseau");
+        }
+    };
+
+    if (ragLoading || docsLoading || authLoading) {
         return (
             <DashboardLayout>
                 <LoadingSpinner fullScreen />
@@ -132,115 +222,109 @@ export default function ProfilePage() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto py-8 px-4 max-w-4xl">
+            <div className="container mx-auto py-6 px-4 max-w-5xl">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-                    <div className="flex items-center gap-3">
-                        <Link href="/dashboard">
-                            <Button variant="ghost" size="sm">
-                                <ArrowLeft className="w-4 h-4" />
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900">Mon Profil RAG</h1>
+                        <p className="text-slate-500 text-sm">
+                            Score de complétude : {ragData?.score || 0}/100
+                        </p>
+                    </div>
+
+                    {/* Tab-specific actions */}
+                    <div className="flex gap-2">
+                        {activeTab === "vue" && (
+                            <Button onClick={regenerateProfile} disabled={regenerating} variant="default">
+                                {regenerating ? (
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Régénération...</>
+                                ) : (
+                                    <><RefreshCw className="w-4 h-4 mr-2" /> Régénérer</>
+                                )}
                             </Button>
-                        </Link>
-                        <h1 className="text-xl sm:text-2xl font-bold">Mes Informations</h1>
+                        )}
+                        {activeTab === "poids" && (
+                            <Button onClick={saveWeights} disabled={saving}>
+                                {saving ? (
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
+                                ) : (
+                                    <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                                )}
+                            </Button>
+                        )}
+                        {activeTab === "avance" && (
+                            <Button onClick={saveWeights} disabled={saving} variant="outline">
+                                {saving ? (
+                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
+                                ) : (
+                                    <><Save className="w-4 h-4 mr-2" /> Sauvegarder notes</>
+                                )}
+                            </Button>
+                        )}
                     </div>
-                    <Button onClick={saveProfile} disabled={saving} size="sm">
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                        Enregistrer
-                    </Button>
                 </div>
 
-                {/* Legend */}
-                <div className="mb-6 p-3 sm:p-4 bg-slate-50 rounded-lg">
-                    <div className="text-sm font-medium mb-2">Pondération :</div>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs">
-                        <span className="flex items-center gap-1"><Badge className="bg-green-100 text-green-700 shrink-0">🔥 Important</Badge> <span className="text-slate-600">= Mis en avant</span></span>
-                        <span className="flex items-center gap-1"><Badge className="bg-blue-100 text-blue-700 shrink-0">✅ Inclus</Badge> <span className="text-slate-600">= Par défaut</span></span>
-                        <span className="flex items-center gap-1"><Badge className="bg-red-100 text-red-700 shrink-0">❌ Exclu</Badge> <span className="text-slate-600">= Jamais</span></span>
-                    </div>
-                </div>
+                {/* Tabs */}
+                <Tabs defaultValue={activeTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-4 mb-6">
+                        <TabsTrigger value="vue" className="flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
+                            <span className="hidden sm:inline">Vue d'ensemble</span>
+                            <span className="sm:hidden">Vue</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="poids" className="flex items-center gap-2">
+                            <Target className="w-4 h-4" />
+                            <span className="hidden sm:inline">Pondération</span>
+                            <span className="sm:hidden">Poids</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="docs" className="flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            <span className="hidden sm:inline">Documents</span>
+                            <span className="sm:hidden">Docs</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="avance" className="flex items-center gap-2">
+                            <Settings className="w-4 h-4" />
+                            <span className="hidden sm:inline">Avancé</span>
+                        </TabsTrigger>
+                    </TabsList>
 
-                {/* Profile */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <User className="w-5 h-5" /> Profil
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        <div><strong>Nom :</strong> {ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
-                        <div><strong>Titre :</strong> {ragData?.profil?.titre_principal}</div>
-                        <div><strong>Localisation :</strong> {ragData?.profil?.localisation}</div>
-                    </CardContent>
-                </Card>
+                    <TabsContent value="vue">
+                        <OverviewTab ragData={localRAGData || ragData} />
+                    </TabsContent>
 
-                {/* Experiences */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Briefcase className="w-5 h-5" /> Expériences ({ragData?.experiences?.length || 0})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {ragData?.experiences?.map((exp: any, i: number) => (
-                            <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
-                                <div>
-                                    <div className="font-medium">{exp.poste}</div>
-                                    <div className="text-sm text-slate-500">{exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}</div>
-                                </div>
-                                <WeightBadge
-                                    weight={exp.weight || "inclus"}
-                                    onChange={(w) => updateWeight("experiences", i, w)}
-                                />
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
+                    <TabsContent value="poids">
+                        <WeightTab
+                            ragData={localRAGData || ragData}
+                            onWeightChange={handleWeightChange}
+                        />
+                    </TabsContent>
 
-                {/* Compétences */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Wrench className="w-5 h-5" /> Compétences Techniques ({ragData?.competences?.techniques?.length || 0})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                            {ragData?.competences?.techniques?.map((skill: any, i: number) => (
-                                <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                                    <span className="text-sm">{typeof skill === "string" ? skill : skill.nom}</span>
-                                    <WeightBadge
-                                        weight={skill.weight || "inclus"}
-                                        onChange={(w) => updateWeight("competences.techniques", i, w)}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                    <TabsContent value="docs">
+                        <DocumentsTab
+                            documents={documents}
+                            onDelete={async (id) => { await deleteDocument(id); }}
+                            onUpload={handleUpload}
+                            uploading={uploading}
+                        />
+                    </TabsContent>
 
-                {/* Formations */}
-                <Card className="mb-6">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <GraduationCap className="w-5 h-5" /> Formations ({ragData?.formations?.length || 0})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {ragData?.formations?.map((f: any, i: number) => (
-                            <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
-                                <div>
-                                    <div className="font-medium">{f.diplome}</div>
-                                    <div className="text-sm text-slate-500">{f.ecole} • {f.annee}</div>
-                                </div>
-                                <WeightBadge
-                                    weight={f.weight || "inclus"}
-                                    onChange={(w) => updateWeight("formations", i, w)}
-                                />
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
+                    <TabsContent value="avance">
+                        <AdvancedTab
+                            customNotes={customNotes}
+                            onNotesChange={setCustomNotes}
+                            onReset={handleReset}
+                        />
+                    </TabsContent>
+                </Tabs>
             </div>
         </DashboardLayout>
+    );
+}
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={<DashboardLayout><LoadingSpinner fullScreen /></DashboardLayout>}>
+            <ProfileContent />
+        </Suspense>
     );
 }
