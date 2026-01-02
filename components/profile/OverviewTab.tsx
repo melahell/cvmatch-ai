@@ -5,11 +5,51 @@ import { Badge } from "@/components/ui/badge";
 import { User, Briefcase, Code, GraduationCap, Languages, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
 
-interface OverviewTabProps {
-    ragData: any;
+type WeightValue = "important" | "inclus" | "exclu";
+
+interface WeightBadgeProps {
+    weight: WeightValue;
+    onChange: (w: WeightValue) => void;
 }
 
-export function OverviewTab({ ragData }: OverviewTabProps) {
+const WeightBadge = ({ weight, onChange }: WeightBadgeProps) => {
+    const weights: WeightValue[] = ["important", "inclus", "exclu"];
+    const idx = weights.indexOf(weight);
+
+    const cycle = () => {
+        const nextIdx = (idx + 1) % weights.length;
+        onChange(weights[nextIdx]);
+    };
+
+    const styles = {
+        important: "bg-green-100 text-green-700 border-green-300 hover:bg-green-200",
+        inclus: "bg-blue-100 text-blue-700 border-blue-300 hover:bg-blue-200",
+        exclu: "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
+    };
+
+    const labels = {
+        important: "🔥 Important",
+        inclus: "✅ Inclus",
+        exclu: "❌ Exclu"
+    };
+
+    return (
+        <button
+            onClick={cycle}
+            className={`px-2 py-1 text-xs font-medium rounded border transition-colors cursor-pointer ${styles[weight]}`}
+            title="Cliquer pour changer"
+        >
+            {labels[weight]}
+        </button>
+    );
+};
+
+interface OverviewTabProps {
+    ragData: any;
+    onWeightChange: (section: string, index: number, weight: WeightValue) => void;
+}
+
+export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
     const [expandedSections, setExpandedSections] = useState({
         experiences: true,
         competences: true,
@@ -31,6 +71,25 @@ export function OverviewTab({ ragData }: OverviewTabProps) {
 
     return (
         <div className="space-y-6">
+            {/* Legend */}
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="text-sm font-medium mb-2 text-blue-900">💡 Pondération :</div>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs">
+                    <span className="flex items-center gap-1">
+                        <Badge className="bg-green-100 text-green-700 shrink-0">🔥 Important</Badge>
+                        <span className="text-slate-600">= Mis en avant</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Badge className="bg-blue-100 text-blue-700 shrink-0">✅ Inclus</Badge>
+                        <span className="text-slate-600">= Par défaut</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Badge className="bg-red-100 text-red-700 shrink-0">❌ Exclu</Badge>
+                        <span className="text-slate-600">= Jamais inclus</span>
+                    </span>
+                </div>
+            </div>
+
             {/* Profile */}
             {ragData?.profile && (
                 <Card>
@@ -86,15 +145,16 @@ export function OverviewTab({ ragData }: OverviewTabProps) {
                             {ragData.experiences.map((exp: any, i: number) => (
                                 <div key={i} className="border-b pb-4 last:border-0 last:pb-0">
                                     <div className="flex justify-between items-start mb-2">
-                                        <div>
+                                        <div className="flex-1">
                                             <div className="font-semibold text-lg">{exp.poste}</div>
                                             <div className="text-sm text-slate-500">
                                                 {exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}
                                             </div>
                                         </div>
-                                        {exp.weight && exp.weight === "important" && (
-                                            <Badge className="bg-green-100 text-green-700">🔥 Important</Badge>
-                                        )}
+                                        <WeightBadge
+                                            weight={exp.weight || "inclus"}
+                                            onChange={(w) => onWeightChange("experiences", i, w)}
+                                        />
                                     </div>
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <div className="mt-2">
@@ -145,11 +205,15 @@ export function OverviewTab({ ragData }: OverviewTabProps) {
                             {ragData.competences.techniques && ragData.competences.techniques.length > 0 && (
                                 <div>
                                     <div className="text-sm font-medium mb-2">Techniques :</div>
-                                    <div className="flex flex-wrap gap-1">
+                                    <div className="flex flex-wrap gap-2">
                                         {ragData.competences.techniques.map((skill: any, i: number) => (
-                                            <Badge key={i} variant="secondary">
-                                                {typeof skill === "string" ? skill : skill.nom}
-                                            </Badge>
+                                            <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
+                                                <span className="text-sm">{typeof skill === "string" ? skill : skill.nom}</span>
+                                                <WeightBadge
+                                                    weight={skill.weight || "inclus"}
+                                                    onChange={(w) => onWeightChange("competences.techniques", i, w)}
+                                                />
+                                            </div>
                                         ))}
                                     </div>
                                 </div>
@@ -189,11 +253,17 @@ export function OverviewTab({ ragData }: OverviewTabProps) {
                     {expandedSections.formations && (
                         <CardContent className="space-y-3">
                             {ragData.formations.map((f: any, i: number) => (
-                                <div key={i} className="border-b pb-3 last:border-0 last:pb-0">
-                                    <div className="font-semibold">{f.diplome}</div>
-                                    <div className="text-sm text-slate-500">
-                                        {f.ecole} • {f.annee}
+                                <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0 last:pb-0">
+                                    <div>
+                                        <div className="font-semibold">{f.diplome}</div>
+                                        <div className="text-sm text-slate-500">
+                                            {f.ecole} • {f.annee}
+                                        </div>
                                     </div>
+                                    <WeightBadge
+                                        weight={f.weight || "inclus"}
+                                        onChange={(w) => onWeightChange("formations", i, w)}
+                                    />
                                 </div>
                             ))}
                         </CardContent>

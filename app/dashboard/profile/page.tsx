@@ -234,23 +234,23 @@ function ProfileContent() {
 
                     {/* Tab-specific actions */}
                     <div className="flex gap-2">
-                        {activeTab === "vue" && (
-                            <Button onClick={regenerateProfile} disabled={regenerating} variant="default">
-                                {regenerating ? (
-                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Régénération...</>
-                                ) : (
-                                    <><RefreshCw className="w-4 h-4 mr-2" /> Régénérer</>
-                                )}
-                            </Button>
-                        )}
-                        {activeTab === "poids" && (
-                            <Button onClick={saveWeights} disabled={saving}>
-                                {saving ? (
-                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
-                                ) : (
-                                    <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
-                                )}
-                            </Button>
+                        {(activeTab === "vue") && (
+                            <>
+                                <Button onClick={regenerateProfile} disabled={regenerating} variant="outline">
+                                    {regenerating ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Régénération...</>
+                                    ) : (
+                                        <><RefreshCw className="w-4 h-4 mr-2" /> Régénérer</>
+                                    )}
+                                </Button>
+                                <Button onClick={saveWeights} disabled={saving}>
+                                    {saving ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
+                                    ) : (
+                                        <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                                    )}
+                                </Button>
+                            </>
                         )}
                         {activeTab === "avance" && (
                             <Button onClick={saveWeights} disabled={saving} variant="outline">
@@ -266,16 +266,11 @@ function ProfileContent() {
 
                 {/* Tabs */}
                 <Tabs defaultValue={activeTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-4 mb-6">
+                    <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="vue" className="flex items-center gap-2">
                             <Eye className="w-4 h-4" />
-                            <span className="hidden sm:inline">Vue d'ensemble</span>
+                            <span className="hidden sm:inline">Vue & Pondération</span>
                             <span className="sm:hidden">Vue</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="poids" className="flex items-center gap-2">
-                            <Target className="w-4 h-4" />
-                            <span className="hidden sm:inline">Pondération</span>
-                            <span className="sm:hidden">Poids</span>
                         </TabsTrigger>
                         <TabsTrigger value="docs" className="flex items-center gap-2">
                             <FileText className="w-4 h-4" />
@@ -289,11 +284,7 @@ function ProfileContent() {
                     </TabsList>
 
                     <TabsContent value="vue">
-                        <OverviewTab ragData={localRAGData || ragData} />
-                    </TabsContent>
-
-                    <TabsContent value="poids">
-                        <WeightTab
+                        <OverviewTab
                             ragData={localRAGData || ragData}
                             onWeightChange={handleWeightChange}
                         />
