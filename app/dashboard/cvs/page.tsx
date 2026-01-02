@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useCVGenerations } from "@/hooks/useCVGenerations";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,37 +24,9 @@ interface CVGeneration {
 
 export default function CVListPage() {
     const { userId, isLoading: authLoading } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [cvs, setCvs] = useState<CVGeneration[]>([]);
 
-    useEffect(() => {
-        if (authLoading || !userId) return;
-
-        const supabase = createSupabaseClient();
-        async function fetchCVs() {
-            const { data, error } = await supabase
-                .from("cv_generations")
-                .select(`
-                    id,
-                    created_at,
-                    cv_data,
-                    analysis_id,
-                    job_analyses (
-                        job_url,
-                        match_score,
-                        match_report
-                    )
-                `)
-                .eq("user_id", userId)
-                .order("created_at", { ascending: false });
-
-            if (data) {
-                setCvs(data as CVGeneration[]);
-            }
-            setLoading(false);
-        }
-        fetchCVs();
-    }, [userId, authLoading]);
+    // Use centralized CV generations hook
+    const { data: cvs, loading } = useCVGenerations(userId);
 
     const handleDownloadPDF = async (cvId: string) => {
         window.open(`/dashboard/cv/${cvId}?print=true`, "_blank");

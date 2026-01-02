@@ -11,6 +11,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useJobAnalyses } from "@/hooks/useJobAnalyses";
 import Link from "next/link";
 import { JobAnalysis } from "@/types";
 
@@ -39,45 +40,25 @@ type SortOption = "date" | "score" | "status";
 
 export default function TrackingPage() {
     const { userId, isLoading: authLoading } = useAuth();
-    const [jobs, setJobs] = useState<JobAnalysis[]>([]);
-    const [loading, setLoading] = useState(true);
+
+    // Use centralized job analyses hook
+    const {
+        data: jobs,
+        loading,
+        error,
+        updateStatus,
+        deleteJob: deleteJobFn
+    } = useJobAnalyses(userId);
+
     const [filter, setFilter] = useState<string>("all");
     const [search, setSearch] = useState("");
     const [sortBy, setSortBy] = useState<SortOption>("date");
     const [sortAsc, setSortAsc] = useState(false);
     const [compactView, setCompactView] = useState(false);
 
-    useEffect(() => {
-        if (authLoading || !userId) return;
-
-        const supabase = createSupabaseClient();
-        async function fetchJobs() {
-            const { data, error } = await supabase
-                .from("job_analyses")
-                .select("*")
-                .eq("user_id", userId)
-                .order("submitted_at", { ascending: false });
-
-            if (data) setJobs(data);
-            setLoading(false);
-        }
-        fetchJobs();
-    }, [userId, authLoading]);
-
-    const updateStatus = async (id: string, newStatus: JobAnalysis["application_status"]) => {
-        const supabase = createSupabaseClient();
-        setJobs(jobs.map(j => j.id === id ? { ...j, application_status: newStatus } : j));
-        await supabase
-            .from("job_analyses")
-            .update({ application_status: newStatus })
-            .eq("id", id);
-    };
-
-    const deleteJob = async (id: string) => {
+    const handleDeleteJob = async (id: string) => {
         if (!confirm("Supprimer cette candidature ?")) return;
-        const supabase = createSupabaseClient();
-        setJobs(jobs.filter(j => j.id !== id));
-        await supabase.from("job_analyses").delete().eq("id", id);
+        await deleteJobFn(id);
     };
 
     // Stats
@@ -309,7 +290,7 @@ export default function TrackingPage() {
                             <>
                                 <SwipeableCard
                                     key={job.id}
-                                    onDelete={() => deleteJob(job.id)}
+                                    onDelete={() => handleDeleteJob(job.id)}
                                     className="md:hidden"
                                 >
                                     <Card className="hover:shadow-lg transition-all group rounded-none border-0 shadow-none">
@@ -423,7 +404,7 @@ export default function TrackingPage() {
                                                         variant="ghost"
                                                         size="sm"
                                                         className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                        onClick={() => deleteJob(job.id)}
+                                                        onClick={() => handleDeleteJob(job.id)}
                                                         title="Supprimer"
                                                     >
                                                         <Trash2 className="w-4 h-4" />
