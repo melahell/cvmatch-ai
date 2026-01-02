@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { StatusDropdown } from "@/components/tracking/StatusDropdown";
+import { BulkToolbar } from "@/components/tracking/BulkToolbar";
 import { JobCard } from "@/components/tracking/JobCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useJobAnalyses } from "@/hooks/useJobAnalyses";
@@ -89,6 +89,42 @@ export default function TrackingPage() {
         localStorage.setItem('tracking_sort_asc', String(sortAsc));
     }, [sortBy, sortAsc]);
     const [compactView, setCompactView] = useState(false);
+
+    // Bulk selection state
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const clearSelection = () => setSelectedIds([]);
+
+    const handleBulkDelete = async () => {
+        if (!confirm(`Supprimer ${selectedIds.length} candidature(s) ?`)) return;
+
+        for (const id of selectedIds) {
+            await deleteJobFn(id);
+        }
+        clearSelection();
+        toast.success(`${selectedIds.length} candidature(s) supprimée(s)`);
+    };
+
+    const handleBulkStatusChange = async (status: string) => {
+        for (const id of selectedIds) {
+            await updateStatus(id, status as any);
+        }
+        clearSelection();
+        toast.success(`Statut changé pour ${selectedIds.length} candidature(s)`);
+    };
+
+    const handleBulkArchive = async () => {
+        // Pour l'instant, on va juste changer le statut vers un état "archived"
+        // Plus tard on pourra ajouter une vraie colonne archived
+        toast.info("Fonctionnalité archivage en développement");
+        clearSelection();
+    };
 
     const handleDeleteJob = async (id: string) => {
         const jobToDelete = jobs.find(j => j.id === id);
@@ -360,6 +396,8 @@ export default function TrackingPage() {
                                         variant="mobile"
                                         onDelete={handleDeleteJob}
                                         onStatusChange={(id, status) => updateStatus(id, status as JobAnalysis["application_status"])}
+                                        isSelected={selectedIds.includes(job.id)}
+                                        onToggleSelect={toggleSelect}
                                     />
                                 </SwipeableCard>
 
@@ -370,6 +408,8 @@ export default function TrackingPage() {
                                         variant="desktop"
                                         onDelete={handleDeleteJob}
                                         onStatusChange={(id, status) => updateStatus(id, status as JobAnalysis["application_status"])}
+                                        isSelected={selectedIds.includes(job.id)}
+                                        onToggleSelect={toggleSelect}
                                     />
                                 </div>
                             </React.Fragment>
@@ -404,6 +444,15 @@ export default function TrackingPage() {
                         )}
                     </div>
                 </div>
+
+                {/* Bulk Toolbar */}
+                <BulkToolbar
+                    selectedCount={selectedIds.length}
+                    onClearSelection={clearSelection}
+                    onDeleteAll={handleBulkDelete}
+                    onArchiveAll={handleBulkArchive}
+                    onChangeStatusAll={handleBulkStatusChange}
+                />
             </TooltipProvider >
         </DashboardLayout >
     );
