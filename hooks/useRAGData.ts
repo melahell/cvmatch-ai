@@ -3,17 +3,10 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
 import { logger } from "@/lib/utils/logger";
+import type { RAGMetadata, Competences } from "@/types/rag";
 
-interface RAGData {
-    // Complete normalized RAG data
-    profil?: any;
-    experiences?: any[];
-    competences?: any;
-    formations?: any[];
-    langues?: any;
-    projets?: any[];
-
-    // Computed fields
+// useRAGData return type includes all RAG fields
+interface RAGData extends RAGMetadata {
     score: number;
     breakdown: any[];
     topJobs: any[];

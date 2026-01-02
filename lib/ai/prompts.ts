@@ -7,8 +7,10 @@ Tu es un expert en extraction et structuration de données professionnelles.
 DOCUMENTS FOURNIS:
 ${extractedText}
 
-MISSION:
-Extrais et structure TOUTES les informations selon ce schéma JSON.
+MISSION CRITIQUE:
+Extrais et structure les informations en SÉPARANT strictement :
+1. Ce qui est EXPLICITEMENT écrit (compétences mentionnées textuellement)
+2. Ce qui est INFÉRÉ du contexte (compétences déduites mais non écrites)
 
 SCHÉMA CIBLE (JSON uniquement) :
 {
@@ -34,8 +36,36 @@ SCHÉMA CIBLE (JSON uniquement) :
     }
   ],
   "competences": {
-    "techniques": ["string"],
-    "soft_skills": ["string"]
+    "explicit": {
+      "techniques": ["string"],
+      "soft_skills": ["string"]
+    },
+    "inferred": {
+      "techniques": [
+        {
+          "name": "string",
+          "confidence": 0-100,
+          "reasoning": "string (pourquoi tu l'infères)",
+          "sources": ["citations exactes du CV"]
+        }
+      ],
+      "tools": [
+        {
+          "name": "string",
+          "confidence": 0-100,
+          "reasoning": "string",
+          "sources": ["citations"]
+        }
+      ],
+      "soft_skills": [
+        {
+          "name": "string",
+          "confidence": 0-100,
+          "reasoning": "string",
+          "sources": ["citations"]
+        }
+      ]
+    }
   },
   "formations": [
     { "diplome": "string", "ecole": "string", "annee": "YYYY" }
@@ -43,9 +73,74 @@ SCHÉMA CIBLE (JSON uniquement) :
   "langues": { "langue": "niveau" }
 }
 
+RÈGLES STRICTES pour COMPÉTENCES :
+
+1. **EXPLICIT** = Compétences mentionnées TEXTUELLEMENT
+   - "JavaScript", "React", "Python" → EXPLICIT si écrits
+   - "Communication" → EXPLICIT si le mot est dans le CV
+
+2. **INFERRED** = Compétences DÉDUITES du contexte
+   ✅ Exemples VALID pour inférence :
+   - "Git" si GitHub mentionné mais jamais "Git"
+   - "Docker" si "containerisation" ou "déploiement" contextuel
+   - "Agile/Scrum" si "gestion sprints" mais jamais "Agile"
+   - "Leadership" si "management équipe de 5"
+   
+   Pour chaque inférence :
+   - **confidence** : 60-100% (min 60%, sinon ne pas suggérer)
+   - **reasoning** : Explication claire et concise
+   - **sources** : Citations EXACTES du CV prouvant l'inférence
+
+3. **OUTILS INTERMÉDIAIRES** (tools dans inferred)
+   - Outils probablement utilisés mais non listés
+   - Ex: "Jira" pour un PMO même si non mentionné explicitement
+   - Ex: "Nginx" pour déploiement web apps
+
+EXEMPLES :
+
+❌ MAUVAIS :
+"competences": {
+  "techniques": ["JavaScript", "Git", "Docker"]  // Tout mélangé
+}
+
+✅ BON :
+"competences": {
+  "explicit": {
+    "techniques": ["JavaScript", "React", "PostgreSQL"],
+    "soft_skills": ["Communication"]
+  },
+  "inferred": {
+    "techniques": [
+      {
+        "name": "Git",
+        "confidence": 95,
+        "reasoning": "5 projets mentionnent GitHub et collaboration sur code",
+        "sources": ["Projet X: 'Collaboration sur GitHub'", "Projet Y: 'Gestion versions'"]
+      }
+    ],
+    "tools": [
+      {
+        "name": "Docker",
+        "confidence": 80,
+        "reasoning": "Déploiement applications mentionné, containerisation probable",
+        "sources": ["Experience PMO: 'déploiement automatisé applications'"]
+      }
+    ],
+    "soft_skills": [
+      {
+        "name": "Leadership",
+        "confidence": 90,
+        "reasoning": "Management d'équipe et prise de décisions stratégiques",
+        "sources": ["Chef de projet: 'management équipe de 5 développeurs'"]
+      }
+    ]
+  }
+}
+
 OUTPUT:
 JSON valide uniquement. Pas de markdown, pas de \`\`\`json.
 `;
+
 
 export const getTopJobsPrompt = (ragData: any) => `
 Analyse ce profil professionnel (JSON) et suggère les 10 postes les PLUS adaptés.

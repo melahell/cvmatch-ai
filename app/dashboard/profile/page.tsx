@@ -286,7 +286,9 @@ function ProfileContent() {
                     <TabsContent value="vue">
                         <OverviewTab
                             ragData={localRAGData || ragData}
+                            userId={userId || ""}
                             onWeightChange={handleWeightChange}
+                            onRefetch={refetchRAG}
                         />
                     </TabsContent>
 

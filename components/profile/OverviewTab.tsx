@@ -2,8 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Briefcase, Code, GraduationCap, Languages, ChevronDown, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { User, Briefcase, Code, GraduationCap, Languages, ChevronDown, ChevronUp, Sparkles, Info } from "lucide-react";
 import { useState } from "react";
+import { InferredSkillCard } from "./InferredSkillCard";
+import type { InferredSkill } from "@/types/rag";
+import { normalizeCompetences } from "@/lib/utils/normalize-competences";
 
 type WeightValue = "important" | "inclus" | "exclu";
 
@@ -46,10 +51,12 @@ const WeightBadge = ({ weight, onChange }: WeightBadgeProps) => {
 
 interface OverviewTabProps {
     ragData: any;
+    userId: string;
     onWeightChange: (section: string, index: number, weight: WeightValue) => void;
+    onRefetch?: () => void;
 }
 
-export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
+export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: OverviewTabProps) {
     const [expandedSections, setExpandedSections] = useState({
         experiences: true,
         competences: true,
@@ -57,8 +64,83 @@ export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
         langues: false
     });
 
+    const [addingSkill, setAddingSkill] = useState<string | null>(null);
+    const [rejectingSkill, setRejectingSkill] = useState<string | null>(null);
+
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
+
+    // Normalize competences to handle old/new format
+    const competences = ragData?.competences ? normalizeCompetences(ragData.competences) : null;
+
+    // Handlers for inferred skills
+    const handleAddSkill = async (skill: InferredSkill, type: "technique" | "tool" | "soft_skill") => {
+        setAddingSkill(skill.name);
+
+        try {
+            const response = await fetch("/api/profile/add-skill", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    skill: skill.name,
+                    type,
+                    source: "inferred"
+                })
+            });
+
+            if (response.ok) {
+                // Trigger refetch to update UI
+                onRefetch?.();
+            } else {
+                console.error("Failed to add skill");
+            }
+        } catch (error) {
+            console.error("Error adding skill:", error);
+        } finally {
+            setAddingSkill(null);
+        }
+    };
+
+    const handleRejectSkill = async (skill: InferredSkill, type: "technique" | "tool" | "soft_skill") => {
+        setRejectingSkill(skill.name);
+
+        try {
+            const response = await fetch("/api/profile/reject-skill", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    skill: skill.name,
+                    type
+                })
+            });
+
+            if (response.ok) {
+                onRefetch?.();
+            } else {
+                console.error("Failed to reject skill");
+            }
+        } catch (error) {
+            console.error("Error rejecting skill:", error);
+        } finally {
+            setRejectingSkill(null);
+        }
+    };
+
+    const handleAddAllInferred = async () => {
+        if (!competences?.inferred) return;
+
+        const allInferred = [
+            ...(competences.inferred.techniques || []).map(s => ({ skill: s, type: "technique" as const })),
+            ...(competences.inferred.tools || []).map(s => ({ skill: s, type: "tool" as const })),
+            ...(competences.inferred.soft_skills || []).map(s => ({ skill: s, type: "soft_skill" as const }))
+        ];
+
+        for (const { skill, type } of allInferred) {
+            await handleAddSkill(skill, type);
+        }
     };
 
     if (!ragData) {
@@ -69,11 +151,26 @@ export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
         );
     }
 
+    // Count inferred skills
+    const inferredCount =
+        (competences?.inferred?.techniques?.length || 0) +
+        (competences?.inferred?.tools?.length || 0) +
+        (competences?.inferred?.soft_skills?.length || 0);
+
     return (
         <div className="space-y-6">
+            {/* Weighting Explanation */}
+            <Alert className="bg-blue-50 border-blue-200">
+                <Info className="w-4 h-4 text-blue-600" />
+                <AlertDescription className="text-sm text-blue-900">
+                    <strong>Pondération :</strong> Utilisée <strong>uniquement lors de la génération manuelle d'un CV</strong>.
+                    Elle n'affecte pas vos données de profil permanentes.
+                </AlertDescription>
+            </Alert>
+
             {/* Legend */}
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="text-sm font-medium mb-2 text-blue-900">💡 Pondération :</div>
+            <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="text-sm font-medium mb-2">💡 Pondération :</div>
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-xs">
                     <span className="flex items-center gap-1">
                         <Badge className="bg-green-100 text-green-700 shrink-0">🔥 Important</Badge>
@@ -185,13 +282,13 @@ export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
                 </Card>
             )}
 
-            {/* Compétences */}
-            {ragData?.competences && (
+            {/* Explicit Skills */}
+            {competences && (
                 <Card>
                     <CardHeader className="cursor-pointer" onClick={() => toggleSection("competences")}>
                         <CardTitle className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                                <Code className="w-5 h-5" /> Compétences
+                                <Code className="w-5 h-5" /> Vos Compétences
                             </div>
                             {expandedSections.competences ? (
                                 <ChevronUp className="w-4 h-4" />
@@ -201,37 +298,115 @@ export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
                         </CardTitle>
                     </CardHeader>
                     {expandedSections.competences && (
-                        <CardContent className="space-y-3">
-                            {ragData.competences.techniques && ragData.competences.techniques.length > 0 && (
+                        <CardContent className="space-y-4">
+                            {competences.explicit?.techniques && competences.explicit.techniques.length > 0 && (
                                 <div>
-                                    <div className="text-sm font-medium mb-2">Techniques :</div>
+                                    <h4 className="font-medium mb-2">Techniques :</h4>
                                     <div className="flex flex-wrap gap-2">
-                                        {ragData.competences.techniques.map((skill: any, i: number) => (
+                                        {competences.explicit.techniques.map((skill: string, i: number) => (
                                             <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                                                <span className="text-sm">{typeof skill === "string" ? skill : skill.nom}</span>
+                                                <span className="text-sm">{skill}</span>
                                                 <WeightBadge
-                                                    weight={skill.weight || "inclus"}
-                                                    onChange={(w) => onWeightChange("competences.techniques", i, w)}
+                                                    weight="inclus"
+                                                    onChange={() => { }}
                                                 />
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
-                            {ragData.competences.soft_skills && ragData.competences.soft_skills.length > 0 && (
+
+                            {competences.explicit?.soft_skills && competences.explicit.soft_skills.length > 0 && (
                                 <div>
-                                    <div className="text-sm font-medium mb-2">Soft Skills :</div>
-                                    <div className="flex flex-wrap gap-1">
-                                        {ragData.competences.soft_skills.map((skill: string, i: number) => (
-                                            <Badge key={i} variant="outline">
-                                                {skill}
-                                            </Badge>
+                                    <h4 className="font-medium mb-2">Soft Skills :</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {competences.explicit.soft_skills.map((skill: string, i: number) => (
+                                            <Badge key={i} variant="outline">{skill}</Badge>
                                         ))}
                                     </div>
                                 </div>
                             )}
                         </CardContent>
                     )}
+                </Card>
+            )}
+
+            {/* Inferred Skills */}
+            {competences?.inferred && inferredCount > 0 && (
+                <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-white">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-purple-600" />
+                            Compétences Suggérées par l'IA
+                            <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                {inferredCount}
+                            </Badge>
+                        </CardTitle>
+                        <p className="text-sm text-slate-600 mt-1">
+                            L'IA a identifié ces compétences à partir de l'analyse de vos expériences
+                        </p>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        {/* Techniques inferred */}
+                        {competences.inferred.techniques && competences.inferred.techniques.length > 0 &&
+                            competences.inferred.techniques.map((skill, i) => (
+                                <InferredSkillCard
+                                    key={`tech-${i}`}
+                                    skill={skill}
+                                    onAdd={() => handleAddSkill(skill, "technique")}
+                                    onReject={() => handleRejectSkill(skill, "technique")}
+                                    adding={addingSkill === skill.name}
+                                    rejecting={rejectingSkill === skill.name}
+                                />
+                            ))
+                        }
+
+                        {/* Tools inferred */}
+                        {competences.inferred.tools && competences.inferred.tools.length > 0 &&
+                            competences.inferred.tools.map((skill, i) => (
+                                <InferredSkillCard
+                                    key={`tool-${i}`}
+                                    skill={skill}
+                                    onAdd={() => handleAddSkill(skill, "tool")}
+                                    onReject={() => handleRejectSkill(skill, "tool")}
+                                    adding={addingSkill === skill.name}
+                                    rejecting={rejectingSkill === skill.name}
+                                />
+                            ))
+                        }
+
+                        {/* Soft skills inferred */}
+                        {competences.inferred.soft_skills && competences.inferred.soft_skills.length > 0 &&
+                            competences.inferred.soft_skills.map((skill, i) => (
+                                <InferredSkillCard
+                                    key={`soft-${i}`}
+                                    skill={skill}
+                                    onAdd={() => handleAddSkill(skill, "soft_skill")}
+                                    onReject={() => handleRejectSkill(skill, "soft_skill")}
+                                    adding={addingSkill === skill.name}
+                                    rejecting={rejectingSkill === skill.name}
+                                />
+                            ))
+                        }
+
+                        {/* Bulk actions */}
+                        <div className="flex gap-2 pt-2 border-t">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onRefetch?.()}
+                            >
+                                Tout rejeter
+                            </Button>
+                            <Button
+                                size="sm"
+                                onClick={handleAddAllInferred}
+                                disabled={!!addingSkill}
+                            >
+                                Tout ajouter
+                            </Button>
+                        </div>
+                    </CardContent>
                 </Card>
             )}
 
