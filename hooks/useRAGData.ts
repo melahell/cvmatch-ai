@@ -5,11 +5,18 @@ import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
 import { logger } from "@/lib/utils/logger";
 
 interface RAGData {
-    profile: any;
+    // Complete normalized RAG data
+    profil?: any;
+    experiences?: any[];
+    competences?: any;
+    formations?: any[];
+    langues?: any;
+    projets?: any[];
+
+    // Computed fields
     score: number;
     breakdown: any[];
     topJobs: any[];
-    skills: string[];
 }
 
 interface UseRAGDataReturn {
@@ -83,22 +90,20 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
             // Calculate breakdown from normalized data
             const { breakdown } = calculateCompletenessWithBreakdown(normalized);
 
-            // Extract skills (top 5 technical skills)
-            const skills = normalized?.competences?.techniques?.slice(0, 5) || [];
-
+            // Return COMPLETE normalized data, not just a subset
             setData({
-                profile: normalized?.profil || null,
+                ...normalized,  // Spread all fields: profil, experiences, competences, formations, langues
                 score: ragData.completeness_score || 0,
                 breakdown,
                 topJobs: ragData.top_10_jobs || [],
-                skills,
             });
 
             logger.debug('RAG data fetched successfully', {
                 score: ragData.completeness_score,
                 hasProfile: !!normalized?.profil,
                 experiencesCount: normalized?.experiences?.length || 0,
-                skillsCount: skills.length,
+                skillsCount: normalized?.competences?.techniques?.length || 0,
+                formationsCount: normalized?.formations?.length || 0,
             });
 
         } catch (e) {

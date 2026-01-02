@@ -91,7 +91,7 @@ export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
             </div>
 
             {/* Profile */}
-            {ragData?.profile && (
+            {ragData?.profil && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
@@ -99,26 +99,26 @@ export function OverviewTab({ ragData, onWeightChange }: OverviewTabProps) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        {ragData.profile.prenom && (
+                        {ragData.profil.prenom && (
                             <div>
                                 <strong className="text-slate-700">Nom :</strong>{" "}
-                                {ragData.profile.prenom} {ragData.profile.nom}
+                                {ragData.profil.prenom} {ragData.profil.nom}
                             </div>
                         )}
-                        {ragData.profile.titre_principal && (
+                        {ragData.profil.titre_principal && (
                             <div>
-                                <strong className="text-slate-700">Titre :</strong> {ragData.profile.titre_principal}
+                                <strong className="text-slate-700">Titre :</strong> {ragData.profil.titre_principal}
                             </div>
                         )}
-                        {ragData.profile.localisation && (
+                        {ragData.profil.localisation && (
                             <div>
-                                <strong className="text-slate-700">Localisation :</strong> {ragData.profile.localisation}
+                                <strong className="text-slate-700">Localisation :</strong> {ragData.profil.localisation}
                             </div>
                         )}
-                        {ragData.profile.elevator_pitch && (
+                        {ragData.profil.elevator_pitch && (
                             <div>
                                 <strong className="text-slate-700">Pitch :</strong>
-                                <p className="text-sm text-slate-600 mt-1">{ragData.profile.elevator_pitch}</p>
+                                <p className="text-sm text-slate-600 mt-1">{ragData.profil.elevator_pitch}</p>
                             </div>
                         )}
                     </CardContent>

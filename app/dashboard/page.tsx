@@ -94,7 +94,7 @@ export default function DashboardPage() {
                 {/* WELCOME HEADER */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profile?.prenom || authUserName} 👋</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profil?.prenom || authUserName} 👋</h1>
                         <p className="text-slate-500 text-sm md:text-base">Prêt à décrocher le job de vos rêves ?</p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -219,10 +219,10 @@ export default function DashboardPage() {
                                     {/* Avatar with direct upload */}
                                     <label className="relative group cursor-pointer">
                                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                                            {ragData?.profile?.photo_url ? (
-                                                <img src={ragData.profile.photo_url} alt="Photo de profil" className="w-full h-full object-cover" />
+                                            {ragData?.profil?.photo_url ? (
+                                                <img src={ragData.profil.photo_url} alt="Photo de profil" className="w-full h-full object-cover" />
                                             ) : (
-                                                <span>{ragData?.profile?.prenom?.[0]}{ragData?.profile?.nom?.[0]}</span>
+                                                <span>{ragData?.profil?.prenom?.[0]}{ragData?.profil?.nom?.[0]}</span>
                                             )}
                                         </div>
                                         <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -312,12 +312,12 @@ export default function DashboardPage() {
                                         />
                                     </label>
                                     <div>
-                                        <div className="font-bold text-lg">{ragData?.profile?.prenom} {ragData?.profile?.nom}</div>
-                                        <div className="text-sm text-slate-500">{ragData?.profile?.titre_principal}</div>
+                                        <div className="font-bold text-lg">{ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
+                                        <div className="text-sm text-slate-500">{ragData?.profil?.titre_principal}</div>
                                     </div>
                                 </div>
-                                {ragData?.profile?.localisation && (
-                                    <div className="text-sm text-slate-500">📍 {ragData?.profile?.localisation}</div>
+                                {ragData?.profil?.localisation && (
+                                    <div className="text-sm text-slate-500">📍 {ragData?.profil?.localisation}</div>
                                 )}
                             </CardContent>
                         </Card>
@@ -358,12 +358,14 @@ export default function DashboardPage() {
                                 <CardTitle className="text-sm">Compétences clés</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex flex-wrap gap-2">
-                                    {ragData && ragData.skills.length > 0 ? ragData.skills.map((skill: any, i: number) => (
-                                        <Badge key={i} variant="outline" className="text-xs">
-                                            {typeof skill === "string" ? skill : skill.nom}
-                                        </Badge>
-                                    )) : (
+                                <div className="flex flex-wrap gap-1">
+                                    {(ragData?.competences?.techniques?.slice(0, 5) || []).length > 0 ? (
+                                        (ragData?.competences?.techniques?.slice(0, 5) || []).map((skill: any, i: number) => (
+                                            <Badge key={i} variant="secondary" className="text-xs">
+                                                {typeof skill === "string" ? skill : skill.nom}
+                                            </Badge>
+                                        ))
+                                    ) : (
                                         <span className="text-sm text-slate-400">Aucune</span>
                                     )}
                                 </div>
