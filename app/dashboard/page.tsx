@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { UserProfile } from "@/types";
 import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
+import { useState as useStateHook } from "react";
 
 export default function DashboardPage() {
     const { userId, userName: authUserName, isLoading: authLoading } = useAuth();
@@ -244,13 +245,75 @@ export default function DashboardPage() {
                                 <div className="flex items-center gap-4 mb-4">
                                     {/* Avatar with direct upload */}
                                     <label className="relative group cursor-pointer">
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                                            {profile?.prenom?.[0]}{profile?.nom?.[0]}
+                                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                                            {profile?.photo_url ? (
+                                                <img src={profile.photo_url} alt="Photo de profil" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <span>{profile?.prenom?.[0]}{profile?.nom?.[0]}</span>
+                                            )}
                                         </div>
                                         <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Camera className="w-5 h-5 text-white" />
                                         </div>
-                                        <input type="file" accept="image/*" className="hidden" />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file || !userId) return;
+
+                                                try {
+                                                    const supabase = createSupabaseClient();
+
+                                                    // Upload to Supabase Storage
+                                                    const fileExt = file.name.split('.').pop();
+                                                    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+                                                    const filePath = `avatars/${fileName}`;
+
+                                                    const { error: uploadError } = await supabase.storage
+                                                        .from('profile-photos')
+                                                        .upload(filePath, file, {
+                                                            cacheControl: '3600',
+                                                            upsert: true
+                                                        });
+
+                                                    if (uploadError) {
+                                                        console.error('Upload error:', uploadError);
+                                                        alert('Erreur lors de l\'upload de la photo');
+                                                        return;
+                                                    }
+
+                                                    // Get public URL
+                                                    const { data: { publicUrl } } = supabase.storage
+                                                        .from('profile-photos')
+                                                        .getPublicUrl(filePath);
+
+                                                    // Update RAG metadata with photo URL
+                                                    if (!profile) return;
+                                                    const updatedProfile = { ...profile, photo_url: publicUrl };
+                                                    const { error: updateError } = await supabase
+                                                        .from('rag_metadata')
+                                                        .update({
+                                                            completeness_details: updatedProfile
+                                                        })
+                                                        .eq('user_id', userId);
+
+                                                    if (updateError) {
+                                                        console.error('Update error:', updateError);
+                                                        alert('Erreur lors de la mise à jour du profil');
+                                                        return;
+                                                    }
+
+                                                    // Update local state
+                                                    setProfile(updatedProfile);
+                                                    alert('Photo de profil mise à jour !');
+                                                } catch (error) {
+                                                    console.error('Photo upload error:', error);
+                                                    alert('Erreur lors de l\'upload de la photo');
+                                                }
+                                            }}
+                                        />
                                     </label>
                                     <div>
                                         <div className="font-bold text-lg">{profile?.prenom} {profile?.nom}</div>

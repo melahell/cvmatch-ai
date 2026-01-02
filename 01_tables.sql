@@ -33,7 +33,8 @@ CREATE TABLE rag_metadata (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   completeness_score INTEGER,
-  completeness_details JSONB, -- breakdown par section
+  completeness_details JSONB, -- Profil RAG complet structuré
+  custom_notes TEXT, -- Notes personnelles utilisateur pour affiner génération CV/LM
   top_10_jobs JSONB, -- top 10 postes suggérés
   rag_version INTEGER DEFAULT 1,
   last_updated TIMESTAMP DEFAULT NOW(),
