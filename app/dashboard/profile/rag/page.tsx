@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
+import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
@@ -124,14 +125,15 @@ function RAGContent() {
         }
 
         if (rag) {
-            setRagData(rag.completeness_details);
+            // Normalize data to handle both flat and nested structures
+            const normalized = normalizeRAGData(rag.completeness_details);
+            setRagData(normalized);
             setCompletenessScore(rag.completeness_score || 0);
             setCustomNotes(rag.custom_notes || "");
 
-
             // Calculate breakdown from details (since not stored in DB)
-            if (rag.completeness_details) {
-                const { breakdown } = calculateCompletenessWithBreakdown(rag.completeness_details);
+            if (normalized) {
+                const { breakdown } = calculateCompletenessWithBreakdown(normalized);
                 setCompletenessBreakdown(breakdown);
             } else {
                 setCompletenessBreakdown([]);

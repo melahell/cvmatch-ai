@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Link from "next/link";
 import { UserProfile } from "@/types";
 import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
+import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { useState as useStateHook } from "react";
 
 export default function DashboardPage() {
@@ -46,13 +47,16 @@ export default function DashboardPage() {
             }
 
             if (ragData) {
-                // FIXED: completeness_details IS the profile directly (not nested under 'profil')
-                setProfile(ragData.completeness_details);
+                // Normalize data to handle both flat and nested structures
+                const normalized = normalizeRAGData(ragData.completeness_details);
+
+                // For display, we want just the profil part
+                setProfile(normalized?.profil || null);
                 setCompletenessScore(ragData.completeness_score || 0);
 
                 // Calculate breakdown from details (since not stored in DB)
-                if (ragData.completeness_details) {
-                    const { breakdown } = calculateCompletenessWithBreakdown(ragData.completeness_details);
+                if (normalized) {
+                    const { breakdown } = calculateCompletenessWithBreakdown(normalized);
                     setCompletenessBreakdown(breakdown);
                 }
 
@@ -61,7 +65,7 @@ export default function DashboardPage() {
                 }
 
                 // Extract skills from profile
-                const profileSkills = ragData.completeness_details?.competences?.techniques?.slice(0, 5) || [];
+                const profileSkills = normalized?.competences?.techniques?.slice(0, 5) || [];
                 setSkills(profileSkills);
             }
 
