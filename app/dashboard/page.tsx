@@ -46,7 +46,8 @@ export default function DashboardPage() {
             }
 
             if (ragData) {
-                setProfile(ragData.completeness_details?.profil);
+                // FIXED: completeness_details IS the profile directly (not nested under 'profil')
+                setProfile(ragData.completeness_details);
                 setCompletenessScore(ragData.completeness_score || 0);
 
                 // Calculate breakdown from details (since not stored in DB)
@@ -284,14 +285,21 @@ export default function DashboardPage() {
                                                         return;
                                                     }
 
-                                                    // Get public URL
-                                                    const { data: { publicUrl } } = supabase.storage
+                                                    // Get SIGNED URL (private, expires in 1 year)
+                                                    // Only accessible by authenticated user
+                                                    const { data: signedData, error: signedError } = await supabase.storage
                                                         .from('profile-photos')
-                                                        .getPublicUrl(filePath);
+                                                        .createSignedUrl(filePath, 31536000); // 1 year in seconds
 
-                                                    // Update RAG metadata with photo URL
+                                                    if (signedError || !signedData) {
+                                                        console.error('Signed URL error:', signedError);
+                                                        alert('Erreur lors de la génération de l\'URL sécurisée');
+                                                        return;
+                                                    }
+
+                                                    // Update RAG metadata with SIGNED photo URL
                                                     if (!profile) return;
-                                                    const updatedProfile = { ...profile, photo_url: publicUrl };
+                                                    const updatedProfile = { ...profile, photo_url: signedData.signedUrl };
                                                     const { error: updateError } = await supabase
                                                         .from('rag_metadata')
                                                         .update({
