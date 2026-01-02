@@ -40,9 +40,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No extracted text found in documents" }, { status: 400 });
         }
 
-        // Call Gemini
+        // Call Gemini 3 Flash
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
         const prompt = getRAGExtractionPrompt(allText);
 
         const result = await model.generateContent(prompt);
