@@ -113,24 +113,28 @@ function RAGContent() {
         if (docs) setDocuments(docs);
 
         // Fetch RAG metadata
-        const { data: rag } = await supabase
+        const { data: rag, error: ragError } = await supabase
             .from("rag_metadata")
-            // Removed completeness_breakdown to avoid 400 if column missing
-            .select("completeness_details, completeness_score, custom_notes")
+            .select("completeness_details,completeness_score,completeness_breakdown,custom_notes")
             .eq("user_id", userId)
             .single();
 
+        if (ragError) {
+            console.error("Error fetching RAG data:", ragError);
+        }
+
         if (rag) {
             setRagData(rag.completeness_details);
+            setCompletenessScore(rag.completeness_score || 0);
             setCustomNotes(rag.custom_notes || "");
 
-            // Calculate locally
-            if (rag.completeness_details) {
-                const { score, breakdown } = calculateCompletenessWithBreakdown(rag.completeness_details);
-                setCompletenessScore(score);
+            if (rag.completeness_breakdown) {
+                setCompletenessBreakdown(rag.completeness_breakdown);
+            } else if (rag.completeness_details) {
+                // Fallback to calculation if DB field is empty
+                const { breakdown } = calculateCompletenessWithBreakdown(rag.completeness_details);
                 setCompletenessBreakdown(breakdown);
             } else {
-                setCompletenessScore(rag.completeness_score || 0);
                 setCompletenessBreakdown([]);
             }
         }

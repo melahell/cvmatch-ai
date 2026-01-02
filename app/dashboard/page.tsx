@@ -32,23 +32,30 @@ export default function DashboardPage() {
         async function fetchData() {
 
             // 1. Fetch RAG Data
-            const { data: ragData } = await supabase
+            const { data: ragData, error: ragError } = await supabase
                 .from("rag_metadata")
-                // Only select columns we are SURE exist to avoid 400 error
-                .select("completeness_details, completeness_score")
+                .select("completeness_details,top_10_jobs,completeness_score,completeness_breakdown")
                 .eq("user_id", userId)
                 .single();
 
+            if (ragError) {
+                console.error("Error fetching RAG data:", ragError);
+            }
+
             if (ragData) {
                 setProfile(ragData.completeness_details?.profil);
+                setCompletenessScore(ragData.completeness_score || 0);
 
-                // Calculate breakdown client-side to be safe
-                if (ragData.completeness_details) {
-                    const { score, breakdown } = calculateCompletenessWithBreakdown(ragData.completeness_details);
-                    setCompletenessScore(score);
+                if (ragData.completeness_breakdown) {
+                    setCompletenessBreakdown(ragData.completeness_breakdown);
+                } else if (ragData.completeness_details) {
+                    // Fallback to calculation if DB field is empty but details exist
+                    const { breakdown } = calculateCompletenessWithBreakdown(ragData.completeness_details);
                     setCompletenessBreakdown(breakdown);
-                } else {
-                    setCompletenessScore(ragData.completeness_score || 0);
+                }
+
+                if (ragData.top_10_jobs) {
+                    setTopJobs(ragData.top_10_jobs);
                 }
 
                 // Extract skills from profile
