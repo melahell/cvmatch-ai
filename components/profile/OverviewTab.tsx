@@ -75,6 +75,20 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
     const competences = ragData?.competences ? normalizeCompetences(ragData.competences) : null;
 
     // Handlers for inferred skills
+    const handleRejectAllInferred = async () => {
+        if (!competences?.inferred) return;
+
+        const allInferred = [
+            ...(competences.inferred.techniques || []).map((s: InferredSkill) => ({ skill: s, type: "technique" as const })),
+            ...(competences.inferred.tools || []).map((s: InferredSkill) => ({ skill: s, type: "tool" as const })),
+            ...(competences.inferred.soft_skills || []).map((s: InferredSkill) => ({ skill: s, type: "soft_skill" as const }))
+        ];
+
+        for (const { skill, type } of allInferred) {
+            await handleRejectSkill(skill, type);
+        }
+    };
+
     const handleAddSkill = async (skill: InferredSkill, type: "technique" | "tool" | "soft_skill") => {
         setAddingSkill(skill.name);
 
@@ -303,12 +317,12 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                 <div>
                                     <h4 className="font-medium mb-2">Techniques :</h4>
                                     <div className="flex flex-wrap gap-2">
-                                        {competences.explicit.techniques.map((skill: string, i: number) => (
+                                        {competences.explicit.techniques.map((skill: string | any, i: number) => (
                                             <div key={i} className="flex items-center gap-2 p-2 bg-slate-50 rounded">
-                                                <span className="text-sm">{skill}</span>
+                                                <span className="text-sm">{typeof skill === "string" ? skill : skill.nom}</span>
                                                 <WeightBadge
-                                                    weight="inclus"
-                                                    onChange={() => { }}
+                                                    weight={typeof skill === "string" ? "inclus" : (skill.weight || "inclus")}
+                                                    onChange={(w) => onWeightChange("competences.techniques", i, w)}
                                                 />
                                             </div>
                                         ))}
@@ -331,84 +345,107 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                 </Card>
             )}
 
-            {/* Inferred Skills */}
-            {competences?.inferred && inferredCount > 0 && (
-                <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-white">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-purple-600" />
-                            Compétences Suggérées par l'IA
-                            <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                                {inferredCount}
-                            </Badge>
-                        </CardTitle>
-                        <p className="text-sm text-slate-600 mt-1">
-                            L'IA a identifié ces compétences à partir de l'analyse de vos expériences
-                        </p>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        {/* Techniques inferred */}
-                        {competences.inferred.techniques && competences.inferred.techniques.length > 0 &&
-                            competences.inferred.techniques.map((skill, i) => (
-                                <InferredSkillCard
-                                    key={`tech-${i}`}
-                                    skill={skill}
-                                    onAdd={() => handleAddSkill(skill, "technique")}
-                                    onReject={() => handleRejectSkill(skill, "technique")}
-                                    adding={addingSkill === skill.name}
-                                    rejecting={rejectingSkill === skill.name}
-                                />
-                            ))
-                        }
+            {/* Inferred Skills - Max 15 suggestions, filtered by rejected */}
+            {competences?.inferred && inferredCount > 0 && (() => {
+                const rejectedSkills = ragData?.rejected_inferred || [];
+                const maxSuggestions = 15;
 
-                        {/* Tools inferred */}
-                        {competences.inferred.tools && competences.inferred.tools.length > 0 &&
-                            competences.inferred.tools.map((skill, i) => (
-                                <InferredSkillCard
-                                    key={`tool-${i}`}
-                                    skill={skill}
-                                    onAdd={() => handleAddSkill(skill, "tool")}
-                                    onReject={() => handleRejectSkill(skill, "tool")}
-                                    adding={addingSkill === skill.name}
-                                    rejecting={rejectingSkill === skill.name}
-                                />
-                            ))
-                        }
+                // Filter and limit techniques
+                const filteredTechniques = (competences.inferred.techniques || [])
+                    .filter((s: InferredSkill) => !rejectedSkills.includes(s.name))
+                    .slice(0, maxSuggestions);
 
-                        {/* Soft skills inferred */}
-                        {competences.inferred.soft_skills && competences.inferred.soft_skills.length > 0 &&
-                            competences.inferred.soft_skills.map((skill, i) => (
-                                <InferredSkillCard
-                                    key={`soft-${i}`}
-                                    skill={skill}
-                                    onAdd={() => handleAddSkill(skill, "soft_skill")}
-                                    onReject={() => handleRejectSkill(skill, "soft_skill")}
-                                    adding={addingSkill === skill.name}
-                                    rejecting={rejectingSkill === skill.name}
-                                />
-                            ))
-                        }
+                // Filter and limit tools
+                const filteredTools = (competences.inferred.tools || [])
+                    .filter((s: InferredSkill) => !rejectedSkills.includes(s.name))
+                    .slice(0, Math.max(0, maxSuggestions - filteredTechniques.length));
 
-                        {/* Bulk actions */}
-                        <div className="flex gap-2 pt-2 border-t">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onRefetch?.()}
-                            >
-                                Tout rejeter
-                            </Button>
-                            <Button
-                                size="sm"
-                                onClick={handleAddAllInferred}
-                                disabled={!!addingSkill}
-                            >
-                                Tout ajouter
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+                // Filter and limit soft skills
+                const filteredSoftSkills = (competences.inferred.soft_skills || [])
+                    .filter((s: InferredSkill) => !rejectedSkills.includes(s.name))
+                    .slice(0, Math.max(0, maxSuggestions - filteredTechniques.length - filteredTools.length));
+
+                const totalFiltered = filteredTechniques.length + filteredTools.length + filteredSoftSkills.length;
+
+                return totalFiltered > 0 ? (
+                    <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-white">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-purple-600" />
+                                Compétences Suggérées par l'IA
+                                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                    {totalFiltered}
+                                </Badge>
+                            </CardTitle>
+                            <p className="text-sm text-slate-600 mt-1">
+                                L'IA a identifié ces compétences à partir de l'analyse de vos expériences
+                            </p>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {/* Techniques inferred */}
+                            {filteredTechniques.length > 0 &&
+                                filteredTechniques.map((skill: InferredSkill, i: number) => (
+                                    <InferredSkillCard
+                                        key={`tech-${i}`}
+                                        skill={skill}
+                                        onAdd={() => handleAddSkill(skill, "technique")}
+                                        onReject={() => handleRejectSkill(skill, "technique")}
+                                        adding={addingSkill === skill.name}
+                                        rejecting={rejectingSkill === skill.name}
+                                    />
+                                ))
+                            }
+
+                            {/* Tools inferred */}
+                            {filteredTools.length > 0 &&
+                                filteredTools.map((skill: InferredSkill, i: number) => (
+                                    <InferredSkillCard
+                                        key={`tool-${i}`}
+                                        skill={skill}
+                                        onAdd={() => handleAddSkill(skill, "tool")}
+                                        onReject={() => handleRejectSkill(skill, "tool")}
+                                        adding={addingSkill === skill.name}
+                                        rejecting={rejectingSkill === skill.name}
+                                    />
+                                ))
+                            }
+
+                            {/* Soft skills inferred */}
+                            {filteredSoftSkills.length > 0 &&
+                                filteredSoftSkills.map((skill: InferredSkill, i: number) => (
+                                    <InferredSkillCard
+                                        key={`soft-${i}`}
+                                        skill={skill}
+                                        onAdd={() => handleAddSkill(skill, "soft_skill")}
+                                        onReject={() => handleRejectSkill(skill, "soft_skill")}
+                                        adding={addingSkill === skill.name}
+                                        rejecting={rejectingSkill === skill.name}
+                                    />
+                                ))
+                            }
+
+                            {/* Bulk actions */}
+                            <div className="flex gap-2 pt-2 border-t">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleRejectAllInferred}
+                                    disabled={!!rejectingSkill || !!addingSkill}
+                                >
+                                    Tout rejeter
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    onClick={handleAddAllInferred}
+                                    disabled={!!addingSkill || !!rejectingSkill}
+                                >
+                                    Tout ajouter
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : null;
+            })()}
 
             {/* Formations */}
             {ragData?.formations && ragData.formations.length > 0 && (
