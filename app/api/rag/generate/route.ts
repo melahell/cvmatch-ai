@@ -69,8 +69,8 @@ export async function POST(req: Request) {
         let allExtractedText = "";
 
         // Tiered model strategy: Pro for critical tasks, Flash as fallback
-        const proModel = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
-        const flashModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
+        const proModel = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
+        const flashModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
         let useProModel = true; // Start with Pro, fallback to Flash if quota exceeded
 
         // Smart generation with automatic fallback
