@@ -287,26 +287,36 @@ export async function POST(req: Request) {
             .single();
 
         if (existingRag) {
-            await supabase
+            const { error: updateError } = await supabase
                 .from("rag_metadata")
                 .update({
                     completeness_score: completenessScore,
-                    completeness_breakdown: completenessBreakdown,
+                    // completeness_breakdown is NOT stored in DB, calculated client-side
                     completeness_details: ragData,
                     top_10_jobs: top10Jobs,
                     last_updated: new Date().toISOString()
                 })
                 .eq("user_id", userId);
+
+            if (updateError) {
+                console.error('Error updating rag_metadata:', updateError);
+                return NextResponse.json({ error: 'Failed to save RAG data: ' + updateError.message }, { status: 500 });
+            }
         } else {
-            await supabase
+            const { error: insertError } = await supabase
                 .from("rag_metadata")
                 .insert({
                     user_id: userId,
                     completeness_score: completenessScore,
-                    completeness_breakdown: completenessBreakdown,
+                    // completeness_breakdown is NOT stored in DB, calculated client-side
                     completeness_details: ragData,
                     top_10_jobs: top10Jobs
                 });
+
+            if (insertError) {
+                console.error('Error inserting rag_metadata:', insertError);
+                return NextResponse.json({ error: 'Failed to save RAG data: ' + insertError.message }, { status: 500 });
+            }
         }
 
         await supabase.from("users").update({ onboarding_completed: true }).eq("id", userId);
