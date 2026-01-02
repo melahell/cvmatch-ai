@@ -34,7 +34,7 @@ function ProfileContent() {
     const [localRAGData, setLocalRAGData] = useState(ragData);
 
     // Sync ragData to local state when it changes
-    useState(() => {
+    useEffect(() => {
         if (ragData) {
             setLocalRAGData(addDefaultWeights(ragData));
             // Load custom notes from DB if available
@@ -42,7 +42,7 @@ function ProfileContent() {
                 loadCustomNotes(userId);
             }
         }
-    });
+    }, [ragData, userId]);
 
     const loadCustomNotes = async (uid: string) => {
         const supabase = createSupabaseClient();

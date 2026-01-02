@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClient } from "@/lib/supabase";
 import { Loader2, Printer, Download, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StandardTemplate } from "@/components/cv/StandardTemplate";
@@ -15,10 +15,7 @@ export default function CVViewPage() {
     const [cvData, setCvData] = useState<any>(null);
 
     useEffect(() => {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createSupabaseClient();
         async function fetchCV() {
             if (!id) return;
 
