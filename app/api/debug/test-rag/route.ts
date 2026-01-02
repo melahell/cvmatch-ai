@@ -19,10 +19,10 @@ export async function POST(req: Request) {
 
         // Get user's documents
         const { data: docs } = await supabase
-            .from("documents")
+            .from("uploaded_documents")
             .select("*")
             .eq("user_id", userId)
-            .order("uploaded_at", { ascending: false });
+            .order("created_at", { ascending: false });
 
         if (!docs || docs.length === 0) {
             return NextResponse.json({ error: "No documents found" }, { status: 404 });
