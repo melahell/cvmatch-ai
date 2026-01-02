@@ -298,12 +298,28 @@ export default function DashboardPage() {
                                                     }
 
                                                     // Update RAG metadata with SIGNED photo URL
-                                                    if (!profile) return;
-                                                    const updatedProfile = { ...profile, photo_url: signedData.signedUrl };
+                                                    // CRITICAL: Fetch FULL completeness_details first to avoid data loss
+                                                    const { data: fullRagData } = await supabase
+                                                        .from('rag_metadata')
+                                                        .select('completeness_details')
+                                                        .eq('user_id', userId)
+                                                        .single();
+
+                                                    if (!fullRagData) {
+                                                        alert('Impossible de charger le profil complet');
+                                                        return;
+                                                    }
+
+                                                    // Update ONLY the photo_url, preserve everything else
+                                                    const updatedCompleteDetails = {
+                                                        ...fullRagData.completeness_details,
+                                                        photo_url: signedData.signedUrl
+                                                    };
+
                                                     const { error: updateError } = await supabase
                                                         .from('rag_metadata')
                                                         .update({
-                                                            completeness_details: updatedProfile
+                                                            completeness_details: updatedCompleteDetails
                                                         })
                                                         .eq('user_id', userId);
 
@@ -313,8 +329,10 @@ export default function DashboardPage() {
                                                         return;
                                                     }
 
-                                                    // Update local state
-                                                    setProfile(updatedProfile);
+                                                    // Update local state (just the profile part for display)
+                                                    if (profile) {
+                                                        setProfile({ ...profile, photo_url: signedData.signedUrl });
+                                                    }
                                                     alert('Photo de profil mise à jour !');
                                                 } catch (error) {
                                                     console.error('Photo upload error:', error);
