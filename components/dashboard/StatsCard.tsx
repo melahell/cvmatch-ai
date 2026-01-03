@@ -31,10 +31,10 @@ export function StatsCard({
             {children || (
                 <>
                     {Icon && <Icon className="w-6 h-6 mb-2 text-slate-400" />}
-                    <div className={`text-4xl font-bold mb-1 ${colorClasses[color]}`}>
+                    <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 ${colorClasses[color]}`}>
                         {value}
                     </div>
-                    <div className="text-sm font-medium text-slate-500">{label}</div>
+                    <div className="text-xs sm:text-sm font-medium text-slate-500">{label}</div>
                 </>
             )}
         </CardContent>
