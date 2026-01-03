@@ -38,6 +38,7 @@ function ProfileContent() {
 
     // Local state only for UI-specific functionality
     const [regenerating, setRegenerating] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [customNotes, setCustomNotes] = useState("");
 
     // Load custom notes
