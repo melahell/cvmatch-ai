@@ -10,8 +10,37 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 type Mode = "url" | "text" | "file";
+
+// Validation utilities - Phase 0 Items 2 & 3
+const ALLOWED_FILE_TYPES = ['.pdf', '.doc', '.docx', '.txt'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+const validateJobFile = (file: File): string | null => {
+    const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+
+    if (!ALLOWED_FILE_TYPES.includes(ext)) {
+        return `Format non supporté. Utilisez : ${ALLOWED_FILE_TYPES.join(', ')}`;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+        return `Fichier trop volumineux (maximum 5MB)`;
+    }
+
+    return null;
+};
+
+const validateUrl = (urlString: string): boolean => {
+    if (!urlString) return false;
+    try {
+        const url = new URL(urlString);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
+};
 
 export default function AnalyzePage() {
     const router = useRouter();
@@ -25,10 +54,17 @@ export default function AnalyzePage() {
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
-        if (f) {
-            setFile(f);
-            // For PDFs and images, extract text via API
+        if (!f) return;
+
+        // Phase 0 Item 2: File validation
+        const validationError = validateJobFile(f);
+        if (validationError) {
+            toast.error(validationError);
+            e.target.value = ''; // Reset input
+            return;
         }
+
+        setFile(f);
     };
 
     const handleAnalyze = async () => {
@@ -83,7 +119,24 @@ export default function AnalyzePage() {
             const data = await res.json();
 
             if (!res.ok) {
-                alert(`⚠️ ${data.error}`);
+                // Phase 0 Item 4: Improved error handling
+                if (res.status === 401) {
+                    toast.error('Session expirée. Reconnectez-vous.');
+                    router.push('/login');
+                    return;
+                }
+
+                if (res.status === 413) {
+                    toast.error('Fichier trop volumineux');
+                    return;
+                }
+
+                if (res.status === 429) {
+                    toast.error('Trop de requêtes. Réessayez dans 1 minute.');
+                    return;
+                }
+
+                toast.error(data.error || 'Erreur lors de l\'analyse');
                 return;
             }
 
@@ -91,7 +144,12 @@ export default function AnalyzePage() {
 
         } catch (error: any) {
             console.error("Analyze error:", error);
-            alert("❌ Erreur de connexion. Réessayez.");
+            // Phase 0 Item 4: Network error handling
+            if (error instanceof TypeError) {
+                toast.error('Erreur de connexion. Vérifiez votre internet.');
+            } else {
+                toast.error('Erreur inattendue. Réessayez.');
+            }
         } finally {
             setLoading(false);
         }
@@ -143,9 +201,16 @@ export default function AnalyzePage() {
                                 <Label htmlFor="url">URL de l'offre</Label>
                                 <Input
                                     id="url"
-                                    placeholder="https://linkedin.com/jobs/..."
+                                    type="url"
+                                    placeholder="https://example.com/job-posting"
                                     value={url}
                                     onChange={(e) => setUrl(e.target.value)}
+                                    disabled={loading}
+                                    onBlur={() => {
+                                        if (url && !validateUrl(url)) {
+                                            toast.error('URL invalide (doit commencer par http:// ou https://)');
+                                        }
+                                    }}
                                 />
                                 <p className="text-xs text-amber-600">
                                     ⚠️ Certains sites bloquent la lecture. Si erreur, utilisez Texte ou Fichier.
@@ -158,10 +223,12 @@ export default function AnalyzePage() {
                                 <Label htmlFor="text">Texte de l'offre</Label>
                                 <Textarea
                                     id="text"
-                                    placeholder="Copiez-collez ici la description complète du poste..."
-                                    className="min-h-[250px]"
+                                    rows={8}
+                                    className="min-h-[200px]"
+                                    placeholder="Collez-collez ici la description complète du poste..."
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
+                                    disabled={loading}
                                 />
                                 <p className="text-xs text-slate-400">
                                     💡 Méthode la plus fiable
