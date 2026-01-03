@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Loader2, Upload, Link2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -47,12 +47,80 @@ export default function AnalyzePage() {
     const { userId } = useAuth();
     const [loading, setLoading] = useState(false);
     const [mode, setMode] = useState<Mode>("text");
+
+    // Phase 1 Item 6: Separate state per mode for memory
+    const [urlValue, setUrlValue] = useState("");
+    const [textValue, setTextValue] = useState("");
+    const [fileValue, setFileValue] = useState<File | null>(null);
+
+    // Active values
     const [url, setUrl] = useState("");
     const [text, setText] = useState("");
     const [file, setFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Phase 1 Item 10: File preview
+    const [filePreview, setFilePreview] = useState<string>('');
+
+    // Phase 1 Item 6: Tab memory - save when switching
+    const handleModeChange = (newMode: Mode) => {
+        // Save current
+        if (mode === 'url') setUrlValue(url);
+        if (mode === 'text') setTextValue(text);
+        if (mode === 'file') setFileValue(file);
+
+        // Load new
+        setMode(newMode);
+        if (newMode === 'url') setUrl(urlValue);
+        if (newMode === 'text') setText(textValue);
+        if (newMode === 'file') {
+            setFile(fileValue);
+            if (fileValue) generatePreview(fileValue);
+        }
+    };
+
+    // Phase 1 Item 7: Auto-detect clipboard
+    useEffect(() => {
+        if (mode === 'url') {
+            navigator.clipboard.readText().then(clipText => {
+                if (validateUrl(clipText) && !url) {
+                    toast.info('URL détectée dans le presse-papier', {
+                        duration: 5000,
+                        action: {
+                            label: 'Coller',
+                            onClick: () => setUrl(clipText)
+                        }
+                    });
+                }
+            }).catch(() => {/* Permission denied */ });
+        }
+    }, [mode]);
+
+    // Phase 1 Item 9: Keyboard shortcut
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (canAnalyze && !loading) {
+                    handleAnalyze();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [loading, mode, url, text, file]);
+
+    // Phase 1 Item 10: Generate file preview
+    const generatePreview = async (f: File) => {
+        if (f.type === 'text/plain') {
+            const content = await f.text();
+            setFilePreview(content.substring(0, 500) + (content.length > 500 ? '...' : ''));
+        } else {
+            setFilePreview(`📄 ${f.name} (${(f.size / 1024).toFixed(1)} KB)`);
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
         if (!f) return;
 
@@ -65,6 +133,16 @@ export default function AnalyzePage() {
         }
 
         setFile(f);
+        await generatePreview(f);
+    };
+
+    // Phase 1 Item 8: Clean pasted text
+    const cleanText = (text: string): string => {
+        return text
+            .replace(/\r\n/g, '\n') // Normalize line breaks
+            .replace(/\n{3,}/g, '\n\n') // Max 2 line breaks
+            .replace(/[ \t]+/g, ' ') // Multiple spaces → 1
+            .trim();
     };
 
     const handleAnalyze = async () => {
@@ -155,6 +233,15 @@ export default function AnalyzePage() {
         }
     };
 
+    // Phase 1 Item 3: Can analyze logic
+    const canAnalyze = useMemo(() => {
+        if (loading) return false;
+        if (mode === 'text') return text.length >= 50;
+        if (mode === 'url') return url && validateUrl(url);
+        if (mode === 'file') return !!file;
+        return false;
+    }, [mode, text, url, file, loading]);
+
     const isReady = (mode === "url" && url) || (mode === "text" && text) || (mode === "file" && file);
 
     return (
@@ -163,31 +250,43 @@ export default function AnalyzePage() {
                 <div className="mb-8 text-center">
                     <h1 className="text-3xl font-bold mb-2">Nouvelle Analyse 🎯</h1>
                     <p className="text-slate-500">
-                        Compare ton profil avec une offre d'emploi
+                        {/* Phase 1 Item 5: Simplified message */}
+                        Compare ton profil avec cette offre d'emploi
+                    </p>
+                </div>
+
+                {/* Phase 1 Item 4: Recommended method badge */}
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                        💡 <strong>Méthode recommandée</strong> : Copier-coller le texte de l'offre pour les meilleurs résultats
                     </p>
                 </div>
 
                 <Card>
                     <CardHeader>
-                        {/* Mode Selector */}
+                        {/* Phase 1 Item 1: Mode Selector with icons + disabled state */}
                         <div className="flex justify-center bg-slate-100 p-1 rounded-lg">
                             <button
-                                onClick={() => setMode("url")}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                onClick={() => handleModeChange("url")}
+                                disabled={loading}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
                                 <Link2 className="w-4 h-4" /> URL
                             </button>
                             <button
-                                onClick={() => setMode("text")}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                onClick={() => handleModeChange("text")}
+                                disabled={loading}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
                                 <FileText className="w-4 h-4" /> Texte
+                                <span className="ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">Recommandé</span>
                             </button>
                             <button
-                                onClick={() => setMode("file")}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                onClick={() => handleModeChange("file")}
+                                disabled={loading}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
                                 <Upload className="w-4 h-4" /> Fichier
@@ -221,18 +320,34 @@ export default function AnalyzePage() {
                         {mode === "text" && (
                             <div className="space-y-2">
                                 <Label htmlFor="text">Texte de l'offre</Label>
+                                {/* Phase 1 Item 2: Enlarged textarea with resize */}
                                 <Textarea
                                     id="text"
-                                    rows={8}
-                                    className="min-h-[200px]"
-                                    placeholder="Collez-collez ici la description complète du poste..."
+                                    rows={15}
+                                    className="min-h-[300px] resize-y"
+                                    placeholder="Collez ici la description complète du poste..."
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
                                     disabled={loading}
                                 />
-                                <p className="text-xs text-slate-400">
-                                    💡 Méthode la plus fiable
-                                </p>
+                                {/* Character count + cleanup button */}
+                                <div className="flex justify-between items-center">
+                                    <p className="text-xs text-slate-400">
+                                        {text.length} caractères {text.length >= 50 ? '✓' : '(minimum 50)'}
+                                    </p>
+                                    {/* Phase 1 Item 8: Cleanup button */}
+                                    {text && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setText(cleanText(text))}
+                                            disabled={loading}
+                                        >
+                                            ✨ Nettoyer le texte
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -259,11 +374,21 @@ export default function AnalyzePage() {
                                     <input
                                         ref={fileInputRef}
                                         type="file"
-                                        accept=".pdf,image/*"
+                                        accept=".pdf,.doc,.docx,.txt"
                                         className="hidden"
                                         onChange={handleFileChange}
+                                        disabled={loading}
                                     />
                                 </div>
+                                {/* Phase 1 Item 10: File preview */}
+                                {file && filePreview && (
+                                    <div className="mt-4 p-4 bg-slate-50 rounded border">
+                                        <p className="text-sm font-medium mb-2">Aperçu :</p>
+                                        <pre className="text-xs text-slate-600 whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                            {filePreview}
+                                        </pre>
+                                    </div>
+                                )}
                             </div>
                         )}
 
