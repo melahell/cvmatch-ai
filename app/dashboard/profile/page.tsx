@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useRAGData } from "@/hooks/useRAGData";
 import { useDocuments } from "@/hooks/useDocuments";
+import { useProfileForm } from "@/hooks/useProfileForm";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,40 +23,38 @@ function ProfileContent() {
     const activeTab = searchParams.get("tab") || "vue";
     const { userId, isLoading: authLoading } = useAuth();
 
-    // Use centralized hooks
-    const { data: ragData, loading: ragLoading, error: ragError, refetch: refetchRAG } = useRAGData(userId);
+    // ROUGE #1: Single source of truth with useProfileForm hook
+    const {
+        data: ragData,
+        loading: ragLoading,
+        saving,
+        errors,
+        updateField,
+        saveProfile,
+        refetch
+    } = useProfileForm(userId);
+
     const { data: documents, loading: docsLoading, deleteDocument, refetch: refetchDocs } = useDocuments(userId);
 
-    // Local state for tab-specific functions
-    const [saving, setSaving] = useState(false);
+    // Local state only for UI-specific functionality
     const [regenerating, setRegenerating] = useState(false);
-    const [uploading, setUploading] = useState(false);
     const [customNotes, setCustomNotes] = useState("");
-    const [localRAGData, setLocalRAGData] = useState(ragData);
 
-    // Sync ragData to local state when it changes
+    // Load custom notes
     useEffect(() => {
-        if (ragData) {
-            setLocalRAGData(addDefaultWeights(ragData));
-            // Load custom notes from DB if available
-            if (userId) {
-                loadCustomNotes(userId);
-            }
+        if (ragData && userId) {
+            const loadNotes = async () => {
+                const supabase = createSupabaseClient();
+                const { data } = await supabase
+                    .from("rag_metadata")
+                    .select("custom_notes")
+                    .eq("user_id", userId)
+                    .single();
+                if (data?.custom_notes) setCustomNotes(data.custom_notes);
+            };
+            loadNotes();
         }
     }, [ragData, userId]);
-
-    const loadCustomNotes = async (uid: string) => {
-        const supabase = createSupabaseClient();
-        const { data } = await supabase
-            .from("rag_metadata")
-            .select("custom_notes")
-            .eq("user_id", uid)
-            .single();
-
-        if (data?.custom_notes) {
-            setCustomNotes(data.custom_notes);
-        }
-    };
 
     const addDefaultWeights = (data: any) => {
         if (!data) return data;
