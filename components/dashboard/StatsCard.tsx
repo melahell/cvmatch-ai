@@ -27,14 +27,14 @@ export function StatsCard({
     };
 
     const content = (
-        <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
+        <CardContent className="flex flex-col items-center justify-center p-3 sm:p-4 md:p-6 text-center h-full">
             {children || (
                 <>
-                    {Icon && <Icon className="w-6 h-6 mb-2 text-slate-400" />}
-                    <div className={`text-4xl font-bold mb-1 ${colorClasses[color]}`}>
+                    {Icon && <Icon className="w-5 h-5 sm:w-6 sm:h-6 mb-1 sm:mb-2 text-slate-400" />}
+                    <div className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-0.5 sm:mb-1 ${colorClasses[color]}`}>
                         {value}
                     </div>
-                    <div className="text-sm font-medium text-slate-500">{label}</div>
+                    <div className="text-xs sm:text-sm font-medium text-slate-500 leading-tight">{label}</div>
                 </>
             )}
         </CardContent>
