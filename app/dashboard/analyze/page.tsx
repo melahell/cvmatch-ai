@@ -293,18 +293,18 @@ export default function AnalyzePage() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto max-w-2xl py-6 sm:py-8 md:py-10 px-3 sm:px-4">
-                <div className="mb-6 sm:mb-8 text-center">
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">Nouvelle Analyse 🎯</h1>
-                    <p className="text-sm sm:text-base text-slate-500">
+            <div className="container mx-auto max-w-2xl py-4 sm:py-6 md:py-8 px-3 sm:px-4 pb-20 sm:pb-6">
+                <div className="mb-4 sm:mb-6 text-center">
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">Nouvelle Analyse 🎯</h1>
+                    <p className="text-xs sm:text-sm text-slate-500">
                         {/* Phase 1 Item 5: Simplified message */}
                         Compare ton profil avec cette offre d'emploi
                     </p>
                 </div>
 
                 {/* Phase 1 Item 4: Recommended method badge */}
-                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs sm:text-sm text-blue-700">
+                <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-700">
                         💡 <strong>Méthode recommandée</strong> : Copier-coller le texte de l'offre pour les meilleurs résultats
                     </p>
                 </div>
@@ -339,7 +339,7 @@ export default function AnalyzePage() {
                             <button
                                 onClick={() => handleModeChange("url")}
                                 disabled={loading}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px] ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
                                 <Link2 className="w-4 h-4" /> URL
@@ -347,7 +347,7 @@ export default function AnalyzePage() {
                             <button
                                 onClick={() => handleModeChange("text")}
                                 disabled={loading}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px] ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
                                 <FileText className="w-4 h-4" /> Texte
@@ -356,7 +356,7 @@ export default function AnalyzePage() {
                             <button
                                 onClick={() => handleModeChange("file")}
                                 disabled={loading}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-50 ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px] ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
                                 <Upload className="w-4 h-4" /> Fichier
@@ -394,7 +394,7 @@ export default function AnalyzePage() {
                                 <Textarea
                                     id="text"
                                     rows={15}
-                                    className="min-h-[300px] resize-y"
+                                    className="min-h-[350px] sm:min-h-[400px] resize-y text-sm"
                                     placeholder="Collez ici la description complète du poste..."
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
@@ -465,7 +465,7 @@ export default function AnalyzePage() {
                         <Button
                             onClick={handleAnalyze}
                             disabled={!canAnalyze}
-                            className="w-full"
+                            className="w-full sm:w-auto sm:px-8"
                             size="lg"
                         >
                             {loading ? (
@@ -490,8 +490,8 @@ export default function AnalyzePage() {
 
                 {/* Phase 2 Item 1: Historique des analyses */}
                 {userId && (
-                    <div className="mt-12">
-                        <h2 className="text-2xl font-bold mb-6">Historique des analyses</h2>
+                    <div className="mt-8 sm:mt-12">
+                        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Historique des analyses</h2>
                         <AnalysisHistory userId={userId} />
                     </div>
                 )}
