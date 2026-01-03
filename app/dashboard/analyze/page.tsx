@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { AnalysisHistory } from "@/components/analyze/AnalysisHistory";
 
 type Mode = "url" | "text" | "file";
 
@@ -41,6 +42,52 @@ const validateUrl = (urlString: string): boolean => {
         return false;
     }
 };
+
+// Phase 2 Item 3: Templates d'offres
+const SAMPLE_JOBS = [
+    {
+        title: "Développeur Full-Stack React/Node",
+        text: `Nous recherchons un développeur Full-Stack passionné pour rejoindre notre équipe.
+
+Technologies requises :
+- React, TypeScript
+- Node.js, Express
+- PostgreSQL, MongoDB
+- Git, Docker
+
+Expérience : 3-5 ans
+Localisation : Paris (hybride 2j/semaine)
+Salaire : 45-60K€`
+    },
+    {
+        title: "Product Designer UI/UX",
+        text: `Designer UI/UX expérimenté recherché pour créer des expériences utilisateur exceptionnelles.
+
+Compétences :
+- Figma, Sketch
+- Design systems
+- User research
+- Prototypage
+
+Expérience : 2-4 ans
+Localisation : Remote
+Salaire : 40-55K€`
+    },
+    {
+        title: "Data Scientist Python",
+        text: `Data Scientist pour analyser et modéliser nos données.
+
+Stack :
+- Python (Pandas, NumPy)
+- Machine Learning (scikit-learn)
+- SQL
+- Jupyter
+
+Expérience : 2-5 ans
+Localisation : Lyon
+Salaire : 42-58K€`
+    }
+];
 
 export default function AnalyzePage() {
     const router = useRouter();
@@ -262,6 +309,28 @@ export default function AnalyzePage() {
                     </p>
                 </div>
 
+
+                {/* Phase 2 Item 3: Templates */}
+                <div className="mb-4">
+                    <p className="text-sm text-slate-600 mb-2">Ou essayez avec un exemple :</p>
+                    <div className="flex gap-2 flex-wrap">
+                        {SAMPLE_JOBS.map(job => (
+                            <Button
+                                key={job.title}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setMode('text');
+                                    setText(job.text);
+                                }}
+                                disabled={loading}
+                            >
+                                {job.title}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
+
                 <Card>
                     <CardHeader>
                         {/* Phase 1 Item 1: Mode Selector with icons + disabled state */}
@@ -393,23 +462,38 @@ export default function AnalyzePage() {
                         )}
 
                         <Button
-                            className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700"
                             onClick={handleAnalyze}
-                            disabled={loading || !isReady}
+                            disabled={!canAnalyze}
+                            className="w-full"
+                            size="lg"
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Analyse en cours...
+                                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                    Analyse en cours...
                                 </>
                             ) : (
                                 <>
-                                    <Sparkles className="w-5 h-5 mr-2" /> Analyser le Match
+                                    <Sparkles className="w-5 h-5 mr-2" />
+                                    Analyser le Match
                                 </>
                             )}
                         </Button>
+                        {/* Phase 1 Item 9: Keyboard shortcut hint */}
+                        <p className="text-xs text-center text-slate-400 mt-2">
+                            Raccourci : Ctrl+Enter (ou Cmd+Enter sur Mac)
+                        </p>
 
                     </CardContent>
                 </Card>
+
+                {/* Phase 2 Item 1: Historique des analyses */}
+                {userId && (
+                    <div className="mt-12">
+                        <h2 className="text-2xl font-bold mb-6">Historique des analyses</h2>
+                        <AnalysisHistory userId={userId} />
+                    </div>
+                )}
 
                 <div className="mt-6 text-center text-sm text-slate-400">
                     L'IA compare ton profil RAG avec les critères de cette offre.
