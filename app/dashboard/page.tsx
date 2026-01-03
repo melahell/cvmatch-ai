@@ -218,7 +218,7 @@ export default function DashboardPage() {
                                 <CardContent>
                                     {uploadedDocs.length > 0 ? (
                                         <div className="space-y-1">
-                                            {uploadedDocs.slice(0, 3).map((doc) => (
+                                            {uploadedDocs.slice(0, 6).map((doc) => (
                                                 <div key={doc.id} className="flex items-center justify-between text-sm py-1">
                                                     <div className="flex items-center gap-2 truncate">
                                                         {/* Wave 2 Item 9: File type icons */}
@@ -236,8 +236,8 @@ export default function DashboardPage() {
                                                     </span>
                                                 </div>
                                             ))}
-                                            {uploadedDocs.length > 3 && (
-                                                <div className="text-xs text-blue-600">+{uploadedDocs.length - 3} autres...</div>
+                                            {uploadedDocs.length > 6 && (
+                                                <div className="text-xs text-blue-600">+{uploadedDocs.length - 6} autres...</div>
                                             )}
                                         </div>
                                     ) : (
@@ -253,19 +253,14 @@ export default function DashboardPage() {
                                 <CardTitle className="text-sm">Compétences clés</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex flex-wrap gap-1">
-                                    {(ragData?.competences?.techniques?.slice(0, 8) || []).length > 0 ? (
-                                        (ragData?.competences?.techniques?.slice(0, 8) || []).map((skill: any, i: number) => (
-                                            <Badge key={i} variant="secondary" className="text-xs">
-                                                {typeof skill === "string" ? skill : skill.nom}
-                                            </Badge>
-                                        ))
-                                    ) : (
-                                        <span className="text-sm text-slate-400">Aucune</span>
-                                    )}
-                                </div>
-                                {(ragData?.competences?.techniques?.length || 0) > 8 && (
-                                    <p className="text-xs text-blue-600 mt-2">+{(ragData?.competences?.techniques?.length || 0) - 8} autres</p>
+                                {(ragData?.competences?.techniques?.length || 0) > 0 ? (
+                                    <BadgeList
+                                        items={ragData?.competences?.techniques || []}
+                                        maxItems={8}
+                                        variant="secondary"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-slate-400">Aucune</span>
                                 )}
                             </CardContent>
                         </Card>
