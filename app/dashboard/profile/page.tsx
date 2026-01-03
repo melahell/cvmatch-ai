@@ -122,9 +122,6 @@ function ProfileContent() {
         } catch (e) {
             logger.error("Error saving profile:", e);
             alert("❌ Erreur lors de la sauvegarde");
-        } catch (e) {
-            logger.error("Error saving profile:", e);
-            alert("❌ Erreur lors de la sauvegarde");
         }
     };
 
