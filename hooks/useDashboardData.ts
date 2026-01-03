@@ -15,6 +15,7 @@ interface UploadedDoc {
     filename: string;
     created_at: string;
     file_type: string;
+    storage_path: string;
 }
 
 export function useDashboardData(userId: string | null) {
