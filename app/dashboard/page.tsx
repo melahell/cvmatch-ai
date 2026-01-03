@@ -42,18 +42,18 @@ export default function DashboardPage() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto py-8 px-4">
+            <div className="container mx-auto py-4 sm:py-6 md:py-8 px-3 sm:px-4">
 
                 {/* WELCOME HEADER - Wave 2: Personalized message */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profil?.prenom || authUserName} 👋</h1>
-                        <p className="text-slate-500 text-sm md:text-base">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profil?.prenom || authUserName} 👋</h1>
+                        <p className="text-slate-500 text-xs sm:text-sm md:text-base mt-1">
                             {getWelcomeMessage(ragData?.score || 0)}
                         </p>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                        <Link href="/dashboard/tracking" className="hidden md:block">
+                    <div className="flex gap-2 flex-wrap w-full md:w-auto">
+                        <Link href="/dashboard/tracking" className="hidden sm:block">
                             <Button variant="outline" size="sm">
                                 <FileText className="w-4 h-4 mr-2" /> Mes CVs
                             </Button>
@@ -63,85 +63,77 @@ export default function DashboardPage() {
                                 <Briefcase className="w-4 h-4 mr-2" /> Suivi
                             </Button>
                         </Link>
-                        <Link href="/dashboard/analyze">
-                            <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
+                        <Link href="/dashboard/analyze" className="flex-1 sm:flex-initial">
+                            <Button className="bg-blue-600 hover:bg-blue-700 w-full" size="sm">
                                 <Briefcase className="w-4 h-4 mr-2" /> Nouvelle Analyse
                             </Button>
                         </Link>
                     </div>
                 </div>
 
-                {/* STATS ROW - P0: Mobile horizontal scroll */}
-                <div className="flex md:grid md:grid-cols-4 gap-4 mb-8 overflow-x-auto snap-x snap-mandatory md:overflow-visible pb-2">
-                    <div className="snap-center min-w-[280px] md:min-w-0">
-                        <StatsCard
-                            value={stats.analyses}
-                            label="Offres Analysées"
-                            color="blue"
-                            href="/dashboard/analyze"
-                        />
-                    </div>
-                    <div className="snap-center min-w-[280px] md:min-w-0">
-                        <StatsCard
-                            value={stats.cvs}
-                            label="CVs Générés"
-                            color="purple"
-                            href="/dashboard/tracking"
-                        />
-                    </div>
-                    <div className="snap-center min-w-[280px] md:min-w-0">
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div>
-                                        <StatsCard href="/dashboard/profile">
-                                            <CircularProgress
-                                                value={ragData?.score || 0}
-                                                max={100}
-                                                size={80}
-                                                label="/ 100"
-                                            />
-                                            <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
-                                        </StatsCard>
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p className="text-sm">{getScoreDescription(ragData?.score || 0)}</p>
-                                    <p className="text-xs text-slate-400 mt-1">Basé sur: complétude profil, compétences, documents</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
-                    <div className="snap-center min-w-[280px] md:min-w-0">
-                        <ClickableCard href="/dashboard/profile" className="bg-slate-900 text-white hover:bg-slate-800 transition-colors h-full">
-                            <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <Upload className="w-5 h-5" />
-                                    <span className="font-bold">Gérer mon profil</span>
+                {/* STATS ROW - Optimized responsive grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+                    <StatsCard
+                        value={stats.analyses}
+                        label="Offres Analysées"
+                        color="blue"
+                        href="/dashboard/analyze"
+                    />
+                    <StatsCard
+                        value={stats.cvs}
+                        label="CVs Générés"
+                        color="purple"
+                        href="/dashboard/tracking"
+                    />
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div>
+                                    <StatsCard href="/dashboard/profile">
+                                        <CircularProgress
+                                            value={ragData?.score || 0}
+                                            max={100}
+                                            size={80}
+                                            label="/ 100"
+                                        />
+                                        <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
+                                    </StatsCard>
                                 </div>
-                                <div className="text-xs text-slate-300 text-center">Voir, éditer ou ajouter des documents</div>
-                            </CardContent>
-                        </ClickableCard>
-                    </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p className="text-sm">{getScoreDescription(ragData?.score || 0)}</p>
+                                <p className="text-xs text-slate-400 mt-1">Basé sur: complétude profil, compétences, documents</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                    <ClickableCard href="/dashboard/profile" className="bg-slate-900 text-white hover:bg-slate-800 transition-colors h-full">
+                        <CardContent className="flex flex-col items-center justify-center p-4 sm:p-6 text-center h-full">
+                            <div className="flex items-center gap-2 mb-1 sm:mb-2">
+                                <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span className="text-sm sm:text-base font-bold">Gérer mon profil</span>
+                            </div>
+                            <div className="text-xs text-slate-300 text-center">Voir, éditer ou ajouter des documents</div>
+                        </CardContent>
+                    </ClickableCard>
                 </div>
 
                 {/* CTA BANNER FOR EMPTY PROFILE - ORANGE #6: With shimmer animation */}
                 {shouldShowOnboardingCTA(ragData?.score || 0, uploadedDocs.length) && (
-                    <Link href="/onboarding" className="block mb-8">
+                    <Link href="/onboarding" className="block mb-6 sm:mb-8">
                         <Card className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
                             {/* Shimmer effect */}
                             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                            <CardContent className="relative flex items-center justify-between p-6">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-white/20 rounded-full">
-                                        <PlusCircle className="w-8 h-8" />
+                            <CardContent className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6">
+                                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
+                                    <div className="p-2 sm:p-3 bg-white/20 rounded-full flex-shrink-0">
+                                        <PlusCircle className="w-6 h-6 sm:w-8 sm:h-8" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold">Créez votre profil RAG</h3>
-                                        <p className="text-blue-100">Uploadez votre CV pour débloquer l'analyse IA et les recommandations personnalisées</p>
+                                        <h3 className="text-lg sm:text-xl font-bold">Créez votre profil RAG</h3>
+                                        <p className="text-sm sm:text-base text-blue-100 mt-1">Uploadez votre CV pour débloquer l'analyse IA et les recommandations personnalisées</p>
                                     </div>
                                 </div>
-                                <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50">
+                                <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50 w-full sm:w-auto flex-shrink-0">
                                     Commencer <Upload className="w-4 h-4 ml-2" />
                                 </Button>
                             </CardContent>
@@ -222,8 +214,8 @@ export default function DashboardPage() {
                                     {uploadedDocs.length > 0 ? (
                                         <div className="space-y-1">
                                             {uploadedDocs.slice(0, 6).map((doc) => (
-                                                <div key={doc.id} className="flex items-center justify-between text-sm py-1 group">
-                                                    <div className="flex items-center gap-2 truncate">
+                                                <div key={doc.id} className="flex items-center justify-between text-sm py-1.5 sm:py-1 group">
+                                                    <div className="flex items-center gap-2 truncate flex-1 min-w-0">
                                                         {doc.file_type?.includes('pdf') ? (
                                                             <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
                                                         ) : doc.file_type?.includes('doc') ? (
@@ -231,20 +223,22 @@ export default function DashboardPage() {
                                                         ) : (
                                                             <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
                                                         )}
-                                                        <span className="truncate text-slate-600">{doc.filename}</span>
+                                                        <span className="truncate text-slate-600 text-xs sm:text-sm">{doc.filename}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <span className="text-xs text-slate-400 mr-2">
+                                                    <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                                                        <span className="text-xs text-slate-400 mr-1 hidden sm:inline">
                                                             {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                                                         </span>
-                                                        <button onClick={async () => {
+                                                        <button onClick={async (e) => {
+                                                            e.preventDefault();
                                                             const supabase = createSupabaseClient();
                                                             const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
                                                             if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-                                                        }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded">
-                                                            <Eye className="w-3 h-3" />
+                                                        }} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 sm:p-1 hover:bg-slate-100 rounded transition-opacity" title="Voir">
+                                                            <Eye className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                         </button>
-                                                        <button onClick={async () => {
+                                                        <button onClick={async (e) => {
+                                                            e.preventDefault();
                                                             const supabase = createSupabaseClient();
                                                             const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
                                                             if (data?.signedUrl) {
@@ -253,8 +247,8 @@ export default function DashboardPage() {
                                                                 a.download = doc.filename;
                                                                 a.click();
                                                             }
-                                                        }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded">
-                                                            <Download className="w-3 h-3" />
+                                                        }} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 sm:p-1 hover:bg-slate-100 rounded transition-opacity" title="Télécharger">
+                                                            <Download className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                         </button>
                                                     </div>
                                                 </div>

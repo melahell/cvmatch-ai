@@ -59,6 +59,24 @@ const config: Config = {
     			lg: 'var(--radius)',
     			md: 'calc(var(--radius) - 2px)',
     			sm: 'calc(var(--radius) - 4px)'
+    		},
+    		spacing: {
+    			'safe': 'env(safe-area-inset-bottom)',
+    			'safe-top': 'env(safe-area-inset-top)',
+    			'safe-left': 'env(safe-area-inset-left)',
+    			'safe-right': 'env(safe-area-inset-right)'
+    		},
+    		padding: {
+    			'safe': 'env(safe-area-inset-bottom)',
+    			'safe-top': 'env(safe-area-inset-top)',
+    			'safe-left': 'env(safe-area-inset-left)',
+    			'safe-right': 'env(safe-area-inset-right)'
+    		},
+    		keyframes: {
+    			shimmer: {
+    				'0%': { transform: 'translateX(-100%)' },
+    				'100%': { transform: 'translateX(100%)' }
+    			}
     		}
     	}
     },

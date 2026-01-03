@@ -127,20 +127,25 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 </div>
             </header>
 
-            {/* Mobile Nav */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-lg">
-                <div className="flex justify-around py-2 safe-area-inset-bottom">
+            {/* Mobile Nav - Enhanced with safe areas and better touch targets */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-lg pb-safe">
+                <div className="flex justify-around px-2 pt-2 pb-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href ||
                             (item.href !== "/dashboard" && pathname?.startsWith(item.href));
                         return (
-                            <Link key={item.href} href={item.href}>
-                                <div className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${isActive
-                                    ? "text-blue-600 bg-blue-50"
-                                    : "text-slate-500 hover:text-slate-700"
+                            <Link key={item.href} href={item.href} className="flex-1 max-w-[100px]">
+                                <div className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl transition-all ${isActive
+                                    ? "text-blue-600 bg-blue-50 scale-105"
+                                    : "text-slate-500 hover:text-slate-700 active:scale-95"
                                     }`}>
-                                    <item.icon className="w-5 h-5" />
-                                    <span className="text-xs font-medium">{item.label}</span>
+                                    <div className={`relative ${isActive ? 'animate-[pulse_2s_ease-in-out]' : ''}`}>
+                                        <item.icon className="w-5 h-5" />
+                                        {isActive && (
+                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full"></div>
+                                        )}
+                                    </div>
+                                    <span className="text-[10px] font-medium leading-tight">{item.label}</span>
                                 </div>
                             </Link>
                         );
@@ -148,8 +153,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 </div>
             </nav>
 
-            {/* Main Content */}
-            <main className="pb-24 md:pb-8">
+            {/* Main Content - Safe area padding */}
+            <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
                 {children}
             </main>
         </div>

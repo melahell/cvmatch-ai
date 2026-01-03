@@ -293,18 +293,18 @@ export default function AnalyzePage() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto max-w-2xl py-10 px-4">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold mb-2">Nouvelle Analyse 🎯</h1>
-                    <p className="text-slate-500">
+            <div className="container mx-auto max-w-2xl py-6 sm:py-8 md:py-10 px-3 sm:px-4">
+                <div className="mb-6 sm:mb-8 text-center">
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">Nouvelle Analyse 🎯</h1>
+                    <p className="text-sm sm:text-base text-slate-500">
                         {/* Phase 1 Item 5: Simplified message */}
                         Compare ton profil avec cette offre d'emploi
                     </p>
                 </div>
 
                 {/* Phase 1 Item 4: Recommended method badge */}
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-700">
+                <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs sm:text-sm text-blue-700">
                         💡 <strong>Méthode recommandée</strong> : Copier-coller le texte de l'offre pour les meilleurs résultats
                     </p>
                 </div>
@@ -312,13 +312,14 @@ export default function AnalyzePage() {
 
                 {/* Phase 2 Item 3: Templates */}
                 <div className="mb-4">
-                    <p className="text-sm text-slate-600 mb-2">Ou essayez avec un exemple :</p>
+                    <p className="text-xs sm:text-sm text-slate-600 mb-2">Ou essayez avec un exemple :</p>
                     <div className="flex gap-2 flex-wrap">
                         {SAMPLE_JOBS.map(job => (
                             <Button
                                 key={job.title}
                                 variant="outline"
                                 size="sm"
+                                className="text-xs sm:text-sm"
                                 onClick={() => {
                                     setMode('text');
                                     setText(job.text);
