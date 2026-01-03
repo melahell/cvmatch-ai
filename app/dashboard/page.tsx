@@ -1,83 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createSupabaseClient } from "@/lib/supabase";
-import { Briefcase, FileText, Upload, Camera, PlusCircle, TrendingUp, ExternalLink, Target } from "lucide-react";
+import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { ErrorDisplay } from "@/components/ui/ErrorDisplay";
 import { useAuth } from "@/hooks/useAuth";
 import { useRAGData } from "@/hooks/useRAGData";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { StatsCard } from "@/components/dashboard/StatsCard";
+import { PhotoUpload } from "@/components/profile/PhotoUpload";
 import Link from "next/link";
-import { logger } from "@/lib/utils/logger";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
     const { userId, userName: authUserName, isLoading: authLoading } = useAuth();
 
-    // Use centralized RAG data hook
+    // Use centralized hooks - Wave 1 improvements
     const { data: ragData, loading: ragLoading, error: ragError, refetch: refetchRAG } = useRAGData(userId);
-
-    const [stats, setStats] = useState({ analyses: 0, cvs: 0, applied: 0 });
-    const [uploadedDocs, setUploadedDocs] = useState<any[]>([]);
-    const [statsLoading, setStatsLoading] = useState(true);
-
-    // Fetch stats and documents separately (not covered by useRAGData)
-    useEffect(() => {
-        if (authLoading || !userId) return;
-
-        const supabase = createSupabaseClient();
-        async function fetchStatsAndDocs() {
-            try {
-
-                // Fetch Stats
-                const { count: appliedCount } = await supabase
-                    .from("job_analyses")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId)
-                    .neq("application_status", "pending");
-
-                const { count: analysesCount } = await supabase
-                    .from("job_analyses")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId);
-
-                const { count: cvCount } = await supabase
-                    .from("cv_generations")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId);
-
-                setStats({
-                    analyses: analysesCount || 0,
-                    cvs: cvCount || 0,
-                    applied: appliedCount || 0
-                });
-
-                // Fetch Uploaded Documents
-                const { data: docs } = await supabase
-                    .from("uploaded_documents")
-                    .select("id, filename, created_at, file_type")
-                    .eq("user_id", userId)
-                    .order("created_at", { ascending: false })
-                    .limit(5);
-
-                if (docs) {
-                    setUploadedDocs(docs || []);
-                }
-            } catch (error) {
-                logger.error('Error fetching stats and documents:', error);
-            } finally {
-                setStatsLoading(false);
-            }
-        }
-        fetchStatsAndDocs();
-    }, [authLoading, userId]);
+    const { stats, uploadedDocs, loading: dashboardLoading } = useDashboardData(userId);
 
     // Combined loading state
-    const loading = ragLoading || statsLoading || authLoading;
+    const loading = ragLoading || dashboardLoading || authLoading;
 
     if (loading) {
         return (
@@ -116,35 +62,28 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* STATS ROW */}
+                {/* STATS ROW - Wave 1: Using StatsCard component */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                    <Card>
-                        <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                            <div className="text-4xl font-bold text-blue-600 mb-1">{stats.analyses}</div>
-                            <div className="text-sm font-medium text-slate-500">Offres Analysées</div>
-                        </CardContent>
-                    </Card>
-                    <Link href="/dashboard/tracking" className="block h-full">
-                        <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
-                            <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
-                                <div className="text-4xl font-bold text-purple-600 mb-1">{stats.cvs}</div>
-                                <div className="text-sm font-medium text-slate-500">CVs Générés</div>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                    <Link href="/dashboard/profile" className="block h-full">
-                        <Card className="cursor-pointer hover:shadow-md transition-shadow h-full">
-                            <CardContent className="flex flex-col items-center justify-center p-4 text-center h-full">
-                                <CircularProgress
-                                    value={ragData?.score || 0}
-                                    max={100}
-                                    size={80}
-                                    label="/ 100"
-                                />
-                                <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
-                            </CardContent>
-                        </Card>
-                    </Link>
+                    <StatsCard
+                        value={stats.analyses}
+                        label="Offres Analysées"
+                        color="blue"
+                    />
+                    <StatsCard
+                        value={stats.cvs}
+                        label="CVs Générés"
+                        color="purple"
+                        href="/dashboard/tracking"
+                    />
+                    <StatsCard href="/dashboard/profile">
+                        <CircularProgress
+                            value={ragData?.score || 0}
+                            max={100}
+                            size={80}
+                            label="/ 100"
+                        />
+                        <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
+                    </StatsCard>
                     <Link href="/dashboard/profile" className="block h-full">
                         <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
                             <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
@@ -212,105 +151,14 @@ export default function DashboardPage() {
                     {/* PROFILE SECTION - 2 columns */}
                     <div className="md:col-span-2 space-y-4">
 
-                        {/* Profile Card with Direct Photo Upload */}
+                        {/* Profile Card - Wave 1: Using PhotoUpload component */}
                         <Card>
                             <CardContent className="p-6">
                                 <div className="flex items-center gap-4 mb-4">
-                                    {/* Avatar with direct upload */}
-                                    <label className="relative group cursor-pointer">
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                                            {ragData?.profil?.photo_url ? (
-                                                <img src={ragData.profil.photo_url} alt="Photo de profil" className="w-full h-full object-cover" />
-                                            ) : (
-                                                <span>{ragData?.profil?.prenom?.[0]}{ragData?.profil?.nom?.[0]}</span>
-                                            )}
-                                        </div>
-                                        <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Camera className="w-5 h-5 text-white" />
-                                        </div>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={async (e) => {
-                                                const file = e.target.files?.[0];
-                                                if (!file || !userId) return;
-
-                                                try {
-                                                    const supabase = createSupabaseClient();
-
-                                                    // Upload to Supabase Storage
-                                                    const fileExt = file.name.split('.').pop();
-                                                    const fileName = `${userId}-${Date.now()}.${fileExt}`;
-                                                    const filePath = `avatars/${fileName}`;
-
-                                                    const { error: uploadError } = await supabase.storage
-                                                        .from('profile-photos')
-                                                        .upload(filePath, file, {
-                                                            cacheControl: '3600',
-                                                            upsert: true
-                                                        });
-
-                                                    if (uploadError) {
-                                                        console.error('Upload error:', uploadError);
-                                                        alert('Erreur lors de l\'upload de la photo');
-                                                        return;
-                                                    }
-
-                                                    // Get SIGNED URL (private, expires in 1 year)
-                                                    // Only accessible by authenticated user
-                                                    const { data: signedData, error: signedError } = await supabase.storage
-                                                        .from('profile-photos')
-                                                        .createSignedUrl(filePath, 31536000); // 1 year in seconds
-
-                                                    if (signedError || !signedData) {
-                                                        console.error('Signed URL error:', signedError);
-                                                        alert('Erreur lors de la génération de l\'URL sécurisée');
-                                                        return;
-                                                    }
-
-                                                    // Update RAG metadata with SIGNED photo URL
-                                                    // CRITICAL: Fetch FULL completeness_details first to avoid data loss
-                                                    const { data: fullRagData } = await supabase
-                                                        .from('rag_metadata')
-                                                        .select('completeness_details')
-                                                        .eq('user_id', userId)
-                                                        .single();
-
-                                                    if (!fullRagData) {
-                                                        alert('Impossible de charger le profil complet');
-                                                        return;
-                                                    }
-
-                                                    // Update ONLY the photo_url, preserve everything else
-                                                    const updatedCompleteDetails = {
-                                                        ...fullRagData.completeness_details,
-                                                        photo_url: signedData.signedUrl
-                                                    };
-
-                                                    const { error: updateError } = await supabase
-                                                        .from('rag_metadata')
-                                                        .update({
-                                                            completeness_details: updatedCompleteDetails
-                                                        })
-                                                        .eq('user_id', userId);
-
-                                                    if (updateError) {
-                                                        console.error('Update error:', updateError);
-                                                        alert('Erreur lors de la mise à jour du profil');
-                                                        return;
-                                                    }
-
-                                                    // Update local state via refetch
-                                                    refetchRAG();
-                                                    alert('Photo de profil mise à jour !');
-                                                } catch (error) {
-                                                    console.error('Photo upload error:', error);
-                                                    alert('Erreur lors de l\'upload de la photo');
-                                                }
-                                            }}
-                                        />
-                                    </label>
+                                    <PhotoUpload
+                                        currentPhoto={ragData?.profil?.photo_url}
+                                        onUploadSuccess={() => refetchRAG()}
+                                    />
                                     <div>
                                         <div className="font-bold text-lg">{ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
                                         <div className="text-sm text-slate-500">{ragData?.profil?.titre_principal}</div>
