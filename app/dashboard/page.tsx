@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target } from "lucide-react";
+import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target, Eye, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ import { ClickableCard } from "@/components/ui/ClickableCard";
 import { BadgeList } from "@/components/ui/BadgeList";
 import { getWelcomeMessage, shouldShowOnboardingCTA, shouldShowCompletionTips, getScoreDescription } from "@/lib/dashboardHelpers";
 import Link from "next/link";
+import { createSupabaseClient } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function DashboardPage() {
@@ -196,7 +197,7 @@ export default function DashboardPage() {
                                 <div className="flex items-center gap-4 mb-4">
                                     <PhotoUpload
                                         currentPhoto={ragData?.profil?.photo_url}
-                                        onUploadSuccess={() => refetchRAG()}
+                                        onUploadSuccess={() => { window.location.reload(); }}
                                     />
                                     <div>
                                         <div className="font-bold text-lg">{ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
