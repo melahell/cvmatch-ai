@@ -37,11 +37,18 @@ export default function DashboardPage() {
         <DashboardLayout>
             <div className="container mx-auto py-8 px-4">
 
-                {/* WELCOME HEADER */}
+                {/* WELCOME HEADER - Wave 2: Personalized message */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profil?.prenom || authUserName} 👋</h1>
-                        <p className="text-slate-500 text-sm md:text-base">Prêt à décrocher le job de vos rêves ?</p>
+                        <p className="text-slate-500 text-sm md:text-base">
+                            {(ragData?.score || 0) < 50
+                                ? "Améliorons votre profil ensemble"
+                                : (ragData?.score || 0) < 80
+                                    ? "Vous êtes sur la bonne voie !"
+                                    : "Prêt à décrocher le job de vos rêves !"
+                            }
+                        </p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
                         <Link href="/dashboard/tracking" className="hidden md:block">
@@ -182,8 +189,18 @@ export default function DashboardPage() {
                                     {uploadedDocs.length > 0 ? (
                                         <div className="space-y-1">
                                             {uploadedDocs.slice(0, 3).map((doc) => (
-                                                <div key={doc.id} className="flex justify-between text-sm py-1">
-                                                    <span className="truncate text-slate-600">{doc.filename}</span>
+                                                <div key={doc.id} className="flex items-center justify-between text-sm py-1">
+                                                    <div className="flex items-center gap-2 truncate">
+                                                        {/* Wave 2 Item 9: File type icons */}
+                                                        {doc.file_type?.includes('pdf') ? (
+                                                            <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                                        ) : doc.file_type?.includes('doc') ? (
+                                                            <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                                                        ) : (
+                                                            <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                        )}
+                                                        <span className="truncate text-slate-600">{doc.filename}</span>
+                                                    </div>
                                                     <span className="text-xs text-slate-400">
                                                         {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                                                     </span>
@@ -200,15 +217,15 @@ export default function DashboardPage() {
                             </Card>
                         </Link>
 
-                        {/* Skills */}
+                        {/* Skills - Wave 2 Item 4: Show more skills */}
                         <Card>
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm">Compétences clés</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-wrap gap-1">
-                                    {(ragData?.competences?.techniques?.slice(0, 5) || []).length > 0 ? (
-                                        (ragData?.competences?.techniques?.slice(0, 5) || []).map((skill: any, i: number) => (
+                                    {(ragData?.competences?.techniques?.slice(0, 8) || []).length > 0 ? (
+                                        (ragData?.competences?.techniques?.slice(0, 8) || []).map((skill: any, i: number) => (
                                             <Badge key={i} variant="secondary" className="text-xs">
                                                 {typeof skill === "string" ? skill : skill.nom}
                                             </Badge>
@@ -217,6 +234,9 @@ export default function DashboardPage() {
                                         <span className="text-sm text-slate-400">Aucune</span>
                                     )}
                                 </div>
+                                {(ragData?.competences?.techniques?.length || 0) > 8 && (
+                                    <p className="text-xs text-blue-600 mt-2">+{(ragData?.competences?.techniques?.length || 0) - 8} autres</p>
+                                )}
                             </CardContent>
                         </Card>
 
