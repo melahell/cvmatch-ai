@@ -42,7 +42,7 @@ export default function DashboardPage() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto py-4 sm:py-6 md:py-8 px-3 sm:px-4">
+            <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-3 sm:px-4 max-w-7xl">
 
                 {/* WELCOME HEADER - Wave 2: Personalized message */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -52,8 +52,8 @@ export default function DashboardPage() {
                             {getWelcomeMessage(ragData?.score || 0)}
                         </p>
                     </div>
-                    <div className="flex gap-2 flex-wrap w-full md:w-auto">
-                        <Link href="/dashboard/tracking" className="hidden sm:block">
+                    <div className="flex gap-2 flex-wrap items-center">
+                        <Link href="/dashboard/tracking" className="hidden md:block">
                             <Button variant="outline" size="sm">
                                 <FileText className="w-4 h-4 mr-2" /> Mes CVs
                             </Button>
@@ -123,14 +123,14 @@ export default function DashboardPage() {
                         <Card className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
                             {/* Shimmer effect */}
                             <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                            <CardContent className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-6">
-                                <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-                                    <div className="p-2 sm:p-3 bg-white/20 rounded-full flex-shrink-0">
-                                        <PlusCircle className="w-6 h-6 sm:w-8 sm:h-8" />
+                            <CardContent className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 sm:p-6 gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-white/20 rounded-full">
+                                        <PlusCircle className="w-8 h-8" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg sm:text-xl font-bold">Créez votre profil RAG</h3>
-                                        <p className="text-sm sm:text-base text-blue-100 mt-1">Uploadez votre CV pour débloquer l'analyse IA et les recommandations personnalisées</p>
+                                        <p className="text-sm sm:text-base text-blue-100 line-clamp-2 sm:line-clamp-none">Uploadez votre CV pour débloquer l'analyse IA et les recommandations personnalisées</p>
                                     </div>
                                 </div>
                                 <Button variant="secondary" className="bg-white text-blue-600 hover:bg-blue-50 w-full sm:w-auto flex-shrink-0">
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                <div className="grid md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
 
                     {/* PROFILE SECTION - 2 columns */}
                     <div className="md:col-span-2 space-y-4">
@@ -214,7 +214,7 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     {uploadedDocs.length > 0 ? (
-                                        <div className="space-y-1">
+                                        <div className="space-y-1 max-h-64 overflow-y-auto">
                                             {uploadedDocs.slice(0, 6).map((doc) => (
                                                 <div key={doc.id} className="flex items-center justify-between text-sm py-1.5 sm:py-1 group">
                                                     <div className="flex items-center gap-2 truncate flex-1 min-w-0">
