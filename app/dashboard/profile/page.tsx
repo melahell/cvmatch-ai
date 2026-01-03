@@ -87,33 +87,29 @@ function ProfileContent() {
         return enriched;
     };
 
-    const handleWeightChange = (section: string, index: number, newWeight: "important" | "inclus" | "exclu") => {
-        setLocalRAGData((prev: any) => {
-            if (!prev) return prev;
-            const updated = { ...prev };
+    const handleWeightChange = async (section: string, index: number, newWeight: "important" | "inclus" | "exclu") => {
+        if (!ragData) return;
 
-            if (section === "experiences") {
-                updated.experiences[index].weight = newWeight;
-            } else if (section === "competences.techniques") {
-                updated.competences.techniques[index].weight = newWeight;
-            } else if (section === "formations") {
-                updated.formations[index].weight = newWeight;
-            }
+        const updated = { ...ragData };
+        if (section === "experiences") {
+            updated.experiences[index].weight = newWeight;
+        } else if (section === "competences.techniques") {
+            updated.competences.techniques[index].weight = newWeight;
+        } else if (section === "formations") {
+            updated.formations[index].weight = newWeight;
+        }
 
-            return updated;
-        });
+        await saveProfile(updated);
     };
 
     const saveWeights = async () => {
-        if (!userId || !localRAGData) return;
-
-        setSaving(true);
+        if (!userId || !ragData) return;
         try {
             const supabase = createSupabaseClient();
             const { error } = await supabase
                 .from("rag_metadata")
                 .update({
-                    completeness_details: localRAGData,
+                    completeness_details: ragData,
                     custom_notes: customNotes
                 })
                 .eq("user_id", userId);
@@ -122,12 +118,13 @@ function ProfileContent() {
 
             logger.success("Profil sauvegardé !");
             alert("✅ Profil sauvegardé avec succès !");
-            await refetchRAG();
+            await refetch();
         } catch (e) {
             logger.error("Error saving profile:", e);
             alert("❌ Erreur lors de la sauvegarde");
-        } finally {
-            setSaving(false);
+        } catch (e) {
+            logger.error("Error saving profile:", e);
+            alert("❌ Erreur lors de la sauvegarde");
         }
     };
 
