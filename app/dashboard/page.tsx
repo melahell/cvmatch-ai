@@ -124,11 +124,13 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* CTA BANNER FOR EMPTY PROFILE - Only show if no docs and score is 0 */}
-                {(ragData?.score || 0) === 0 && uploadedDocs.length === 0 && (
+                {/* CTA BANNER FOR EMPTY PROFILE - ORANGE #6: With shimmer animation */}
+                {shouldShowOnboardingCTA(ragData?.score || 0, uploadedDocs.length) && (
                     <Link href="/onboarding" className="block mb-8">
-                        <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
-                            <CardContent className="flex items-center justify-between p-6">
+                        <Card className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
+                            {/* Shimmer effect */}
+                            <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                            <CardContent className="relative flex items-center justify-between p-6">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-white/20 rounded-full">
                                         <PlusCircle className="w-8 h-8" />
