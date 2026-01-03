@@ -198,7 +198,6 @@ function ProfileContent() {
             });
 
             if (res.ok) {
-                setLocalRAGData(null);
                 setCustomNotes("");
                 await refetch();
                 await refetchDocs();
