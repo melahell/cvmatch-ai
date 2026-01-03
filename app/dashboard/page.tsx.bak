@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target, Eye, Download } from "lucide-react";
+import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,6 @@ import { ClickableCard } from "@/components/ui/ClickableCard";
 import { BadgeList } from "@/components/ui/BadgeList";
 import { getWelcomeMessage, shouldShowOnboardingCTA, shouldShowCompletionTips, getScoreDescription } from "@/lib/dashboardHelpers";
 import Link from "next/link";
-import { createSupabaseClient } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function DashboardPage() {
@@ -197,7 +196,7 @@ export default function DashboardPage() {
                                 <div className="flex items-center gap-4 mb-4">
                                     <PhotoUpload
                                         currentPhoto={ragData?.profil?.photo_url}
-                                        onUploadSuccess={() => { window.location.reload(); }}
+                                        onUploadSuccess={() => refetchRAG()}
                                     />
                                     <div>
                                         <div className="font-bold text-lg">{ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
@@ -239,14 +238,14 @@ export default function DashboardPage() {
                                                         </span>
                                                         <button onClick={async () => {
                                                             const supabase = createSupabaseClient();
-                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
+                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
                                                             if (data?.signedUrl) window.open(data.signedUrl, '_blank');
                                                         }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded">
                                                             <Eye className="w-3 h-3" />
                                                         </button>
                                                         <button onClick={async () => {
                                                             const supabase = createSupabaseClient();
-                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
+                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
                                                             if (data?.signedUrl) {
                                                                 const a = document.createElement('a');
                                                                 a.href = data.signedUrl;

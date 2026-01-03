@@ -246,7 +246,7 @@ export default function DashboardPage() {
                                                         </button>
                                                         <button onClick={async () => {
                                                             const supabase = createSupabaseClient();
-                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
+                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
                                                             if (data?.signedUrl) {
                                                                 const a = document.createElement('a');
                                                                 a.href = data.signedUrl;
