@@ -221,9 +221,8 @@ export default function DashboardPage() {
                                     {uploadedDocs.length > 0 ? (
                                         <div className="space-y-1">
                                             {uploadedDocs.slice(0, 6).map((doc) => (
-                                                <div key={doc.id} className="flex items-center justify-between text-sm py-1">
+                                                <div key={doc.id} className="flex items-center justify-between text-sm py-1 group">
                                                     <div className="flex items-center gap-2 truncate">
-                                                        {/* Wave 2 Item 9: File type icons */}
                                                         {doc.file_type?.includes('pdf') ? (
                                                             <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
                                                         ) : doc.file_type?.includes('doc') ? (
@@ -233,9 +232,30 @@ export default function DashboardPage() {
                                                         )}
                                                         <span className="truncate text-slate-600">{doc.filename}</span>
                                                     </div>
-                                                    <span className="text-xs text-slate-400">
-                                                        {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                                                    </span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="text-xs text-slate-400 mr-2">
+                                                            {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                                                        </span>
+                                                        <button onClick={async () => {
+                                                            const supabase = createSupabaseClient();
+                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
+                                                            if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                                                        }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded">
+                                                            <Eye className="w-3 h-3" />
+                                                        </button>
+                                                        <button onClick={async () => {
+                                                            const supabase = createSupabaseClient();
+                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.file_path, 60);
+                                                            if (data?.signedUrl) {
+                                                                const a = document.createElement('a');
+                                                                a.href = data.signedUrl;
+                                                                a.download = doc.filename;
+                                                                a.click();
+                                                            }
+                                                        }} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded">
+                                                            <Download className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             ))}
                                             {uploadedDocs.length > 6 && (
