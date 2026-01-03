@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
