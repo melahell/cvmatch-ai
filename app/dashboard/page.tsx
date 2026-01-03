@@ -1,9 +1,8 @@
-"use client";
-
 import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { CircularProgress } from "@/components/ui/CircularProgress";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -12,6 +11,11 @@ import { useRAGData } from "@/hooks/useRAGData";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PhotoUpload } from "@/components/profile/PhotoUpload";
+import { QuickActions } from "@/components/dashboard/QuickActions";
+import { Recommendations } from "@/components/dashboard/Recommendations";
+import { ClickableCard } from "@/components/ui/ClickableCard";
+import { BadgeList } from "@/components/ui/BadgeList";
+import { getWelcomeMessage, shouldShowOnboardingCTA, shouldShowCompletionTips, getScoreDescription } from "@/lib/dashboardHelpers";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -42,12 +46,7 @@ export default function DashboardPage() {
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profil?.prenom || authUserName} 👋</h1>
                         <p className="text-slate-500 text-sm md:text-base">
-                            {(ragData?.score || 0) < 50
-                                ? "Améliorons votre profil ensemble"
-                                : (ragData?.score || 0) < 80
-                                    ? "Vous êtes sur la bonne voie !"
-                                    : "Prêt à décrocher le job de vos rêves !"
-                            }
+                            {getWelcomeMessage(ragData?.score || 0)}
                         </p>
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -69,30 +68,49 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* STATS ROW - Wave 1: Using StatsCard component */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                    <StatsCard
-                        value={stats.analyses}
-                        label="Offres Analysées"
-                        color="blue"
-                    />
-                    <StatsCard
-                        value={stats.cvs}
-                        label="CVs Générés"
-                        color="purple"
-                        href="/dashboard/tracking"
-                    />
-                    <StatsCard href="/dashboard/profile">
-                        <CircularProgress
-                            value={ragData?.score || 0}
-                            max={100}
-                            size={80}
-                            label="/ 100"
+                {/* STATS ROW - P0: Mobile horizontal scroll */}
+                <div className="flex md:grid md:grid-cols-4 gap-4 mb-8 overflow-x-auto snap-x snap-mandatory md:overflow-visible pb-2">
+                    <div className="snap-center min-w-[280px] md:min-w-0">
+                        <StatsCard
+                            value={stats.analyses}
+                            label="Offres Analysées"
+                            color="blue"
+                            href="/dashboard/analyze"
                         />
-                        <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
-                    </StatsCard>
-                    <Link href="/dashboard/profile" className="block h-full">
-                        <Card className="bg-slate-900 text-white cursor-pointer hover:bg-slate-800 transition-colors h-full">
+                    </div>
+                    <div className="snap-center min-w-[280px] md:min-w-0">
+                        <StatsCard
+                            value={stats.cvs}
+                            label="CVs Générés"
+                            color="purple"
+                            href="/dashboard/tracking"
+                        />
+                    </div>
+                    <div className="snap-center min-w-[280px] md:min-w-0">
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <StatsCard href="/dashboard/profile">
+                                            <CircularProgress
+                                                value={ragData?.score || 0}
+                                                max={100}
+                                                size={80}
+                                                label="/ 100"
+                                            />
+                                            <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
+                                        </StatsCard>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="text-sm">{getScoreDescription(ragData?.score || 0)}</p>
+                                    <p className="text-xs text-slate-400 mt-1">Basé sur: complétude profil, compétences, documents</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                    <div className="snap-center min-w-[280px] md:min-w-0">
+                        <ClickableCard href="/dashboard/profile" className="bg-slate-900 text-white hover:bg-slate-800 transition-colors h-full">
                             <CardContent className="flex flex-col items-center justify-center p-6 text-center h-full">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Upload className="w-5 h-5" />
@@ -100,8 +118,8 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="text-xs text-slate-300 text-center">Voir, éditer ou ajouter des documents</div>
                             </CardContent>
-                        </Card>
-                    </Link>
+                        </ClickableCard>
+                    </div>
                 </div>
 
                 {/* CTA BANNER FOR EMPTY PROFILE - Only show if no docs and score is 0 */}
@@ -151,6 +169,16 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
                     </Link>
+                )}
+
+                {/* VERTE Item 3: Recommendations */}
+                {(ragData?.score || 0) < 100 && (
+                    <div className="mb-6">
+                        <Recommendations
+                            score={ragData?.score || 0}
+                            breakdown={ragData?.breakdown || []}
+                        />
+                    </div>
                 )}
 
                 <div className="grid md:grid-cols-3 gap-6">
