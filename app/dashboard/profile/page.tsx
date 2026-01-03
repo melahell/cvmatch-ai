@@ -137,7 +137,7 @@ function ProfileContent() {
             });
 
             if (res.ok) {
-                await refetchRAG();
+                await refetch();
                 alert("✅ Profil régénéré avec succès !");
             } else {
                 const error = await res.json();
@@ -193,7 +193,7 @@ function ProfileContent() {
             if (res.ok) {
                 setLocalRAGData(null);
                 setCustomNotes("");
-                await refetchRAG();
+                await refetch();
                 await refetchDocs();
                 alert("✅ Profil réinitialisé avec succès");
             } else {
@@ -278,7 +278,7 @@ function ProfileContent() {
 
                     <TabsContent value="vue">
                         <OverviewTab
-                            ragData={localRAGData || ragData}
+                            ragData={ragData || ragData}
                             userId={userId || ""}
                             onWeightChange={handleWeightChange}
                             onRefetch={refetchRAG}
