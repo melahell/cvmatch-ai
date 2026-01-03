@@ -42,9 +42,16 @@ interface JobCardProps {
 export function JobCard({ job, variant, onDelete, onStatusChange, isSelected = false, onToggleSelect }: JobCardProps) {
     const status = STATUS_CONFIG[job.application_status || "pending"];
 
+    // Score-based background color (subtle)
+    const scoreBgColor = job.match_score >= 80
+        ? "bg-green-50/50"
+        : job.match_score >= 60
+            ? "bg-yellow-50/50"
+            : "bg-red-50/50";
+
     if (variant === "mobile") {
         return (
-            <Card className="hover:shadow-lg transition-all group rounded-none border-0 shadow-none">
+            <Card className={`hover:shadow-lg transition-all group rounded-none border-0 shadow-none ${scoreBgColor}`}>
                 <CardContent className="p-4">
                     <div className="flex items-center gap-3">
                         {/* Checkbox */}
@@ -110,7 +117,7 @@ export function JobCard({ job, variant, onDelete, onStatusChange, isSelected = f
 
     // Desktop variant
     return (
-        <Card className="hover:shadow-lg transition-all group">
+        <Card className={`hover:shadow-lg transition-all group ${scoreBgColor}`}>
             <CardContent className="p-4 md:p-5">
                 <div className="flex items-center gap-4">
                     {/* Checkbox */}
