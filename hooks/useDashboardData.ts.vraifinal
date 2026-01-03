@@ -76,7 +76,7 @@ export function useDashboardData(userId: string | null) {
                 // Fetch Uploaded Documents with error handling
                 const { data: docs, error: docsError } = await supabase
                     .from("uploaded_documents")
-                    .select("id, filename, created_at, file_type, storage_path")
+                    .select("id, filename, created_at, file_type")
                     .eq("user_id", userId)
                     .order("created_at", { ascending: false })
                     .limit(5);

@@ -1,0 +1,21 @@
+
+> cvmatch-ai@1.3.0 build
+> next build
+
+  ▲ Next.js 14.2.0
+  - Environments: .env.local, .env.production
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./lib/utils/batch-download.ts:2:24
+Type error: Cannot find module 'file-saver' or its corresponding type declarations.
+
+[0m [90m 1 |[39m [36mimport[39m [33mJSZip[39m [36mfrom[39m [32m'jszip'[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 2 |[39m [36mimport[39m { saveAs } [36mfrom[39m [32m'file-saver'[39m[33m;[39m[0m
+[0m [90m   |[39m                        [31m[1m^[22m[39m[0m
+[0m [90m 3 |[39m[0m
+[0m [90m 4 |[39m [36mexport[39m [36masync[39m [36mfunction[39m downloadCVsAsZip(cvIds[33m:[39m string[][33m,[39m filename[33m:[39m string [33m=[39m [32m'cvs.zip'[39m)[33m:[39m [33mPromise[39m[33m<[39m[36mvoid[39m[33m>[39m {[0m
+[0m [90m 5 |[39m     [36mconst[39m zip [33m=[39m [36mnew[39m [33mJSZip[39m()[33m;[39m[0m
