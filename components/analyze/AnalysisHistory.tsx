@@ -93,17 +93,16 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                     placeholder="Rechercher par poste ou entreprise..."
                     className="flex-1"
                 />
-                <Select value={filter} onValueChange={setFilter}>
-                    <SelectTrigger className="w-full sm:w-[200px]">
-                        <SelectValue placeholder="Filtrer par score" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Tous les scores</SelectItem>
-                        <SelectItem value="high">Excellents (≥80%)</SelectItem>
-                        <SelectItem value="medium">Bons (60-79%)</SelectItem>
-                        <SelectItem value="low">Faibles (<60%)</SelectItem>
-                    </SelectContent>
-                </Select>
+                <select
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="w-full sm:w-[200px] px-3 py-2 border border-slate-300 rounded-md bg-white"
+                >
+                    <option value="all">Tous les scores</option>
+                    <option value="high">Excellents (≥80%)</option>
+                    <option value="medium">Bons (60-79%)</option>
+                    <option value="low">Faibles (&lt;60%)</option>
+                </select>
             </div>
 
             {filteredAnalyses.length === 0 ? (
