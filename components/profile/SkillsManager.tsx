@@ -31,7 +31,7 @@ export function SkillsManager({
     suggestions = []
 }: SkillsManagerProps) {
     const [inputValue, setInputValue] = useState('');
-    const [showSuggestions, setShow Suggestions] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     const handleAdd = () => {
         if (!inputValue.trim()) return;
