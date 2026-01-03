@@ -184,23 +184,25 @@ export default function DashboardPage() {
                     <div className="md:col-span-2 space-y-4">
 
                         {/* Profile Card - Wave 1: Using PhotoUpload component */}
-                        <Card>
-                            <CardContent className="p-6">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <PhotoUpload
-                                        currentPhoto={ragData?.profil?.photo_url}
-                                        onUploadSuccess={() => { window.location.reload(); }}
-                                    />
-                                    <div>
-                                        <div className="font-bold text-lg">{ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
-                                        <div className="text-sm text-slate-500">{ragData?.profil?.titre_principal}</div>
-                                    </div>
-                                </div>
-                                {ragData?.profil?.localisation && (
-                                    <div className="text-sm text-slate-500">📍 {ragData?.profil?.localisation}</div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <div className="space-y-3 sm:space-y-4">
+                            <PhotoUpload
+                                currentPhoto={ragData?.profil?.photo_url}
+                                onUploadSuccess={() => { window.location.reload(); }}
+                            />
+                            {(ragData?.profil?.prenom || ragData?.profil?.nom || ragData?.profil?.titre_principal || ragData?.profil?.localisation) && (
+                                <Card>
+                                    <CardContent className="p-3 sm:p-4 md:p-6">
+                                        <div className="font-bold text-base sm:text-lg">{ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
+                                        {ragData?.profil?.titre_principal && (
+                                            <div className="text-xs sm:text-sm text-slate-500 mt-1">{ragData?.profil?.titre_principal}</div>
+                                        )}
+                                        {ragData?.profil?.localisation && (
+                                            <div className="text-xs sm:text-sm text-slate-500 mt-2">📍 {ragData?.profil?.localisation}</div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </div>
 
                         {/* Documents */}
                         <Link href="/dashboard/profile?tab=docs" className="block">

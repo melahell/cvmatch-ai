@@ -83,11 +83,11 @@ export function PhotoUpload({ currentPhoto, onUploadSuccess }: PhotoUploadProps)
     };
 
     return (
-        <Card className="p-6">
-            <div className="flex items-center gap-6">
+        <Card className="p-3 sm:p-4 md:p-6">
+            <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
                 {/* Avatar Preview */}
-                <div className="relative">
-                    <div className="w-24 h-24 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-slate-200">
+                <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-slate-200">
                         {preview ? (
                             <Image
                                 src={preview}
@@ -97,7 +97,7 @@ export function PhotoUpload({ currentPhoto, onUploadSuccess }: PhotoUploadProps)
                                 className="object-cover w-full h-full"
                             />
                         ) : (
-                            <User className="w-12 h-12 text-slate-400" />
+                            <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-slate-400" />
                         )}
                     </div>
                     {preview && (
@@ -112,10 +112,10 @@ export function PhotoUpload({ currentPhoto, onUploadSuccess }: PhotoUploadProps)
                 </div>
 
                 {/* Upload Controls */}
-                <div className="flex-1">
-                    <h3 className="font-semibold mb-1">Photo de profil</h3>
-                    <p className="text-sm text-slate-500 mb-3">
-                        JPG, PNG ou GIF. Maximum 2MB.
+                <div className="flex-1 min-w-0">
+                    <h3 className="text-sm sm:text-base font-semibold mb-0.5 sm:mb-1">Photo de profil</h3>
+                    <p className="text-xs sm:text-sm text-slate-500 mb-2 sm:mb-3">
+                        JPG, PNG ou GIF. Max 2MB.
                     </p>
 
                     <div className="flex gap-2">
@@ -124,18 +124,19 @@ export function PhotoUpload({ currentPhoto, onUploadSuccess }: PhotoUploadProps)
                                 variant={preview ? "outline" : "default"}
                                 disabled={uploading}
                                 className="cursor-pointer"
+                                size="sm"
                                 asChild
                             >
                                 <span>
                                     {uploading ? (
                                         <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Upload...
+                                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                                            <span className="text-xs sm:text-sm">Upload...</span>
                                         </>
                                     ) : (
                                         <>
-                                            <Upload className="w-4 h-4 mr-2" />
-                                            {preview ? 'Changer' : 'Télécharger'}
+                                            <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                                            <span className="text-xs sm:text-sm">{preview ? 'Changer' : 'Télécharger'}</span>
                                         </>
                                     )}
                                 </span>
