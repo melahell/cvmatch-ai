@@ -92,11 +92,17 @@ function ProfileContent() {
 
         const updated = { ...ragData };
         if (section === "experiences") {
-            updated.experiences[index].weight = newWeight;
+            if (updated.experiences && updated.experiences[index]) {
+                updated.experiences[index].weight = newWeight;
+            }
         } else if (section === "competences.techniques") {
-            updated.competences.techniques[index].weight = newWeight;
+            if (updated.competences?.techniques && updated.competences.techniques[index]) {
+                updated.competences.techniques[index].weight = newWeight;
+            }
         } else if (section === "formations") {
-            updated.formations[index].weight = newWeight;
+            if (updated.formations && updated.formations[index]) {
+                updated.formations[index].weight = newWeight;
+            }
         }
 
         await saveProfile(updated);
