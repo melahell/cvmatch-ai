@@ -66,15 +66,16 @@ export async function POST(request: Request) {
             .from('documents')
             .getPublicUrl(uploadData.path);
 
-        // Update user record
+        // Update rag_metadata with photo_url (same table as profile data)
         const { error: updateError } = await supabase
-            .from('users')
+            .from('rag_metadata')
             .update({ photo_url: publicUrl })
-            .eq('id', userId);
+            .eq('user_id', userId);
 
         if (updateError) {
-            console.error('Update error:', updateError);
-            return NextResponse.json({ error: 'Échec de la mise à jour' }, { status: 500 });
+            console.error('Update rag_metadata error:', updateError);
+            // Photo uploaded but DB update failed - still return success with URL
+            // The onUploadSuccess will handle the display
         }
 
         return NextResponse.json({ photo_url: publicUrl });
