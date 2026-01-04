@@ -102,7 +102,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                             Mon Profil
                                         </button>
                                     </Link>
-                                    <Link href="/dashboard/profile/rag">
+                                    <Link href="/dashboard/profile">
                                         <button
                                             className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                                             onClick={() => setMenuOpen(false)}
