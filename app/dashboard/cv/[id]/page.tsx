@@ -55,52 +55,34 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
-    // Client-side PDF generation with html2canvas + jsPDF
+    // Server-side PDF generation with Puppeteer (perfect quality)
     const [generatingPDF, setGeneratingPDF] = useState(false);
+    const [pdfFormat, setPdfFormat] = useState<"A4" | "Letter">("A4");
 
     const handleDownloadPDF = async () => {
         if (!cvGeneration) return;
 
         setGeneratingPDF(true);
         try {
-            const { default: html2canvas } = await import('html2canvas');
-            const { default: jsPDF } = await import('jspdf');
+            const response = await fetch(`/api/cv/${id}/pdf?format=${pdfFormat}`);
 
-            const element = document.querySelector('.cv-page') as HTMLElement;
-            if (!element) {
-                throw new Error('CV element not found');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.details || "Erreur génération PDF");
             }
 
-            // Capture with high quality
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff',
-                windowWidth: 794, // A4 width in pixels at 96 DPI
-                windowHeight: 1123 // A4 height in pixels at 96 DPI
-            });
-
-            const imgData = canvas.toDataURL('image/png');
-
-            // Create PDF (A4 = 210mm x 297mm)
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4',
-                compress: true
-            });
-
-            const imgWidth = 210;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-            pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight, undefined, 'FAST');
-
-            const fileName = `CV_${cvGeneration.cv_data?.profil?.nom || 'Document'}.pdf`;
-            pdf.save(fileName);
-        } catch (error) {
-            console.error('PDF Error:', error);
-            alert('Erreur lors de la génération du PDF');
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `CV_${cvGeneration.cv_data?.profil?.nom || "Document"}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (error: any) {
+            console.error("PDF Error:", error);
+            alert("Erreur lors de la génération du PDF: " + error.message);
         } finally {
             setGeneratingPDF(false);
         }
