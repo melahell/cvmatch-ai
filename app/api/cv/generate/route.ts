@@ -58,15 +58,30 @@ export async function POST(req: Request) {
         // We ask Gemini to rewrite the profile summary and experience bullets.
         const prompt = getCVOptimizationPrompt(profile, jobDescription, customNotes);
 
-        const result = await models.flash.generateContent(prompt);
-        const responseText = result.response.text();
+        console.log("=== CV GENERATION START ===");
+        console.log("Using model: gemini-3-flash-preview");
+
+        let result;
+        let responseText;
+        try {
+            result = await models.flash.generateContent(prompt);
+            responseText = result.response.text();
+            console.log("Gemini response length:", responseText.length);
+        } catch (geminiError: any) {
+            console.error("Gemini API Error:", geminiError.message);
+            console.error("Full error:", JSON.stringify(geminiError, null, 2));
+            return NextResponse.json({
+                error: "Gemini API Error: " + geminiError.message
+            }, { status: 500 });
+        }
+
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
         let optimizedCV;
         try {
             optimizedCV = JSON.parse(jsonString);
         } catch (e) {
-            console.error("CV Parse Error", responseText);
+            console.error("CV Parse Error - Response was:", responseText.substring(0, 500));
             return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
         }
 
