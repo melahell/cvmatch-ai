@@ -9,16 +9,17 @@ if (!apiKey) {
 const genAI = new GoogleGenerativeAI(apiKey || "dummy-key");
 
 // Model cascade: Gemini 3 models (GA since Dec 28, 2025)
+// gemini-3-pro-preview (principal) + gemini-3-flash-preview (fallback)
 const MODEL_CASCADE = [
-    "gemini-2.0-flash",          // Latest stable
-    "gemini-2.0-flash-lite",     // Fallback
+    "gemini-3-pro-preview",      // Best quality
+    "gemini-3-flash-preview",    // Fallback if pro rate-limited
 ];
 
 // Legacy exports for backward compatibility
 export const models = {
-    flash: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
-    pro: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
-    vision: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
+    flash: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
+    pro: genAI.getGenerativeModel({ model: "gemini-3-pro-preview" }),
+    vision: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
 };
 
 /**
