@@ -4,6 +4,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import VersionOverlay from "@/components/VersionOverlay";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -52,8 +54,16 @@ export default function RootLayout({
                     inter.variable
                 )}
             >
-                <VersionOverlay />
-                {children}
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="light"
+                    enableSystem
+                    disableTransitionOnChange
+                >
+                    <VersionOverlay />
+                    {children}
+                    <Toaster position="top-center" richColors />
+                </ThemeProvider>
                 <script
                     dangerouslySetInnerHTML={{
                         __html: `

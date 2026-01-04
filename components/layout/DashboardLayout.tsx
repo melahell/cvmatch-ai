@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, Settings, ChevronDown } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "./Footer";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -31,9 +32,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         : "??";
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
             {/* Top Navigation Bar */}
-            <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         {/* Logo */}
@@ -41,7 +42,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                                 <span className="text-white font-bold text-sm">CV</span>
                             </div>
-                            <span className="font-bold text-xl text-slate-900 hidden sm:inline">
+                            <span className="font-bold text-xl text-slate-900 dark:text-white hidden sm:inline">
                                 CVMatch
                             </span>
                         </Link>
@@ -56,7 +57,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Button
                                             variant={isActive ? "secondary" : "ghost"}
                                             size="sm"
-                                            className={`gap-2 ${isActive ? "bg-blue-50 text-blue-700" : ""}`}
+                                            className={`gap-2 ${isActive ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "dark:text-slate-300"}`}
                                         >
                                             <item.icon className="w-4 h-4" />
                                             {item.label}
@@ -71,12 +72,12 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                     <div className="relative">
                         <button
                             onClick={() => setMenuOpen(!menuOpen)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                                 <span className="text-white text-xs font-bold">{initials}</span>
                             </div>
-                            <span className="text-sm font-medium text-slate-700 hidden sm:inline max-w-[120px] truncate">
+                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline max-w-[120px] truncate">
                                 {userName}
                             </span>
                             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
@@ -89,32 +90,25 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     className="fixed inset-0 z-40"
                                     onClick={() => setMenuOpen(false)}
                                 />
-                                <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-100">
-                                        <p className="text-sm font-medium text-slate-900">{userName}</p>
-                                        <p className="text-xs text-slate-500">Compte gratuit</p>
+                                <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
+                                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
+                                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{userName}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Compte gratuit</p>
                                     </div>
 
                                     {/* Quick Actions */}
                                     <div className="py-1">
-                                        <button
-                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                            onClick={() => { setMenuOpen(false); /* TODO: Toggle theme */ }}
-                                        >
-                                            <Settings className="w-4 h-4" />
-                                            Paramètres
-                                            <span className="ml-auto text-xs text-slate-400">Bientôt</span>
-                                        </button>
+                                        <ThemeToggle />
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="border-t border-slate-100 mt-1 pt-1">
+                                    <div className="border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
                                         <div className="px-4 py-1 text-xs text-slate-400">
-                                            CVMatch v1.4.5
+                                            CVMatch v1.6.0
                                         </div>
                                         <button
                                             onClick={() => { setMenuOpen(false); logout(); }}
-                                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950 flex items-center gap-2"
                                         >
                                             <LogOut className="w-4 h-4" />
                                             Se déconnecter
@@ -128,7 +122,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </header>
 
             {/* Mobile Nav - Enhanced with safe areas and better touch targets */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 shadow-lg pb-safe">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg pb-safe">
                 <div className="flex justify-around px-2 pt-2 pb-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href ||
@@ -136,8 +130,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                         return (
                             <Link key={item.href} href={item.href} className="flex-1 max-w-[100px]">
                                 <div className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl transition-all ${isActive
-                                    ? "text-blue-600 bg-blue-50 scale-105"
-                                    : "text-slate-500 hover:text-slate-700 active:scale-95"
+                                    ? "text-blue-600 bg-blue-50 dark:bg-blue-950 scale-105"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 active:scale-95"
                                     }`}>
                                     <div className={`relative ${isActive ? 'animate-[pulse_2s_ease-in-out]' : ''}`}>
                                         <item.icon className="w-5 h-5" />

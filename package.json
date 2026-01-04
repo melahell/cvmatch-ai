@@ -1,6 +1,6 @@
 {
     "name": "cvmatch-ai",
-    "version": "1.6.0",
+    "version": "1.7.0",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -42,6 +42,7 @@
         "lucide-react": "^0.460.0",
         "mammoth": "^1.11.0",
         "next": "14.2.0",
+        "next-themes": "^0.4.6",
         "octokit": "^5.0.5",
         "pdf-parse": "^2.4.5",
         "react": "^18.3.0",
