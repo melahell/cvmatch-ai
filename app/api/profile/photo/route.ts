@@ -66,17 +66,28 @@ export async function POST(request: Request) {
             .from('documents')
             .getPublicUrl(uploadData.path);
 
-        // Update photo_url column directly (column now exists)
+        // Store the storage path (for signed URL generation) AND public URL fallback
+        const storagePath = uploadData.path;
+
+        // Update photo_url column with storage path (prefixed to identify as path)
         const { error: updateError } = await supabase
             .from('rag_metadata')
-            .update({ photo_url: publicUrl })
+            .update({ photo_url: `storage:${storagePath}` })
             .eq('user_id', userId);
 
         if (updateError) {
             console.error('Update photo_url error:', updateError);
         }
 
-        return NextResponse.json({ photo_url: publicUrl });
+        // Return signed URL valid for 1 hour
+        const { data: signedUrlData } = await supabase.storage
+            .from('documents')
+            .createSignedUrl(storagePath, 3600);
+
+        return NextResponse.json({
+            photo_url: signedUrlData?.signedUrl || publicUrl,
+            storage_path: storagePath
+        });
     } catch (error: any) {
         console.error('Photo upload error:', error);
         return NextResponse.json(

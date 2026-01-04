@@ -84,13 +84,23 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
             // Calculate breakdown from normalized data
             const { breakdown } = calculateCompletenessWithBreakdown(normalized);
 
+            // Handle photo_url - generate signed URL if it's a storage path
+            let photoUrl = ragData.photo_url || null;
+            if (photoUrl && photoUrl.startsWith('storage:')) {
+                const storagePath = photoUrl.replace('storage:', '');
+                const { data: signedUrlData } = await supabase.storage
+                    .from('documents')
+                    .createSignedUrl(storagePath, 3600); // 1 hour validity
+                photoUrl = signedUrlData?.signedUrl || null;
+            }
+
             // Return COMPLETE normalized data, not just a subset
             setData({
                 ...normalized,  // Spread all fields: profil, experiences, competences, formations, langues
                 score: ragData.completeness_score || 0,
                 breakdown,
                 topJobs: ragData.top_10_jobs || [],
-                photo_url: ragData.photo_url || null,
+                photo_url: photoUrl,
             });
 
             logger.debug('RAG data fetched successfully', {
