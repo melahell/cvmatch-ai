@@ -33,15 +33,27 @@ export function useProfileForm(userId: string | null) {
         const supabase = createSupabaseClient();
 
         try {
+            // Use rag_metadata table (same as useRAGData) instead of rag_synthese
             const { data: ragData, error } = await supabase
-                .from("rag_synthese")
-                .select("*")
+                .from("rag_metadata")
+                .select("completeness_details, completeness_score")
                 .eq("user_id", userId)
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                // Not found is not an error for new users
+                if (error.code === 'PGRST116') {
+                    logger.debug('No RAG data found for user');
+                    setData(null);
+                    setLoading(false);
+                    return;
+                }
+                throw error;
+            }
 
-            setData(ragData);
+            // Data is in completeness_details field
+            const profileData = ragData?.completeness_details || null;
+            setData(profileData ? { ...profileData, score: ragData.completeness_score || 0 } : null);
         } catch (error: any) {
             logger.error("Profile fetch error:", error);
             setErrors({ fetch: error.message });
