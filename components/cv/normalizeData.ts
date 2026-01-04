@@ -99,32 +99,27 @@ function truncateText(text: string, maxLength: number = 300): string {
 }
 
 /**
- * Content limits for 1-page CV - BALANCED for readability
- * These limits are more generous to avoid truncating phrases
+ * Content limits for 1-page CV - NO TRUNCATION
+ * Text is NOT cut - these are just max counts for sections
  */
 const CV_LIMITS = {
-    maxExperiences: 4,
-    maxRealisationsPerExp: 3,      // Back to 3 for more detail
-    maxRealisationLength: 200,     // Increased from 120 to avoid truncation
-    maxSkills: 10,                 // Increased from 8
-    maxSoftSkills: 6,              // Increased from 5
-    maxFormations: 2,
-    maxLangues: 4,                 // Back to 4
-    maxCertifications: 4,          // Back to 4
-    maxElevatorPitchLength: 350    // Increased from 280
+    maxExperiences: 5,             // Allow more experiences
+    maxRealisationsPerExp: 5,      // Allow more bullets  
+    maxRealisationLength: 999,     // No truncation
+    maxSkills: 15,                 // Show all skills
+    maxSoftSkills: 10,
+    maxFormations: 3,
+    maxLangues: 5,
+    maxCertifications: 5,
+    maxElevatorPitchLength: 999    // No truncation
 };
 
 /**
- * Truncate a realisation to fit within limits
+ * DO NOT truncate - return text as-is
  */
 function truncateRealisation(text: string): string {
-    if (text.length <= CV_LIMITS.maxRealisationLength) return text;
-    const truncated = text.substring(0, CV_LIMITS.maxRealisationLength);
-    const lastSpace = truncated.lastIndexOf(' ');
-    if (lastSpace > CV_LIMITS.maxRealisationLength * 0.6) {
-        return truncated.substring(0, lastSpace) + '...';
-    }
-    return truncated + '...';
+    // No truncation - keep full text
+    return text;
 }
 
 /**

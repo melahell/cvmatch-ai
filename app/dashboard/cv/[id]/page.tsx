@@ -55,37 +55,12 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
-    // Server-side PDF generation with Puppeteer (perfect quality)
+    // PDF generation using native print dialog (produces real text PDFs)
     const [generatingPDF, setGeneratingPDF] = useState(false);
-    const [pdfFormat, setPdfFormat] = useState<"A4" | "Letter">("A4");
 
-    const handleDownloadPDF = async () => {
-        if (!cvGeneration) return;
-
-        setGeneratingPDF(true);
-        try {
-            const response = await fetch(`/api/cv/${id}/pdf?format=${pdfFormat}`);
-
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.details || "Erreur génération PDF");
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `CV_${cvGeneration.cv_data?.profil?.nom || "Document"}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
-            console.error("PDF Error:", error);
-            alert("Erreur lors de la génération du PDF: " + error.message);
-        } finally {
-            setGeneratingPDF(false);
-        }
+    const handleDownloadPDF = () => {
+        // Use native print which produces real text PDFs (not images)
+        window.print();
     };
 
     const handleTemplateChange = (templateId: string, includePhoto: boolean) => {
