@@ -83,12 +83,16 @@ export async function POST(req: Request) {
                 user_id: userId,
                 job_analysis_id: analysisId,
                 template_name: template || "modern",
-                include_photo: includePhoto,
                 cv_data: optimizedCV,
                 optimizations_applied: optimizedCV.optimizations_applied || []
             })
             .select("id")
             .single();
+
+        if (cvError) {
+            console.error("CV Save Error", cvError);
+            return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
+        }
 
         return NextResponse.json({
             success: true,

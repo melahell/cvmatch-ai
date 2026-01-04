@@ -33,14 +33,21 @@ export default function CVViewPage() {
 
             const { data, error } = await supabase
                 .from("cv_generations")
-                .select("id, cv_data, template_name, include_photo, job_analysis_id")
+                .select("id, cv_data, template_name, job_analysis_id")
                 .eq("id", id)
                 .single();
 
+            if (error) {
+                console.error("CV fetch error:", error);
+            }
+
             if (data) {
-                setCvGeneration(data);
+                setCvGeneration({
+                    ...data,
+                    include_photo: true // Default to true
+                });
                 setCurrentTemplate(data.template_name || "modern");
-                setCurrentIncludePhoto(data.include_photo ?? true);
+                setCurrentIncludePhoto(true);
             }
             setLoading(false);
         }
