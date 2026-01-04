@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "./Footer";
@@ -107,6 +107,15 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     {/* Quick Actions */}
                                     <div className="py-1">
                                         <ThemeToggle />
+                                        <Link href="/dashboard/templates">
+                                            <button
+                                                onClick={() => setMenuOpen(false)}
+                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                            >
+                                                <LayoutTemplate className="w-4 h-4" />
+                                                Templates CV
+                                            </button>
+                                        </Link>
                                         <Link href="/dashboard/stats">
                                             <button
                                                 onClick={() => setMenuOpen(false)}
