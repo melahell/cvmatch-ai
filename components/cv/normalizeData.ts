@@ -266,3 +266,4 @@ export function normalizeRAGToCV(raw: any): CVData {
         certifications: limitedCertifications
     };
 }
+// Force rebuild Sun Jan  4 16:32:17 CET 2026
