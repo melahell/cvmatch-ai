@@ -87,7 +87,7 @@ export const TEMPLATES: TemplateInfo[] = [
         description: 'Format traditionnel, sobre et formel',
         category: 'classic',
         preview: '/templates/classic-preview.png',
-        available: false, // Coming soon
+        available: true,
         recommended: ['Finance', 'Droit', 'Administration'],
     },
     {
@@ -96,7 +96,7 @@ export const TEMPLATES: TemplateInfo[] = [
         description: 'Design moderne et coloré pour les profils créatifs',
         category: 'creative',
         preview: '/templates/creative-preview.png',
-        available: false, // Coming soon
+        available: true,
         recommended: ['Design', 'Marketing', 'Communication'],
     },
 ];

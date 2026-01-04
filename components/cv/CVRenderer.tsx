@@ -6,6 +6,8 @@ import { CVData, JobContext, TemplateProps } from "./templates";
 // Dynamic imports for templates
 const ModernTemplate = dynamic(() => import("./templates/ModernTemplate"), { ssr: false });
 const TechTemplate = dynamic(() => import("./templates/TechTemplate"), { ssr: false });
+const ClassicTemplate = dynamic(() => import("./templates/ClassicTemplate"), { ssr: false });
+const CreativeTemplate = dynamic(() => import("./templates/CreativeTemplate"), { ssr: false });
 
 interface CVRendererProps {
     data: CVData;
@@ -18,6 +20,8 @@ interface CVRendererProps {
 const TEMPLATE_COMPONENTS: Record<string, React.ComponentType<TemplateProps>> = {
     modern: ModernTemplate,
     tech: TechTemplate,
+    classic: ClassicTemplate,
+    creative: CreativeTemplate,
 };
 
 export default function CVRenderer({
@@ -40,4 +44,5 @@ export default function CVRenderer({
 }
 
 // Export for PDF generation
-export { ModernTemplate, TechTemplate };
+export { ModernTemplate, TechTemplate, ClassicTemplate, CreativeTemplate };
+
