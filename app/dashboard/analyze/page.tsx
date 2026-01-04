@@ -293,25 +293,25 @@ export default function AnalyzePage() {
 
     return (
         <DashboardLayout>
-            <div className="container mx-auto max-w-2xl py-4 sm:py-6 md:py-8 px-3 sm:px-4 pb-20 sm:pb-6">
-                <div className="mb-4 sm:mb-6 text-center">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2">Nouvelle Analyse 🎯</h1>
-                    <p className="text-xs sm:text-sm text-slate-500">
+            <div className="container mx-auto max-w-2xl py-2 sm:py-6 md:py-8 px-2 sm:px-4 pb-20 sm:pb-6">
+                <div className="mb-2 sm:mb-6 text-center">
+                    <h1 className="text-base sm:text-xl lg:text-2xl font-bold mb-1 sm:mb-2">Nouvelle Analyse 🎯</h1>
+                    <p className="text-xs text-slate-500 hidden sm:block">
                         {/* Phase 1 Item 5: Simplified message */}
                         Compare ton profil avec cette offre d'emploi
                     </p>
                 </div>
 
-                {/* Phase 1 Item 4: Recommended method badge */}
-                <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                {/* Phase 1 Item 4: Recommended method badge - HIDDEN ON MOBILE */}
+                <div className="hidden sm:block mb-3 sm:mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs text-blue-700">
                         💡 <strong>Méthode recommandée</strong> : Copier-coller le texte de l'offre pour les meilleurs résultats
                     </p>
                 </div>
 
 
-                {/* Phase 2 Item 3: Templates */}
-                <div className="mb-4">
+                {/* Phase 2 Item 3: Templates - HIDDEN ON MOBILE */}
+                <div className="hidden sm:block mb-4">
                     <p className="text-xs sm:text-sm text-slate-600 mb-2">Ou essayez avec un exemple :</p>
                     <div className="flex gap-2 flex-wrap">
                         {SAMPLE_JOBS.map(job => (
@@ -333,37 +333,37 @@ export default function AnalyzePage() {
                 </div>
 
                 <Card>
-                    <CardHeader>
+                    <CardHeader className="pb-3 sm:pb-6">
                         {/* Phase 1 Item 1: Mode Selector with icons + disabled state */}
-                        <div className="flex justify-center bg-slate-100 p-1 rounded-lg">
+                        <div className="flex justify-center bg-slate-100 p-0.5 sm:p-1 rounded-lg">
                             <button
                                 onClick={() => handleModeChange("url")}
                                 disabled={loading}
-                                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px] ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
-                                <Link2 className="w-4 h-4" /> URL
+                                <Link2 className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">URL</span><span className="sm:hidden">URL</span>
                             </button>
                             <button
                                 onClick={() => handleModeChange("text")}
                                 disabled={loading}
-                                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px] ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
-                                <FileText className="w-4 h-4" /> Texte
-                                <span className="ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">Recommandé</span>
+                                <FileText className="w-3 h-3 sm:w-4 sm:h-4" /> Texte
+                                <span className="hidden sm:inline ml-1 px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">Recommandé</span>
                             </button>
                             <button
                                 onClick={() => handleModeChange("file")}
                                 disabled={loading}
-                                className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 sm:py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 min-h-[44px] ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
                                     }`}
                             >
-                                <Upload className="w-4 h-4" /> Fichier
+                                <Upload className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Fichier</span><span className="sm:hidden">PDF</span>
                             </button>
                         </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    <CardContent className="space-y-3 sm:space-y-6 p-3 sm:p-6">
 
                         {mode === "url" && (
                             <div className="space-y-2">
@@ -393,9 +393,9 @@ export default function AnalyzePage() {
                                 {/* Phase 1 Item 2: Enlarged textarea with resize */}
                                 <Textarea
                                     id="text"
-                                    rows={15}
-                                    className="min-h-[350px] sm:min-h-[400px] resize-y text-sm"
-                                    placeholder="Collez ici la description complète du poste..."
+                                    rows={6}
+                                    className="min-h-[120px] sm:min-h-[300px] resize-y text-sm"
+                                    placeholder="Collez la description du poste..."
                                     value={text}
                                     onChange={(e) => setText(e.target.value)}
                                     disabled={loading}
@@ -490,8 +490,8 @@ export default function AnalyzePage() {
 
                 {/* Phase 2 Item 1: Historique des analyses */}
                 {userId && (
-                    <div className="mt-8 sm:mt-12">
-                        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Historique des analyses</h2>
+                    <div className="mt-4 sm:mt-12">
+                        <h2 className="text-base sm:text-xl font-bold mb-2 sm:mb-4">Historique</h2>
                         <AnalysisHistory userId={userId} />
                     </div>
                 )}
