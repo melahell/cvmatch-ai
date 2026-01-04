@@ -8,18 +8,17 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey || "dummy-key");
 
-// Model cascade: use stable model names
-// gemini-1.5-flash is the most stable and widely available
+// Model cascade: Gemini 3 models (GA since Dec 28, 2025)
 const MODEL_CASCADE = [
-    "gemini-1.5-flash",          // Most stable, good quality
-    "gemini-1.5-pro",            // Better quality if available
+    "gemini-2.0-flash",          // Latest stable
+    "gemini-2.0-flash-lite",     // Fallback
 ];
 
 // Legacy exports for backward compatibility
 export const models = {
-    flash: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
-    pro: genAI.getGenerativeModel({ model: "gemini-1.5-pro" }),
-    vision: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
+    flash: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
+    pro: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
+    vision: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
 };
 
 /**
