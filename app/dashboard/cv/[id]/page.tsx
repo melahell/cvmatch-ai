@@ -55,10 +55,37 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
-    // PDF generation using native print dialog (renders CSS correctly)
-    const handleDownloadPDF = () => {
-        // Use native print which respects CSS perfectly
-        window.print();
+    // Server-side PDF generation for perfect rendering
+    const [generatingPDF, setGeneratingPDF] = useState(false);
+
+    const handleDownloadPDF = async () => {
+        if (!cvGeneration) return;
+
+        setGeneratingPDF(true);
+        try {
+            const response = await fetch('/api/cv/generate-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cvId: id })
+            });
+
+            if (!response.ok) {
+                throw new Error('Erreur génération PDF');
+            }
+
+            const { pdfUrl } = await response.json();
+
+            // Download PDF
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.download = `CV_${cvGeneration.cv_data?.profil?.nom || 'Document'}.pdf`;
+            link.click();
+        } catch (error) {
+            console.error('PDF Error:', error);
+            alert('Erreur lors de la génération du PDF');
+        } finally {
+            setGeneratingPDF(false);
+        }
     };
 
     const handleTemplateChange = (templateId: string, includePhoto: boolean) => {
@@ -111,10 +138,20 @@ export default function CVViewPage() {
                         <Button
                             size="sm"
                             onClick={handleDownloadPDF}
+                            disabled={generatingPDF}
                             className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                         >
-                            <Download className="w-4 h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Télécharger PDF</span>
+                            {generatingPDF ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                                    <span className="hidden sm:inline">Génération...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Télécharger PDF</span>
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>
