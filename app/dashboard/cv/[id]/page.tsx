@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, Printer, Download, ArrowLeft, RefreshCw } from "lucide-react";
+import { Loader2, Download, ArrowLeft, RefreshCw, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CVRenderer from "@/components/cv/CVRenderer";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
@@ -21,10 +21,12 @@ interface CVGeneration {
 export default function CVViewPage() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
     const [cvGeneration, setCvGeneration] = useState<CVGeneration | null>(null);
     const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
     const [currentTemplate, setCurrentTemplate] = useState<string>("modern");
     const [currentIncludePhoto, setCurrentIncludePhoto] = useState<boolean>(true);
+    const cvRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const supabase = createSupabaseClient();
@@ -44,7 +46,7 @@ export default function CVViewPage() {
             if (data) {
                 setCvGeneration({
                     ...data,
-                    include_photo: true // Default to true
+                    include_photo: true
                 });
                 setCurrentTemplate(data.template_name || "modern");
                 setCurrentIncludePhoto(true);
@@ -54,8 +56,54 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
-    const handlePrint = () => {
-        window.print();
+    // Direct PDF generation using html2pdf.js
+    const handleDownloadPDF = async () => {
+        if (!cvRef.current || !cvGeneration) return;
+
+        setGenerating(true);
+
+        try {
+            // Dynamic import of html2pdf
+            const html2pdf = (await import('html2pdf.js')).default;
+
+            const element = cvRef.current.querySelector('.cv-page') as HTMLElement;
+            if (!element) {
+                console.error('CV page element not found');
+                setGenerating(false);
+                return;
+            }
+
+            // Build filename
+            const profil = cvGeneration.cv_data?.profil || {};
+            const nom = `${profil.prenom || 'CV'}_${profil.nom || 'Document'}`.replace(/\s+/g, '_');
+
+            const opt: any = {
+                margin: 0,
+                filename: `CV_${nom}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false
+                },
+                jsPDF: {
+                    unit: 'mm',
+                    format: 'a4',
+                    orientation: 'portrait',
+                    compress: true
+                },
+                pagebreak: { mode: 'avoid-all' }
+            };
+
+            await html2pdf().set(opt).from(element).save();
+        } catch (error) {
+            console.error('PDF generation error:', error);
+            // Fallback to print
+            window.print();
+        } finally {
+            setGenerating(false);
+        }
     };
 
     const handleTemplateChange = (templateId: string, includePhoto: boolean) => {
@@ -64,7 +112,6 @@ export default function CVViewPage() {
         setTemplateSelectorOpen(false);
     };
 
-    // Get current template info
     const templateInfo = TEMPLATES.find(t => t.id === currentTemplate);
 
     if (loading) {
@@ -106,21 +153,34 @@ export default function CVViewPage() {
                             <RefreshCw className="w-4 h-4 sm:mr-2" />
                             <span className="hidden sm:inline">Changer</span>
                         </Button>
-                        <Button variant="outline" size="sm" onClick={handlePrint} className="dark:border-slate-700 dark:text-slate-300">
-                            <Download className="w-4 h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">PDF</span>
-                        </Button>
-                        <Button size="sm" onClick={handlePrint}>
-                            <Printer className="w-4 h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Imprimer</span>
+                        <Button
+                            size="sm"
+                            onClick={handleDownloadPDF}
+                            disabled={generating}
+                            className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                        >
+                            {generating ? (
+                                <Loader2 className="w-4 h-4 animate-spin sm:mr-2" />
+                            ) : (
+                                <Download className="w-4 h-4 sm:mr-2" />
+                            )}
+                            <span className="hidden sm:inline">
+                                {generating ? 'Génération...' : 'Télécharger PDF'}
+                            </span>
                         </Button>
                     </div>
                 </div>
             </div>
 
             {/* CV Preview Area */}
-            <div className="container mx-auto py-8 print:p-0">
-                <div className="max-w-[210mm] mx-auto print:max-w-none print:mx-0">
+            <div className="container mx-auto py-8 print:p-0" ref={cvRef}>
+                <div
+                    className="mx-auto print:max-w-none print:mx-0"
+                    style={{
+                        width: '210mm',
+                        maxWidth: '100%'
+                    }}
+                >
                     <CVRenderer
                         data={cvGeneration.cv_data}
                         templateId={currentTemplate}
@@ -139,10 +199,35 @@ export default function CVViewPage() {
 
             <style jsx global>{`
                 @media print {
-                    @page { size: A4; margin: 0; }
-                    body { background: white; margin: 0; padding: 0; }
-                    .print\\:hidden { display: none !important; }
-                    .cv-page { box-shadow: none !important; }
+                    @page { 
+                        size: A4; 
+                        margin: 0; 
+                    }
+                    body { 
+                        background: white; 
+                        margin: 0; 
+                        padding: 0; 
+                    }
+                    .print\\:hidden { 
+                        display: none !important; 
+                    }
+                    .cv-page { 
+                        box-shadow: none !important;
+                        border-radius: 0 !important;
+                        width: 210mm !important;
+                        min-height: 297mm !important;
+                        max-height: 297mm !important;
+                        overflow: hidden !important;
+                    }
+                }
+                
+                /* Force A4 dimensions */
+                .cv-page {
+                    width: 210mm !important;
+                    min-height: 297mm !important;
+                    max-height: 297mm !important;
+                    overflow: hidden !important;
+                    box-sizing: border-box;
                 }
             `}</style>
         </div>
