@@ -1,7 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useMemo } from "react";
 import { CVData, JobContext, TemplateProps } from "./templates";
+import { normalizeRAGToCV } from "./normalizeData";
 
 // Dynamic imports for templates
 const ModernTemplate = dynamic(() => import("./templates/ModernTemplate"), { ssr: false });
@@ -10,7 +12,7 @@ const ClassicTemplate = dynamic(() => import("./templates/ClassicTemplate"), { s
 const CreativeTemplate = dynamic(() => import("./templates/CreativeTemplate"), { ssr: false });
 
 interface CVRendererProps {
-    data: CVData;
+    data: any; // Accept raw data from API, will normalize
     templateId: string;
     includePhoto?: boolean;
     jobContext?: JobContext;
@@ -31,11 +33,21 @@ export default function CVRenderer({
     jobContext,
     dense = false
 }: CVRendererProps) {
+    // Normalize the data to template-friendly format
+    const normalizedData = useMemo(() => {
+        try {
+            return normalizeRAGToCV(data);
+        } catch (e) {
+            console.error("Data normalization error:", e);
+            return data as CVData;
+        }
+    }, [data]);
+
     const TemplateComponent = TEMPLATE_COMPONENTS[templateId] || TEMPLATE_COMPONENTS.modern;
 
     return (
         <TemplateComponent
-            data={data}
+            data={normalizedData}
             includePhoto={includePhoto}
             jobContext={jobContext}
             dense={dense}
@@ -45,4 +57,3 @@ export default function CVRenderer({
 
 // Export for PDF generation
 export { ModernTemplate, TechTemplate, ClassicTemplate, CreativeTemplate };
-
