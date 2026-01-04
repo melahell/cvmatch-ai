@@ -21,7 +21,6 @@ interface CVGeneration {
 export default function CVViewPage() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
-    const [generating, setGenerating] = useState(false);
     const [cvGeneration, setCvGeneration] = useState<CVGeneration | null>(null);
     const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
     const [currentTemplate, setCurrentTemplate] = useState<string>("modern");
@@ -56,54 +55,10 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
-    // Direct PDF generation using html2pdf.js
-    const handleDownloadPDF = async () => {
-        if (!cvRef.current || !cvGeneration) return;
-
-        setGenerating(true);
-
-        try {
-            // Dynamic import of html2pdf
-            const html2pdf = (await import('html2pdf.js')).default;
-
-            const element = cvRef.current.querySelector('.cv-page') as HTMLElement;
-            if (!element) {
-                console.error('CV page element not found');
-                setGenerating(false);
-                return;
-            }
-
-            // Build filename
-            const profil = cvGeneration.cv_data?.profil || {};
-            const nom = `${profil.prenom || 'CV'}_${profil.nom || 'Document'}`.replace(/\s+/g, '_');
-
-            const opt: any = {
-                margin: 0,
-                filename: `CV_${nom}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    logging: false
-                },
-                jsPDF: {
-                    unit: 'mm',
-                    format: 'a4',
-                    orientation: 'portrait',
-                    compress: true
-                },
-                pagebreak: { mode: 'avoid-all' }
-            };
-
-            await html2pdf().set(opt).from(element).save();
-        } catch (error) {
-            console.error('PDF generation error:', error);
-            // Fallback to print
-            window.print();
-        } finally {
-            setGenerating(false);
-        }
+    // PDF generation using native print dialog (renders CSS correctly)
+    const handleDownloadPDF = () => {
+        // Use native print which respects CSS perfectly
+        window.print();
     };
 
     const handleTemplateChange = (templateId: string, includePhoto: boolean) => {
@@ -156,17 +111,10 @@ export default function CVViewPage() {
                         <Button
                             size="sm"
                             onClick={handleDownloadPDF}
-                            disabled={generating}
                             className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
                         >
-                            {generating ? (
-                                <Loader2 className="w-4 h-4 animate-spin sm:mr-2" />
-                            ) : (
-                                <Download className="w-4 h-4 sm:mr-2" />
-                            )}
-                            <span className="hidden sm:inline">
-                                {generating ? 'Génération...' : 'Télécharger PDF'}
-                            </span>
+                            <Download className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Télécharger PDF</span>
                         </Button>
                     </div>
                 </div>
