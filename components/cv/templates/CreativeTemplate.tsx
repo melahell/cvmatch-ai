@@ -20,11 +20,26 @@ export default function CreativeTemplate({
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues } = data;
 
+    // Helper to safely render a string from potentially object value
+    const safeString = (val: any): string => {
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object' && val !== null) {
+            if (val.name) return val.name;
+            if (val.skill) return val.skill;
+            if (val.description) return val.description;
+            if (val.impact) return val.impact;
+            return JSON.stringify(val);
+        }
+        return String(val || '');
+    };
+
     const limitedExperiences = experiences?.slice(0, 3) || [];
-    const limitedSkills = competences?.techniques?.slice(0, 10) || [];
-    const limitedSoftSkills = competences?.soft_skills?.slice(0, 4) || [];
+    const rawSkills = competences?.techniques?.slice(0, 10) || [];
+    const limitedSkills = rawSkills.map(safeString);
+    const rawSoftSkills = competences?.soft_skills?.slice(0, 4) || [];
+    const limitedSoftSkills = rawSoftSkills.map(safeString);
     const limitedFormations = formations?.slice(0, 2) || [];
-    const initials = `${profil.prenom?.[0] || ''}${profil.nom?.[0] || ''}`.toUpperCase();
+    const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
         <div
@@ -193,7 +208,7 @@ export default function CreativeTemplate({
                                             <ul className="text-[8pt] text-slate-700 space-y-0.5">
                                                 {exp.realisations.slice(0, 2).map((r, j) => (
                                                     <li key={j} className="flex items-start gap-1.5">
-                                                        <span style={{ color }}>→</span> {r}
+                                                        <span style={{ color }}>→</span> {safeString(r)}
                                                     </li>
                                                 ))}
                                             </ul>

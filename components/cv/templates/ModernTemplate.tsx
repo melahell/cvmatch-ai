@@ -12,6 +12,30 @@ export default function ModernTemplate({
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications } = data;
 
+    // Helper to safely render a realisation (can be string or object)
+    const renderRealisation = (r: any): string => {
+        if (typeof r === 'string') return r;
+        if (typeof r === 'object' && r !== null) {
+            // Handle {impact, description} format
+            if (r.description) return r.description;
+            if (r.impact) return r.impact;
+            // Try to stringify
+            return JSON.stringify(r);
+        }
+        return String(r);
+    };
+
+    // Helper to safely render a skill (can be string or object)
+    const renderSkill = (s: any): string => {
+        if (typeof s === 'string') return s;
+        if (typeof s === 'object' && s !== null) {
+            if (s.name) return s.name;
+            if (s.skill) return s.skill;
+            return JSON.stringify(s);
+        }
+        return String(s);
+    };
+
     // Limit content for 1-page guarantee
     const limitedExperiences = experiences?.slice(0, 4) || [];
     const limitedSkills = competences?.techniques?.slice(0, 8) || [];
@@ -19,7 +43,7 @@ export default function ModernTemplate({
     const limitedFormations = formations?.slice(0, 2) || [];
 
     // Get initials for avatar fallback
-    const initials = `${profil.prenom?.[0] || ''}${profil.nom?.[0] || ''}`.toUpperCase();
+    const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
         <div
@@ -105,7 +129,7 @@ export default function ModernTemplate({
                             return (
                                 <div key={i}>
                                     <div className="flex justify-between mb-1">
-                                        <span className="text-slate-100 font-medium text-[8pt]">{skill}</span>
+                                        <span className="text-slate-100 font-medium text-[8pt]">{renderSkill(skill)}</span>
                                         <span className="text-[6pt] text-indigo-300 font-semibold">
                                             {percent >= 90 ? 'Expert' : percent >= 75 ? 'Avancé' : 'Intermédiaire'}
                                         </span>
@@ -137,7 +161,7 @@ export default function ModernTemplate({
                                     key={i}
                                     className="px-2 py-0.5 bg-indigo-500/30 text-indigo-200 text-[7pt] rounded border border-indigo-400/50 font-medium"
                                 >
-                                    {skill}
+                                    {renderSkill(skill)}
                                 </span>
                             ))}
                         </div>
@@ -224,7 +248,7 @@ export default function ModernTemplate({
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
                                         {exp.realisations.slice(0, 3).map((r, j) => (
-                                            <li key={j}>{r}</li>
+                                            <li key={j}>{renderRealisation(r)}</li>
                                         ))}
                                     </ul>
                                 )}

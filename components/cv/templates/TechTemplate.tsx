@@ -21,9 +21,23 @@ export default function TechTemplate({
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications } = data;
 
+    // Helper to safely render a string from potentially object value
+    const safeString = (val: any): string => {
+        if (typeof val === 'string') return val;
+        if (typeof val === 'object' && val !== null) {
+            if (val.name) return val.name;
+            if (val.skill) return val.skill;
+            if (val.description) return val.description;
+            if (val.impact) return val.impact;
+            return JSON.stringify(val);
+        }
+        return String(val || '');
+    };
+
     // Limit content for 1-page guarantee
     const limitedExperiences = experiences?.slice(0, 4) || [];
-    const limitedSkills = competences?.techniques?.slice(0, 15) || [];
+    const rawSkills = competences?.techniques?.slice(0, 15) || [];
+    const limitedSkills = rawSkills.map(safeString);
     const limitedFormations = formations?.slice(0, 2) || [];
 
     // Categorize skills
@@ -60,7 +74,7 @@ export default function TechTemplate({
     };
 
     const skillCategories = categorizeSkills(limitedSkills);
-    const initials = `${profil.prenom?.[0] || ''}${profil.nom?.[0] || ''}`.toUpperCase();
+    const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
         <div
@@ -310,7 +324,7 @@ export default function TechTemplate({
                                         {exp.realisations.slice(0, 3).map((r, j) => (
                                             <li key={j} className="flex items-start gap-1.5">
                                                 <span className="text-emerald-500 mt-0.5">→</span>
-                                                {r}
+                                                {safeString(r)}
                                             </li>
                                         ))}
                                     </ul>
