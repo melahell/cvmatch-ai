@@ -2,6 +2,7 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
+import { validateCVContent, autoCompressCV } from "@/lib/cv/validator";
 
 // Helper for tokens (stub)
 export const runtime = "nodejs";
@@ -53,6 +54,23 @@ export async function POST(req: Request) {
         } catch (e) {
             console.error("CV Parse Error", responseText);
             return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
+        }
+
+        // 2.5. Validate CV content fits on one page
+        const validation = validateCVContent(optimizedCV);
+
+        // If validation fails, auto-compress
+        if (!validation.isValid || validation.warnings.length > 0) {
+            console.log("CV Validation:", validation);
+            optimizedCV = autoCompressCV(optimizedCV);
+
+            // Add compression info to optimizations_applied
+            if (!optimizedCV.optimizations_applied) {
+                optimizedCV.optimizations_applied = [];
+            }
+            if (!validation.isValid) {
+                optimizedCV.optimizations_applied.push("Compression automatique pour tenir sur 1 page A4");
+            }
         }
 
         // 3. Save Generated CV
