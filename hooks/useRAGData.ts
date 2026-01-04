@@ -10,6 +10,7 @@ interface RAGData extends RAGMetadata {
     score: number;
     breakdown: any[];
     topJobs: any[];
+    photo_url: string | null;
 }
 
 interface UseRAGDataReturn {
