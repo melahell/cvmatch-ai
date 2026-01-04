@@ -8,19 +8,18 @@ if (!apiKey) {
 
 const genAI = new GoogleGenerativeAI(apiKey || "dummy-key");
 
-// Model cascade: best quality first, most available last
+// Model cascade: use stable model names
+// gemini-1.5-flash is the most stable and widely available
 const MODEL_CASCADE = [
-    "gemini-3-pro-preview",      // Best quality, lowest free quota
-    "gemini-3-flash-preview",    // Good quality, low free quota
-    "gemini-2.5-flash",          // Decent quality, ~20 RPD
-    "gemini-2.5-flash-lite",     // Basic quality, ~250 RPD (highest free quota)
+    "gemini-1.5-flash",          // Most stable, good quality
+    "gemini-1.5-pro",            // Better quality if available
 ];
 
 // Legacy exports for backward compatibility
 export const models = {
-    flash: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
-    pro: genAI.getGenerativeModel({ model: "gemini-3-pro-preview" }),
-    vision: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
+    flash: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
+    pro: genAI.getGenerativeModel({ model: "gemini-1.5-pro" }),
+    vision: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
 };
 
 /**
