@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Home, FileText, Briefcase, User, LogOut, Settings, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { Footer } from "./Footer";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -153,9 +154,12 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </nav>
 
             {/* Main Content - Safe area padding */}
-            <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
+            <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8 flex-1">
                 {children}
             </main>
+
+            {/* Footer - Desktop only */}
+            <Footer />
         </div>
     );
 }
