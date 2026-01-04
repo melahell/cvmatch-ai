@@ -40,30 +40,30 @@ export async function POST(request: Request) {
             const oldPath = userData.photo_url.split('/').pop();
             if (oldPath) {
                 await supabase.storage
-                    .from('profile-photos')
-                    .remove([`${userId}/${oldPath}`]);
+                    .from('documents')
+                    .remove([`photos/${userId}/${oldPath}`]);
             }
         }
 
-        // Upload new photo to Supabase Storage
+        // Upload new photo to Supabase Storage (use 'documents' bucket with photos/ prefix)
         const fileExt = photo.name.split('.').pop();
-        const fileName = `${userId}/${Date.now()}.${fileExt}`;
+        const fileName = `photos/${userId}/${Date.now()}.${fileExt}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('profile-photos')
+            .from('documents')
             .upload(fileName, photo, {
                 cacheControl: '3600',
-                upsert: false
+                upsert: true
             });
 
         if (uploadError) {
             console.error('Upload error:', uploadError);
-            return NextResponse.json({ error: 'Échec de l\'upload' }, { status: 500 });
+            return NextResponse.json({ error: uploadError.message || 'Échec upload storage' }, { status: 500 });
         }
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-            .from('profile-photos')
+            .from('documents')
             .getPublicUrl(uploadData.path);
 
         // Update user record
@@ -110,8 +110,8 @@ export async function DELETE(request: Request) {
             const oldPath = userData.photo_url.split('/').pop();
             if (oldPath) {
                 await supabase.storage
-                    .from('profile-photos')
-                    .remove([`${userId}/${oldPath}`]);
+                    .from('documents')
+                    .remove([`photos/${userId}/${oldPath}`]);
             }
         }
 
