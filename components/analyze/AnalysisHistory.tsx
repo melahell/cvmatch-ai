@@ -114,29 +114,26 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid gap-3">
+                <div className="space-y-2">
                     {filteredAnalyses.map(analysis => (
                         <Card key={analysis.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-4">
-                                <div className="flex justify-between items-start gap-4">
+                            <CardContent className="p-3">
+                                <div className="flex items-center justify-between gap-2">
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-lg truncate">{analysis.job_title}</h3>
-                                        <p className="text-sm text-slate-500 truncate">{analysis.company}</p>
-                                        <p className="text-xs text-slate-400 mt-1">{formatDate(analysis.submitted_at)}</p>
+                                        <h3 className="font-medium text-sm truncate">{analysis.job_title}</h3>
+                                        <p className="text-xs text-slate-500">{analysis.company} · {formatDate(analysis.submitted_at)}</p>
                                     </div>
-                                    <div className="text-right flex-shrink-0">
-                                        <Badge variant={getScoreBadgeVariant(analysis.match_score)} className="mb-2">
-                                            {analysis.match_score}%
-                                        </Badge>
-                                        <div className="flex gap-2 mt-2">
-                                            <Button
-                                                size="sm"
-                                                onClick={() => router.push(`/dashboard/analyze/${analysis.id}`)}
-                                            >
-                                                Voir
-                                            </Button>
-                                        </div>
-                                    </div>
+                                    <Badge variant={getScoreBadgeVariant(analysis.match_score)} className="text-sm font-bold">
+                                        {analysis.match_score}%
+                                    </Badge>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-8 px-3"
+                                        onClick={() => router.push(`/dashboard/analyze/${analysis.id}`)}
+                                    >
+                                        Voir
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>
