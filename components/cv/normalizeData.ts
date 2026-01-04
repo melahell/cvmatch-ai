@@ -55,6 +55,33 @@ interface RAGData {
 }
 
 /**
+ * Sanitize text by fixing spacing issues
+ */
+function sanitizeText(text: string | undefined | null): string {
+    if (!text) return '';
+    return text
+        .replace(/([.,;:!?])([^\s\d])/g, '$1 $2')  // Espace après ponctuation
+        .replace(/([a-z])([A-Z])/g, '$1 $2')       // Espace avant majuscule (camelCase)
+        .replace(/\s+/g, ' ')                       // Multiple spaces -> 1
+        .replace(/\( /g, '(')                       // Pas d'espace après (
+        .replace(/ \)/g, ')')                       // Pas d'espace avant )
+        .trim();
+}
+
+/**
+ * Truncate text to max length while keeping complete sentences
+ */
+function truncateText(text: string, maxLength: number = 300): string {
+    if (text.length <= maxLength) return text;
+    const truncated = text.substring(0, maxLength);
+    const lastPeriod = truncated.lastIndexOf('.');
+    if (lastPeriod > maxLength * 0.5) {
+        return truncated.substring(0, lastPeriod + 1);
+    }
+    return truncated.trim() + '...';
+}
+
+/**
  * Normalize RAG data to CVData format expected by templates
  */
 export function normalizeRAGToCV(raw: any): CVData {
@@ -64,23 +91,27 @@ export function normalizeRAGToCV(raw: any): CVData {
     const profil = data.profil || {};
     const contact = profil.contact || {};
 
-    // Normalize experiences
+    // Normalize experiences with sanitization
     const experiences = (data.experiences || []).map(exp => ({
-        poste: exp.poste || '',
-        entreprise: exp.entreprise || '',
+        poste: sanitizeText(exp.poste),
+        entreprise: sanitizeText(exp.entreprise),
         date_debut: exp.date_debut || exp.debut || '',
         date_fin: exp.actuel ? undefined : (exp.date_fin || exp.fin || undefined),
-        lieu: exp.lieu,
+        lieu: sanitizeText(exp.lieu),
         realisations: (exp.realisations || []).map(r => {
-            if (typeof r === 'string') return r;
-            if (typeof r === 'object' && r !== null) {
+            let text: string;
+            if (typeof r === 'string') {
+                text = r;
+            } else if (typeof r === 'object' && r !== null) {
                 // Handle {description, impact} format
                 const parts = [];
                 if (r.description) parts.push(r.description);
                 if (r.impact && r.impact !== r.description) parts.push(r.impact);
-                return parts.join(' - ') || JSON.stringify(r);
+                text = parts.join(' - ') || JSON.stringify(r);
+            } else {
+                text = String(r);
             }
-            return String(r);
+            return sanitizeText(text);
         })
     }));
 
@@ -154,14 +185,14 @@ export function normalizeRAGToCV(raw: any): CVData {
 
     return {
         profil: {
-            prenom: profil.prenom || '',
-            nom: profil.nom || '',
-            titre_principal: profil.titre_principal || '',
+            prenom: sanitizeText(profil.prenom),
+            nom: sanitizeText(profil.nom),
+            titre_principal: sanitizeText(profil.titre_principal),
             email: profil.email || contact.email || '',
             telephone: profil.telephone || contact.telephone || '',
-            localisation: profil.localisation || '',
+            localisation: sanitizeText(profil.localisation),
             linkedin: profil.linkedin || contact.linkedin || '',
-            elevator_pitch: profil.elevator_pitch || '',
+            elevator_pitch: truncateText(sanitizeText(profil.elevator_pitch), 400),
             photo_url: profil.photo_url
         },
         experiences,

@@ -46,8 +46,10 @@ export default function CreativeTemplate({
             className={`cv-page bg-white shadow-2xl rounded-2xl overflow-hidden ${dense ? 'text-[9pt]' : 'text-[10pt]'}`}
             style={{
                 width: '210mm',
-                minHeight: '297mm',
+                height: '297mm',
                 maxHeight: '297mm',
+                overflow: 'hidden',
+                boxSizing: 'border-box',
                 fontFamily: "'Outfit', 'Inter', sans-serif"
             }}
         >

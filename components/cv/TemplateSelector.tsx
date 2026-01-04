@@ -19,7 +19,7 @@ export function TemplateSelector({
     currentPhoto
 }: TemplateSelectorProps) {
     const [selectedTemplate, setSelectedTemplate] = useState<string>("modern");
-    const [includePhoto, setIncludePhoto] = useState<boolean>(!!currentPhoto);
+    const [includePhoto, setIncludePhoto] = useState<boolean>(true);
 
     if (!isOpen) return null;
 
@@ -110,8 +110,8 @@ export function TemplateSelector({
                                     onClick={() => setIncludePhoto(!includePhoto)}
                                     disabled={!currentPhoto}
                                     className={`relative w-12 h-6 rounded-full transition-colors ${includePhoto && currentPhoto
-                                            ? "bg-blue-600"
-                                            : "bg-slate-300 dark:bg-slate-600"
+                                        ? "bg-blue-600"
+                                        : "bg-slate-300 dark:bg-slate-600"
                                         } ${!currentPhoto ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                     <span
@@ -159,8 +159,8 @@ function TemplateCard({
         <button
             onClick={onSelect}
             className={`relative rounded-xl border-2 p-4 text-left transition-all ${selected
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+                : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
                 }`}
         >
             {/* Selection indicator */}
@@ -172,8 +172,8 @@ function TemplateCard({
 
             {/* Preview */}
             <div className={`aspect-[210/297] rounded-lg mb-3 overflow-hidden ${template.id === 'modern'
-                    ? 'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50'
-                    : 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50'
+                ? 'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50'
+                : 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50'
                 }`}>
                 {/* Mini preview mockup */}
                 <div className="p-3 h-full flex flex-col">
