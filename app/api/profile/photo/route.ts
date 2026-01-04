@@ -66,16 +66,26 @@ export async function POST(request: Request) {
             .from('documents')
             .getPublicUrl(uploadData.path);
 
-        // Update rag_metadata with photo_url (same table as profile data)
+        // Get current completeness_details to update profil.photo_url
+        const { data: currentData } = await supabase
+            .from('rag_metadata')
+            .select('completeness_details')
+            .eq('user_id', userId)
+            .single();
+
+        // Update completeness_details.profil.photo_url (JSON field)
+        const updatedDetails = currentData?.completeness_details || {};
+        if (!updatedDetails.profil) updatedDetails.profil = {};
+        updatedDetails.profil.photo_url = publicUrl;
+
         const { error: updateError } = await supabase
             .from('rag_metadata')
-            .update({ photo_url: publicUrl })
+            .update({ completeness_details: updatedDetails })
             .eq('user_id', userId);
 
         if (updateError) {
-            console.error('Update rag_metadata error:', updateError);
+            console.error('Update completeness_details error:', updateError);
             // Photo uploaded but DB update failed - still return success with URL
-            // The onUploadSuccess will handle the display
         }
 
         return NextResponse.json({ photo_url: publicUrl });
