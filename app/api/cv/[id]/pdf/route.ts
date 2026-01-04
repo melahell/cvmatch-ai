@@ -88,10 +88,13 @@ export async function GET(
             });
         } else {
             // For production (Vercel), use Sparticuz Chromium
+            const executablePath = await chromium.executablePath();
+
             browser = await puppeteer.launch({
                 args: chromium.args,
-                executablePath: await chromium.executablePath(),
+                executablePath: executablePath,
                 headless: true,
+                defaultViewport: { width: 1920, height: 1080 },
             });
         }
 
@@ -99,7 +102,7 @@ export async function GET(
 
         // Build the URL for the print page
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                       `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+            `${request.nextUrl.protocol}//${request.nextUrl.host}`;
         const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${format}`;
 
         // Navigate to the print page

@@ -99,18 +99,19 @@ function truncateText(text: string, maxLength: number = 300): string {
 }
 
 /**
- * STRICT Content limits for 1-page CV guarantee
+ * Content limits for 1-page CV - BALANCED for readability
+ * These limits are more generous to avoid truncating phrases
  */
 const CV_LIMITS = {
     maxExperiences: 4,
-    maxRealisationsPerExp: 2,      // Reduced from 3
-    maxRealisationLength: 120,     // Reduced from 150
-    maxSkills: 8,                  // Reduced from 10
-    maxSoftSkills: 5,              // Reduced from 6
+    maxRealisationsPerExp: 3,      // Back to 3 for more detail
+    maxRealisationLength: 200,     // Increased from 120 to avoid truncation
+    maxSkills: 10,                 // Increased from 8
+    maxSoftSkills: 6,              // Increased from 5
     maxFormations: 2,
-    maxLangues: 3,                 // Reduced from 4
-    maxCertifications: 3,          // Reduced from 4
-    maxElevatorPitchLength: 280    // Reduced from 350
+    maxLangues: 4,                 // Back to 4
+    maxCertifications: 4,          // Back to 4
+    maxElevatorPitchLength: 350    // Increased from 280
 };
 
 /**
