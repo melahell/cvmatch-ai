@@ -82,6 +82,35 @@ function truncateText(text: string, maxLength: number = 300): string {
 }
 
 /**
+ * Content limits for 1-page CV guarantee
+ */
+const CV_LIMITS = {
+    maxExperiences: 4,
+    maxRealisationsPerExp: 3,
+    maxRealisationLength: 150,
+    maxSkills: 10,
+    maxSoftSkills: 6,
+    maxFormations: 2,
+    maxLangues: 4,
+    maxCertifications: 4,
+    maxElevatorPitchLength: 350
+};
+
+/**
+ * Truncate a realisation to fit within limits
+ */
+function truncateRealisation(text: string): string {
+    if (text.length <= CV_LIMITS.maxRealisationLength) return text;
+    // Cut at last space before limit
+    const truncated = text.substring(0, CV_LIMITS.maxRealisationLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    if (lastSpace > CV_LIMITS.maxRealisationLength * 0.7) {
+        return truncated.substring(0, lastSpace) + '...';
+    }
+    return truncated + '...';
+}
+
+/**
  * Normalize RAG data to CVData format expected by templates
  */
 export function normalizeRAGToCV(raw: any): CVData {
@@ -183,6 +212,22 @@ export function normalizeRAGToCV(raw: any): CVData {
         }
     }
 
+    // Apply content limits for 1-page guarantee
+    const limitedExperiences = experiences
+        .slice(0, CV_LIMITS.maxExperiences)
+        .map(exp => ({
+            ...exp,
+            realisations: exp.realisations
+                .slice(0, CV_LIMITS.maxRealisationsPerExp)
+                .map(r => truncateRealisation(r))
+        }));
+
+    const limitedTechniques = techniques.slice(0, CV_LIMITS.maxSkills);
+    const limitedSoftSkills = softSkills.slice(0, CV_LIMITS.maxSoftSkills);
+    const limitedFormations = formations.slice(0, CV_LIMITS.maxFormations);
+    const limitedLangues = langues.slice(0, CV_LIMITS.maxLangues);
+    const limitedCertifications = data.certifications?.slice(0, CV_LIMITS.maxCertifications);
+
     return {
         profil: {
             prenom: sanitizeText(profil.prenom),
@@ -192,16 +237,16 @@ export function normalizeRAGToCV(raw: any): CVData {
             telephone: profil.telephone || contact.telephone || '',
             localisation: sanitizeText(profil.localisation),
             linkedin: profil.linkedin || contact.linkedin || '',
-            elevator_pitch: truncateText(sanitizeText(profil.elevator_pitch), 400),
+            elevator_pitch: truncateText(sanitizeText(profil.elevator_pitch), CV_LIMITS.maxElevatorPitchLength),
             photo_url: profil.photo_url
         },
-        experiences,
+        experiences: limitedExperiences,
         competences: {
-            techniques,
-            soft_skills: softSkills
+            techniques: limitedTechniques,
+            soft_skills: limitedSoftSkills
         },
-        formations,
-        langues,
-        certifications: data.certifications
+        formations: limitedFormations,
+        langues: limitedLangues,
+        certifications: limitedCertifications
     };
 }
