@@ -100,6 +100,7 @@ export function PhotoUpload({ currentPhoto, userId, onUploadSuccess }: PhotoUplo
                                 width={96}
                                 height={96}
                                 className="object-cover w-full h-full"
+                                unoptimized
                             />
                         ) : (
                             <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-slate-400" />
