@@ -3,11 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, ChevronDown } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "./Footer";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { ExportDataModal } from "@/components/modals/ExportDataModal";
+import { KeyboardShortcutsModal } from "@/components/modals/KeyboardShortcutsModal";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -25,6 +28,11 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     const pathname = usePathname();
     const { userName, logout } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [exportModalOpen, setExportModalOpen] = useState(false);
+    const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+
+    // Enable keyboard shortcuts
+    useKeyboardShortcuts();
 
     // Get initials for avatar
     const initials = userName
@@ -99,12 +107,36 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     {/* Quick Actions */}
                                     <div className="py-1">
                                         <ThemeToggle />
+                                        <Link href="/dashboard/stats">
+                                            <button
+                                                onClick={() => setMenuOpen(false)}
+                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                            >
+                                                <BarChart3 className="w-4 h-4" />
+                                                Mes statistiques
+                                            </button>
+                                        </Link>
+                                        <button
+                                            onClick={() => { setMenuOpen(false); setExportModalOpen(true); }}
+                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                            Exporter mes données
+                                        </button>
+                                        <button
+                                            onClick={() => { setMenuOpen(false); setShortcutsModalOpen(true); }}
+                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                        >
+                                            <Keyboard className="w-4 h-4" />
+                                            Raccourcis clavier
+                                            <span className="ml-auto text-xs text-slate-400">⌘/</span>
+                                        </button>
                                     </div>
 
                                     {/* Footer */}
                                     <div className="border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
                                         <div className="px-4 py-1 text-xs text-slate-400">
-                                            CVMatch v1.6.0
+                                            CVMatch v1.7.0
                                         </div>
                                         <button
                                             onClick={() => { setMenuOpen(false); logout(); }}
@@ -154,6 +186,16 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
 
             {/* Footer - Desktop only */}
             <Footer />
+
+            {/* Modals */}
+            <ExportDataModal
+                isOpen={exportModalOpen}
+                onClose={() => setExportModalOpen(false)}
+            />
+            <KeyboardShortcutsModal
+                isOpen={shortcutsModalOpen}
+                onClose={() => setShortcutsModalOpen(false)}
+            />
         </div>
     );
 }
