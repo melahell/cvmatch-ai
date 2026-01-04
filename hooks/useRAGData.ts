@@ -10,6 +10,7 @@ interface RAGData extends RAGMetadata {
     score: number;
     breakdown: any[];
     topJobs: any[];
+    photo_url: string | null;
 }
 
 interface UseRAGDataReturn {
@@ -56,7 +57,7 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
 
             const { data: ragData, error: ragError } = await supabase
                 .from("rag_metadata")
-                .select("completeness_details,top_10_jobs,completeness_score,custom_notes")
+                .select("completeness_details,top_10_jobs,completeness_score,custom_notes,photo_url")
                 .eq("user_id", userId)
                 .single();
 
@@ -89,6 +90,7 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
                 score: ragData.completeness_score || 0,
                 breakdown,
                 topJobs: ragData.top_10_jobs || [],
+                photo_url: ragData.photo_url || null,
             });
 
             logger.debug('RAG data fetched successfully', {
