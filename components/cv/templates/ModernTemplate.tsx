@@ -36,10 +36,10 @@ export default function ModernTemplate({
         return String(s);
     };
 
-    // Limit content for 1-page guarantee
+    // Use data directly - already limited by normalizer
     const limitedExperiences = experiences?.slice(0, 4) || [];
     const limitedSkills = competences?.techniques?.slice(0, 8) || [];
-    const limitedSoftSkills = competences?.soft_skills?.slice(0, 6) || [];
+    const limitedSoftSkills = competences?.soft_skills?.slice(0, 5) || [];
     const limitedFormations = formations?.slice(0, 2) || [];
 
     // Get initials for avatar fallback
@@ -47,14 +47,16 @@ export default function ModernTemplate({
 
     return (
         <div
-            className={`cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex ${dense ? 'text-[9pt]' : 'text-[10pt]'}`}
+            className="cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex text-[9pt]"
             style={{
                 width: '210mm',
                 height: '297mm',
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'Inter', -apple-system, sans-serif"
+                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontSize: '9pt',
+                lineHeight: '1.3'
             }}
         >
             {/* Sidebar Gauche - Sombre */}

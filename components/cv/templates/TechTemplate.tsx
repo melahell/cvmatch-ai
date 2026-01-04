@@ -78,14 +78,16 @@ export default function TechTemplate({
 
     return (
         <div
-            className={`cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex ${dense ? 'text-[9pt]' : 'text-[10pt]'}`}
+            className="cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex text-[9pt]"
             style={{
                 width: '210mm',
                 height: '297mm',
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace"
+                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                fontSize: '9pt',
+                lineHeight: '1.3'
             }}
         >
             {/* Sidebar Gauche - Terminal Style */}

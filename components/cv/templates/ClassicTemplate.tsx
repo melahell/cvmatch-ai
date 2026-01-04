@@ -33,14 +33,16 @@ export default function ClassicTemplate({
 
     return (
         <div
-            className={`cv-page bg-white shadow-2xl overflow-hidden ${dense ? 'text-[9pt]' : 'text-[10pt]'}`}
+            className="cv-page bg-white shadow-2xl overflow-hidden text-[9pt]"
             style={{
                 width: '210mm',
                 height: '297mm',
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'Georgia', 'Times New Roman', serif"
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontSize: '9pt',
+                lineHeight: '1.3'
             }}
         >
             {/* Elegant Header */}

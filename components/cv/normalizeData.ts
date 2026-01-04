@@ -55,21 +55,38 @@ interface RAGData {
 }
 
 /**
- * Sanitize text by fixing spacing issues
+ * Sanitize text by fixing spacing issues - AGGRESSIVE version
  */
 function sanitizeText(text: string | undefined | null): string {
     if (!text) return '';
-    return text
-        .replace(/([.,;:!?])([^\s\d])/g, '$1 $2')  // Espace après ponctuation
-        .replace(/([a-z])([A-Z])/g, '$1 $2')       // Espace avant majuscule (camelCase)
-        .replace(/\s+/g, ' ')                       // Multiple spaces -> 1
-        .replace(/\( /g, '(')                       // Pas d'espace après (
-        .replace(/ \)/g, ')')                       // Pas d'espace avant )
+
+    let result = text
+        // Add space after punctuation if followed by letter
+        .replace(/([.,;:!?])([a-zA-ZÀ-ÿ])/g, '$1 $2')
+        // Add space before uppercase if preceded by lowercase
+        .replace(/([a-zàâäéèêëïîôùûüç])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇ])/g, '$1 $2')
+        // Add space around parentheses
+        .replace(/\)([a-zA-ZÀ-ÿ])/g, ') $1')
+        .replace(/([a-zA-ZÀ-ÿ])\(/g, '$1 (')
+        // Fix missing spaces around common words
+        .replace(/etde/gi, 'et de')
+        .replace(/dela/gi, 'de la')
+        .replace(/deles/gi, 'de les')
+        .replace(/àla/gi, 'à la')
+        .replace(/enplace/gi, 'en place')
+        .replace(/pourla/gi, 'pour la')
+        .replace(/surle/gi, 'sur le')
+        .replace(/avecle/gi, 'avec le')
+        .replace(/dansle/gi, 'dans le')
+        // Multiple spaces to single
+        .replace(/\s+/g, ' ')
         .trim();
+
+    return result;
 }
 
 /**
- * Truncate text to max length while keeping complete sentences
+ * Truncate text to max length
  */
 function truncateText(text: string, maxLength: number = 300): string {
     if (text.length <= maxLength) return text;
@@ -82,18 +99,18 @@ function truncateText(text: string, maxLength: number = 300): string {
 }
 
 /**
- * Content limits for 1-page CV guarantee
+ * STRICT Content limits for 1-page CV guarantee
  */
 const CV_LIMITS = {
     maxExperiences: 4,
-    maxRealisationsPerExp: 3,
-    maxRealisationLength: 150,
-    maxSkills: 10,
-    maxSoftSkills: 6,
+    maxRealisationsPerExp: 2,      // Reduced from 3
+    maxRealisationLength: 120,     // Reduced from 150
+    maxSkills: 8,                  // Reduced from 10
+    maxSoftSkills: 5,              // Reduced from 6
     maxFormations: 2,
-    maxLangues: 4,
-    maxCertifications: 4,
-    maxElevatorPitchLength: 350
+    maxLangues: 3,                 // Reduced from 4
+    maxCertifications: 3,          // Reduced from 4
+    maxElevatorPitchLength: 280    // Reduced from 350
 };
 
 /**
@@ -101,10 +118,9 @@ const CV_LIMITS = {
  */
 function truncateRealisation(text: string): string {
     if (text.length <= CV_LIMITS.maxRealisationLength) return text;
-    // Cut at last space before limit
     const truncated = text.substring(0, CV_LIMITS.maxRealisationLength);
     const lastSpace = truncated.lastIndexOf(' ');
-    if (lastSpace > CV_LIMITS.maxRealisationLength * 0.7) {
+    if (lastSpace > CV_LIMITS.maxRealisationLength * 0.6) {
         return truncated.substring(0, lastSpace) + '...';
     }
     return truncated + '...';

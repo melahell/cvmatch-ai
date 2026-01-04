@@ -43,14 +43,16 @@ export default function CreativeTemplate({
 
     return (
         <div
-            className={`cv-page bg-white shadow-2xl rounded-2xl overflow-hidden ${dense ? 'text-[9pt]' : 'text-[10pt]'}`}
+            className="cv-page bg-white shadow-2xl rounded-2xl overflow-hidden text-[9pt]"
             style={{
                 width: '210mm',
                 height: '297mm',
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'Outfit', 'Inter', sans-serif"
+                fontFamily: "'Outfit', 'Inter', sans-serif",
+                fontSize: '9pt',
+                lineHeight: '1.3'
             }}
         >
             {/* Colorful Header Banner */}
