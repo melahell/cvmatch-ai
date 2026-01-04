@@ -5,14 +5,14 @@ export async function POST(request: Request) {
     try {
         const supabase = createSupabaseClient();
 
-        // Get current user
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
-        }
-
         const formData = await request.formData();
         const photo = formData.get('photo') as File;
+        const userId = formData.get('userId') as string;
+
+        // Get userId from FormData (same pattern as other API routes)
+        if (!userId) {
+            return NextResponse.json({ error: 'userId requis' }, { status: 401 });
+        }
 
         if (!photo) {
             return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         const { data: userData } = await supabase
             .from('users')
             .select('photo_url')
-            .eq('id', user.id)
+            .eq('id', userId)
             .single();
 
         if (userData?.photo_url) {
@@ -41,13 +41,13 @@ export async function POST(request: Request) {
             if (oldPath) {
                 await supabase.storage
                     .from('profile-photos')
-                    .remove([`${user.id}/${oldPath}`]);
+                    .remove([`${userId}/${oldPath}`]);
             }
         }
 
         // Upload new photo to Supabase Storage
         const fileExt = photo.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
             .from('profile-photos')
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         const { error: updateError } = await supabase
             .from('users')
             .update({ photo_url: publicUrl })
-            .eq('id', user.id);
+            .eq('id', userId);
 
         if (updateError) {
             console.error('Update error:', updateError);
@@ -91,16 +91,18 @@ export async function DELETE(request: Request) {
     try {
         const supabase = createSupabaseClient();
 
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-            return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+        const formData = await request.formData();
+        const userId = formData.get('userId') as string;
+
+        if (!userId) {
+            return NextResponse.json({ error: 'userId requis' }, { status: 401 });
         }
 
         // Get current photo URL
         const { data: userData } = await supabase
             .from('users')
             .select('photo_url')
-            .eq('id', user.id)
+            .eq('id', userId)
             .single();
 
         if (userData?.photo_url) {
@@ -109,7 +111,7 @@ export async function DELETE(request: Request) {
             if (oldPath) {
                 await supabase.storage
                     .from('profile-photos')
-                    .remove([`${user.id}/${oldPath}`]);
+                    .remove([`${userId}/${oldPath}`]);
             }
         }
 
@@ -117,7 +119,7 @@ export async function DELETE(request: Request) {
         await supabase
             .from('users')
             .update({ photo_url: null })
-            .eq('id', user.id);
+            .eq('id', userId);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

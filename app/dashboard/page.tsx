@@ -187,6 +187,7 @@ export default function DashboardPage() {
                         <div className="space-y-3 sm:space-y-4">
                             <PhotoUpload
                                 currentPhoto={ragData?.profil?.photo_url}
+                                userId={userId || ''}
                                 onUploadSuccess={() => { window.location.reload(); }}
                             />
                             {(ragData?.profil?.prenom || ragData?.profil?.nom || ragData?.profil?.titre_principal || ragData?.profil?.localisation) && (

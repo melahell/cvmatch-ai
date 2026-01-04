@@ -9,10 +9,11 @@ import Image from "next/image";
 
 interface PhotoUploadProps {
     currentPhoto?: string | null;
+    userId: string;
     onUploadSuccess: (url: string) => void;
 }
 
-export function PhotoUpload({ currentPhoto, onUploadSuccess }: PhotoUploadProps) {
+export function PhotoUpload({ currentPhoto, userId, onUploadSuccess }: PhotoUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState<string | null>(currentPhoto || null);
 
@@ -44,6 +45,7 @@ export function PhotoUpload({ currentPhoto, onUploadSuccess }: PhotoUploadProps)
         try {
             const formData = new FormData();
             formData.append('photo', file);
+            formData.append('userId', userId);
 
             const response = await fetch('/api/profile/photo', {
                 method: 'POST',
@@ -68,8 +70,11 @@ export function PhotoUpload({ currentPhoto, onUploadSuccess }: PhotoUploadProps)
 
     const handleRemove = async () => {
         try {
+            const formData = new FormData();
+            formData.append('userId', userId);
             const response = await fetch('/api/profile/photo', {
                 method: 'DELETE',
+                body: formData,
             });
 
             if (!response.ok) throw new Error();
