@@ -93,25 +93,24 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <p className="text-sm font-medium text-slate-900">{userName}</p>
                                         <p className="text-xs text-slate-500">Compte gratuit</p>
                                     </div>
-                                    <Link href="/dashboard/profile">
+
+                                    {/* Quick Actions */}
+                                    <div className="py-1">
                                         <button
                                             className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                            onClick={() => setMenuOpen(false)}
-                                        >
-                                            <User className="w-4 h-4" />
-                                            Mon Profil
-                                        </button>
-                                    </Link>
-                                    <Link href="/dashboard/profile">
-                                        <button
-                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                            onClick={() => setMenuOpen(false)}
+                                            onClick={() => { setMenuOpen(false); /* TODO: Toggle theme */ }}
                                         >
                                             <Settings className="w-4 h-4" />
-                                            Gérer mon profil RAG
+                                            Paramètres
+                                            <span className="ml-auto text-xs text-slate-400">Bientôt</span>
                                         </button>
-                                    </Link>
-                                    <div className="border-t border-slate-100 mt-2 pt-2">
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div className="border-t border-slate-100 mt-1 pt-1">
+                                        <div className="px-4 py-1 text-xs text-slate-400">
+                                            CVMatch v1.4.5
+                                        </div>
                                         <button
                                             onClick={() => { setMenuOpen(false); logout(); }}
                                             className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
