@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
 import { validateCVContent, autoCompressCV } from "@/lib/cv/validator";
+import { PDFCache } from "@/lib/cv/pdf-cache";
 
 // Helper for tokens (stub)
 export const runtime = "nodejs";
@@ -85,6 +86,13 @@ export async function POST(req: Request) {
             })
             .select("id")
             .single();
+
+        // 4. Invalidate PDF cache for this CV (if regenerating)
+        if (cvGen?.id && process.env.NODE_ENV === "production") {
+            const cache = new PDFCache();
+            cache.invalidatePDF(cvGen.id)
+                .catch(err => console.error("Cache invalidation error:", err));
+        }
 
         return NextResponse.json({ success: true, cvId: cvGen?.id, cvData: optimizedCV });
 
