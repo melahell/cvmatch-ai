@@ -186,7 +186,7 @@ export default function DashboardPage() {
                         {/* Profile Card - Wave 1: Using PhotoUpload component */}
                         <div className="space-y-3 sm:space-y-4">
                             <PhotoUpload
-                                currentPhoto={ragData?.profil?.photo_url}
+                                currentPhoto={ragData?.photo_url}
                                 userId={userId || ''}
                                 onUploadSuccess={() => { window.location.reload(); }}
                             />
