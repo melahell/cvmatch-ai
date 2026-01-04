@@ -1,6 +1,5 @@
 
 import React from "react";
-import { Mail, Phone, MapPin, Linkedin, ExternalLink } from "lucide-react";
 
 interface CVProps {
     data: any; // Using any for POC speed, strictly should match RAG schema
@@ -12,10 +11,10 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
     const { profil, experiences, competences, formations, langues } = data;
 
     return (
-        <div className="w-[210mm] min-h-[297mm] bg-white text-slate-800 p-12 mx-auto shadow-xl print:shadow-none print:m-0" id="cv-content">
+        <div className="w-[210mm] h-[297mm] overflow-hidden bg-white text-slate-800 p-8 mx-auto shadow-xl print:shadow-none print:m-0" id="cv-content">
 
             {/* HEADER */}
-            <header className="border-b-2 border-slate-800 pb-6 mb-6">
+            <header className="border-b-2 border-slate-800 pb-6 mb-6 break-inside-avoid">
                 <h1 className="text-4xl font-bold uppercase tracking-wide text-slate-900">
                     {profil.prenom} {profil.nom}
                 </h1>
@@ -26,22 +25,22 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
                 <div className="flex flex-wrap gap-4 mt-4 text-sm text-slate-600">
                     {profil.contact?.email && (
                         <div className="flex items-center gap-1">
-                            <Mail className="w-4 h-4" /> {profil.contact.email}
+                            <span>✉</span> {profil.contact.email}
                         </div>
                     )}
                     {profil.contact?.telephone && (
                         <div className="flex items-center gap-1">
-                            <Phone className="w-4 h-4" /> {profil.contact.telephone}
+                            <span>☎</span> {profil.contact.telephone}
                         </div>
                     )}
                     {profil.localisation && (
                         <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" /> {profil.localisation}
+                            <span>📍</span> {profil.localisation}
                         </div>
                     )}
                     {profil.contact?.linkedin && (
                         <div className="flex items-center gap-1">
-                            <Linkedin className="w-4 h-4" />
+                            <span>💼</span>
                             <span className="truncate max-w-[150px]">{profil.contact.linkedin}</span>
                         </div>
                     )}
@@ -50,26 +49,26 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
 
             {/* SUMMARY */}
             {profil.elevator_pitch && (
-                <section className="mb-6">
+                <section className="mb-6 break-inside-avoid">
                     <p className="text-slate-700 leading-relaxed italic border-l-4 border-slate-200 pl-4">
                         "{profil.elevator_pitch}"
                     </p>
                 </section>
             )}
 
-            <div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-3 gap-6 break-inside-avoid">
 
                 {/* LEFT COLUMN (Main Content) */}
                 <div className="col-span-2 space-y-6">
 
                     {/* EXPERIENCE */}
-                    <section>
+                    <section className="break-inside-avoid">
                         <h3 className="text-lg font-bold uppercase border-b border-slate-300 pb-1 mb-3 text-slate-900">
                             Expérience Professionnelle
                         </h3>
                         <div className="space-y-4">
                             {experiences?.map((exp: any, i: number) => (
-                                <div key={i}>
+                                <div key={i} className="break-inside-avoid">
                                     <div className="flex justify-between items-baseline">
                                         <h4 className="font-bold text-slate-800">{exp.poste}</h4>
                                         <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">
@@ -99,7 +98,7 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
                 <div className="col-span-1 space-y-6">
 
                     {/* SKILLS */}
-                    <section>
+                    <section className="break-inside-avoid">
                         <h3 className="text-lg font-bold uppercase border-b border-slate-300 pb-1 mb-3 text-slate-900">
                             Compétences
                         </h3>
@@ -133,7 +132,7 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
                     </section>
 
                     {/* EDUCATION */}
-                    <section>
+                    <section className="break-inside-avoid">
                         <h3 className="text-lg font-bold uppercase border-b border-slate-300 pb-1 mb-3 text-slate-900">
                             Formation
                         </h3>
@@ -149,7 +148,7 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
                     </section>
 
                     {/* LANGUAGES */}
-                    <section>
+                    <section className="break-inside-avoid">
                         <h3 className="text-lg font-bold uppercase border-b border-slate-300 pb-1 mb-3 text-slate-900">
                             Langues
                         </h3>

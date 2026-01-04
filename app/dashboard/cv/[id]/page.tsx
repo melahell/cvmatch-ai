@@ -13,6 +13,8 @@ export default function CVViewPage() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
     const [cvData, setCvData] = useState<any>(null);
+    const [pdfLoading, setPdfLoading] = useState(false);
+    const [format, setFormat] = useState<"A4" | "Letter">("A4");
 
     useEffect(() => {
         const supabase = createClient(
@@ -40,6 +42,32 @@ export default function CVViewPage() {
         window.print();
     };
 
+    const handleDownloadPDF = async () => {
+        try {
+            setPdfLoading(true);
+            const response = await fetch(`/api/cv/${id}/pdf?format=${format}`);
+
+            if (!response.ok) {
+                throw new Error("Failed to generate PDF");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `CV_${cvData?.profil?.nom || id}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error("Error downloading PDF:", error);
+            alert("Erreur lors de la génération du PDF. Veuillez réessayer.");
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -64,9 +92,30 @@ export default function CVViewPage() {
                         </Link>
                         <h1 className="font-bold text-lg">Aperçu du CV</h1>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" onClick={handlePrint}>
-                            <Download className="w-4 h-4 mr-2" /> PDF
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={format}
+                            onChange={(e) => setFormat(e.target.value as "A4" | "Letter")}
+                            className="px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="A4">A4 (Europe)</option>
+                            <option value="Letter">Letter (US)</option>
+                        </select>
+                        <Button
+                            variant="outline"
+                            onClick={handleDownloadPDF}
+                            disabled={pdfLoading}
+                        >
+                            {pdfLoading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Génération...
+                                </>
+                            ) : (
+                                <>
+                                    <Download className="w-4 h-4 mr-2" /> Télécharger PDF
+                                </>
+                            )}
                         </Button>
                         <Button onClick={handlePrint}>
                             <Printer className="w-4 h-4 mr-2" /> Imprimer
@@ -84,11 +133,60 @@ export default function CVViewPage() {
 
             <style jsx global>{`
         @media print {
-          @page { margin: 0; }
-          body { background: white; }
-          .print\\:hidden { display: none !important; }
-          .print\\:shadow-none { box-shadow: none !important; }
-          .print\\:m-0 { margin: 0 !important; }
+          @page {
+            margin: 0;
+            size: A4;
+          }
+
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+
+          body {
+            background: white;
+            margin: 0;
+            padding: 0;
+          }
+
+          /* Hide non-printable elements */
+          .print\\:hidden {
+            display: none !important;
+          }
+
+          /* Remove shadows and adjust spacing for print */
+          .print\\:shadow-none {
+            box-shadow: none !important;
+          }
+
+          .print\\:m-0 {
+            margin: 0 !important;
+          }
+
+          /* Prevent page breaks inside elements */
+          .break-inside-avoid {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* Control orphans and widows */
+          p, li, div {
+            orphans: 3;
+            widows: 3;
+          }
+
+          /* Prevent headings from being orphaned */
+          h1, h2, h3, h4, h5, h6 {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+
+          /* Optimize font rendering for print */
+          body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+          }
         }
       `}</style>
         </div>
