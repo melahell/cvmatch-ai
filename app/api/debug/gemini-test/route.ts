@@ -41,3 +41,4 @@ export async function GET() {
 
     return NextResponse.json(diagnostics);
 }
+// Force redeploy Sun Jan  4 19:27:02 CET 2026
