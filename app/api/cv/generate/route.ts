@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
     try {
-        const { userId, analysisId, template, includePhoto = true, useCDCPipeline = true } = await req.json();
+        const { userId, analysisId, template, includePhoto = true, useCDCPipeline = false } = await req.json();
 
         if (!userId || !analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
