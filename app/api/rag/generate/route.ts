@@ -3,8 +3,9 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
-import { mergeRAGData, MergeResult } from "@/lib/rag/merge-engine";
-import { RAGComplete, createEmptyRAG, calculateRAGCompleteness } from "@/types/rag-complete";
+// Merge engine temporarily disabled - format compatibility issue
+// import { mergeRAGData, MergeResult } from "@/lib/rag/merge-engine";
+// import { RAGComplete, createEmptyRAG, calculateRAGCompleteness } from "@/types/rag-complete";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -282,52 +283,22 @@ export async function POST(req: Request) {
         // Legacy calculation preserved for backup/debugging (not used)
         // const { score: _legacyScore, breakdown: completenessBreakdown } = calculateCompletenessWithBreakdown(ragData);
 
-        // 6. Save RAG Metadata with MERGE (not replace)
+        // 6. Save RAG Metadata (simple update - merge disabled due to format compatibility)
         const { data: existingRag } = await supabase
             .from("rag_metadata")
-            .select("id, completeness_details")
+            .select("id")
             .eq("user_id", userId)
             .single();
 
-        let finalRagData = ragData;
-        let mergeStats = null;
-
-        if (existingRag && existingRag.completeness_details) {
-            // MERGE: Enrich existing RAG with new data
-            console.log('=== MERGING RAG DATA ===');
-            try {
-                // Convert existing to RAGComplete format (basic compatibility)
-                const existingFormatted = existingRag.completeness_details as any;
-                const incomingFormatted = ragData as any;
-
-                // Use merge engine (with source document name)
-                const sourceDoc = docs.map(d => d.filename).join(', ');
-                const mergeResult = mergeRAGData(
-                    existingFormatted as RAGComplete,
-                    incomingFormatted as RAGComplete,
-                    sourceDoc
-                );
-
-                finalRagData = mergeResult.rag;
-                mergeStats = mergeResult.stats;
-
-                console.log('Merge stats:', mergeStats);
-            } catch (mergeError: any) {
-                console.warn('Merge failed, using new data:', mergeError.message);
-                // Fallback to new data if merge fails
-                finalRagData = ragData;
-            }
-        }
-
-        // Recalculate completeness
-        const completenessScore = calculateRAGCompleteness(finalRagData as RAGComplete);
+        // Use legacy completeness calculation (more reliable with current data format)
+        const { score: completenessScore } = calculateCompletenessWithBreakdown(ragData);
 
         if (existingRag) {
             const { error: updateError } = await supabase
                 .from("rag_metadata")
                 .update({
                     completeness_score: completenessScore,
-                    completeness_details: finalRagData,
+                    completeness_details: ragData,
                     top_10_jobs: top10Jobs,
                     last_updated: new Date().toISOString()
                 })
@@ -343,7 +314,7 @@ export async function POST(req: Request) {
                 .insert({
                     user_id: userId,
                     completeness_score: completenessScore,
-                    completeness_details: finalRagData,
+                    completeness_details: ragData,
                     top_10_jobs: top10Jobs
                 });
 
