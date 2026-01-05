@@ -325,6 +325,61 @@ export function normalizeRAGToCV(raw: any): CVData {
     const limitedLangues = langues.slice(0, CV_LIMITS.maxLangues);
     const limitedCertifications = data.certifications?.slice(0, CV_LIMITS.maxCertifications);
 
+    // === EXTRACT CLIENTS ===
+    // Search for notable client names in the entire data
+    const clientPatterns = [
+        { name: 'Cartier', secteur: 'Luxe' },
+        { name: 'Chanel', secteur: 'Luxe' },
+        { name: 'Hermès', secteur: 'Luxe' },
+        { name: 'LVMH', secteur: 'Luxe' },
+        { name: 'Dior', secteur: 'Luxe' },
+        { name: 'Dreamworks', secteur: 'Média' },
+        { name: 'SNCF', secteur: 'Transport' },
+        { name: 'Engie', secteur: 'Énergie' },
+        { name: 'EDF', secteur: 'Énergie' },
+        { name: 'Total', secteur: 'Énergie' },
+        { name: 'Orange', secteur: 'Télécom' },
+        { name: 'Société Générale', secteur: 'Finance' },
+        { name: 'BNP', secteur: 'Finance' },
+        { name: 'AXA', secteur: 'Finance' },
+        { name: 'Airbus', secteur: 'Industrie' },
+        { name: 'Renault', secteur: 'Industrie' },
+        { name: 'Sanofi', secteur: 'Pharma' },
+        { name: 'L\'Oréal', secteur: 'Cosmétique' }
+    ];
+
+    const fullText = JSON.stringify(data).toLowerCase();
+    const foundClients: string[] = [];
+    const clientsBySector: Record<string, string[]> = {};
+
+    clientPatterns.forEach(({ name, secteur }) => {
+        if (fullText.includes(name.toLowerCase())) {
+            foundClients.push(name);
+            if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
+            clientsBySector[secteur].push(name);
+        }
+    });
+
+    // Also check cv_data.clients_references if already present (from AI generation)
+    const existingClients = (data as any).clients_references;
+    if (existingClients?.groupes) {
+        existingClients.groupes.forEach((g: any) => {
+            (g.clients || []).forEach((c: string) => {
+                if (!foundClients.includes(c)) {
+                    foundClients.push(c);
+                    const secteur = g.secteur || 'Autre';
+                    if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
+                    clientsBySector[secteur].push(c);
+                }
+            });
+        });
+    }
+
+    const secteurs = Object.entries(clientsBySector).map(([secteur, clients]) => ({
+        secteur,
+        clients
+    }));
+
     return {
         profil: {
             prenom: sanitizeText(prenom),
@@ -344,7 +399,11 @@ export function normalizeRAGToCV(raw: any): CVData {
         },
         formations: limitedFormations,
         langues: limitedLangues,
-        certifications: limitedCertifications
+        certifications: limitedCertifications,
+        clients_references: foundClients.length > 0 ? {
+            clients: foundClients,
+            secteurs: secteurs
+        } : undefined
     };
 }
 // Force rebuild Sun Jan  4 16:32:17 CET 2026

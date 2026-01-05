@@ -25,7 +25,7 @@ export default function ModernTemplate({
     jobContext,
     dense = false
 }: TemplateProps) {
-    const { profil, experiences, competences, formations, langues, certifications } = data;
+    const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
 
     // Helper to safely render a realisation (can be string or object)
     const renderRealisation = (r: any): string => {
@@ -206,6 +206,31 @@ export default function ModernTemplate({
                                     </span>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Références Clients */}
+                {clients_references && clients_references.clients && clients_references.clients.length > 0 && (
+                    <div className="space-y-2 mb-5">
+                        <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
+                            Références
+                        </h3>
+                        <div className="space-y-1.5 text-[8pt]">
+                            {clients_references.secteurs && clients_references.secteurs.length > 0 ? (
+                                clients_references.secteurs.map((group, i) => (
+                                    <div key={i}>
+                                        <span className="text-indigo-400 text-[6pt] uppercase font-semibold">{group.secteur}</span>
+                                        <div className="text-slate-200 leading-snug">
+                                            {group.clients.join(', ')}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-slate-200">
+                                    {clients_references.clients.join(', ')}
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

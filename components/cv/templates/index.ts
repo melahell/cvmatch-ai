@@ -34,6 +34,10 @@ export interface CVData {
         niveau: string;
     }>;
     certifications?: string[];
+    clients_references?: {
+        clients: string[];
+        secteurs?: Array<{ secteur: string; clients: string[] }>;
+    };
 }
 
 export interface JobContext {
