@@ -7,11 +7,17 @@ interface RAGData {
         nom?: string;
         prenom?: string;
         titre_principal?: string;
+        titres_alternatifs?: string[];
         localisation?: string;
+        disponibilite?: string;
+        teletravail?: string;
+        tjm?: number;
         contact?: {
             email?: string;
             telephone?: string;
             linkedin?: string;
+            portfolio?: string;
+            github?: string;
         };
         email?: string;
         telephone?: string;
@@ -19,39 +25,105 @@ interface RAGData {
         elevator_pitch?: string;
         photo_url?: string;
     };
+    // Alternative nested format from AI
+    identity?: {
+        nom?: string;
+        prenom?: string;
+        titre_principal?: string;
+        email?: string;
+        telephone?: string;
+        linkedin?: string;
+        localisation?: string;
+        elevator_pitch?: string;
+    };
     experiences?: Array<{
         poste?: string;
         entreprise?: string;
+        type_entreprise?: string;
+        secteur?: string;
+        type_contrat?: string;
         debut?: string;
         date_debut?: string;
         fin?: string;
         date_fin?: string;
         actuel?: boolean;
-        realisations?: Array<string | { description?: string; impact?: string }>;
+        contexte?: string;
+        equipe_size?: number;
+        budget_gere?: string;
+        realisations?: Array<string | { description?: string; impact?: string; display?: boolean }>;
         technologies?: string[];
+        outils?: string[];
+        methodologies?: string[];
+        clients_references?: string[];
         lieu?: string;
+        display?: boolean;
     }>;
     competences?: {
-        techniques?: string[];
+        techniques?: string[] | Array<{ nom: string; niveau?: string; annees_experience?: number }>;
         soft_skills?: string[];
+        methodologies?: string[];
+        langages_programmation?: string[];
+        frameworks?: string[];
+        outils?: string[];
+        cloud_devops?: string[];
         explicit?: {
-            techniques?: string[];
+            techniques?: string[] | Array<{ nom: string; niveau?: string }>;
             soft_skills?: string[];
+            methodologies?: string[];
+            langages_programmation?: string[];
+            frameworks?: string[];
+            outils?: string[];
+            cloud_devops?: string[];
         };
         inferred?: {
             techniques?: Array<{ name: string; confidence?: number }>;
             tools?: Array<{ name: string; confidence?: number }>;
             soft_skills?: Array<{ name: string; confidence?: number }>;
         };
+        par_domaine?: Record<string, string[]>;
+        // CDC format with categories
+        categories?: Array<{ name: string; skills: string[] }>;
     };
     formations?: Array<{
+        type?: string;
+        titre?: string;
         diplome?: string;
+        organisme?: string;
         ecole?: string;
         etablissement?: string;
         annee?: string;
+        en_cours?: boolean;
+        specialite?: string;
+        mention?: string;
+        display?: boolean;
     }>;
-    langues?: Record<string, string> | Array<{ langue: string; niveau: string }>;
-    certifications?: string[];
+    // Dedicated certifications section
+    certifications?: string[] | Array<{
+        nom: string;
+        organisme?: string;
+        date_obtention?: string;
+        date_expiration?: string;
+        niveau?: string;
+        domaine?: string;
+    }>;
+    langues?: Record<string, string> | Array<{ langue: string; niveau: string; niveau_cecrl?: string; display?: boolean }>;
+    // NEW: Dedicated references section
+    references?: {
+        clients?: Array<{
+            nom: string;
+            secteur?: string;
+            type?: string;
+            via_entreprise?: string;
+        }>;
+        projets_marquants?: Array<{
+            nom: string;
+            description?: string;
+            client?: string;
+            annee?: string;
+            technologies?: string[];
+            resultats?: string;
+        }>;
+    };
 }
 
 /**
@@ -323,7 +395,17 @@ export function normalizeRAGToCV(raw: any): CVData {
     const limitedSoftSkills = softSkills.slice(0, CV_LIMITS.maxSoftSkills);
     const limitedFormations = formations.slice(0, CV_LIMITS.maxFormations);
     const limitedLangues = langues.slice(0, CV_LIMITS.maxLangues);
-    const limitedCertifications = data.certifications?.slice(0, CV_LIMITS.maxCertifications);
+
+    // Convert certifications to string array (may be objects or strings)
+    let certificationStrings: string[] = [];
+    if (data.certifications) {
+        certificationStrings = data.certifications.map((c: any) => {
+            if (typeof c === 'string') return c;
+            if (typeof c === 'object' && c.nom) return c.nom;
+            return '';
+        }).filter(Boolean);
+    }
+    const limitedCertifications = certificationStrings.slice(0, CV_LIMITS.maxCertifications);
 
     // === EXTRACT CLIENTS ===
     // Search for notable client names in the entire data
@@ -357,6 +439,34 @@ export function normalizeRAGToCV(raw: any): CVData {
             foundClients.push(name);
             if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
             clientsBySector[secteur].push(name);
+        }
+    });
+
+    // Extract from references.clients (new RAGComplete format)
+    if (data.references?.clients) {
+        data.references.clients.forEach((c) => {
+            if (c.nom && !foundClients.includes(c.nom)) {
+                foundClients.push(c.nom);
+                const secteur = c.secteur || 'Autre';
+                if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
+                clientsBySector[secteur].push(c.nom);
+            }
+        });
+    }
+
+    // Extract from experiences.clients_references (new format)
+    experiences.forEach(exp => {
+        const rawExp = (data.experiences || []).find(e =>
+            e.entreprise === exp.entreprise
+        );
+        if (rawExp?.clients_references) {
+            rawExp.clients_references.forEach((c: string) => {
+                if (!foundClients.includes(c)) {
+                    foundClients.push(c);
+                    if (!clientsBySector['Autre']) clientsBySector['Autre'] = [];
+                    clientsBySector['Autre'].push(c);
+                }
+            });
         }
     });
 
