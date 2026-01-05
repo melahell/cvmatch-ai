@@ -316,7 +316,7 @@ export function normalizeRAGToCV(raw: any): CVData {
             ...exp,
             realisations: exp.realisations
                 .slice(0, CV_LIMITS.maxRealisationsPerExp)
-                .map(r => truncateRealisation(r))
+                .map((r: string) => truncateRealisation(r))
         }));
 
     const limitedTechniques = techniques.slice(0, CV_LIMITS.maxSkills);
