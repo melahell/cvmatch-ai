@@ -4,6 +4,21 @@ import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Globe } from "lucide-react";
 
+// Sanitize text by fixing spacing issues (applied at render time)
+function sanitizeText(text: string | undefined | null): string {
+    if (!text) return '';
+    return text
+        .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
+        .replace(/([.,;:!?])([a-zA-ZÀ-ÿ])/g, '$1 $2')
+        .replace(/\)([a-zA-ZÀ-ÿ])/g, ') $1')
+        .replace(/([a-zA-ZÀ-ÿ])\(/g, '$1 (')
+        .replace(/(\d)(ans|projets|utilisateurs|mois)/gi, '$1 $2')
+        .replace(/\+(\d)/g, '+ $1')
+        .replace(/(\d)\+/g, '$1 +')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 export default function ModernTemplate({
     data,
     includePhoto = true,
@@ -14,15 +29,16 @@ export default function ModernTemplate({
 
     // Helper to safely render a realisation (can be string or object)
     const renderRealisation = (r: any): string => {
-        if (typeof r === 'string') return r;
-        if (typeof r === 'object' && r !== null) {
-            // Handle {impact, description} format
-            if (r.description) return r.description;
-            if (r.impact) return r.impact;
-            // Try to stringify
-            return JSON.stringify(r);
+        let text = '';
+        if (typeof r === 'string') text = r;
+        else if (typeof r === 'object' && r !== null) {
+            if (r.description) text = r.description;
+            else if (r.impact) text = r.impact;
+            else text = JSON.stringify(r);
+        } else {
+            text = String(r);
         }
-        return String(r);
+        return sanitizeText(text);
     };
 
     // Helper to safely render a skill (can be string or object)
@@ -41,6 +57,9 @@ export default function ModernTemplate({
     const limitedSkills = competences?.techniques?.slice(0, 8) || [];
     const limitedSoftSkills = competences?.soft_skills?.slice(0, 5) || [];
     const limitedFormations = formations?.slice(0, 2) || [];
+
+    // Sanitize elevator pitch
+    const cleanElevatorPitch = sanitizeText(profil?.elevator_pitch);
 
     // Get initials for avatar fallback
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
@@ -213,14 +232,14 @@ export default function ModernTemplate({
             {/* Main Content */}
             <main className="flex-1 p-6 bg-white overflow-hidden">
                 {/* Profil / Résumé */}
-                {profil.elevator_pitch && (
-                    <section className="mb-5">
+                {cleanElevatorPitch && (
+                    <section className="mb-4">
                         <h2 className="text-base font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                             <span className="w-6 h-0.5 bg-indigo-600 rounded-full" />
                             Profil
                         </h2>
                         <p className="text-slate-700 leading-relaxed text-[9pt] border-l-4 border-indigo-100 pl-3 font-medium">
-                            {profil.elevator_pitch}
+                            {cleanElevatorPitch}
                         </p>
                     </section>
                 )}
