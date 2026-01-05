@@ -193,15 +193,30 @@ export function convertToLegacyFormat(cv: CVOptimized): any {
 
 /**
  * Génère les props pour le template basées sur le niveau de compression
+ * Accepte soit un CVOptimized complet, soit juste les cv_metadata
  */
-export function getTemplateProps(cv: CVOptimized): {
+export function getTemplateProps(cvOrMetadata: CVOptimized | { compression_level_applied?: number } | null | undefined): {
     dense: boolean;
     ultraCompact: boolean;
     showTechnologies: boolean;
     maxBullets: number;
     fontSize: 'normal' | 'small' | 'tiny';
 } {
-    const compressionLevel = cv.cv_metadata.compression_level_applied;
+    // Handle null/undefined
+    if (!cvOrMetadata) {
+        return {
+            dense: false,
+            ultraCompact: false,
+            showTechnologies: true,
+            maxBullets: 4,
+            fontSize: 'normal'
+        };
+    }
+
+    // Extract compression level from either full CV or metadata object
+    const compressionLevel = 'cv_metadata' in cvOrMetadata
+        ? cvOrMetadata.cv_metadata?.compression_level_applied ?? 0
+        : cvOrMetadata.compression_level_applied ?? 0;
 
     return {
         dense: compressionLevel >= 1,
