@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
-import { Loader2, Download, ArrowLeft, RefreshCw, FileText } from "lucide-react";
+import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CVRenderer from "@/components/cv/CVRenderer";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
@@ -26,6 +26,7 @@ export default function CVViewPage() {
     const [currentTemplate, setCurrentTemplate] = useState<string>("modern");
     const [currentIncludePhoto, setCurrentIncludePhoto] = useState<boolean>(true);
     const cvRef = useRef<HTMLDivElement>(null);
+    const [generatingPDF, setGeneratingPDF] = useState(false);
 
     useEffect(() => {
         const supabase = createSupabaseClient();
@@ -55,11 +56,9 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
-    // PDF generation using html2pdf.js (produces real text PDFs, not images)
-    const [generatingPDF, setGeneratingPDF] = useState(false);
-
+    // PDF generation with html2pdf.js and fallback to window.print()
     const handleDownloadPDF = async () => {
-        if (!cvGeneration) return;
+        if (!cvGeneration || generatingPDF) return;
 
         setGeneratingPDF(true);
         try {
@@ -90,7 +89,10 @@ export default function CVViewPage() {
             await html2pdf().set(options).from(element).save();
         } catch (error) {
             console.error('PDF Error:', error);
-            alert('Erreur lors de la génération du PDF');
+            // Fallback to browser print
+            if (confirm('La génération PDF a échoué. Utiliser l\'impression du navigateur?')) {
+                window.print();
+            }
         } finally {
             setGeneratingPDF(false);
         }
@@ -103,6 +105,21 @@ export default function CVViewPage() {
     };
 
     const templateInfo = TEMPLATES.find(t => t.id === currentTemplate);
+
+    // Extract CDC metadata if available
+    const cvMetadata = cvGeneration?.cv_data?.cv_metadata;
+    const qualityScore = cvMetadata?.ats_score;
+    const compressionLevel = cvMetadata?.compression_level_applied || 0;
+    const pageCount = cvMetadata?.page_count || 1;
+    const seniorityLevel = cvMetadata?.seniority_level;
+
+    // Quality score badge color
+    const getScoreColor = (score: number | undefined) => {
+        if (!score) return 'bg-gray-100 text-gray-600';
+        if (score >= 80) return 'bg-green-100 text-green-700';
+        if (score >= 60) return 'bg-yellow-100 text-yellow-700';
+        return 'bg-red-100 text-red-700';
+    };
 
     if (loading) {
         return (
@@ -133,6 +150,33 @@ export default function CVViewPage() {
                             </p>
                         </div>
                     </div>
+
+                    {/* Quality & Page Indicators */}
+                    <div className="hidden md:flex items-center gap-3">
+                        {/* Page Count Badge */}
+                        <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${pageCount === 1 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                            <FileText className="w-3 h-3" />
+                            {pageCount} page{pageCount > 1 ? 's' : ''}
+                        </div>
+
+                        {/* Compression Indicator */}
+                        {compressionLevel > 0 && (
+                            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                                <AlertTriangle className="w-3 h-3" />
+                                Compression {compressionLevel}
+                            </div>
+                        )}
+
+                        {/* Seniority Badge */}
+                        {seniorityLevel && (
+                            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                <Info className="w-3 h-3" />
+                                {seniorityLevel.charAt(0).toUpperCase() + seniorityLevel.slice(1)}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
@@ -162,6 +206,25 @@ export default function CVViewPage() {
                             )}
                         </Button>
                     </div>
+                </div>
+
+                {/* Mobile Indicators */}
+                <div className="md:hidden flex items-center justify-center gap-2 pb-2 px-4">
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${pageCount === 1 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                        <FileText className="w-3 h-3" />
+                        {pageCount}p
+                    </div>
+                    {compressionLevel > 0 && (
+                        <div className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                            C{compressionLevel}
+                        </div>
+                    )}
+                    {seniorityLevel && (
+                        <div className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                            {seniorityLevel.slice(0, 3).toUpperCase()}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -226,3 +289,4 @@ export default function CVViewPage() {
         </div>
     );
 }
+
