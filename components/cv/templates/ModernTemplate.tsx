@@ -174,7 +174,7 @@ export default function ModernTemplate({
 
                 {/* Langues */}
                 {langues && langues.length > 0 && (
-                    <div className="space-y-2 mt-auto">
+                    <div className="space-y-2">
                         <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
                             Langues
                         </h3>
@@ -185,6 +185,24 @@ export default function ModernTemplate({
                                     <span className="text-[6pt] bg-indigo-600 text-white px-1.5 py-0.5 rounded uppercase font-semibold">
                                         {lang.niveau.split(' ')[0]}
                                     </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Formations - Compact in sidebar */}
+                {limitedFormations.length > 0 && (
+                    <div className="space-y-2 mt-auto">
+                        <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
+                            Formation
+                        </h3>
+                        <div className="space-y-1.5 text-[8pt]">
+                            {limitedFormations.map((edu, i) => (
+                                <div key={i} className="text-slate-200">
+                                    <span className="font-semibold">{edu.diplome}</span>
+                                    {edu.etablissement && <span className="text-slate-400"> - {edu.etablissement}</span>}
+                                    {edu.annee && <span className="text-indigo-400 ml-1">({edu.annee})</span>}
                                 </div>
                             ))}
                         </div>
@@ -261,55 +279,26 @@ export default function ModernTemplate({
                     </div>
                 </section>
 
-                {/* Formation & Certifications */}
-                <section className="grid grid-cols-2 gap-4">
-                    {/* Formations */}
-                    <div>
+                {/* Certifications Only (Formations moved to sidebar) */}
+                {certifications && certifications.length > 0 && (
+                    <section className="mb-4">
+
                         <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest">
-                            <span className="w-4 h-0.5 bg-indigo-600 rounded-full" />
-                            Formation
+                            <span className="w-4 h-0.5 bg-purple-600 rounded-full" />
+                            Certifications
                         </h2>
-                        <div className="space-y-2">
-                            {limitedFormations.map((edu, i) => (
-                                <div
+                        <div className="flex flex-wrap gap-1.5">
+                            {certifications.slice(0, 6).map((cert, i) => (
+                                <span
                                     key={i}
-                                    className="p-2 bg-slate-50 rounded border-l-4 border-indigo-600"
+                                    className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded text-[7pt] font-semibold text-purple-700"
                                 >
-                                    {edu.annee && (
-                                        <span className="text-[6pt] font-bold text-indigo-700">{edu.annee}</span>
-                                    )}
-                                    <h4 className="font-bold text-slate-900 text-[8pt]">{edu.diplome}</h4>
-                                    <p className="text-[7pt] text-slate-600 font-medium">{edu.etablissement}</p>
-                                </div>
+                                    ✓ {cert}
+                                </span>
                             ))}
                         </div>
-                    </div>
-
-                    {/* Certifications */}
-                    {certifications && certifications.length > 0 && (
-                        <div>
-                            <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest">
-                                <span className="w-4 h-0.5 bg-purple-600 rounded-full" />
-                                Certifications
-                            </h2>
-                            <div className="space-y-1.5">
-                                {certifications.slice(0, 4).map((cert, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex items-center gap-2 p-1.5 border border-slate-200 rounded bg-white"
-                                    >
-                                        <div className="bg-purple-100 p-1 rounded text-purple-600 flex-shrink-0">
-                                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <span className="font-semibold text-[7pt] text-slate-900">{cert}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </section>
+                    </section>
+                )}
             </main>
         </div>
     );
