@@ -289,10 +289,11 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Formation en premier : ${rules.formationFirstPosition ? 'OUI' : 'NON (expériences d\'abord)'}
 
 2. EXPÉRIENCES :
-   - Maximum ${rules.maxExperiences} expériences affichées
+   - CONSERVER TOUTES les expériences du profil source (${rules.maxExperiences} max)
    - Maximum ${rules.maxBulletsPerExperience} bullets par expérience
    - Maximum ${rules.maxBulletChars} caractères par bullet
-   - Afficher références clients : ${rules.showClientReferences ? 'OUI' : 'NON'}
+   - Afficher références clients : ${rules.showClientReferences ? 'OUI - OBLIGATOIRE' : 'NON'}
+   ⚠️ NE PAS SUPPRIMER d'expériences sauf si elles sont vraiment hors sujet
 
 3. QUANTIFICATION OBLIGATOIRE (≥60% des bullets) :
    Formats acceptés :
@@ -301,26 +302,37 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Impact : "amélioration de 45%", "réduction délais de 3 mois"
    - Portée : "déploiement 500 utilisateurs", "12 pays"
 
-4. PERTINENCE_SCORE PAR EXPÉRIENCE :
+4. RÉFÉRENCES CLIENTS (si ${rules.showClientReferences ? 'ACTIF' : 'désactivé'}) :
+   ${rules.showClientReferences ? `
+   OBLIGATOIRE : Ajouter une section clients_references avec les grands noms :
+   - Extraire les clients mentionnés dans les expériences (ex: Cartier, Dreamworks, SNCF...)
+   - Les grouper par secteur (Luxe, Finance, Industrie...)
+   - Ajouter dans le JSON : "clients_references": { "included": true, "groupes": [...] }
+   ` : 'Non applicable'}
+
+5. PERTINENCE_SCORE PAR EXPÉRIENCE :
    Pour CHAQUE expérience, calcule un score 0-100 basé sur :
    - Correspondance avec le poste visé (+30 si poste similaire)
    - Récence (+20 si < 2 ans, +10 si < 5 ans)
    - Technologies matching avec l'offre (+5 par match, max +30)
    - Impact quantifié visible (+20 si quantifications)
    
-   RÈGLE : Masquer (display: false) les expériences avec score < 40
+   RÈGLE : Masquer (display: false) les expériences avec score < 30 UNIQUEMENT
 
-5. KEYWORDS ATS CRITIQUES pour secteur ${context.sectorProfile.toUpperCase()} :
+6. KEYWORDS ATS CRITIQUES pour secteur ${context.sectorProfile.toUpperCase()} :
    ${JSON.stringify(sectorConfig.keywords_critical)}
    → Ces mots-clés DOIVENT apparaître naturellement dans le CV
 
-6. RÈGLES DE CONDENSATION (si débordement) :
-   Niveau 1 : Réduire descriptions à version courte
-   Niveau 2 : Limiter à 3 bullets par expérience
-   Niveau 3 : Masquer expériences pertinence_score < 50
-   Niveau 4 : Autoriser 2ème page (séniorité ≥ senior uniquement)
+7. COMPÉTENCES :
+   - CONSERVER TOUTES les compétences du profil source
+   - Les organiser par catégories logiques
+   - NE PAS réduire à moins de 12 compétences techniques
 
-7. TONALITÉ "${sectorConfig.tone.toUpperCase()}" :
+8. FORMATIONS :
+   - CONSERVER TOUTES les formations et certifications du profil source
+   - NE PAS supprimer de formations
+
+9. TONALITÉ "${sectorConfig.tone.toUpperCase()}" :
    ${sectorConfig.tone === 'formal' ? '- Vocabulaire professionnel strict\n   - Phrases factuelles\n   - Pas de superlatifs' : ''}
    ${sectorConfig.tone === 'dynamic' ? '- Vocabulaire dynamique et moderne\n   - Orienté résultats et innovation\n   - Action verbs forts' : ''}
    ${sectorConfig.tone === 'executive' ? '- Vision stratégique mise en avant\n   - Leadership et impact organisationnel\n   - Références C-level si possible' : ''}

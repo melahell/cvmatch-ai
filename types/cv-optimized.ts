@@ -238,35 +238,24 @@ export const SENIORITY_RULES: Record<SeniorityLevel, SeniorityRules> = {
         elevatorPitchRequired: false,
         elevatorPitchMaxChars: 200,
         formationFirstPosition: true,
-        maxExperiences: 3,
-        maxBulletsPerExperience: 3,
-        maxBulletChars: 150,
+        maxExperiences: 4,
+        maxBulletsPerExperience: 4,
+        maxBulletChars: 180,
         showClientReferences: false,
         allowCondensation: false
     },
     confirmed: {
         maxPages: 1,
         elevatorPitchRequired: true,
-        elevatorPitchMaxChars: 250,
-        formationFirstPosition: false,
-        maxExperiences: 4,
-        maxBulletsPerExperience: 4,
-        maxBulletChars: 180,
-        showClientReferences: false,
-        allowCondensation: true
-    },
-    senior: {
-        maxPages: 2,
-        elevatorPitchRequired: true,
-        elevatorPitchMaxChars: 300,
+        elevatorPitchMaxChars: 280,
         formationFirstPosition: false,
         maxExperiences: 5,
-        maxBulletsPerExperience: 4,
+        maxBulletsPerExperience: 5,
         maxBulletChars: 200,
         showClientReferences: true,
         allowCondensation: true
     },
-    expert: {
+    senior: {
         maxPages: 2,
         elevatorPitchRequired: true,
         elevatorPitchMaxChars: 350,
@@ -274,6 +263,17 @@ export const SENIORITY_RULES: Record<SeniorityLevel, SeniorityRules> = {
         maxExperiences: 6,
         maxBulletsPerExperience: 5,
         maxBulletChars: 220,
+        showClientReferences: true,
+        allowCondensation: true
+    },
+    expert: {
+        maxPages: 2,
+        elevatorPitchRequired: true,
+        elevatorPitchMaxChars: 400,
+        formationFirstPosition: false,
+        maxExperiences: 8,
+        maxBulletsPerExperience: 6,
+        maxBulletChars: 250,
         showClientReferences: true,
         allowCondensation: true
     }
