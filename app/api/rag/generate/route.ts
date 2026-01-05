@@ -3,6 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
+import { mergeRAGData, MergeResult } from "@/lib/rag/merge-engine";
+import { RAGComplete, createEmptyRAG, calculateRAGCompleteness } from "@/types/rag-complete";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -155,7 +157,7 @@ export async function POST(req: Request) {
 
                     await supabase
                         .from("uploaded_documents")
-                        .update({ extraction_status: "processed", extracted_text: text.slice(0, 50000) })
+                        .update({ extraction_status: "processed", extracted_text: text })
                         .eq("id", doc.id);
                 } else {
                     processingResults.push({ filename: doc.filename, status: "empty_content" });
@@ -277,22 +279,55 @@ export async function POST(req: Request) {
             return { score: Math.min(100, total), breakdown };
         };
 
-        const { score: completenessScore, breakdown: completenessBreakdown } = calculateCompletenessWithBreakdown(ragData);
+        // Legacy calculation preserved for backup/debugging (not used)
+        // const { score: _legacyScore, breakdown: completenessBreakdown } = calculateCompletenessWithBreakdown(ragData);
 
-        // 6. Save RAG Metadata
+        // 6. Save RAG Metadata with MERGE (not replace)
         const { data: existingRag } = await supabase
             .from("rag_metadata")
-            .select("id")
+            .select("id, completeness_details")
             .eq("user_id", userId)
             .single();
+
+        let finalRagData = ragData;
+        let mergeStats = null;
+
+        if (existingRag && existingRag.completeness_details) {
+            // MERGE: Enrich existing RAG with new data
+            console.log('=== MERGING RAG DATA ===');
+            try {
+                // Convert existing to RAGComplete format (basic compatibility)
+                const existingFormatted = existingRag.completeness_details as any;
+                const incomingFormatted = ragData as any;
+
+                // Use merge engine (with source document name)
+                const sourceDoc = docs.map(d => d.filename).join(', ');
+                const mergeResult = mergeRAGData(
+                    existingFormatted as RAGComplete,
+                    incomingFormatted as RAGComplete,
+                    sourceDoc
+                );
+
+                finalRagData = mergeResult.rag;
+                mergeStats = mergeResult.stats;
+
+                console.log('Merge stats:', mergeStats);
+            } catch (mergeError: any) {
+                console.warn('Merge failed, using new data:', mergeError.message);
+                // Fallback to new data if merge fails
+                finalRagData = ragData;
+            }
+        }
+
+        // Recalculate completeness
+        const completenessScore = calculateRAGCompleteness(finalRagData as RAGComplete);
 
         if (existingRag) {
             const { error: updateError } = await supabase
                 .from("rag_metadata")
                 .update({
                     completeness_score: completenessScore,
-                    // completeness_breakdown is NOT stored in DB, calculated client-side
-                    completeness_details: ragData,
+                    completeness_details: finalRagData,
                     top_10_jobs: top10Jobs,
                     last_updated: new Date().toISOString()
                 })
@@ -308,8 +343,7 @@ export async function POST(req: Request) {
                 .insert({
                     user_id: userId,
                     completeness_score: completenessScore,
-                    // completeness_breakdown is NOT stored in DB, calculated client-side
-                    completeness_details: ragData,
+                    completeness_details: finalRagData,
                     top_10_jobs: top10Jobs
                 });
 
