@@ -3,186 +3,101 @@ import { UserProfile, JobAnalysis } from "@/types";
 
 export const getRAGExtractionPrompt = (extractedText: string) => `
 Tu es un expert en extraction et structuration de données professionnelles.
-Ton objectif : EXTRAIRE 100% DES INFORMATIONS sans rien perdre.
 
 DOCUMENTS FOURNIS:
 ${extractedText}
 
-═══════════════════════════════════════════════════════════════════════════════
-MISSION : EXTRACTION COMPLÈTE - ZÉRO PERTE DE DONNÉES
-═══════════════════════════════════════════════════════════════════════════════
+MISSION CRITIQUE:
+Extrais et structure les informations en SÉPARANT strictement :
+1. Ce qui est EXPLICITEMENT écrit (compétences mentionnées textuellement)
+2. Ce qui est INFÉRÉ du contexte (compétences déduites mais non écrites)
 
-RÈGLE ABSOLUE : Extrait TOUT ce qui est mentionné. Ne filtre rien. Ne résume pas.
-
-SCHÉMA CIBLE (JSON) :
+SCHÉMA CIBLE (JSON uniquement) :
 {
   "profil": {
     "nom": "string",
     "prenom": "string",
     "titre_principal": "string",
-    "titres_alternatifs": ["autres titres/postes mentionnés"],
     "localisation": "string",
-    "disponibilite": "string|null",
-    "mobilite": ["villes/régions acceptées"],
-    "teletravail": "string|null",
-    "tjm": number|null,
-    "contact": {
-      "email": "string",
-      "telephone": "string",
-      "linkedin": "string",
-      "portfolio": "string|null",
-      "github": "string|null"
-    },
-    "elevator_pitch": "string (3-4 phrases résumant le profil)"
+    "contact": { "email": "string", "telephone": "string", "linkedin": "string" },
+    "elevator_pitch": "string (2-3 phrases max)"
   },
-
   "experiences": [
     {
       "poste": "string",
       "entreprise": "string",
-      "type_entreprise": "esn|client_final|startup|pme|grand_groupe|public|null",
-      "secteur": "string (Finance, Pharma, Tech, Luxe, etc.)",
-      "lieu": "string",
-      "type_contrat": "cdi|cdd|freelance|mission|stage|alternance|null",
       "debut": "YYYY-MM",
       "fin": "YYYY-MM|null",
       "actuel": boolean,
-      "contexte": "1-2 phrases de contexte",
-      "equipe_size": number|null,
-      "budget_gere": "string|null",
       "realisations": [
-        {
-          "description": "string COMPLET - ne pas tronquer",
-          "impact": "string (résultat quantifié si présent)"
-        }
+        { "description": "string", "impact": "string (quantifié)" }
       ],
-      "technologies": ["string"],
-      "outils": ["string (Jira, Confluence, etc.)"],
-      "methodologies": ["Agile", "Scrum", "SAFe", "etc."],
-      "clients_references": ["noms des clients mentionnés pour cette XP"]
+      "technologies": ["string"]
     }
   ],
-
   "competences": {
     "explicit": {
-      "techniques": [
-        {
-          "nom": "string",
-          "niveau": "debutant|intermediaire|avance|expert|null",
-          "annees_experience": number|null
-        }
-      ],
-      "soft_skills": ["string"],
-      "methodologies": ["string"],
-      "langages_programmation": ["string"],
-      "frameworks": ["string"],
-      "outils": ["string"],
-      "cloud_devops": ["string"]
+      "techniques": ["string"],
+      "soft_skills": ["string"]
     },
     "inferred": {
       "techniques": [
         {
           "name": "string",
-          "confidence": 60-100,
-          "reasoning": "pourquoi cette inférence",
-          "sources": ["citations exactes"]
+          "confidence": 0-100,
+          "reasoning": "string (pourquoi tu l'infères)",
+          "sources": ["citations exactes du CV"]
         }
       ],
-      "tools": [{ "name": "", "confidence": 0, "reasoning": "", "sources": [] }],
-      "soft_skills": [{ "name": "", "confidence": 0, "reasoning": "", "sources": [] }]
-    },
-    "par_domaine": {
-      "Cloud": ["AWS", "Azure"],
-      "Gestion Projet": ["Planisware", "MS Project"]
+      "tools": [
+        {
+          "name": "string",
+          "confidence": 0-100,
+          "reasoning": "string",
+          "sources": ["citations"]
+        }
+      ],
+      "soft_skills": [
+        {
+          "name": "string",
+          "confidence": 0-100,
+          "reasoning": "string",
+          "sources": ["citations"]
+        }
+      ]
     }
   },
-
   "formations": [
-    {
-      "type": "diplome|certification|formation|mooc",
-      "titre": "string",
-      "organisme": "string",
-      "annee": "YYYY",
-      "en_cours": boolean,
-      "specialite": "string|null",
-      "mention": "string|null"
-    }
+    { "diplome": "string", "ecole": "string", "annee": "YYYY" }
   ],
-
-  "certifications": [
-    {
-      "nom": "string",
-      "organisme": "string",
-      "date_obtention": "YYYY-MM|YYYY",
-      "date_expiration": "YYYY-MM|null",
-      "niveau": "string|null (Associate, Professional, etc.)",
-      "domaine": "string (Cloud, Sécurité, PM, etc.)"
-    }
-  ],
-
-  "langues": [
-    {
-      "langue": "string",
-      "niveau": "Natif|Courant|Professionnel|Intermédiaire|Débutant",
-      "niveau_cecrl": "A1|A2|B1|B2|C1|C2|null"
-    }
-  ],
-
-  "references": {
-    "clients": [
-      {
-        "nom": "string (Cartier, SNCF, etc.)",
-        "secteur": "string (Luxe, Transport, Finance, etc.)",
-        "type": "grand_compte|pme|startup|public",
-        "via_entreprise": "string|null (via quelle ESN/employeur)"
-      }
-    ],
-    "projets_marquants": [
-      {
-        "nom": "string",
-        "description": "string",
-        "client": "string|null",
-        "annee": "YYYY",
-        "technologies": ["string"],
-        "resultats": "string"
-      }
-    ]
-  }
+  "langues": { "langue": "niveau" }
 }
 
-═══════════════════════════════════════════════════════════════════════════════
-RÈGLES D'EXTRACTION
-═══════════════════════════════════════════════════════════════════════════════
+RÈGLES STRICTES pour COMPÉTENCES :
 
-1. **EXPÉRIENCES** :
-   - Extrais TOUTES les expériences, même anciennes
-   - Cherche les clients mentionnés dans chaque expérience
-   - Note le secteur d'activité (Finance, Pharma, Tech, Luxe, Industrie...)
-   - Extrait les méthodologies (Agile, Scrum, SAFe, Waterfall...)
+1. **EXPLICIT** = Compétences mentionnées TEXTUELLEMENT
+   - "JavaScript", "React", "Python" → EXPLICIT si écrits
+   - "Communication" → EXPLICIT si le mot est dans le CV
 
-2. **CLIENTS/RÉFÉRENCES** :
-   - Identifie TOUS les noms de grandes entreprises
-   - Classe par secteur (Luxe: Cartier, Chanel / Finance: BNP, SG / etc.)
-   - Note si le client était via une ESN
+2. **INFERRED** = Compétences DÉDUITES du contexte
+   ✅ Exemples VALID pour inférence :
+   - "Git" si GitHub mentionné mais jamais "Git"
+   - "Docker" si "containerisation" ou "déploiement" contextuel
+   - "Agile/Scrum" si "gestion sprints" mais jamais "Agile"
+   - "Leadership" si "management équipe de 5"
+   
+   Pour chaque inférence :
+   - **confidence** : 60-100% (min 60%, sinon ne pas suggérer)
+   - **reasoning** : Explication claire et concise
+   - **sources** : Citations EXACTES du CV prouvant l'inférence
 
-3. **CERTIFICATIONS** (séparé des formations) :
-   - TOUTES les certifications mentionnées
-   - Date d'obtention si mentionnée
-   - Organisme certificateur
+3. **OUTILS INTERMÉDIAIRES** (tools dans inferred)
+   - Outils probablement utilisés mais non listés
+   - Ex: "Jira" pour un PMO même si non mentionné explicitement
+   - Ex: "Nginx" pour déploiement web apps
 
-4. **COMPÉTENCES** :
-   - **explicit** = écrit textuellement
-   - **inferred** = déduit du contexte (confidence min 60%)
-   - Catégoriser par domaine dans 'par_domaine'
-
-5. **RÈGLE QUANTIFICATION** :
-   - Préserve TOUS les chiffres mentionnés
-   - "150 projets", "équipe de 8", "budget 2M€" → dans impact
-
-OUTPUT :
+OUTPUT:
 JSON valide uniquement. Pas de markdown, pas de \`\`\`json.
-Pas de commentaires. Pas de "...".
-TOUT doit être extrait, RIEN ignoré.
 `;
 
 
