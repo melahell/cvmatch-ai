@@ -61,14 +61,14 @@ function sanitizeText(text: string | undefined | null): string {
     if (!text) return '';
 
     let result = text
+        // First pass: Add space before ANY uppercase letter that follows a lowercase (handles é→S, etc.)
+        .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
         // Add space after punctuation if followed by letter
         .replace(/([.,;:!?])([a-zA-ZÀ-ÿ])/g, '$1 $2')
-        // Add space before uppercase if preceded by lowercase
-        .replace(/([a-zàâäéèêëïîôùûüç])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇ])/g, '$1 $2')
         // Add space around parentheses
         .replace(/\)([a-zA-ZÀ-ÿ])/g, ') $1')
         .replace(/([a-zA-ZÀ-ÿ])\(/g, '$1 (')
-        // Fix missing spaces around common words
+        // Fix common French word concatenations
         .replace(/etde/gi, 'et de')
         .replace(/dela/gi, 'de la')
         .replace(/deles/gi, 'de les')
@@ -78,6 +78,13 @@ function sanitizeText(text: string | undefined | null): string {
         .replace(/surle/gi, 'sur le')
         .replace(/avecle/gi, 'avec le')
         .replace(/dansle/gi, 'dans le')
+        .replace(/etles/gi, 'et les')
+        .replace(/avec\+/gi, 'avec +')
+        .replace(/\+(\d)/g, '+ $1')
+        // Fix word patterns commonly seen in CV extractions
+        .replace(/(\d)ans/gi, '$1 ans')
+        .replace(/etla/gi, 'et la')
+        .replace(/KPIs/gi, 'KPIs')
         // Multiple spaces to single
         .replace(/\s+/g, ' ')
         .trim();
