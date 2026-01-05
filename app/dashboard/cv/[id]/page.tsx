@@ -55,12 +55,45 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
-    // PDF generation using native print dialog (produces real text PDFs)
+    // PDF generation using html2pdf.js (produces real text PDFs, not images)
     const [generatingPDF, setGeneratingPDF] = useState(false);
 
-    const handleDownloadPDF = () => {
-        // Use native print which produces real text PDFs (not images)
-        window.print();
+    const handleDownloadPDF = async () => {
+        if (!cvGeneration) return;
+
+        setGeneratingPDF(true);
+        try {
+            const html2pdf = (await import('html2pdf.js')).default;
+
+            const element = document.querySelector('.cv-page') as HTMLElement;
+            if (!element) {
+                throw new Error('CV element not found');
+            }
+
+            const options = {
+                margin: 0,
+                filename: `CV_${cvGeneration.cv_data?.profil?.nom || 'Document'}.pdf`,
+                image: { type: 'jpeg' as const, quality: 1 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false
+                },
+                jsPDF: {
+                    unit: 'mm' as const,
+                    format: 'a4' as const,
+                    orientation: 'portrait' as const
+                }
+            };
+
+            await html2pdf().set(options).from(element).save();
+        } catch (error) {
+            console.error('PDF Error:', error);
+            alert('Erreur lors de la génération du PDF');
+        } finally {
+            setGeneratingPDF(false);
+        }
     };
 
     const handleTemplateChange = (templateId: string, includePhoto: boolean) => {

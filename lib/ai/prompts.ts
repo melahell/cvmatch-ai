@@ -219,19 +219,48 @@ Reformule-les correctement (sans fautes, ton professionnel) et positionne-les st
 MISSION:
 Réécris le contenu du CV pour qu'il corresponde PARFAITEMENT à l'offre d'emploi, tout en restant VERIDIQUE.
 
+⚠️ CONTRAINTES DE LONGUEUR OBLIGATOIRES (UNE PAGE A4):
+
+📝 ELEVATOR PITCH:
+- Maximum 200 caractères (2-3 phrases courtes et impactantes)
+- Accroche percutante avec les mots-clés de l'offre
+
+💼 EXPÉRIENCES:
+- Maximum 4 expériences (les PLUS pertinentes pour cette offre)
+- Maximum 3 bullets par expérience
+- Chaque bullet: 80-100 caractères MAXIMUM (doit tenir sur 1 ligne)
+- Format: "Action + Résultat chiffré" (ex: "Réduction des délais de 30% via automatisation des processus")
+
+🛠️ COMPÉTENCES:
+- Maximum 10 compétences techniques (les PLUS pertinentes pour l'offre)
+- Maximum 6 soft skills
+
+🎓 FORMATIONS:
+- Maximum 2 formations
+- Format COMPACT: "Diplôme - École (Année)" 
+
+🌐 LANGUES:
+- Maximum 4 langues
+
+RÈGLES DE SÉLECTION:
+- Si le profil a +4 expériences → sélectionne les 4 PLUS pertinentes pour l'offre
+- Si une expérience a +3 réalisations → sélectionne les 3 PLUS impactantes
+- PRIORISE la PERTINENCE sur l'exhaustivité
+- Chaque mot doit apporter de la valeur
+
 ACTIONS:
-1. Réécris le "profil.elevator_pitch" pour qu'il résonne avec la mission.
-2. Pour chaque expérience, sélectionne les 3-4 bullets les plus pertinents et réécris-les avec des mots-clés de l'offre.
-3. Mets en avant les compétences techniques citées dans l'offre.
-4. Si des notes personnelles sont fournies, intègre les informations pertinentes.
+1. Réécris le "profil.elevator_pitch" (max 200 caractères)
+2. Pour chaque expérience, sélectionne les 3 bullets max et réécris-les en 80-100 caractères
+3. Mets en avant les compétences techniques citées dans l'offre
+4. Si des notes personnelles sont fournies, intègre les informations pertinentes
 
 OUTPUT (JSON uniquement, structure identique au CANDIDAT, mais contenu optimisé) :
 {
   "profil": { ... },
-  "experiences": [... (rework descriptions)],
-  "competences": { ... },
-  "formations": [... ],
-  "langues": { ... },
-  "optimizations_applied": ["string"] // Ajoute ce champ pour lister ce que tu as changé (ex: "Mis en avant expérience Agile")
+  "experiences": [... (3 bullets max par exp, 80-100 chars chacun)],
+  "competences": { "techniques": [...max 10], "soft_skills": [...max 6] },
+  "formations": [... max 2, format compact],
+  "langues": { ... max 4 },
+  "optimizations_applied": ["string"] // Liste ce que tu as changé
 }
 `;
