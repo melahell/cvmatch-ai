@@ -133,26 +133,55 @@ function ProfileContent() {
     };
 
     const regenerateProfile = async () => {
-        if (!userId) return;
+        if (!userId || !documents || documents.length === 0) {
+            alert("⚠️ Aucun document à traiter");
+            return;
+        }
 
         setRegenerating(true);
-        try {
-            const res = await fetch("/api/rag/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId })
-            });
+        const totalDocs = documents.length;
+        let processed = 0;
 
-            if (res.ok) {
-                await refetch();
-                alert("✅ Profil régénéré avec succès !");
-            } else {
-                const error = await res.json();
-                alert("⚠️ Erreur: " + (error.error || "Échec de la régénération"));
+        try {
+            logger.info(`[INCREMENTAL] Starting regeneration for ${totalDocs} document(s)`);
+
+            // Process each document sequentially
+            for (const doc of documents) {
+                processed++;
+                logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`);
+
+                // Update UI with progress
+                setRegenerating(true);
+
+                const res = await fetch("/api/rag/generate-incremental", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        userId,
+                        documentId: doc.id
+                    })
+                });
+
+                if (!res.ok) {
+                    const error = await res.json();
+                    logger.error(`[INCREMENTAL] Failed for ${doc.filename}:`, error);
+                    alert(`⚠️ Erreur sur ${doc.filename}: ${error.error || "Échec"}\n\nContinuation avec les documents restants...`);
+                    continue; // Continue with next document
+                }
+
+                const result = await res.json();
+                logger.success(`[INCREMENTAL] ${doc.filename} processed - Score: ${result.qualityScore}`);
             }
+
+            // Refetch the final merged RAG
+            await refetch();
+            await refetchDocs();
+
+            alert(`✅ Profil régénéré avec succès!\n\n📊 ${processed}/${totalDocs} document(s) traité(s)`);
+
         } catch (e) {
-            logger.error("Error regenerating profile:", e);
-            alert("❌ Erreur réseau");
+            logger.error("Error in incremental regeneration:", e);
+            alert(`❌ Erreur après traitement de ${processed}/${totalDocs} documents`);
         } finally {
             setRegenerating(false);
         }

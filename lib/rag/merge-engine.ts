@@ -525,10 +525,10 @@ export interface MergeResult {
  * Principe : TOUJOURS enrichir, JAMAIS supprimer
  */
 export function mergeRAGData(
-    existing: RAGComplete,
-    incoming: RAGComplete,
-    sourceDocument: string
-): MergeResult {
+    existing: any,
+    incoming: any,
+    sourceDocument: string = "unknown"
+): any {
     const now = new Date().toISOString();
 
     // Stats de merge
