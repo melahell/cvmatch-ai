@@ -212,7 +212,7 @@ export default function ModernTemplate({
 
                 {/* Références Clients */}
                 {clients_references && clients_references.clients && clients_references.clients.length > 0 && (
-                    <div className="space-y-2 mb-5">
+                    <div className="space-y-2 mb-5 mt-auto">
                         <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
                             Références
                         </h3>
@@ -231,24 +231,6 @@ export default function ModernTemplate({
                                     {clients_references.clients.join(', ')}
                                 </div>
                             )}
-                        </div>
-                    </div>
-                )}
-
-                {/* Formations - Compact in sidebar */}
-                {limitedFormations.length > 0 && (
-                    <div className="space-y-2 mt-auto">
-                        <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
-                            Formation
-                        </h3>
-                        <div className="space-y-1.5 text-[8pt]">
-                            {limitedFormations.map((edu, i) => (
-                                <div key={i} className="text-slate-200">
-                                    <span className="font-semibold">{edu.diplome}</span>
-                                    {edu.etablissement && <span className="text-slate-400"> - {edu.etablissement}</span>}
-                                    {edu.annee && <span className="text-indigo-400 ml-1">({edu.annee})</span>}
-                                </div>
-                            ))}
                         </div>
                     </div>
                 )}
@@ -323,11 +305,10 @@ export default function ModernTemplate({
                     </div>
                 </section>
 
-                {/* Certifications Only (Formations moved to sidebar) */}
+                {/* Certifications */}
                 {certifications && certifications.length > 0 && (
                     <section className="mb-4">
-
-                        <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest">
+                        <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                             <span className="w-4 h-0.5 bg-purple-600 rounded-full" />
                             Certifications
                         </h2>
@@ -339,6 +320,35 @@ export default function ModernTemplate({
                                 >
                                     ✓ {cert}
                                 </span>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Formations - Moved to white section for better readability */}
+                {limitedFormations.length > 0 && (
+                    <section className="mb-4">
+                        <h2 className="text-base font-extrabold mb-3 flex items-center gap-2 uppercase tracking-widest text-slate-900">
+                            <span className="w-6 h-0.5 bg-indigo-600 rounded-full" />
+                            Formation
+                        </h2>
+                        <div className="space-y-2">
+                            {limitedFormations.map((edu, i) => (
+                                <div
+                                    key={i}
+                                    className="pl-4 py-2 border-l-2 border-indigo-200 bg-gradient-to-r from-indigo-50/50 to-transparent"
+                                >
+                                    <h4 className="font-bold text-[9pt] text-slate-900">{edu.diplome}</h4>
+                                    {edu.etablissement && (
+                                        <p className="text-indigo-600 font-semibold text-[8pt]">{edu.etablissement}</p>
+                                    )}
+                                    {edu.annee && (
+                                        <p className="text-slate-600 text-[7pt] mt-0.5">{edu.annee}</p>
+                                    )}
+                                    {edu.mention && (
+                                        <p className="text-purple-600 font-medium text-[7pt] mt-0.5 italic">{edu.mention}</p>
+                                    )}
+                                </div>
                             ))}
                         </div>
                     </section>

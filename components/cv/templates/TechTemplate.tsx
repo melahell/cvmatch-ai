@@ -241,22 +241,9 @@ export default function TechTemplate({
                     )}
                 </div>
 
-                {/* Education - Bottom */}
-                <div className="mt-auto pt-3 border-t border-slate-700">
-                    <div className="text-emerald-300 text-[6pt] font-mono mb-2">// education</div>
-                    {limitedFormations.map((edu, i) => (
-                        <div key={i} className="mb-2">
-                            <div className="text-[7pt] font-semibold text-white">{edu.diplome}</div>
-                            <div className="text-[6pt] text-slate-400">
-                                {edu.etablissement} {edu.annee && `(${edu.annee})`}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
                 {/* Languages */}
                 {langues && langues.length > 0 && (
-                    <div className="pt-3 border-t border-slate-700 mt-3">
+                    <div className="pt-3 border-t border-slate-700 mt-auto">
                         <div className="text-emerald-300 text-[6pt] font-mono mb-1">// languages</div>
                         <div className="flex flex-wrap gap-2">
                             {langues.map((lang, i) => (
@@ -340,7 +327,7 @@ export default function TechTemplate({
 
                 {/* Certifications */}
                 {certifications && certifications.length > 0 && (
-                    <section>
+                    <section className="mb-4">
                         <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
                             <span className="text-emerald-500 font-mono">{'<'}</span>
                             Certifications
@@ -354,6 +341,42 @@ export default function TechTemplate({
                                 >
                                     <span className="text-emerald-500 text-[8pt]">✓</span>
                                     <span className="text-[7pt] font-medium text-slate-700">{cert}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Education - Moved to white section for better readability */}
+                {limitedFormations.length > 0 && (
+                    <section>
+                        <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
+                            <span className="text-emerald-500 font-mono">{'<'}</span>
+                            Education
+                            <span className="text-emerald-500 font-mono">{'/>'}</span>
+                        </h2>
+                        <div className="space-y-2">
+                            {limitedFormations.map((edu, i) => (
+                                <div
+                                    key={i}
+                                    className="p-3 bg-slate-50 border border-slate-200 rounded-lg"
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <div>
+                                            <h4 className="text-[9pt] font-bold text-slate-900">{edu.diplome}</h4>
+                                            {edu.etablissement && (
+                                                <p className="text-emerald-600 font-semibold text-[8pt] mt-0.5">{edu.etablissement}</p>
+                                            )}
+                                            {edu.mention && (
+                                                <p className="text-slate-600 text-[7pt] mt-0.5 italic">{edu.mention}</p>
+                                            )}
+                                        </div>
+                                        {edu.annee && (
+                                            <span className="text-[7pt] font-mono bg-slate-200 px-2 py-0.5 rounded text-slate-700 whitespace-nowrap">
+                                                {edu.annee}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
