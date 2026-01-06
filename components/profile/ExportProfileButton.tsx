@@ -18,15 +18,15 @@ export function ExportProfileButton() {
         try {
             const supabase = createSupabaseClient();
             const { data, error } = await supabase
-                .from("rag_synthese")
-                .select("*")
+                .from("rag_metadata")
+                .select("completeness_details")
                 .eq("user_id", userId)
                 .single();
 
             if (error) throw error;
 
-            // Create JSON blob
-            const json = JSON.stringify(data, null, 2);
+            // Create JSON blob - export completeness_details
+            const json = JSON.stringify(data?.completeness_details || data, null, 2);
             const blob = new Blob([json], { type: "application/json" });
             const url = URL.createObjectURL(blob);
 

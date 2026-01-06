@@ -101,8 +101,8 @@ export function useProfileForm(userId: string | null) {
         try {
             const supabase = createSupabaseClient();
             const { error } = await supabase
-                .from("rag_synthese")
-                .update({ [path]: value })
+                .from("rag_metadata")
+                .update({ completeness_details: data })
                 .eq("user_id", userId);
 
             if (error) throw error;
@@ -126,8 +126,8 @@ export function useProfileForm(userId: string | null) {
         try {
             const supabase = createSupabaseClient();
             const { error } = await supabase
-                .from("rag_synthese")
-                .update(updates)
+                .from("rag_metadata")
+                .update({ completeness_details: { ...data, ...updates } })
                 .eq("user_id", userId);
 
             if (error) throw error;
