@@ -390,12 +390,13 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Elevator pitch : ${rules.elevatorPitchRequired ? `OBLIGATOIRE (max ${rules.elevatorPitchMaxChars} caractères)` : 'OPTIONNEL'}
    - Formation en premier : ${rules.formationFirstPosition ? 'OUI' : 'NON (expériences d\'abord)'}
 
-2. EXPÉRIENCES :
-   - CONSERVER TOUTES les expériences du profil source (${rules.maxExperiences} max)
+2. EXPÉRIENCES (PRIORITÉ : COMPLÉTUDE) :
+   - AFFICHER TOUTES les expériences du profil source par défaut
+   - Maximum ${rules.maxExperiences} expériences affichées (les plus pertinentes)
    - Maximum ${rules.maxBulletsPerExperience} bullets par expérience
    - Maximum ${rules.maxBulletChars} caractères par bullet
    - Afficher références clients : ${rules.showClientReferences ? 'OUI - OBLIGATOIRE' : 'NON'}
-   ⚠️ NE PAS SUPPRIMER d'expériences sauf si elles sont vraiment hors sujet
+   - ⚠️ PHILOSOPHIE : "Un CV complet rassure le recruteur. Masquer uniquement si vraiment hors-sujet."
 
 3. QUANTIFICATION OBLIGATOIRE (≥60% des bullets) :
    Formats acceptés :
@@ -418,17 +419,22 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Récence (+20 si < 2 ans, +10 si < 5 ans)
    - Technologies matching avec l'offre (+5 par match, max +30)
    - Impact quantifié visible (+20 si quantifications)
-   
-   RÈGLE : Masquer (display: false) les expériences avec score < 30 UNIQUEMENT
+
+   RÈGLE AFFICHAGE :
+   - display: true pour score >= 20 (afficher par défaut)
+   - display: false UNIQUEMENT si score < 20 ET totalement hors-sujet
+   - En cas de doute, TOUJOURS afficher (display: true)
 
 6. KEYWORDS ATS CRITIQUES pour secteur ${context.sectorProfile.toUpperCase()} :
    ${JSON.stringify(sectorConfig.keywords_critical)}
    → Ces mots-clés DOIVENT apparaître naturellement dans le CV
 
-7. COMPÉTENCES :
-   - CONSERVER TOUTES les compétences du profil source
-   - Les organiser par catégories logiques
-   - NE PAS réduire à moins de 12 compétences techniques
+7. COMPÉTENCES (MAXIMISER LA COMPLÉTUDE) :
+   - AFFICHER TOUTES les compétences du profil source
+   - Les organiser par catégories logiques (max 4 catégories)
+   - Prioriser les compétences qui matchent l'offre en premier
+   - NE PAS limiter artificiellement le nombre de compétences
+   - Objectif : montrer l'étendue complète du profil
 
 8. FORMATIONS :
    - CONSERVER TOUTES les formations et certifications du profil source
@@ -438,6 +444,21 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    ${sectorConfig.tone === 'formal' ? '- Vocabulaire professionnel strict\n   - Phrases factuelles\n   - Pas de superlatifs' : ''}
    ${sectorConfig.tone === 'dynamic' ? '- Vocabulaire dynamique et moderne\n   - Orienté résultats et innovation\n   - Action verbs forts' : ''}
    ${sectorConfig.tone === 'executive' ? '- Vision stratégique mise en avant\n   - Leadership et impact organisationnel\n   - Références C-level si possible' : ''}
+
+10. FORMATAGE STRICT (OBLIGATOIRE) :
+   ESPACES OBLIGATOIRES :
+   - "5 ans" (PAS "5ans")
+   - "150+ projets" (PAS "150+projets" ou "150 +projets")
+   - "+ 40%" (PAS "+40%" ou "+ 40 %")
+   - "budget 2M€" (PAS "budget2M€")
+   - "équipe de 8 personnes" (PAS "équipede8personnes")
+
+   PONCTUATION :
+   - Espace APRÈS ponctuation : ". ", ", ", ": ", ") "
+   - PAS d'espace AVANT : "test." (PAS "test .")
+   - Espaces autour parenthèses : "test (exemple) suite"
+
+   ⚠️ VÉRIFIE le formatage de CHAQUE phrase avant de générer le JSON final.
 `;
 }
 

@@ -34,11 +34,11 @@ export default function TechTemplate({
         return String(val || '');
     };
 
-    // Limit content for 1-page guarantee
-    const limitedExperiences = experiences?.slice(0, 4) || [];
-    const rawSkills = competences?.techniques?.slice(0, 15) || [];
+    // Show all data - let CDC Pipeline handle optimization
+    const limitedExperiences = experiences || [];
+    const rawSkills = competences?.techniques || [];
     const limitedSkills = rawSkills.map(safeString);
-    const limitedFormations = formations?.slice(0, 2) || [];
+    const limitedFormations = formations || [];
 
     // Categorize skills
     const categorizeSkills = (skills: string[]) => {
@@ -325,7 +325,7 @@ export default function TechTemplate({
                                 </div>
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="mt-1.5 space-y-0.5 text-[8pt] text-slate-700">
-                                        {exp.realisations.slice(0, 3).map((r, j) => (
+                                        {exp.realisations.map((r, j) => (
                                             <li key={j} className="flex items-start gap-1.5">
                                                 <span className="text-emerald-500 mt-0.5">→</span>
                                                 {safeString(r)}
@@ -347,7 +347,7 @@ export default function TechTemplate({
                             <span className="text-emerald-500 font-mono">{'/>'}</span>
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {certifications.slice(0, 5).map((cert, i) => (
+                            {certifications.map((cert, i) => (
                                 <div
                                     key={i}
                                     className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded border border-slate-200"

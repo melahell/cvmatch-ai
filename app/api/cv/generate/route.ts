@@ -6,13 +6,14 @@ import { generateOptimizedCV, convertToLegacyFormat, getTemplateProps } from "@/
 import { calculateQualityScore, validateCVQuality } from "@/lib/cv/quality-metrics";
 import { transformRAGToOptimized } from "@/lib/cv/schema-transformer";
 import { autoCompressCV } from "@/lib/cv/compressor";
+import { validatePreGeneration, formatWarnings } from "@/lib/cv/pre-generation-validation";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
     try {
-        const { userId, analysisId, template, includePhoto = true, useCDCPipeline = false } = await req.json();
+        const { userId, analysisId, template, includePhoto = true, useCDCPipeline = true } = await req.json();
 
         if (!userId || !analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -42,6 +43,14 @@ export async function POST(req: Request) {
         const profile = ragData.completeness_details;
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
+
+        // Pre-generation validation (non-blocking)
+        const validationResult = validatePreGeneration(ragData);
+        if (validationResult.warnings.length > 0) {
+            console.warn("=== CV PRE-GENERATION WARNINGS ===");
+            formatWarnings(validationResult).forEach(w => console.warn(w));
+            console.warn("Quality indicators:", validationResult.qualityIndicators);
+        }
 
         // Get photo URL if needed
         let photoUrl = null;

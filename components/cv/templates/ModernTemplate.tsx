@@ -52,11 +52,11 @@ export default function ModernTemplate({
         return String(s);
     };
 
-    // Use data directly - already limited by normalizer
-    const limitedExperiences = experiences?.slice(0, 4) || [];
-    const limitedSkills = competences?.techniques?.slice(0, 8) || [];
-    const limitedSoftSkills = competences?.soft_skills?.slice(0, 5) || [];
-    const limitedFormations = formations?.slice(0, 2) || [];
+    // Show all data - let CDC Pipeline handle optimization
+    const limitedExperiences = experiences || [];
+    const limitedSkills = competences?.techniques || [];
+    const limitedSoftSkills = competences?.soft_skills || [];
+    const limitedFormations = formations || [];
 
     // Sanitize elevator pitch
     const cleanElevatorPitch = sanitizeText(profil?.elevator_pitch);
@@ -313,7 +313,7 @@ export default function ModernTemplate({
                                 </p>
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
-                                        {exp.realisations.slice(0, 3).map((r, j) => (
+                                        {exp.realisations.map((r, j) => (
                                             <li key={j}>{renderRealisation(r)}</li>
                                         ))}
                                     </ul>
@@ -332,7 +332,7 @@ export default function ModernTemplate({
                             Certifications
                         </h2>
                         <div className="flex flex-wrap gap-1.5">
-                            {certifications.slice(0, 6).map((cert, i) => (
+                            {certifications.map((cert, i) => (
                                 <span
                                     key={i}
                                     className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded text-[7pt] font-semibold text-purple-700"

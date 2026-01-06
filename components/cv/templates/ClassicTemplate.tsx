@@ -25,10 +25,10 @@ export default function ClassicTemplate({
         return String(val || '');
     };
 
-    const limitedExperiences = experiences?.slice(0, 4) || [];
-    const rawSkills = competences?.techniques?.slice(0, 12) || [];
+    const limitedExperiences = experiences || [];
+    const rawSkills = competences?.techniques || [];
     const limitedSkills = rawSkills.map(safeString);
-    const limitedFormations = formations?.slice(0, 3) || [];
+    const limitedFormations = formations || [];
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
@@ -153,7 +153,7 @@ export default function ClassicTemplate({
                                 </p>
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-[8pt] text-slate-700 space-y-1 list-disc list-inside">
-                                        {exp.realisations.slice(0, 3).map((r, j) => (
+                                        {exp.realisations.map((r, j) => (
                                             <li key={j}>{safeString(r)}</li>
                                         ))}
                                     </ul>
@@ -220,7 +220,7 @@ export default function ClassicTemplate({
                             <div className="mt-4 pt-3 border-t border-slate-200">
                                 <h3 className="text-[10pt] uppercase tracking-wider text-slate-700 mb-2">Certifications</h3>
                                 <ul className="text-[8pt] text-slate-600 space-y-1">
-                                    {certifications.slice(0, 3).map((cert, i) => (
+                                    {certifications.map((cert, i) => (
                                         <li key={i} className="flex items-center gap-1">
                                             <span className="text-slate-400">•</span> {cert}
                                         </li>
