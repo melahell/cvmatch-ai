@@ -206,16 +206,17 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "AI returned invalid format, please try again" }, { status: 500 });
         }
 
-        // 4. Generate Top 10 Jobs
+        // 4. Generate Top 10 Jobs - DISABLED to prevent timeout
+        // TODO: Move to separate endpoint for async generation
         let top10Jobs: any[] = [];
-        try {
-            const jobPrompt = getTopJobsPrompt(ragData);
-            const jobResult = await callWithRetry(() => generateWithFallback(jobPrompt));
-            const jobJsonString = jobResult.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
-            top10Jobs = JSON.parse(jobJsonString);
-        } catch (e) {
-            console.warn("Failed to generate Top 10 Jobs, continuing without");
-        }
+        // try {
+        //     const jobPrompt = getTopJobsPrompt(ragData);
+        //     const jobResult = await callWithRetry(() => generateWithFallback(jobPrompt));
+        //     const jobJsonString = jobResult.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
+        //     top10Jobs = JSON.parse(jobJsonString);
+        // } catch (e) {
+        //     console.warn("Failed to generate Top 10 Jobs, continuing without");
+        // }
 
         // 5. Calculate completeness score with breakdown
         const calculateCompletenessWithBreakdown = (data: any) => {
