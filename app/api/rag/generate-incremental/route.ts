@@ -8,10 +8,22 @@ import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore } from "@/lib/rag/quality-scoring";
 import { enrichRAGData, generateImprovementSuggestions } from "@/lib/rag/enrichment";
 import { mergeRAGData } from "@/lib/rag/merge-simple";
+import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
+import { logger } from "@/lib/utils/logger";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
 export const maxDuration = 10; // Keep under 10s for Vercel Free plan
+
+// Timeout wrapper for Gemini API calls
+async function callWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
+        )
+    ]);
+}
 
 /**
  * Incremental RAG generation endpoint
@@ -32,12 +44,15 @@ export async function POST(req: Request) {
         // Check API key
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            console.error("GEMINI_API_KEY not found");
-            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+            logger.error("GEMINI_API_KEY not found");
+            return NextResponse.json({
+                error: "Server configuration error",
+                errorCode: "CONFIG_ERROR"
+            }, { status: 500 });
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use Flash for speed
+        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }); // Use Flash 3 for speed
 
         // 1. Fetch the specific document
         const { data: doc, error: dbError } = await supabase
@@ -48,23 +63,31 @@ export async function POST(req: Request) {
             .single();
 
         if (dbError || !doc) {
-            return NextResponse.json({ error: "Document not found" }, { status: 404 });
+            return NextResponse.json({
+                error: "Document not found",
+                errorCode: "DOC_NOT_FOUND"
+            }, { status: 404 });
         }
 
-        console.log(`[INCREMENTAL] Processing: ${doc.filename}`);
+        logger.info(`Processing document incrementally`, { filename: doc.filename, documentId });
 
         // 2. Extract text from this document (if not already cached)
         let extractedText = doc.extracted_text;
+        const extractStart = Date.now();
 
         if (!extractedText || extractedText.trim().length === 0) {
-            console.log(`[INCREMENTAL] Extracting text from ${doc.filename}...`);
+            logger.info(`Extracting text from document`, { filename: doc.filename, type: doc.file_type });
 
             const { data: fileData, error: downloadError } = await supabase.storage
                 .from("documents")
                 .download(doc.storage_path);
 
             if (downloadError) {
-                return NextResponse.json({ error: "Failed to download document" }, { status: 500 });
+                logger.error("Failed to download document", { error: downloadError.message });
+                return NextResponse.json({
+                    error: "Failed to download document",
+                    errorCode: "DOWNLOAD_ERROR"
+                }, { status: 500 });
             }
 
             const arrayBuffer = await fileData.arrayBuffer();
@@ -76,9 +99,12 @@ export async function POST(req: Request) {
                     const { text: pdfText } = await extractText(pdf, { mergePages: true });
                     extractedText = pdfText;
                 } catch (pdfError: any) {
-                    console.error(`PDF extraction failed:`, pdfError.message);
+                    logger.error("PDF extraction failed", { error: pdfError.message, filename: doc.filename });
                     await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
-                    return NextResponse.json({ error: "PDF extraction failed" }, { status: 500 });
+                    return NextResponse.json({
+                        error: "PDF extraction failed",
+                        errorCode: "PDF_ERROR"
+                    }, { status: 500 });
                 }
             } else if (doc.file_type === "docx") {
                 try {
@@ -87,9 +113,12 @@ export async function POST(req: Request) {
                     const result = await mammoth.extractRawText({ buffer });
                     extractedText = result.value;
                 } catch (docxError: any) {
-                    console.error(`DOCX extraction failed:`, docxError.message);
+                    logger.error("DOCX extraction failed", { error: docxError.message, filename: doc.filename });
                     await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
-                    return NextResponse.json({ error: "DOCX extraction failed" }, { status: 500 });
+                    return NextResponse.json({
+                        error: "DOCX extraction failed",
+                        errorCode: "DOCX_ERROR"
+                    }, { status: 500 });
                 }
             } else {
                 // Plain text
@@ -104,62 +133,124 @@ export async function POST(req: Request) {
                 .eq("id", doc.id);
         }
 
-        console.log(`[INCREMENTAL] Text extracted: ${extractedText.length} chars`);
+        const extractDuration = Date.now() - extractStart;
+        logger.info("Text extraction complete", {
+            filename: doc.filename,
+            extractionTimeMs: extractDuration,
+            textLength: extractedText.length
+        });
 
-        // 3. Call Gemini with simplified prompt for this document
-        const prompt = getRAGExtractionPrompt(extractedText);
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        // 3. Truncate text before sending to Gemini (prevent timeout)
+        const { text: truncatedText, stats: truncationStats } = truncateForRAGExtraction(extractedText);
 
+        if (truncationStats.wasTruncated) {
+            logger.warn("Text truncated for Gemini", {
+                filename: doc.filename,
+                originalTokens: truncationStats.originalTokens,
+                finalTokens: truncationStats.finalTokens,
+                truncatedPercentage: truncationStats.truncatedPercentage
+            });
+        }
+
+        // 4. Call Gemini with timeout (7s max - leave 3s buffer for processing)
+        const geminiStart = Date.now();
+        let responseText: string;
+
+        try {
+            const prompt = getRAGExtractionPrompt(truncatedText);
+            const result = await callWithTimeout(
+                model.generateContent(prompt),
+                7000 // 7s timeout
+            );
+            responseText = result.response.text();
+
+            const geminiDuration = Date.now() - geminiStart;
+            logger.info("Gemini API call successful", {
+                filename: doc.filename,
+                durationMs: geminiDuration,
+                responseLength: responseText.length
+            });
+        } catch (geminiError: any) {
+            const geminiDuration = Date.now() - geminiStart;
+            logger.error("Gemini API call failed", {
+                error: geminiError.message,
+                durationMs: geminiDuration
+            });
+            return NextResponse.json({
+                error: "AI service timeout or error",
+                errorCode: "GEMINI_TIMEOUT",
+                details: geminiError.message
+            }, { status: 503 });
+        }
+
+        // 5. Parse JSON response
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
         let newRAGData;
 
         try {
             newRAGData = JSON.parse(jsonString);
-            console.log(`[INCREMENTAL] Gemini response parsed successfully`);
+            logger.info("Gemini response parsed successfully", { filename: doc.filename });
         } catch (e) {
-            console.error("Failed to parse RAG JSON");
-            return NextResponse.json({ error: "AI returned invalid format" }, { status: 500 });
+            logger.error("Failed to parse RAG JSON", {
+                filename: doc.filename,
+                responsePreview: responseText.slice(0, 200)
+            });
+            return NextResponse.json({
+                error: "AI returned invalid format",
+                errorCode: "PARSE_ERROR"
+            }, { status: 500 });
         }
 
-        // 4. Fetch existing RAG metadata
+        // 6. Fetch existing RAG metadata
+        const mergeStart = Date.now();
         const { data: existingRag } = await supabase
             .from("rag_metadata")
             .select("completeness_details")
             .eq("user_id", userId)
             .single();
 
-        // 5. Merge with existing RAG (or use new data if first document)
+        // 7. Merge with existing RAG (or use new data if first document)
         let mergedRAG;
         if (existingRag?.completeness_details) {
-            console.log(`[INCREMENTAL] Merging with existing RAG...`);
+            logger.info("Merging with existing RAG", { filename: doc.filename });
             const mergeResult = mergeRAGData(existingRag.completeness_details, newRAGData);
             mergedRAG = mergeResult.merged;
-            console.log(`[INCREMENTAL] Merge stats:`, {
-                added: mergeResult.stats.itemsAdded,
-                updated: mergeResult.stats.itemsUpdated,
-                conflicts: mergeResult.conflicts.length
+            logger.info("Merge complete", {
+                itemsAdded: mergeResult.stats.itemsAdded,
+                itemsUpdated: mergeResult.stats.itemsUpdated,
+                conflictsCount: mergeResult.conflicts.length
             });
         } else {
-            console.log(`[INCREMENTAL] First document - using as base`);
+            logger.info("First document - creating base RAG", { filename: doc.filename });
             mergedRAG = newRAGData;
         }
 
-        // 6. Post-process: consolidate clients + enrich + score
+        // 8. Post-process: consolidate clients + lightweight enrichment + score
+        const postProcessStart = Date.now();
         mergedRAG = consolidateClients(mergedRAG);
-        mergedRAG = enrichRAGData(mergedRAG);
-        const qualityScore = calculateQualityScore(mergedRAG);
 
-        // Add metadata
+        // Skip heavy enrichment operations to stay under 10s
+        // mergedRAG = enrichRAGData(mergedRAG); // DISABLED for speed
+
+        const qualityScore = calculateQualityScore(mergedRAG);
+        const postProcessDuration = Date.now() - postProcessStart;
+
+        logger.info("Post-processing complete", {
+            durationMs: postProcessDuration,
+            qualityScore: qualityScore.overall_score
+        });
+
+        // 9. Add metadata
         mergedRAG.extraction_metadata = {
-            gemini_model_used: "flash",
+            gemini_model_used: "flash-3",
             extraction_date: new Date().toISOString(),
             documents_processed: [doc.filename],
             warnings: []
         };
         mergedRAG.quality_metrics = qualityScore.quality_metrics;
 
-        // 7. Save merged RAG to database
+        // 10. Save merged RAG to database
+        const dbStart = Date.now();
         if (existingRag) {
             await supabase
                 .from("rag_metadata")
@@ -182,25 +273,50 @@ export async function POST(req: Request) {
 
         await supabase.from("users").update({ onboarding_completed: true }).eq("id", userId);
 
-        const elapsed = Date.now() - startTime;
-        console.log(`[INCREMENTAL] Completed in ${elapsed}ms`);
+        const dbDuration = Date.now() - dbStart;
+        logger.info("Database update complete", { durationMs: dbDuration });
+
+        const totalElapsed = Date.now() - startTime;
+
+        logger.info("Incremental RAG generation complete", {
+            filename: doc.filename,
+            totalDurationMs: totalElapsed,
+            qualityScore: qualityScore.overall_score,
+            underBudget: totalElapsed < 10000
+        });
 
         return NextResponse.json({
             success: true,
             documentId,
             filename: doc.filename,
-            elapsed,
+            elapsed: totalElapsed,
             qualityScore: qualityScore.overall_score,
             stats: {
                 clientsCount: mergedRAG?.references?.clients?.length || 0,
                 experiencesCount: mergedRAG?.experiences?.length || 0,
                 skillsCount: mergedRAG?.competences?.explicit?.techniques?.length || 0
+            },
+            timings: {
+                extractionMs: extractDuration,
+                geminiMs: geminiStart > 0 ? Date.now() - geminiStart : 0,
+                postProcessMs: postProcessDuration,
+                dbMs: dbDuration,
+                totalMs: totalElapsed
             }
         });
 
     } catch (error: any) {
         const elapsed = Date.now() - startTime;
-        console.error(`[INCREMENTAL] Error after ${elapsed}ms:`, error);
-        return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+        logger.error("Incremental RAG generation failed", {
+            error: error.message,
+            durationMs: elapsed,
+            stack: error.stack
+        });
+
+        return NextResponse.json({
+            error: error.message || "Internal server error",
+            errorCode: "UNKNOWN_ERROR",
+            elapsed
+        }, { status: 500 });
     }
 }
