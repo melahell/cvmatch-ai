@@ -8,6 +8,7 @@ import { calculateQualityScore } from "@/lib/rag/quality-scoring";
 import { mergeRAGData } from "@/lib/rag/merge-simple";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
+import { deduplicateRAG } from "@/lib/rag/deduplicate";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -222,6 +223,10 @@ export async function POST(req: Request) {
             logger.info("First document - creating base RAG", { filename: doc.filename });
             mergedRAG = newRAGData;
         }
+
+        // 7.5. Deduplicate merged RAG data
+        logger.info("Deduplicating RAG data", { filename: doc.filename });
+        mergedRAG = deduplicateRAG(mergedRAG);
 
         // 8. Post-process: consolidate clients + lightweight enrichment + score
         const postProcessStart = Date.now();

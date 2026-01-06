@@ -11,6 +11,7 @@ import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
+import { deduplicateRAG } from "@/lib/rag/deduplicate";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -254,6 +255,10 @@ export async function POST(req: Request) {
         ragData = enrichRAGData(ragData);
         console.log('[ENRICHMENT] Operations:', ragData.enrichment_metadata?.enrichment_log?.length || 0);
 
+        // Step 3.5: Deduplicate RAG data (remove semantic duplicates)
+        ragData = deduplicateRAG(ragData);
+        console.log('[DEDUPLICATION] Complete');
+
         // Step 4: Calculate quality score (multi-dimensional)
         const qualityScoreResult = calculateQualityScore(ragData);
         console.log('[SCORING] Overall:', qualityScoreResult.overall_score);
@@ -301,6 +306,10 @@ export async function POST(req: Request) {
             finalRAGData = mergeResult.merged;
             mergeStats = mergeResult.stats;
             console.log('[MERGE] Stats:', mergeStats);
+
+            // Deduplicate after merge to remove any duplicates from the merge
+            finalRAGData = deduplicateRAG(finalRAGData);
+            console.log('[MERGE DEDUPLICATION] Complete');
         }
 
         // Use new multi-dimensional quality score (overall_score is the main score)
