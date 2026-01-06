@@ -134,12 +134,12 @@ export async function GET(
             format: format === "Letter" ? "Letter" : "A4",
             printBackground: true,
             margin: {
-                top: 0,
-                right: 0,
-                bottom: 0,
-                left: 0,
+                top: '3mm',
+                right: '0mm',
+                bottom: '3mm',
+                left: '0mm',
             },
-            preferCSSPageSize: true,
+            preferCSSPageSize: false, // Let puppeteer control page size
             // Improve text rendering
             omitBackground: false,
             displayHeaderFooter: false,

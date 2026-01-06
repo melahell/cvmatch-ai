@@ -82,12 +82,10 @@ export default function ModernTemplate({
 
     return (
         <div
-            className="cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex text-[9pt]"
+            className="cv-page bg-white shadow-2xl rounded-xl overflow-visible flex text-[9pt]"
             style={{
                 width: '210mm',
-                height: '297mm',
-                maxHeight: '297mm',
-                overflow: 'hidden',
+                minHeight: '297mm',
                 boxSizing: 'border-box',
                 fontFamily: "'Inter', -apple-system, sans-serif",
                 fontSize: '9pt',
@@ -127,7 +125,7 @@ export default function ModernTemplate({
                 </div>
 
                 {/* Contact */}
-                <div className="space-y-2 mb-5 text-[8pt]">
+                <div className="space-y-2 mb-5 text-[9pt]">
                     <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
                         Contact
                     </h3>
@@ -277,47 +275,57 @@ export default function ModernTemplate({
                     </div>
                 )}
 
-                {/* Expériences avec Timeline */}
-                <section className="mb-5">
-                    <h2 className="text-base font-extrabold mb-4 flex items-center gap-2 uppercase tracking-widest text-slate-900">
+                {/* Expériences avec Timeline - Progressive sizing: first 2 full, 3+ compact */}
+                <section className="mb-4">
+                    <h2 className="text-base font-extrabold mb-3 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                         <span className="w-6 h-0.5 bg-purple-600 rounded-full" />
                         Expériences Professionnelles
                     </h2>
-                    <div className="space-y-4">
-                        {limitedExperiences.map((exp, i) => (
-                            <div
-                                key={i}
-                                className="relative pl-5 pr-3 py-3 border-l-[3px] group rounded-r-lg"
-                                style={{
-                                    borderImage: 'linear-gradient(180deg, #a78bfa 0%, #c4b5fd 50%, #ddd6fe 100%) 1',
-                                    background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%)'
-                                }}
-                            >
-                                {/* Timeline dot */}
-                                <div
-                                    className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-[3px] border-purple-500"
-                                    style={{ boxShadow: '0 0 8px rgba(139, 92, 246, 0.5)' }}
-                                />
+                    <div className="space-y-2">
+                        {limitedExperiences.map((exp, i) => {
+                            // Progressive sizing: first 2 experiences full size, 3+ more compact
+                            const isCompact = i >= 2;
+                            const realisationsToShow = isCompact
+                                ? (exp.realisations?.slice(0, 3) || []) // Max 3 réalisations pour compact
+                                : (exp.realisations || []);
 
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
-                                    <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
-                                    <span className="text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded text-[7pt]">
-                                        {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
-                                    </span>
+                            return (
+                                <div
+                                    key={i}
+                                    className={`relative pl-4 pr-2 border-l-[3px] group rounded-r-lg ${isCompact ? 'py-1.5' : 'py-2'}`}
+                                    style={{
+                                        borderImage: 'linear-gradient(180deg, #a78bfa 0%, #c4b5fd 50%, #ddd6fe 100%) 1',
+                                        background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.03) 0%, transparent 100%)'
+                                    }}
+                                >
+                                    {/* Timeline dot - smaller for compact */}
+                                    <div
+                                        className={`absolute -left-[7px] top-2 rounded-full bg-white border-[2px] border-purple-500 ${isCompact ? 'w-3 h-3' : 'w-3.5 h-3.5'}`}
+                                        style={{ boxShadow: '0 0 6px rgba(139, 92, 246, 0.4)' }}
+                                    />
+
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-0.5">
+                                        <h4 className={`font-extrabold text-slate-900 ${isCompact ? 'text-[9pt]' : 'text-[10pt]'}`}>
+                                            {sanitizeText(exp.poste)}
+                                        </h4>
+                                        <span className="text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded text-[8pt] whitespace-nowrap">
+                                            {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
+                                        </span>
+                                    </div>
+                                    <p className={`text-purple-600 font-bold ${isCompact ? 'mb-0.5 text-[8pt]' : 'mb-1 text-[9pt]'}`}>
+                                        {sanitizeText(exp.entreprise)}
+                                        {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
+                                    </p>
+                                    {realisationsToShow.length > 0 && (
+                                        <ul className={`text-slate-700 list-disc list-inside leading-snug ${isCompact ? 'space-y-0 text-[7pt]' : 'space-y-0.5 text-[8pt]'}`}>
+                                            {realisationsToShow.map((r, j) => (
+                                                <li key={j}>{renderRealisation(r)}</li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
-                                <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
-                                    {sanitizeText(exp.entreprise)}
-                                    {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
-                                </p>
-                                {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
-                                        {exp.realisations.map((r, j) => (
-                                            <li key={j}>{renderRealisation(r)}</li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </section>
 
