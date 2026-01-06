@@ -8,7 +8,6 @@ import { calculateQualityScore } from "@/lib/rag/quality-scoring";
 import { mergeRAGData } from "@/lib/rag/merge-simple";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
-import { deduplicateRAG } from "@/lib/rag/deduplicate";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -209,12 +208,13 @@ export async function POST(req: Request) {
             .single();
 
         // 7. Merge with existing RAG (or use new data if first document)
+        // NOTE: Merge now uses semantic similarity to prevent duplicates
         let mergedRAG;
         if (existingRag?.completeness_details) {
             logger.info("Merging with existing RAG", { filename: doc.filename });
             const mergeResult = mergeRAGData(existingRag.completeness_details, newRAGData);
             mergedRAG = mergeResult.merged;
-            logger.info("Merge complete", {
+            logger.info("Merge complete with semantic deduplication", {
                 itemsAdded: mergeResult.stats.itemsAdded,
                 itemsUpdated: mergeResult.stats.itemsUpdated,
                 conflictsCount: mergeResult.conflicts.length
@@ -223,10 +223,6 @@ export async function POST(req: Request) {
             logger.info("First document - creating base RAG", { filename: doc.filename });
             mergedRAG = newRAGData;
         }
-
-        // 7.5. Deduplicate merged RAG data
-        logger.info("Deduplicating RAG data", { filename: doc.filename });
-        mergedRAG = deduplicateRAG(mergedRAG);
 
         // 8. Post-process: consolidate clients + lightweight enrichment + score
         const postProcessStart = Date.now();
