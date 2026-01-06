@@ -23,9 +23,10 @@ export class PDFCache {
 
     /**
      * Generate cache key for a CV PDF
+     * v2: High resolution PDF with deviceScaleFactor 2
      */
     private getCacheKey(cvId: string, format: "A4" | "Letter"): string {
-        return `cv-pdfs/${cvId}_${format}.pdf`;
+        return `cv-pdfs/${cvId}_${format}_v2.pdf`;
     }
 
     /**
@@ -43,7 +44,7 @@ export class PDFCache {
             const { data: fileData, error: listError } = await this.supabase.storage
                 .from("cv-pdfs")
                 .list(`cv-pdfs`, {
-                    search: `${cvId}_${format}.pdf`,
+                    search: `${cvId}_${format}_v2.pdf`,
                 });
 
             if (listError || !fileData || fileData.length === 0) {
@@ -115,6 +116,9 @@ export class PDFCache {
             const keysToDelete = [
                 this.getCacheKey(cvId, "A4"),
                 this.getCacheKey(cvId, "Letter"),
+                // Also delete old v1 cache
+                `cv-pdfs/${cvId}_A4.pdf`,
+                `cv-pdfs/${cvId}_Letter.pdf`,
             ];
 
             const { error } = await this.supabase.storage

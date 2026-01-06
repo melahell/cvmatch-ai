@@ -84,21 +84,44 @@ export async function GET(
             // For local development, use locally installed Chrome
             browser = await puppeteer.launch({
                 headless: true,
-                args: ["--no-sandbox", "--disable-setuid-sandbox"],
+                args: [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    '--font-render-hinting=none',
+                ],
+                defaultViewport: {
+                    width: 2480,
+                    height: 3508,
+                    deviceScaleFactor: 2,
+                },
             });
         } else {
             // For production (Vercel), use Sparticuz Chromium
             const executablePath = await chromium.executablePath();
 
             browser = await puppeteer.launch({
-                args: chromium.args,
+                args: [
+                    ...chromium.args,
+                    '--font-render-hinting=none', // Better font rendering
+                ],
                 executablePath: executablePath,
                 headless: true,
-                defaultViewport: { width: 1920, height: 1080 },
+                defaultViewport: {
+                    width: 2480, // A4 width in pixels at 300 DPI (210mm)
+                    height: 3508, // A4 height in pixels at 300 DPI (297mm)
+                    deviceScaleFactor: 2, // High DPI for crisp text
+                },
             });
         }
 
         const page = await browser.newPage();
+
+        // Set high quality rendering
+        await page.setViewport({
+            width: 2480,
+            height: 3508,
+            deviceScaleFactor: 2,
+        });
 
         // Build the URL for the print page
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
@@ -127,7 +150,7 @@ export async function GET(
         // Additional safety delay for final layout
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Generate PDF with optimized settings
+        // Generate PDF with optimized settings for text clarity
         console.log('📸 Generating PDF...');
 
         const pdfBuffer = await page.pdf({
@@ -139,11 +162,13 @@ export async function GET(
                 bottom: 0,
                 left: 0,
             },
-            preferCSSPageSize: true,
-            // Improve text rendering
+            preferCSSPageSize: false, // Use format size
             omitBackground: false,
             displayHeaderFooter: false,
             scale: 1,
+            // High quality settings
+            tagged: false,
+            outline: false,
         });
 
         console.log(`✅ PDF generated: ${pdfBuffer.length} bytes`);
