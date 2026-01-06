@@ -7,9 +7,8 @@ import { validateRAGData, formatValidationReport } from "@/lib/rag/validation";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quality-scoring";
 import { enrichRAGData, generateImprovementSuggestions } from "@/lib/rag/enrichment";
-// Merge engine temporarily disabled - format compatibility issue
-// import { mergeRAGData, MergeResult } from "@/lib/rag/merge-engine";
-// import { RAGComplete, createEmptyRAG, calculateRAGCompleteness } from "@/types/rag-complete";
+import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
+import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -55,6 +54,12 @@ export async function POST(req: Request) {
 
         if (!userId) {
             return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+        }
+
+        // Rate limiting: 5 RAG generations per hour
+        const rateLimitResult = checkRateLimit(`rag:${userId}`, RATE_LIMITS.RAG_GENERATION);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
 
         // 1. Fetch ALL documents for this user
@@ -261,12 +266,23 @@ export async function POST(req: Request) {
         //     console.warn("Failed to generate Top 10 Jobs, continuing without");
         // }
 
-        // 6. Save RAG Metadata with new quality scoring
+        // 6. Merge with existing RAG data (if any) to avoid data loss
         const { data: existingRag } = await supabase
             .from("rag_metadata")
-            .select("id")
+            .select("id, completeness_details")
             .eq("user_id", userId)
             .single();
+
+        let finalRAGData = ragData;
+        let mergeStats: any = null;
+
+        if (existingRag?.completeness_details) {
+            console.log('[MERGE] Merging with existing RAG data...');
+            const mergeResult = mergeRAGData(existingRag.completeness_details, ragData);
+            finalRAGData = mergeResult.merged;
+            mergeStats = mergeResult.stats;
+            console.log('[MERGE] Stats:', mergeStats);
+        }
 
         // Use new multi-dimensional quality score (overall_score is the main score)
         // But we keep completeness_score for backward compatibility
@@ -278,7 +294,7 @@ export async function POST(req: Request) {
                 .from("rag_metadata")
                 .update({
                     completeness_score: completenessScore,
-                    completeness_details: ragData,
+                    completeness_details: finalRAGData,
                     top_10_jobs: top10Jobs,
                     last_updated: new Date().toISOString()
                 })
@@ -286,7 +302,11 @@ export async function POST(req: Request) {
 
             if (updateError) {
                 console.error('Error updating rag_metadata:', updateError);
-                return NextResponse.json({ error: 'Failed to save RAG data: ' + updateError.message }, { status: 500 });
+                return NextResponse.json({
+                    error: 'Database error: Failed to save profile data',
+                    errorCode: 'DB_UPDATE_FAILED',
+                    details: updateError.message
+                }, { status: 500 });
             }
         } else {
             const { error: insertError } = await supabase
@@ -294,13 +314,17 @@ export async function POST(req: Request) {
                 .insert({
                     user_id: userId,
                     completeness_score: completenessScore,
-                    completeness_details: ragData,
+                    completeness_details: finalRAGData,
                     top_10_jobs: top10Jobs
                 });
 
             if (insertError) {
                 console.error('Error inserting rag_metadata:', insertError);
-                return NextResponse.json({ error: 'Failed to save RAG data: ' + insertError.message }, { status: 500 });
+                return NextResponse.json({
+                    error: 'Database error: Failed to create profile data',
+                    errorCode: 'DB_INSERT_FAILED',
+                    details: insertError.message
+                }, { status: 500 });
             }
         }
 
@@ -311,24 +335,72 @@ export async function POST(req: Request) {
             processedDocuments: processedCount,
             completenessScore,
             processingResults,
-            data: ragData,
-            // New quality metrics
+            data: finalRAGData,
+            // Merge stats (if merged)
+            merge: mergeStats ? {
+                merged: true,
+                itemsAdded: mergeStats.itemsAdded,
+                itemsUpdated: mergeStats.itemsUpdated,
+                itemsKept: mergeStats.itemsKept
+            } : { merged: false },
+            // Quality metrics
             quality_breakdown: {
                 overall: qualityScoreResult.overall_score,
                 completeness: qualityScoreResult.completeness_score,
                 quality: qualityScoreResult.quality_score,
                 impact: qualityScoreResult.impact_score
             },
+            // Validation warnings (ALL levels for user visibility)
             validation: {
                 isValid: validationResult.isValid,
-                warnings: validationResult.warnings.filter(w => w.severity === "critical" || w.severity === "warning"),
+                warnings: validationResult.warnings.map(w => ({
+                    severity: w.severity,
+                    category: w.category,
+                    message: w.message
+                })),
                 metrics: validationResult.metrics
             },
-            suggestions: suggestions.length > 0 ? suggestions.slice(0, 5) : undefined // Top 5 suggestions
+            // Improvement suggestions
+            suggestions: suggestions.length > 0 ? suggestions.slice(0, 5) : []
         });
 
     } catch (error: any) {
         console.error("RAG Generation error:", error);
-        return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
+
+        // Granular error handling
+        if (error.message?.includes("GEMINI") || error.message?.includes("API")) {
+            return NextResponse.json({
+                error: 'AI service error: Unable to process your documents at this time',
+                errorCode: 'GEMINI_ERROR',
+                details: error.message,
+                retry: true
+            }, { status: 503 });
+        }
+
+        if (error.message?.includes("PDF") || error.message?.includes("extraction")) {
+            return NextResponse.json({
+                error: 'Document extraction error: Unable to read your documents',
+                errorCode: 'EXTRACTION_ERROR',
+                details: error.message,
+                retry: false
+            }, { status: 400 });
+        }
+
+        if (error.message?.includes("Database") || error.message?.includes("Supabase")) {
+            return NextResponse.json({
+                error: 'Database error: Unable to save your profile',
+                errorCode: 'DATABASE_ERROR',
+                details: error.message,
+                retry: true
+            }, { status: 500 });
+        }
+
+        // Generic error
+        return NextResponse.json({
+            error: 'Unexpected error during profile generation',
+            errorCode: 'UNKNOWN_ERROR',
+            details: error.message || "Internal server error",
+            retry: true
+        }, { status: 500 });
     }
 }

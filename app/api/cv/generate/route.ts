@@ -7,6 +7,7 @@ import { calculateQualityScore, validateCVQuality } from "@/lib/cv/quality-metri
 import { transformRAGToOptimized } from "@/lib/cv/schema-transformer";
 import { autoCompressCV } from "@/lib/cv/compressor";
 import { validatePreGeneration, formatWarnings } from "@/lib/cv/pre-generation-validation";
+import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,12 @@ export async function POST(req: Request) {
 
         if (!userId || !analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+        }
+
+        // Rate limiting: 20 CV generations per hour
+        const rateLimitResult = checkRateLimit(`cv:${userId}`, RATE_LIMITS.CV_GENERATION);
+        if (!rateLimitResult.success) {
+            return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
 
         // 1. Fetch Job Analysis & User Profile
@@ -54,36 +61,66 @@ export async function POST(req: Request) {
 
         // Get photo URL if needed
         let photoUrl = null;
+        let photoWarning = null;
         if (includePhoto && ragData.photo_url) {
             if (ragData.photo_url.startsWith('storage:')) {
                 const storagePath = ragData.photo_url.replace('storage:', '');
-                const { data: signedUrlData } = await supabase.storage
+                const { data: signedUrlData, error: photoError } = await supabase.storage
                     .from('documents')
                     .createSignedUrl(storagePath, 3600);
-                photoUrl = signedUrlData?.signedUrl || null;
+
+                if (photoError) {
+                    console.error('Photo URL generation failed:', photoError.message);
+                    photoWarning = `Unable to load profile photo: ${photoError.message}`;
+                } else {
+                    photoUrl = signedUrlData?.signedUrl || null;
+                }
             } else {
                 photoUrl = ragData.photo_url;
             }
         }
 
-        // 2. Generate CV with AI
+        // 2. Generate CV with AI (with retry logic)
         const prompt = getCVOptimizationPrompt(profile, jobDescription, customNotes);
 
         console.log("=== CV GENERATION START ===");
         console.log("Using CDC Pipeline:", useCDCPipeline);
         console.log("Using model: gemini-3-flash-preview");
 
-        let result;
-        let responseText;
+        // Retry wrapper
+        const callWithRetry = async (maxRetries = 2): Promise<string> => {
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const result = await models.flash.generateContent(prompt);
+                    return result.response.text();
+                } catch (error: any) {
+                    const isRateLimit = error.message?.includes("429") || error.message?.includes("quota");
+                    const isTimeout = error.message?.includes("timeout") || error.message?.includes("deadline");
+
+                    if ((isRateLimit || isTimeout) && attempt < maxRetries - 1) {
+                        const delay = 3000 * Math.pow(2, attempt); // 3s, 6s
+                        console.log(`CV Generation retry ${attempt + 1}/${maxRetries} after ${delay}ms...`);
+                        await new Promise(r => setTimeout(r, delay));
+                        continue;
+                    }
+                    throw error;
+                }
+            }
+            throw new Error("Max retries exceeded");
+        };
+
+        let responseText: string;
         try {
-            result = await models.flash.generateContent(prompt);
-            responseText = result.response.text();
+            responseText = await callWithRetry();
             console.log("Gemini response length:", responseText.length);
         } catch (geminiError: any) {
             console.error("Gemini API Error:", geminiError.message);
             return NextResponse.json({
-                error: "Gemini API Error: " + geminiError.message
-            }, { status: 500 });
+                error: "AI service error: Unable to generate CV at this time",
+                errorCode: "GEMINI_ERROR",
+                details: geminiError.message,
+                retry: true
+            }, { status: 503 });
         }
 
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -172,12 +209,31 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
         }
 
+        // Compile all warnings
+        const allWarnings: string[] = [];
+        if (photoWarning) allWarnings.push(photoWarning);
+        if (validationResult.warnings.length > 0) {
+            allWarnings.push(...validationResult.warnings.map(w => `${w.category}: ${w.message}`));
+        }
+
         return NextResponse.json({
             success: true,
             cvId: cvGen?.id,
             cvData: finalCV,
             templateName: template || "modern",
             includePhoto,
+            // Warnings for user visibility
+            warnings: allWarnings.length > 0 ? allWarnings : undefined,
+            // Pre-generation validation
+            preValidation: validationResult.warnings.length > 0 ? {
+                qualityIndicators: validationResult.qualityIndicators,
+                warnings: validationResult.warnings.map(w => ({
+                    severity: w.severity,
+                    category: w.category,
+                    message: w.message,
+                    recommendation: w.recommendation
+                }))
+            } : undefined,
             // CDC Pipeline extras
             cdcPipeline: useCDCPipeline,
             qualityScore: qualityScore ? {
