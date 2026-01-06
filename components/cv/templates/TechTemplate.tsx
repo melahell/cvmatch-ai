@@ -367,9 +367,6 @@ export default function TechTemplate({
                                             {edu.etablissement && (
                                                 <p className="text-emerald-600 font-semibold text-[8pt] mt-0.5">{edu.etablissement}</p>
                                             )}
-                                            {edu.mention && (
-                                                <p className="text-slate-600 text-[7pt] mt-0.5 italic">{edu.mention}</p>
-                                            )}
                                         </div>
                                         {edu.annee && (
                                             <span className="text-[7pt] font-mono bg-slate-200 px-2 py-0.5 rounded text-slate-700 whitespace-nowrap">

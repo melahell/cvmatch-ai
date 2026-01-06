@@ -345,9 +345,6 @@ export default function ModernTemplate({
                                     {edu.annee && (
                                         <p className="text-slate-600 text-[7pt] mt-0.5">{edu.annee}</p>
                                     )}
-                                    {edu.mention && (
-                                        <p className="text-purple-600 font-medium text-[7pt] mt-0.5 italic">{edu.mention}</p>
-                                    )}
                                 </div>
                             ))}
                         </div>
