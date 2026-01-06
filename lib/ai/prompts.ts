@@ -7,10 +7,7 @@ Tu es un expert en extraction et structuration de données professionnelles.
 DOCUMENTS FOURNIS:
 ${extractedText}
 
-MISSION CRITIQUE:
-Extrais et structure les informations en SÉPARANT strictement :
-1. Ce qui est EXPLICITEMENT écrit (compétences mentionnées textuellement)
-2. Ce qui est INFÉRÉ du contexte (compétences déduites mais non écrites)
+MISSION: Extrais TOUTES les informations, notamment les CLIENTS et CERTIFICATIONS.
 
 SCHÉMA CIBLE (JSON uniquement) :
 {
@@ -32,7 +29,8 @@ SCHÉMA CIBLE (JSON uniquement) :
       "realisations": [
         { "description": "string", "impact": "string (quantifié)" }
       ],
-      "technologies": ["string"]
+      "technologies": ["string"],
+      "clients_references": ["noms des clients mentionnés"]
     }
   ],
   "competences": {
@@ -42,62 +40,45 @@ SCHÉMA CIBLE (JSON uniquement) :
     },
     "inferred": {
       "techniques": [
-        {
-          "name": "string",
-          "confidence": 0-100,
-          "reasoning": "string (pourquoi tu l'infères)",
-          "sources": ["citations exactes du CV"]
-        }
+        { "name": "string", "confidence": 60-100, "reasoning": "string", "sources": ["citations"] }
       ],
       "tools": [
-        {
-          "name": "string",
-          "confidence": 0-100,
-          "reasoning": "string",
-          "sources": ["citations"]
-        }
+        { "name": "string", "confidence": 60-100, "reasoning": "string", "sources": ["citations"] }
       ],
       "soft_skills": [
-        {
-          "name": "string",
-          "confidence": 0-100,
-          "reasoning": "string",
-          "sources": ["citations"]
-        }
+        { "name": "string", "confidence": 60-100, "reasoning": "string", "sources": ["citations"] }
       ]
     }
   },
   "formations": [
     { "diplome": "string", "ecole": "string", "annee": "YYYY" }
   ],
-  "langues": { "langue": "niveau" }
+  "certifications": ["string (nom de chaque certification)"],
+  "langues": { "langue": "niveau" },
+  "references": {
+    "clients": [
+      { "nom": "string", "secteur": "Luxe|Finance|Tech|Industrie|Santé|Transport|Énergie|Autre" }
+    ]
+  }
 }
 
-RÈGLES STRICTES pour COMPÉTENCES :
+RÈGLES CRITIQUES:
 
-1. **EXPLICIT** = Compétences mentionnées TEXTUELLEMENT
-   - "JavaScript", "React", "Python" → EXPLICIT si écrits
-   - "Communication" → EXPLICIT si le mot est dans le CV
+1. **CLIENTS** - TRÈS IMPORTANT:
+   - Cherche TOUS les noms d'entreprises clientes mentionnées
+   - Exemples: Cartier, Dreamworks, SNCF, Chanel, L'Oréal, BNP, Orange, Airbus, etc.
+   - Mets-les dans \`experiences[].clients_references\` ET dans \`references.clients\` avec secteur
 
-2. **INFERRED** = Compétences DÉDUITES du contexte
-   ✅ Exemples VALID pour inférence :
-   - "Git" si GitHub mentionné mais jamais "Git"
-   - "Docker" si "containerisation" ou "déploiement" contextuel
-   - "Agile/Scrum" si "gestion sprints" mais jamais "Agile"
-   - "Leadership" si "management équipe de 5"
-   
-   Pour chaque inférence :
-   - **confidence** : 60-100% (min 60%, sinon ne pas suggérer)
-   - **reasoning** : Explication claire et concise
-   - **sources** : Citations EXACTES du CV prouvant l'inférence
+2. **CERTIFICATIONS**:
+   - Toute certification mentionnée (PMP, AWS, Scrum Master, etc.)
+   - Séparées des formations
 
-3. **OUTILS INTERMÉDIAIRES** (tools dans inferred)
-   - Outils probablement utilisés mais non listés
-   - Ex: "Jira" pour un PMO même si non mentionné explicitement
-   - Ex: "Nginx" pour déploiement web apps
+3. **COMPÉTENCES**:
+   - explicit = mentionné textuellement
+   - inferred = déduit du contexte (confidence min 60%)
 
 OUTPUT:
-JSON valide uniquement. Pas de markdown, pas de \`\`\`json.
+JSON valide uniquement. Pas de markdown.
 `;
 
 
