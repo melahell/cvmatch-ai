@@ -14,8 +14,8 @@ export const maxDuration = 60; // Allow up to 60 seconds for processing
 // Retry wrapper with exponential backoff for rate limits
 async function callWithRetry<T>(
     fn: () => Promise<T>,
-    maxRetries: number = 3,
-    baseDelay: number = 30000
+    maxRetries: number = 2,
+    baseDelay: number = 5000
 ): Promise<T> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
