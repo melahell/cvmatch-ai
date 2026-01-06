@@ -171,9 +171,32 @@ export async function POST(req: Request) {
 
         if (useCDCPipeline) {
             try {
+                // CRITICAL FIX: Merge original RAG profile with Gemini output
+                // to preserve identity data (nom, prenom, email, etc.)
+                const mergedData = {
+                    ...aiOptimizedCV,
+                    profil: {
+                        ...aiOptimizedCV.profil,       // Gemini optimizations
+                        // Force original identity data from RAG profile
+                        nom: profile.nom || aiOptimizedCV.profil?.nom,
+                        prenom: profile.prenom || aiOptimizedCV.profil?.prenom,
+                        email: profile.email || aiOptimizedCV.profil?.email,
+                        telephone: profile.telephone || aiOptimizedCV.profil?.telephone,
+                        localisation: profile.localisation || aiOptimizedCV.profil?.localisation,
+                        linkedin: profile.linkedin || aiOptimizedCV.profil?.linkedin,
+                        titre_principal: profile.titre_principal || aiOptimizedCV.profil?.titre_principal,
+                        elevator_pitch: profile.elevator_pitch || aiOptimizedCV.profil?.elevator_pitch,
+                    },
+                    // Also preserve experiences, competences, formations from RAG if missing
+                    experiences: aiOptimizedCV.experiences || profile.experiences,
+                    competences: aiOptimizedCV.competences || profile.competences,
+                    formations: aiOptimizedCV.formations || profile.formations,
+                    langues: aiOptimizedCV.langues || profile.langues,
+                };
+
                 // Transform to CVOptimized format
                 const cvOptimized = transformRAGToOptimized(
-                    aiOptimizedCV,
+                    mergedData,
                     analysisData.match_report,
                     template || "modern"
                 );
