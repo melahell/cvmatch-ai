@@ -26,6 +26,37 @@ export async function POST(req: Request) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
 
+        // Check cache: if CV already generated for this analysis + template, return it
+        const { data: cachedCV, error: cacheError } = await supabase
+            .from("cv_generations")
+            .select("id, cv_data, template_name, created_at")
+            .eq("user_id", userId)
+            .eq("job_analysis_id", analysisId)
+            .eq("template_name", template || "modern")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (cachedCV && !cacheError) {
+            const cacheAge = Date.now() - new Date(cachedCV.created_at).getTime();
+            const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+            if (cacheAge < CACHE_TTL) {
+                console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
+                return NextResponse.json({
+                    success: true,
+                    cvId: cachedCV.id,
+                    cvData: cachedCV.cv_data,
+                    templateName: cachedCV.template_name,
+                    includePhoto,
+                    cached: true,
+                    cacheAge: Math.round(cacheAge / 1000)
+                });
+            } else {
+                console.log(`[CV CACHE EXPIRED] Cache too old (${Math.round(cacheAge / 1000)}s), regenerating...`);
+            }
+        }
+
         // 1. Fetch Job Analysis & User Profile
         const { data: analysisData, error: analysisError } = await supabase
             .from("job_analyses")

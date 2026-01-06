@@ -9,6 +9,8 @@ import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quali
 import { enrichRAGData, generateImprovementSuggestions } from "@/lib/rag/enrichment";
 import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
+import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
+import { logger } from "@/lib/utils/logger";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -186,8 +188,25 @@ export async function POST(req: Request) {
             }, { status: 400 });
         }
 
+        // Truncate text if too large (prevents Gemini token limit issues)
+        const { text: finalExtractedText, stats: truncationStats } = truncateForRAGExtraction(allExtractedText);
+
+        if (truncationStats.wasTruncated) {
+            logger.warn('Extracted text truncated', {
+                originalTokens: truncationStats.originalTokens,
+                finalTokens: truncationStats.finalTokens,
+                truncatedPercentage: truncationStats.truncatedPercentage
+            });
+        }
+
+        logger.info('Text extraction complete', {
+            documentsProcessed: processedCount,
+            finalTokens: truncationStats.finalTokens,
+            wasTruncated: truncationStats.wasTruncated
+        });
+
         // 3. Process with Gemini to structure the RAG
-        const prompt = getRAGExtractionPrompt(allExtractedText);
+        const prompt = getRAGExtractionPrompt(finalExtractedText);
         const result = await callWithRetry(() => generateWithFallback(prompt));
         const responseText = result.response.text();
 
