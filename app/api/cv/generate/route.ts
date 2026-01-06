@@ -14,7 +14,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
     try {
-        const { userId, analysisId, template, includePhoto = true, useCDCPipeline = true } = await req.json();
+        // QUICK FIX: Disable CDC Pipeline to use RAG profile directly
+        // This bypasses the complex transformation chain that was causing data loss
+        const { userId, analysisId, template, includePhoto = true, useCDCPipeline = false } = await req.json();
 
         if (!userId || !analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -164,8 +166,28 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
         }
 
-        // 3. Apply CDC Pipeline if enabled
-        let finalCV = aiOptimizedCV;
+        // 3. ALWAYS merge original RAG profile with Gemini output
+        // to preserve identity data (nom, prenom, email, etc.)
+        let finalCV = {
+            ...aiOptimizedCV,
+            profil: {
+                ...aiOptimizedCV.profil,
+                // Force original identity data from RAG profile
+                nom: profile.nom || aiOptimizedCV.profil?.nom,
+                prenom: profile.prenom || aiOptimizedCV.profil?.prenom,
+                email: profile.email || aiOptimizedCV.profil?.email,
+                telephone: profile.telephone || aiOptimizedCV.profil?.telephone,
+                localisation: profile.localisation || aiOptimizedCV.profil?.localisation,
+                linkedin: profile.linkedin || aiOptimizedCV.profil?.linkedin,
+                titre_principal: profile.titre_principal || aiOptimizedCV.profil?.titre_principal,
+                elevator_pitch: aiOptimizedCV.profil?.elevator_pitch || profile.elevator_pitch,
+            },
+            experiences: aiOptimizedCV.experiences || profile.experiences,
+            competences: aiOptimizedCV.competences || profile.competences,
+            formations: aiOptimizedCV.formations || profile.formations,
+            langues: aiOptimizedCV.langues || profile.langues,
+            certifications: aiOptimizedCV.certifications || profile.certifications,
+        };
         let qualityScore = null;
         let compressionInfo = null;
 
