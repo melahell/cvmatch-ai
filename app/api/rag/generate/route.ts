@@ -13,7 +13,7 @@ import { enrichRAGData, generateImprovementSuggestions } from "@/lib/rag/enrichm
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
-export const maxDuration = 60; // Allow up to 60 seconds for processing
+export const maxDuration = 300; // Allow up to 5 minutes for processing (Vercel Pro+)
 
 // Retry wrapper with exponential backoff for rate limits
 async function callWithRetry<T>(
@@ -218,28 +218,21 @@ export async function POST(req: Request) {
         // NEW: POST-EXTRACTION PROCESSING PIPELINE
         // ═══════════════════════════════════════════════════════════════
 
-        // Step 1: Validate extracted data
-        console.log('\n=== VALIDATION ===');
+        // Step 1: Validate extracted data (lightweight logging)
         const validationResult = validateRAGData(ragData);
-        console.log(formatValidationReport(validationResult));
+        console.log('[VALIDATION] Warnings:', validationResult.warnings.length);
 
         // Step 2: Consolidate client references
-        console.log('\n=== CLIENT CONSOLIDATION ===');
         ragData = consolidateClients(ragData);
-        console.log('Consolidated clients count:', ragData?.references?.clients?.length || 0);
+        console.log('[CONSOLIDATION] Clients:', ragData?.references?.clients?.length || 0);
 
         // Step 3: Enrich data (normalize, compute fields, detect anomalies)
-        console.log('\n=== ENRICHMENT ===');
         ragData = enrichRAGData(ragData);
-        console.log('Enrichment log:', ragData.enrichment_metadata?.enrichment_log || []);
-        if (ragData.anomalies && ragData.anomalies.length > 0) {
-            console.log('⚠️  Anomalies detected:', ragData.anomalies);
-        }
+        console.log('[ENRICHMENT] Operations:', ragData.enrichment_metadata?.enrichment_log?.length || 0);
 
         // Step 4: Calculate quality score (multi-dimensional)
-        console.log('\n=== QUALITY SCORING ===');
         const qualityScoreResult = calculateQualityScore(ragData);
-        console.log(formatQualityScoreReport(qualityScoreResult));
+        console.log('[SCORING] Overall:', qualityScoreResult.overall_score);
 
         // Step 5: Add extraction metadata
         ragData.extraction_metadata = {
@@ -254,10 +247,7 @@ export async function POST(req: Request) {
 
         // Step 7: Generate improvement suggestions
         const suggestions = generateImprovementSuggestions(ragData);
-        if (suggestions.length > 0) {
-            console.log('\n=== IMPROVEMENT SUGGESTIONS ===');
-            suggestions.forEach((s, i) => console.log(`${i + 1}. ${s}`));
-        }
+        console.log('[SUGGESTIONS]:', suggestions.length);
 
         // 4. Generate Top 10 Jobs - DISABLED to prevent timeout
         // TODO: Move to separate endpoint for async generation
