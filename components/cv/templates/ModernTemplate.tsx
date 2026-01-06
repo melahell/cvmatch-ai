@@ -70,8 +70,8 @@ export default function ModernTemplate({
 
     // Show all data - let CDC Pipeline handle optimization
     const limitedExperiences = experiences || [];
-    const limitedSkills = competences?.techniques || [];
-    const limitedSoftSkills = competences?.soft_skills || [];
+    const limitedSkills = (competences?.techniques || []).slice(0, 12);  // Max 12 for space
+    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, 6);  // Max 6 for space
     const limitedFormations = formations || [];
 
     // Sanitize elevator pitch
@@ -90,7 +90,7 @@ export default function ModernTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'Inter', -apple-system, sans-serif",
-                fontSize: '9pt',
+                fontSize: '8.5pt',
                 lineHeight: '1.3'
             }}
         >
@@ -240,7 +240,7 @@ export default function ModernTemplate({
                                             {group.secteur}
                                         </span>
                                         <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
-                                            {(group.clients || []).slice(0, 4).map((client: string, j: number) => (
+                                            {(group.clients || []).slice(0, 6).map((client: string, j: number) => (
                                                 <span key={j} className="truncate">• {client}</span>
                                             ))}
                                         </div>
@@ -249,7 +249,7 @@ export default function ModernTemplate({
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
-                                {clients_references.clients.slice(0, 10).map((client: string, i: number) => (
+                                {clients_references.clients.slice(0, 20).map((client: string, i: number) => (
                                     <span key={i} className="truncate">• {client}</span>
                                 ))}
                             </div>
@@ -259,7 +259,7 @@ export default function ModernTemplate({
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 p-6 bg-white overflow-hidden">
+            <main className="flex-1 p-5 bg-white overflow-hidden">
                 {/* Profil / Résumé */}
                 {cleanElevatorPitch && (
                     <section className="mb-4">
@@ -289,7 +289,7 @@ export default function ModernTemplate({
                         <span className="w-6 h-0.5 bg-purple-600 rounded-full" />
                         Expériences Professionnelles
                     </h2>
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                         {limitedExperiences.map((exp, i) => (
                             <div
                                 key={i}
