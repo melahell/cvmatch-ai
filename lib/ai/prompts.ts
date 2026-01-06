@@ -17,7 +17,7 @@ SCHÉMA CIBLE (JSON uniquement) :
     "titre_principal": "string",
     "localisation": "string",
     "contact": { "email": "string", "telephone": "string", "linkedin": "string" },
-    "elevator_pitch": "string (2-3 phrases max)"
+    "elevator_pitch": "ACCROCHEUR: 3 phrases percutantes - 1) Expertise clé + années XP, 2) Réalisations/clients majeurs, 3) Valeur unique"
   },
   "experiences": [
     {
