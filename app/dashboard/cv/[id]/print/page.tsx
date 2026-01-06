@@ -102,54 +102,53 @@ export default function CVPrintPage() {
                     color-adjust: exact !important;
                 }
 
-                body {
-                    background: white;
+                html, body {
                     margin: 0;
                     padding: 0;
-                    overflow: hidden;
+                    background: white;
                 }
 
-                /* Prevent page breaks inside elements */
-                .break-inside-avoid {
+                /* CV container - force exact A4 size */
+                .cv-page {
+                    width: 210mm !important;
+                    height: 297mm !important;
+                    max-height: 297mm !important;
+                    overflow: hidden !important;
+                    page-break-after: avoid !important;
+                    page-break-inside: avoid !important;
+                }
+
+                /* Prevent ANY element from breaking across pages */
+                section, div, aside, main, ul, li, p, h1, h2, h3, h4, span {
                     break-inside: avoid !important;
                     page-break-inside: avoid !important;
                 }
 
-                /* Control orphans and widows */
-                p, li, div {
-                    orphans: 3;
-                    widows: 3;
+                /* Force everything to stay on page 1 */
+                @media print {
+                    html, body {
+                        height: 297mm;
+                        overflow: hidden;
+                    }
+                    
+                    .cv-page {
+                        height: 297mm !important;
+                        page-break-after: always;
+                    }
                 }
 
-                /* Prevent headings from being orphaned */
-                h1, h2, h3, h4, h5, h6 {
-                    break-after: avoid !important;
-                    page-break-after: avoid !important;
-                }
-
-                /* Optimize font rendering */
+                /* Optimize font rendering for PDF */
                 body {
                     -webkit-font-smoothing: antialiased;
                     -moz-osx-font-smoothing: grayscale;
-                    text-rendering: optimizeLegibility;
+                    text-rendering: geometricPrecision;
+                    font-family: Arial, Helvetica, sans-serif;
                 }
 
-                /* Ensure all elements have explicit colors for PDF */
-                * {
-                    -webkit-box-decoration-break: clone;
-                    box-decoration-break: clone;
-                }
-
-                /* Fix gradient backgrounds in PDF */
-                .bg-gradient-to-r,
-                .bg-gradient-to-l,
-                .bg-gradient-to-t,
-                .bg-gradient-to-b,
-                .bg-gradient-to-br,
-                .bg-gradient-to-bl,
-                .bg-gradient-to-tr,
-                .bg-gradient-to-tl {
-                    -webkit-print-color-adjust: exact !important;
+                /* Ensure text doesn't get cut */
+                .truncate {
+                    text-overflow: clip !important;
+                    overflow: visible !important;
                 }
             `}</style>
         </>
