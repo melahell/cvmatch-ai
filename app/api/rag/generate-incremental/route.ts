@@ -11,7 +11,7 @@ import { logger } from "@/lib/utils/logger";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
-export const maxDuration = 10; // Keep under 10s for Vercel Free plan
+export const maxDuration = 60; // 60s for Vercel Pro/Team - reduce to 10 for free plan
 
 // Timeout wrapper for Gemini API calls
 async function callWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
             });
         }
 
-        // 4. Call Gemini with timeout (7s max - leave 3s buffer for processing)
+        // 4. Call Gemini with timeout (45s - adequate for large documents)
         const geminiStart = Date.now();
         let responseText: string;
 
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
             const prompt = getRAGExtractionPrompt(truncatedText);
             const result = await callWithTimeout(
                 model.generateContent(prompt),
-                7000 // 7s timeout
+                45000 // 45s timeout - enough for complex PDFs
             );
             responseText = result.response.text();
 
