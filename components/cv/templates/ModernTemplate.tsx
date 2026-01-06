@@ -131,18 +131,18 @@ export default function ModernTemplate({
                     <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
                         Contact
                     </h3>
-                    {profil.email && (
-                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
-                            <Mail className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                            <span className="text-slate-100 truncate">{profil.email}</span>
-                        </div>
-                    )}
-                    {profil.telephone && (
-                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
-                            <Phone className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                            <span className="text-slate-100">{profil.telephone}</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <span className={`truncate ${!profil.email ? 'text-slate-500 italic text-[7pt]' : 'text-slate-100'}`}>
+                            {profil.email || 'non renseigné'}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <span className={!profil.telephone ? 'text-slate-500 italic text-[7pt]' : 'text-slate-100'}>
+                            {profil.telephone || 'non renseigné'}
+                        </span>
+                    </div>
                     {profil.localisation && (
                         <div className="flex items-center gap-2">
                             <MapPin className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
@@ -277,47 +277,66 @@ export default function ModernTemplate({
                     </div>
                 )}
 
-                {/* Expériences avec Timeline */}
+                {/* Expériences avec Timeline + Densité Progressive */}
                 <section className="mb-5">
                     <h2 className="text-base font-extrabold mb-4 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                         <span className="w-6 h-0.5 bg-purple-600 rounded-full" />
                         Expériences Professionnelles
                     </h2>
                     <div className="space-y-4">
-                        {limitedExperiences.map((exp, i) => (
-                            <div
-                                key={i}
-                                className="relative pl-5 pr-3 py-3 border-l-[3px] group rounded-r-lg"
-                                style={{
-                                    borderImage: 'linear-gradient(180deg, #a78bfa 0%, #c4b5fd 50%, #ddd6fe 100%) 1',
-                                    background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%)'
-                                }}
-                            >
-                                {/* Timeline dot */}
-                                <div
-                                    className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-[3px] border-purple-500"
-                                    style={{ boxShadow: '0 0 8px rgba(139, 92, 246, 0.5)' }}
-                                />
+                        {limitedExperiences.map((exp, i) => {
+                            // Progressive density: more compact after 3rd experience
+                            const isCompact = i >= 2;
+                            const maxRealisations = isCompact ? 2 : 4;
+                            const realisations = exp.realisations?.slice(0, maxRealisations) || [];
 
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
-                                    <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
-                                    <span className="text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded text-[7pt]">
-                                        {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
-                                    </span>
+                            return (
+                                <div
+                                    key={i}
+                                    className={`relative pl-5 pr-3 group rounded-r-lg ${
+                                        isCompact ? 'py-2 border-l-2' : 'py-3 border-l-[3px]'
+                                    }`}
+                                    style={{
+                                        borderImage: isCompact
+                                            ? 'linear-gradient(180deg, #c4b5fd 0%, #ddd6fe 100%) 1'
+                                            : 'linear-gradient(180deg, #a78bfa 0%, #c4b5fd 50%, #ddd6fe 100%) 1',
+                                        background: isCompact
+                                            ? 'linear-gradient(90deg, rgba(139, 92, 246, 0.02) 0%, transparent 100%)'
+                                            : 'linear-gradient(90deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%)'
+                                    }}
+                                >
+                                    {/* Timeline dot - smaller for compact */}
+                                    <div
+                                        className={`absolute top-3 rounded-full bg-white ${
+                                            isCompact ? '-left-[6px] w-3 h-3 border-2 border-purple-400' : '-left-[9px] w-4 h-4 border-[3px] border-purple-500'
+                                        }`}
+                                        style={{ boxShadow: isCompact ? '0 0 5px rgba(139, 92, 246, 0.3)' : '0 0 8px rgba(139, 92, 246, 0.5)' }}
+                                    />
+
+                                    <div className={`flex flex-col sm:flex-row sm:items-center justify-between ${isCompact ? 'mb-0.5' : 'mb-1'}`}>
+                                        <h4 className={`font-extrabold text-slate-900 ${isCompact ? 'text-[9pt]' : 'text-[10pt]'}`}>
+                                            {sanitizeText(exp.poste)}
+                                        </h4>
+                                        <span className={`text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded ${isCompact ? 'text-[6pt]' : 'text-[7pt]'}`}>
+                                            {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
+                                        </span>
+                                    </div>
+                                    <p className={`text-purple-600 font-bold ${isCompact ? 'text-[8pt] mb-1' : 'text-[9pt] mb-1.5'}`}>
+                                        {sanitizeText(exp.entreprise)}
+                                        {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
+                                    </p>
+                                    {realisations.length > 0 && (
+                                        <ul className={`text-slate-700 list-disc list-inside ${
+                                            isCompact ? 'space-y-0 text-[7pt] leading-snug' : 'space-y-0.5 text-[8pt] leading-relaxed'
+                                        }`}>
+                                            {realisations.map((r, j) => (
+                                                <li key={j}>{renderRealisation(r)}</li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
-                                <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
-                                    {sanitizeText(exp.entreprise)}
-                                    {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
-                                </p>
-                                {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
-                                        {exp.realisations.map((r, j) => (
-                                            <li key={j}>{renderRealisation(r)}</li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </section>
 
