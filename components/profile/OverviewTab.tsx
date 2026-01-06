@@ -512,6 +512,79 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                     )}
                 </Card>
             )}
+
+            {/* Certifications */}
+            {ragData?.certifications && ragData.certifications.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Badge className="bg-yellow-100 text-yellow-700">🏆</Badge>
+                            Certifications ({ragData.certifications.length})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                            {ragData.certifications.map((cert: any, i: number) => (
+                                <Badge key={i} variant="outline" className="bg-yellow-50 border-yellow-200">
+                                    {typeof cert === 'string' ? cert : (cert?.nom || JSON.stringify(cert))}
+                                </Badge>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Clients & Références */}
+            {(ragData?.references?.clients?.length > 0 ||
+                ragData?.experiences?.some((exp: any) => exp.clients_references?.length > 0)) && (
+                    <Card className="border-green-200 bg-gradient-to-br from-green-50/50 to-white">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Badge className="bg-green-100 text-green-700">🤝</Badge>
+                                Clients & Références
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {/* Clients from references.clients */}
+                            {ragData?.references?.clients?.length > 0 && (
+                                <div>
+                                    <h4 className="font-medium mb-2 text-green-800">Clients (par secteur) :</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {ragData.references.clients.map((client: any, i: number) => (
+                                            <Badge key={i} className="bg-green-100 text-green-800 border-green-300">
+                                                {client.nom || client}
+                                                {client.secteur && (
+                                                    <span className="ml-1 text-green-600 text-xs">({client.secteur})</span>
+                                                )}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Clients from experiences */}
+                            {ragData?.experiences?.some((exp: any) => exp.clients_references?.length > 0) && (
+                                <div>
+                                    <h4 className="font-medium mb-2 text-green-800">Clients par expérience :</h4>
+                                    <div className="space-y-2">
+                                        {ragData.experiences
+                                            .filter((exp: any) => exp.clients_references?.length > 0)
+                                            .map((exp: any, i: number) => (
+                                                <div key={i} className="text-sm">
+                                                    <span className="font-medium">{exp.entreprise}:</span>{" "}
+                                                    {exp.clients_references.map((c: string, j: number) => (
+                                                        <Badge key={j} variant="outline" className="ml-1 text-xs">
+                                                            {c}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
         </div>
     );
 }
