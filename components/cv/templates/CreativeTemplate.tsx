@@ -12,6 +12,36 @@ const COLORS = {
     tertiary: '#06b6d4', // Cyan
 };
 
+// Sanitize text by fixing spacing issues (applied at render time)
+function sanitizeText(text: string | undefined | null): string {
+    if (!text) return '';
+
+    return text
+        // Fix common French word concatenations
+        .replace(/([a-zàâäéèêëïîôùûüçœæ])(de|des|du|pour|avec|sans|dans|sur|sous|entre|chez|vers|par|et|ou|à|au|aux|un|une|le|la|les)([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆA-zàâäéèêëïîôùûüçœæ])/g, '$1 $2 $3')
+        // Fix lowercase + uppercase (camelCase)
+        .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
+        // Fix punctuation + letter
+        .replace(/([.,;:!?])([a-zA-ZÀ-ÿ])/g, '$1 $2')
+        // Fix closing parenthesis + letter
+        .replace(/\)([a-zA-ZÀ-ÿ])/g, ') $1')
+        // Fix letter + opening parenthesis
+        .replace(/([a-zA-ZÀ-ÿ])\(/g, '$1 (')
+        // Fix number + letter (12clients → 12 clients)
+        .replace(/(\d)([a-zA-ZÀ-ÿ])/g, '$1 $2')
+        // Fix letter + number (pour12 → pour 12)
+        .replace(/([a-zA-ZÀ-ÿ])(\d)/g, '$1 $2')
+        // Fix + and numbers
+        .replace(/\+(\d)/g, '+ $1')
+        .replace(/(\d)\+/g, '$1 +')
+        // Fix % and numbers
+        .replace(/(\d)%/g, '$1 %')
+        .replace(/%(\d)/g, '% $1')
+        // Normalize multiple spaces to single space
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 export default function CreativeTemplate({
     data,
     includePhoto = true,
@@ -22,15 +52,15 @@ export default function CreativeTemplate({
 
     // Helper to safely render a string from potentially object value
     const safeString = (val: any): string => {
-        if (typeof val === 'string') return val;
+        if (typeof val === 'string') return sanitizeText(val);
         if (typeof val === 'object' && val !== null) {
-            if (val.name) return val.name;
-            if (val.skill) return val.skill;
-            if (val.description) return val.description;
-            if (val.impact) return val.impact;
-            return JSON.stringify(val);
+            if (val.name) return sanitizeText(val.name);
+            if (val.skill) return sanitizeText(val.skill);
+            if (val.description) return sanitizeText(val.description);
+            if (val.impact) return sanitizeText(val.impact);
+            return sanitizeText(JSON.stringify(val));
         }
-        return String(val || '');
+        return sanitizeText(String(val || ''));
     };
 
     const limitedExperiences = experiences || [];

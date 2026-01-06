@@ -7,17 +7,33 @@ import { Mail, Phone, MapPin, Linkedin, Globe } from "lucide-react";
 // Sanitize text by fixing spacing issues (applied at render time)
 function sanitizeText(text: string | undefined | null): string {
     if (!text) return '';
+
     return text
+        // Fix common French word concatenations
+        .replace(/([a-zàâäéèêëïîôùûüçœæ])(de|des|du|pour|avec|sans|dans|sur|sous|entre|chez|vers|par|et|ou|à|au|aux|un|une|le|la|les)([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆA-zàâäéèêëïîôùûüçœæ])/g, '$1 $2 $3')
+        // Fix lowercase + uppercase (camelCase)
         .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
+        // Fix punctuation + letter
         .replace(/([.,;:!?])([a-zA-ZÀ-ÿ])/g, '$1 $2')
+        // Fix closing parenthesis + letter
         .replace(/\)([a-zA-ZÀ-ÿ])/g, ') $1')
+        // Fix letter + opening parenthesis
         .replace(/([a-zA-ZÀ-ÿ])\(/g, '$1 (')
-        .replace(/(\d)(ans|projets|utilisateurs|mois)/gi, '$1 $2')
+        // Fix number + letter (12clients → 12 clients)
+        .replace(/(\d)([a-zA-ZÀ-ÿ])/g, '$1 $2')
+        // Fix letter + number (pour12 → pour 12)
+        .replace(/([a-zA-ZÀ-ÿ])(\d)/g, '$1 $2')
+        // Fix + and numbers
         .replace(/\+(\d)/g, '+ $1')
         .replace(/(\d)\+/g, '$1 +')
+        // Fix % and numbers
+        .replace(/(\d)%/g, '$1 %')
+        .replace(/%(\d)/g, '% $1')
+        // Normalize multiple spaces to single space
         .replace(/\s+/g, ' ')
         .trim();
 }
+
 
 export default function ModernTemplate({
     data,
@@ -106,7 +122,7 @@ export default function ModernTemplate({
                     </div>
                     <h1 className="text-lg font-bold tracking-tight">{profil.prenom} {profil.nom}</h1>
                     <p className="text-indigo-400 font-semibold mt-1 text-[9pt] uppercase tracking-widest leading-tight">
-                        {profil.titre_principal}
+                        {sanitizeText(profil.titre_principal)}
                     </p>
                 </div>
 
@@ -284,14 +300,14 @@ export default function ModernTemplate({
                                 />
 
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
-                                    <h4 className="text-[10pt] font-extrabold text-slate-900">{exp.poste}</h4>
+                                    <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
                                     <span className="text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded text-[7pt]">
-                                        {exp.date_debut} - {exp.date_fin || 'Présent'}
+                                        {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
                                     </span>
                                 </div>
                                 <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
-                                    {exp.entreprise}
-                                    {exp.lieu && ` • ${exp.lieu}`}
+                                    {sanitizeText(exp.entreprise)}
+                                    {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
                                 </p>
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
@@ -338,12 +354,12 @@ export default function ModernTemplate({
                                     key={i}
                                     className="pl-4 py-2 border-l-2 border-indigo-200 bg-gradient-to-r from-indigo-50/50 to-transparent"
                                 >
-                                    <h4 className="font-bold text-[9pt] text-slate-900">{edu.diplome}</h4>
+                                    <h4 className="font-bold text-[9pt] text-slate-900">{sanitizeText(edu.diplome)}</h4>
                                     {edu.etablissement && (
-                                        <p className="text-indigo-600 font-semibold text-[8pt]">{edu.etablissement}</p>
+                                        <p className="text-indigo-600 font-semibold text-[8pt]">{sanitizeText(edu.etablissement)}</p>
                                     )}
                                     {edu.annee && (
-                                        <p className="text-slate-600 text-[7pt] mt-0.5">{edu.annee}</p>
+                                        <p className="text-slate-600 text-[7pt] mt-0.5">{sanitizeText(edu.annee)}</p>
                                     )}
                                 </div>
                             ))}
