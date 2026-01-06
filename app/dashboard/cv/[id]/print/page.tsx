@@ -14,6 +14,7 @@ export default function CVPrintPage() {
     const includePhoto = searchParams.get("photo") !== "false";
     const [loading, setLoading] = useState(true);
     const [cvData, setCvData] = useState<any>(null);
+    const [rendered, setRendered] = useState(false);
 
     useEffect(() => {
         const supabase = createClient(
@@ -37,6 +38,31 @@ export default function CVPrintPage() {
         fetchCV();
     }, [id]);
 
+    // Signal when CV is fully rendered (for Puppeteer detection)
+    useEffect(() => {
+        if (!loading && cvData) {
+            // Wait for fonts and images to load
+            if (document.fonts) {
+                document.fonts.ready.then(() => {
+                    // Add small delay for final layout calculations
+                    setTimeout(() => {
+                        setRendered(true);
+                        // Set a global flag that Puppeteer can detect
+                        (window as any).__CV_RENDER_COMPLETE__ = true;
+                        console.log('✅ CV Render Complete');
+                    }, 500);
+                });
+            } else {
+                // Fallback if Font Loading API not available
+                setTimeout(() => {
+                    setRendered(true);
+                    (window as any).__CV_RENDER_COMPLETE__ = true;
+                    console.log('✅ CV Render Complete (fallback)');
+                }, 1500);
+            }
+        }
+    }, [loading, cvData]);
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -51,6 +77,13 @@ export default function CVPrintPage() {
 
     return (
         <>
+            {/* Hidden indicator for Puppeteer */}
+            <div
+                id="cv-render-status"
+                data-ready={rendered ? 'true' : 'false'}
+                style={{ display: 'none' }}
+            />
+
             <CVRenderer
                 data={cvData}
                 templateId={template}
@@ -98,6 +131,25 @@ export default function CVPrintPage() {
                 body {
                     -webkit-font-smoothing: antialiased;
                     -moz-osx-font-smoothing: grayscale;
+                    text-rendering: optimizeLegibility;
+                }
+
+                /* Ensure all elements have explicit colors for PDF */
+                * {
+                    -webkit-box-decoration-break: clone;
+                    box-decoration-break: clone;
+                }
+
+                /* Fix gradient backgrounds in PDF */
+                .bg-gradient-to-r,
+                .bg-gradient-to-l,
+                .bg-gradient-to-t,
+                .bg-gradient-to-b,
+                .bg-gradient-to-br,
+                .bg-gradient-to-bl,
+                .bg-gradient-to-tr,
+                .bg-gradient-to-tl {
+                    -webkit-print-color-adjust: exact !important;
                 }
             `}</style>
         </>

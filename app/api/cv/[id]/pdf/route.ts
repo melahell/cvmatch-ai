@@ -106,15 +106,30 @@ export async function GET(
         const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${format}`;
 
         // Navigate to the print page
+        console.log(`📄 Navigating to print page: ${printUrl}`);
+
         await page.goto(printUrl, {
             waitUntil: "networkidle0",
             timeout: 30000,
         });
 
-        // Wait a bit more to ensure all fonts and styles are loaded
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Wait for CV render completion signal (with timeout)
+        try {
+            await page.waitForFunction(
+                () => (window as any).__CV_RENDER_COMPLETE__ === true,
+                { timeout: 10000 }
+            );
+            console.log('✅ CV render complete signal received');
+        } catch (timeoutError) {
+            console.warn('⚠️ CV render timeout - proceeding anyway after 10s');
+        }
 
-        // Generate PDF
+        // Additional safety delay for final layout
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Generate PDF with optimized settings
+        console.log('📸 Generating PDF...');
+
         const pdfBuffer = await page.pdf({
             format: format === "Letter" ? "Letter" : "A4",
             printBackground: true,
@@ -125,7 +140,13 @@ export async function GET(
                 left: 0,
             },
             preferCSSPageSize: true,
+            // Improve text rendering
+            omitBackground: false,
+            displayHeaderFooter: false,
+            scale: 1,
         });
+
+        console.log(`✅ PDF generated: ${pdfBuffer.length} bytes`);
 
         await browser.close();
 
