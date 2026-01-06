@@ -240,7 +240,7 @@ export default function ModernTemplate({
                                             {group.secteur}
                                         </span>
                                         <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
-                                            {(group.clients || []).slice(0, 6).map((client: string, j: number) => (
+                                            {(group.clients || []).map((client: string, j: number) => (
                                                 <span key={j} className="truncate">• {client}</span>
                                             ))}
                                         </div>
@@ -249,7 +249,7 @@ export default function ModernTemplate({
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
-                                {clients_references.clients.slice(0, 20).map((client: string, i: number) => (
+                                {clients_references.clients.map((client: string, i: number) => (
                                     <span key={i} className="truncate">• {client}</span>
                                 ))}
                             </div>
@@ -284,12 +284,12 @@ export default function ModernTemplate({
                 )}
 
                 {/* Expériences avec Timeline */}
-                <section className="mb-5">
+                <section className="mb-3">
                     <h2 className="text-base font-extrabold mb-4 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                         <span className="w-6 h-0.5 bg-purple-600 rounded-full" />
                         Expériences Professionnelles
                     </h2>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         {limitedExperiences.map((exp, i) => (
                             <div
                                 key={i}
@@ -317,7 +317,8 @@ export default function ModernTemplate({
                                 </p>
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
-                                        {exp.realisations.map((r, j) => (
+                                        {/* Progressive sizing: first 2 experiences full, rest compact (max 3 bullets) */}
+                                        {(i < 2 ? exp.realisations : exp.realisations.slice(0, 3)).map((r, j) => (
                                             <li key={j}>{renderRealisation(r)}</li>
                                         ))}
                                     </ul>
@@ -329,7 +330,7 @@ export default function ModernTemplate({
 
                 {/* Certifications */}
                 {certifications && certifications.length > 0 && (
-                    <section className="mb-4">
+                    <section className="mb-2">
                         <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                             <span className="w-4 h-0.5 bg-purple-600 rounded-full" />
                             Certifications
@@ -349,7 +350,7 @@ export default function ModernTemplate({
 
                 {/* Formations - Moved to white section for better readability */}
                 {limitedFormations.length > 0 && (
-                    <section className="mb-4">
+                    <section className="mb-2">
                         <h2 className="text-base font-extrabold mb-3 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                             <span className="w-6 h-0.5 bg-indigo-600 rounded-full" />
                             Formation
