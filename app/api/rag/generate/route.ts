@@ -3,6 +3,10 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
+import { validateRAGData, formatValidationReport } from "@/lib/rag/validation";
+import { consolidateClients } from "@/lib/rag/consolidate-clients";
+import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quality-scoring";
+import { enrichRAGData, generateImprovementSuggestions } from "@/lib/rag/enrichment";
 // Merge engine temporarily disabled - format compatibility issue
 // import { mergeRAGData, MergeResult } from "@/lib/rag/merge-engine";
 // import { RAGComplete, createEmptyRAG, calculateRAGCompleteness } from "@/types/rag-complete";
@@ -182,8 +186,12 @@ export async function POST(req: Request) {
         const result = await callWithRetry(() => generateWithFallback(prompt));
         const responseText = result.response.text();
 
+        // Track which model was used
+        const modelUsed = useProModel ? "pro" : "flash";
+
         // DEBUG: Log what Gemini actually returns
         console.log('=== GEMINI RAG RESPONSE ===');
+        console.log('Model used:', modelUsed);
         console.log('Response length:', responseText.length);
         console.log('First 2000 chars:', responseText.slice(0, 2000));
 
@@ -206,6 +214,51 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "AI returned invalid format, please try again" }, { status: 500 });
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // NEW: POST-EXTRACTION PROCESSING PIPELINE
+        // ═══════════════════════════════════════════════════════════════
+
+        // Step 1: Validate extracted data
+        console.log('\n=== VALIDATION ===');
+        const validationResult = validateRAGData(ragData);
+        console.log(formatValidationReport(validationResult));
+
+        // Step 2: Consolidate client references
+        console.log('\n=== CLIENT CONSOLIDATION ===');
+        ragData = consolidateClients(ragData);
+        console.log('Consolidated clients count:', ragData?.references?.clients?.length || 0);
+
+        // Step 3: Enrich data (normalize, compute fields, detect anomalies)
+        console.log('\n=== ENRICHMENT ===');
+        ragData = enrichRAGData(ragData);
+        console.log('Enrichment log:', ragData.enrichment_metadata?.enrichment_log || []);
+        if (ragData.anomalies && ragData.anomalies.length > 0) {
+            console.log('⚠️  Anomalies detected:', ragData.anomalies);
+        }
+
+        // Step 4: Calculate quality score (multi-dimensional)
+        console.log('\n=== QUALITY SCORING ===');
+        const qualityScoreResult = calculateQualityScore(ragData);
+        console.log(formatQualityScoreReport(qualityScoreResult));
+
+        // Step 5: Add extraction metadata
+        ragData.extraction_metadata = {
+            gemini_model_used: modelUsed,
+            extraction_date: new Date().toISOString(),
+            documents_processed: docs.map(d => d.filename),
+            warnings: validationResult.warnings.map(w => `[${w.severity}] ${w.category}: ${w.message}`)
+        };
+
+        // Step 6: Add quality metrics
+        ragData.quality_metrics = qualityScoreResult.quality_metrics;
+
+        // Step 7: Generate improvement suggestions
+        const suggestions = generateImprovementSuggestions(ragData);
+        if (suggestions.length > 0) {
+            console.log('\n=== IMPROVEMENT SUGGESTIONS ===');
+            suggestions.forEach((s, i) => console.log(`${i + 1}. ${s}`));
+        }
+
         // 4. Generate Top 10 Jobs - DISABLED to prevent timeout
         // TODO: Move to separate endpoint for async generation
         let top10Jobs: any[] = [];
@@ -218,81 +271,17 @@ export async function POST(req: Request) {
         //     console.warn("Failed to generate Top 10 Jobs, continuing without");
         // }
 
-        // 5. Calculate completeness score with breakdown
-        const calculateCompletenessWithBreakdown = (data: any) => {
-            const breakdown: { category: string; score: number; max: number; missing?: string }[] = [];
-            let total = 0;
-
-            // Profil (20 points)
-            const hasProfile = data?.profil?.nom && data?.profil?.prenom && data?.profil?.titre_principal;
-            const profileScore = hasProfile ? 20 : (data?.profil?.nom || data?.profil?.prenom) ? 10 : 0;
-            breakdown.push({
-                category: "Identité",
-                score: profileScore,
-                max: 20,
-                missing: !hasProfile ? "Ajoutez nom, prénom et titre principal" : undefined
-            });
-            total += profileScore;
-
-            // Expériences (30 points)
-            const expCount = data?.experiences?.length || 0;
-            const expScore = Math.min(30, expCount * 10);
-            breakdown.push({
-                category: "Expériences",
-                score: expScore,
-                max: 30,
-                missing: expCount < 3 ? `${3 - expCount} expérience(s) recommandée(s) en plus` : undefined
-            });
-            total += expScore;
-
-            // Compétences (25 points)
-            const techCount = data?.competences?.techniques?.length || 0;
-            const techScore = Math.min(25, techCount * 5);
-            breakdown.push({
-                category: "Compétences techniques",
-                score: techScore,
-                max: 25,
-                missing: techCount < 5 ? `Ajoutez ${5 - techCount} compétence(s) technique(s)` : undefined
-            });
-            total += techScore;
-
-            // Formations (15 points)
-            const formCount = data?.formations?.length || 0;
-            const formScore = Math.min(15, formCount * 7);
-            breakdown.push({
-                category: "Formations",
-                score: formScore,
-                max: 15,
-                missing: formCount === 0 ? "Ajoutez au moins une formation" : undefined
-            });
-            total += formScore;
-
-            // Projets/Langues (10 points)
-            const hasLangOrProj = (data?.langues && Object.keys(data.langues).length > 0) || data?.projets?.length > 0;
-            const extraScore = hasLangOrProj ? 10 : 0;
-            breakdown.push({
-                category: "Langues/Projets",
-                score: extraScore,
-                max: 10,
-                missing: !hasLangOrProj ? "Ajoutez des langues ou projets personnels" : undefined
-            });
-            total += extraScore;
-
-            return { score: Math.min(100, total), breakdown };
-        };
-
-        // Legacy calculation preserved for backup/debugging (not used)
-        // const { score: _legacyScore, breakdown: completenessBreakdown } = calculateCompletenessWithBreakdown(ragData);
-
-        // 6. Save RAG Metadata (simple update - merge disabled due to format compatibility)
+        // 6. Save RAG Metadata with new quality scoring
         const { data: existingRag } = await supabase
             .from("rag_metadata")
             .select("id")
             .eq("user_id", userId)
             .single();
 
-        // Use legacy completeness calculation (more reliable with current data format)
-        const { score: completenessScore } = calculateCompletenessWithBreakdown(ragData);
+        // Use new multi-dimensional quality score (overall_score is the main score)
+        // But we keep completeness_score for backward compatibility
+        const completenessScore = qualityScoreResult.overall_score;
+        const breakdown = qualityScoreResult.breakdown;
 
         if (existingRag) {
             const { error: updateError } = await supabase
@@ -332,7 +321,20 @@ export async function POST(req: Request) {
             processedDocuments: processedCount,
             completenessScore,
             processingResults,
-            data: ragData
+            data: ragData,
+            // New quality metrics
+            quality_breakdown: {
+                overall: qualityScoreResult.overall_score,
+                completeness: qualityScoreResult.completeness_score,
+                quality: qualityScoreResult.quality_score,
+                impact: qualityScoreResult.impact_score
+            },
+            validation: {
+                isValid: validationResult.isValid,
+                warnings: validationResult.warnings.filter(w => w.severity === "critical" || w.severity === "warning"),
+                metrics: validationResult.metrics
+            },
+            suggestions: suggestions.length > 0 ? suggestions.slice(0, 5) : undefined // Top 5 suggestions
         });
 
     } catch (error: any) {

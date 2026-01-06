@@ -1,3 +1,7 @@
+/**
+ * Legacy completeness calculation (kept for backward compatibility)
+ * NEW: Use calculateQualityScore from @/lib/rag/quality-scoring for better metrics
+ */
 export const calculateCompletenessWithBreakdown = (data: any) => {
     const breakdown: { category: string; score: number; max: number; missing?: string }[] = [];
     let total = 0;

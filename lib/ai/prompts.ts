@@ -2,22 +2,24 @@
 import { UserProfile, JobAnalysis } from "@/types";
 
 export const getRAGExtractionPrompt = (extractedText: string) => `
-Tu es un expert en extraction et structuration de données professionnelles.
+Tu es un expert en extraction et structuration de données professionnelles de haut niveau.
 
 DOCUMENTS FOURNIS:
 ${extractedText}
 
-MISSION: Extrais TOUTES les informations, notamment les CLIENTS et CERTIFICATIONS.
+══════════════════════════════════════════════════════════════════════════════
+MISSION CRITIQUE: Extrais et structure TOUTES les informations avec RIGUEUR MAXIMALE
+══════════════════════════════════════════════════════════════════════════════
 
 SCHÉMA CIBLE (JSON uniquement) :
 {
   "profil": {
     "nom": "string",
     "prenom": "string",
-    "titre_principal": "string",
+    "titre_principal": "string (titre professionnel précis, pas générique)",
     "localisation": "string",
     "contact": { "email": "string", "telephone": "string", "linkedin": "string" },
-    "elevator_pitch": "ACCROCHEUR: 3 phrases percutantes - 1) Expertise clé + années XP, 2) Réalisations/clients majeurs, 3) Valeur unique"
+    "elevator_pitch": "string (OBLIGATOIRE - voir règles ci-dessous)"
   },
   "experiences": [
     {
@@ -27,58 +29,218 @@ SCHÉMA CIBLE (JSON uniquement) :
       "fin": "YYYY-MM|null",
       "actuel": boolean,
       "realisations": [
-        { "description": "string", "impact": "string (quantifié)" }
+        {
+          "description": "string (ACTION + CONTEXTE)",
+          "impact": "string (QUANTIFIÉ OBLIGATOIRE - voir règles)"
+        }
       ],
       "technologies": ["string"],
-      "clients_references": ["noms des clients mentionnés"]
+      "clients_references": ["noms exacts des clients mentionnés"]
     }
   ],
   "competences": {
     "explicit": {
-      "techniques": ["string"],
-      "soft_skills": ["string"]
+      "techniques": ["string (compétences techniques explicitement mentionnées)"],
+      "soft_skills": ["string (compétences humaines explicitement mentionnées)"]
     },
     "inferred": {
       "techniques": [
-        { "name": "string", "confidence": 60-100, "reasoning": "string", "sources": ["citations"] }
+        {
+          "name": "string",
+          "confidence": 60-100,
+          "reasoning": "string (min 50 caractères)",
+          "sources": ["citation exacte du document"]
+        }
       ],
       "tools": [
-        { "name": "string", "confidence": 60-100, "reasoning": "string", "sources": ["citations"] }
+        {
+          "name": "string",
+          "confidence": 60-100,
+          "reasoning": "string (min 50 caractères)",
+          "sources": ["citation exacte du document"]
+        }
       ],
       "soft_skills": [
-        { "name": "string", "confidence": 60-100, "reasoning": "string", "sources": ["citations"] }
+        {
+          "name": "string",
+          "confidence": 60-100,
+          "reasoning": "string (min 50 caractères)",
+          "sources": ["citation exacte du document"]
+        }
       ]
     }
   },
   "formations": [
     { "diplome": "string", "ecole": "string", "annee": "YYYY" }
   ],
-  "certifications": ["string (nom de chaque certification)"],
+  "certifications": ["string (nom complet de chaque certification - PMP, AWS Certified, etc.)"],
   "langues": { "langue": "niveau" },
   "references": {
     "clients": [
-      { "nom": "string", "secteur": "Luxe|Finance|Tech|Industrie|Santé|Transport|Énergie|Autre" }
+      {
+        "nom": "string (nom exact de l'entreprise cliente)",
+        "secteur": "Luxe|Finance|Tech|Industrie|Santé|Transport|Énergie|Conseil|Retail|Autre"
+      }
     ]
-  }
+  },
+  "projets": [
+    {
+      "nom": "string",
+      "description": "string",
+      "technologies": ["string"],
+      "impact": "string (quantifié si possible)",
+      "date": "YYYY"
+    }
+  ]
 }
 
-RÈGLES CRITIQUES:
+══════════════════════════════════════════════════════════════════════════════
+RÈGLES DE VALIDATION STRICTES - RESPECT OBLIGATOIRE
+══════════════════════════════════════════════════════════════════════════════
 
-1. **CLIENTS** - TRÈS IMPORTANT:
-   - Cherche TOUS les noms d'entreprises clientes mentionnées
-   - Exemples: Cartier, Dreamworks, SNCF, Chanel, L'Oréal, BNP, Orange, Airbus, etc.
-   - Mets-les dans \`experiences[].clients_references\` ET dans \`references.clients\` avec secteur
+📌 RÈGLE 1: ELEVATOR PITCH (OBLIGATOIRE - 3 PHRASES STRUCTURÉES)
+─────────────────────────────────────────────────────────────────────────────
+Format OBLIGATOIRE en exactement 3 phrases:
 
-2. **CERTIFICATIONS**:
-   - Toute certification mentionnée (PMP, AWS, Scrum Master, etc.)
-   - Séparées des formations
+1️⃣ Phrase 1: "[Titre/Expertise] avec [X années] d'expérience dans [secteur(s)]"
+2️⃣ Phrase 2: "A [réalisation quantifiée] pour [clients prestigieux si disponibles]"
+3️⃣ Phrase 3: "Expert en [domaine spécifique] avec [valeur unique quantifiée]"
 
-3. **COMPÉTENCES**:
-   - explicit = mentionné textuellement
-   - inferred = déduit du contexte (confidence min 60%)
+✅ EXEMPLE VALIDE:
+"Chef de Projet Digital avec 12 ans d'expérience dans le luxe et la finance. A piloté +50 projets Agile (budget cumulé 15M€) pour Cartier, Chanel et BNP Paribas. Expert en transformation digitale avec taux de succès projet de 95%."
 
-OUTPUT:
-JSON valide uniquement. Pas de markdown.
+❌ EXEMPLES REJETÉS:
+- "Professionnel expérimenté dans le digital" (trop générique, pas quantifié)
+- "Chef de projet passionné par l'innovation" (pas de chiffres, pas de clients)
+- Pitch de moins de 200 caractères
+- Pitch sans aucun chiffre ou pourcentage
+
+LONGUEUR: Entre 200 et 400 caractères
+EXIGENCE: Au moins 3 chiffres/pourcentages dans le pitch total
+
+
+📌 RÈGLE 2: QUANTIFICATION DES IMPACTS (MINIMUM 60%)
+─────────────────────────────────────────────────────────────────────────────
+CHAQUE réalisation DOIT avoir un "impact" quantifié dans AU MOINS 60% des cas.
+
+Formats acceptés pour la quantification:
+✅ Volume: "150+ projets", "équipe de 8 personnes", "500 utilisateurs"
+✅ Budget: "budget 2M€", "économies de 500K€", "CA de 15M€"
+✅ Impact: "amélioration de 45%", "+40% de performance", "réduction de 30%"
+✅ Temps: "réduction délais de 3 mois", "time-to-market -40%"
+✅ Portée: "déploiement 12 pays", "15 sites", "réseau de 200 magasins"
+
+✅ EXEMPLES VALIDES:
+{
+  "description": "Pilotage de projets e-commerce pour clients luxe",
+  "impact": "Augmentation CA en ligne de 45% (15M€ → 22M€) sur 18 mois"
+}
+{
+  "description": "Mise en place méthodologie Agile SAFe",
+  "impact": "Réduction time-to-market de 40% (6 mois → 3.5 mois)"
+}
+
+❌ EXEMPLES REJETÉS (sauf si vraiment impossible à quantifier):
+{
+  "description": "Gestion de projets",
+  "impact": "Amélioration de la qualité" // Pas assez précis
+}
+
+RÈGLE: Si aucun chiffre n'est mentionné dans le document, tu peux mettre un impact qualitatif,
+mais essaie d'en trouver au moins 60% qui soient quantifiés.
+
+
+📌 RÈGLE 3: EXTRACTION DES CLIENTS (CRITIQUE)
+─────────────────────────────────────────────────────────────────────────────
+Cherche TOUTES les mentions d'entreprises clientes (pas l'employeur, mais les CLIENTS).
+
+Exemples de clients à extraire:
+✅ Luxe: Cartier, Chanel, LVMH, Hermès, Dior, Louis Vuitton, L'Oréal
+✅ Finance: BNP Paribas, Société Générale, Crédit Agricole, AXA, Natixis
+✅ Tech: Google, Microsoft, Amazon, IBM, Oracle, SAP
+✅ Industrie: Airbus, Renault, PSA, Total, Schneider Electric, Michelin
+✅ Autres: SNCF, Orange, EDF, Carrefour, Auchan, etc.
+
+IMPORTANT:
+- Mets chaque client dans "experiences[].clients_references" (array de strings)
+- ET aussi dans "references.clients" (avec nom + secteur)
+- Déduis le secteur d'activité du client (Luxe, Finance, Tech, Industrie, Santé, Transport, Énergie, Conseil, Retail, Autre)
+
+Si aucun client n'est mentionné, laisse les arrays vides (ne pas inventer).
+
+
+📌 RÈGLE 4: CERTIFICATIONS VS FORMATIONS (SÉPARATION STRICTE)
+─────────────────────────────────────────────────────────────────────────────
+CERTIFICATIONS = Certificats professionnels reconnus
+Exemples: PMP, PSM, AWS Certified Solutions Architect, PRINCE2, SAFe Agilist,
+          Scrum Master, Google Analytics, etc.
+
+FORMATIONS = Diplômes académiques (Licence, Master, MBA, Ingénieur, etc.)
+
+Ne JAMAIS mélanger les deux.
+
+
+📌 RÈGLE 5: COMPÉTENCES INFÉRÉES (VALIDATION STRICTE)
+─────────────────────────────────────────────────────────────────────────────
+Pour CHAQUE compétence inférée, tu DOIS fournir:
+
+✅ "name": Nom de la compétence
+✅ "confidence": 60-100 (si < 60, ne pas inclure)
+✅ "reasoning": Explication de min 50 caractères sur POURQUOI tu infères cette compétence
+✅ "sources": Array avec AU MOINS une citation exacte du document source
+
+EXEMPLE VALIDE:
+{
+  "name": "Transformation digitale",
+  "confidence": 85,
+  "reasoning": "Mention explicite de multiples projets de refonte digitale et modernisation des SI, avec leadership sur des programmes de transformation",
+  "sources": [
+    "Pilotage de la transformation digitale du groupe (15 sites, 3 pays)",
+    "Expert en transformation digitale avec taux de succès projet de 95%"
+  ]
+}
+
+❌ REJETÉ (reasoning trop court):
+{
+  "name": "Leadership",
+  "confidence": 70,
+  "reasoning": "Bon leader",  // < 50 caractères
+  "sources": []  // Pas de citation
+}
+
+
+📌 RÈGLE 6: TITRE PRINCIPAL (PRÉCISION)
+─────────────────────────────────────────────────────────────────────────────
+Le titre doit être PRÉCIS et PROFESSIONNEL.
+
+✅ BON: "Chef de Projet Digital Senior", "Développeur Full-Stack", "Consultant SAP Finance"
+❌ MAUVAIS: "Professionnel", "Expert", "Manager" (trop générique)
+
+
+📌 RÈGLE 7: PROJETS PERSONNELS
+─────────────────────────────────────────────────────────────────────────────
+Si le document mentionne des projets personnels, open-source, ou side-projects:
+- Les inclure dans la section "projets"
+- Avec technologies utilisées et impact si mentionné
+
+
+══════════════════════════════════════════════════════════════════════════════
+OUTPUT FINAL
+══════════════════════════════════════════════════════════════════════════════
+
+Génère UNIQUEMENT le JSON structuré.
+❌ PAS de markdown (pas de \`\`\`json)
+❌ PAS de commentaires
+❌ PAS d'explications
+
+Vérifie avant de répondre:
+✅ Elevator pitch = 3 phrases + 200-400 chars + 3+ chiffres
+✅ 60%+ des réalisations ont impact quantifié
+✅ Tous les clients extraits et classés par secteur
+✅ Certifications séparées des formations
+✅ Compétences inférées avec confidence >= 60 + reasoning >= 50 chars + sources
+
+JSON uniquement ↓
 `;
 
 
