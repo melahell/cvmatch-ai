@@ -6,6 +6,7 @@ import { getDocumentProxy, extractText } from "unpdf";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore } from "@/lib/rag/quality-scoring";
 import { mergeRAGData } from "@/lib/rag/merge-simple";
+import { validateRAGData } from "@/lib/rag/validation";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 
@@ -283,6 +284,24 @@ export async function POST(req: Request) {
             underBudget: totalElapsed < 10000
         });
 
+        // 11. Run validation for user feedback
+        const validationResult = validateRAGData(mergedRAG);
+
+        // 12. Generate improvement suggestions based on validation
+        const suggestions: string[] = [];
+        if (validationResult.metrics.quantification_percentage < 60) {
+            suggestions.push(`Ajouter des impacts quantifiés (actuellement ${validationResult.metrics.quantification_percentage}%, objectif 60%+)`);
+        }
+        if (validationResult.metrics.elevator_pitch_length < 200) {
+            suggestions.push(`Enrichir l'elevator pitch (actuellement ${validationResult.metrics.elevator_pitch_length} caractères, recommandé 200-400)`);
+        }
+        if (validationResult.metrics.clients_count < 3) {
+            suggestions.push(`Ajouter des références clients (actuellement: ${validationResult.metrics.clients_count})`);
+        }
+        if (validationResult.metrics.elevator_pitch_numbers_count < 3) {
+            suggestions.push(`Ajouter des chiffres clés dans l'elevator pitch (actuellement: ${validationResult.metrics.elevator_pitch_numbers_count})`);
+        }
+
         return NextResponse.json({
             success: true,
             documentId,
@@ -300,7 +319,24 @@ export async function POST(req: Request) {
                 postProcessMs: postProcessDuration,
                 dbMs: dbDuration,
                 totalMs: totalElapsed
-            }
+            },
+            // NEW: Validation data for ValidationWarnings component
+            validation: {
+                isValid: validationResult.isValid,
+                warnings: validationResult.warnings.filter(w => w.severity !== 'info').slice(0, 10).map(w => ({
+                    severity: w.severity,
+                    category: w.category,
+                    message: w.message
+                })),
+                metrics: validationResult.metrics
+            },
+            quality_breakdown: {
+                overall: qualityScore.overall_score,
+                completeness: qualityScore.completeness_score || Math.round(qualityScore.overall_score * 0.9),
+                quality: qualityScore.quality_metrics?.elevator_pitch_quality_score || Math.round(qualityScore.overall_score * 0.85),
+                impact: validationResult.metrics.quantification_percentage || Math.round(qualityScore.overall_score * 0.8)
+            },
+            suggestions: suggestions.slice(0, 5)
         });
 
     } catch (error: any) {
