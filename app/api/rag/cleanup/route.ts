@@ -19,10 +19,34 @@ export async function POST(req: Request) {
     const startTime = Date.now();
 
     try {
-        const { userId } = await req.json();
+        const { userId: providedUserId, email } = await req.json();
 
-        if (!userId) {
-            return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+        if (!providedUserId && !email) {
+            return NextResponse.json({
+                error: "Missing userId or email",
+                usage: "Provide either { userId: '...' } or { email: '...' }"
+            }, { status: 400 });
+        }
+
+        let userId = providedUserId;
+
+        // If email provided, find userId
+        if (!userId && email) {
+            const { data: user, error: userError } = await supabase
+                .from("users")
+                .select("id")
+                .eq("email", email)
+                .single();
+
+            if (userError || !user) {
+                return NextResponse.json({
+                    error: "User not found with this email",
+                    email
+                }, { status: 404 });
+            }
+
+            userId = user.id;
+            logger.info("Found userId from email", { email, userId });
         }
 
         logger.info("Starting RAG cleanup for user", { userId });
