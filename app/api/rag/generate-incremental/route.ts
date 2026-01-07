@@ -6,6 +6,7 @@ import { getDocumentProxy, extractText } from "unpdf";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore } from "@/lib/rag/quality-scoring";
 import { mergeRAGData } from "@/lib/rag/merge-simple";
+import { deduplicateRAG } from "@/lib/rag/deduplicate";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 
@@ -187,7 +188,11 @@ export async function POST(req: Request) {
 
         try {
             newRAGData = JSON.parse(jsonString);
-            logger.info("Gemini response parsed successfully", { filename: doc.filename });
+
+            // CRITICAL: Deduplicate Gemini output immediately (prevents duplicates at source)
+            newRAGData = deduplicateRAG(newRAGData);
+
+            logger.info("Gemini response parsed and deduplicated", { filename: doc.filename });
         } catch (e) {
             logger.error("Failed to parse RAG JSON", {
                 filename: doc.filename,

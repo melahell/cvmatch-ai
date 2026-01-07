@@ -8,6 +8,7 @@ import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quality-scoring";
 import { enrichRAGData, generateImprovementSuggestions } from "@/lib/rag/enrichment";
 import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
+import { deduplicateRAG } from "@/lib/rag/deduplicate";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
@@ -224,6 +225,10 @@ export async function POST(req: Request) {
 
         try {
             ragData = JSON.parse(jsonString);
+
+            // CRITICAL: Deduplicate Gemini output immediately (prevents duplicates at source)
+            ragData = deduplicateRAG(ragData);
+            console.log('[DEDUPLICATION] Gemini output deduplicated');
 
             // DEBUG: Log the parsed structure
             console.log('=== PARSED RAG DATA ===');
