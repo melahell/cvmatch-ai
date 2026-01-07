@@ -35,6 +35,116 @@ function areSimilar(str1: string, str2: string, threshold: number = 0.8): boolea
 }
 
 /**
+ * Deduplicate an array of realisations using semantic similarity
+ * This removes duplicates WITHIN a single array (not between two arrays)
+ */
+function deduplicateRealisations(realisations: any[]): any[] {
+    if (!realisations || realisations.length === 0) return [];
+
+    const result: any[] = [];
+
+    for (const real of realisations) {
+        const isDuplicate = result.some(r =>
+            areSimilar(r.description || '', real.description || '', 0.85)
+        );
+
+        if (!isDuplicate) {
+            result.push(real);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Deduplicate an array of strings using semantic similarity
+ * This removes duplicates WITHIN a single array (not between two arrays)
+ */
+function deduplicateStrings(items: string[], threshold: number = 0.9): string[] {
+    if (!items || items.length === 0) return [];
+
+    const result: string[] = [];
+
+    for (const item of items) {
+        const isDuplicate = result.some(existing =>
+            areSimilar(existing, item, threshold)
+        );
+
+        if (!isDuplicate) {
+            result.push(item);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Deduplicate an array of objects with 'name' property using semantic similarity
+ * This removes duplicates WITHIN a single array (not between two arrays)
+ */
+function deduplicateNamedObjects(items: any[], threshold: number = 0.9): any[] {
+    if (!items || items.length === 0) return [];
+
+    const result: any[] = [];
+
+    for (const item of items) {
+        const isDuplicate = result.some(existing =>
+            areSimilar(existing.name || '', item.name || '', threshold)
+        );
+
+        if (!isDuplicate) {
+            result.push(item);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Deduplicate formations (diplome + ecole matching)
+ */
+function deduplicateFormations(formations: any[]): any[] {
+    if (!formations || formations.length === 0) return [];
+
+    const result: any[] = [];
+
+    for (const formation of formations) {
+        const isDuplicate = result.some(existing => {
+            const diplomeSimilar = areSimilar(existing.diplome || '', formation.diplome || '', 0.9);
+            const ecoleSimilar = areSimilar(existing.ecole || '', formation.ecole || '', 0.8);
+            return diplomeSimilar && ecoleSimilar;
+        });
+
+        if (!isDuplicate) {
+            result.push(formation);
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Deduplicate projects (by 'nom' field)
+ */
+function deduplicateProjets(projets: any[]): any[] {
+    if (!projets || projets.length === 0) return [];
+
+    const result: any[] = [];
+
+    for (const projet of projets) {
+        const isDuplicate = result.some(existing =>
+            areSimilar(existing.nom || '', projet.nom || '', 0.9)
+        );
+
+        if (!isDuplicate) {
+            result.push(projet);
+        }
+    }
+
+    return result;
+}
+
+/**
  * Check if two experiences are similar (same company + similar job title + overlapping dates)
  */
 function areExperiencesSimilar(exp1: any, exp2: any): boolean {
@@ -60,16 +170,20 @@ function areExperiencesSimilar(exp1: any, exp2: any): boolean {
 /**
  * Merge two experiences (combine realisations, technologies, clients)
  * Uses semantic similarity to avoid duplicating similar realisations
+ * CRITICAL: Deduplicates BOTH existing and incoming arrays BEFORE merging
  */
 function mergeExperiences(existing: any, incoming: any): any {
-    // Deduplicate realisations using similarity
-    const existingReals = existing.realisations || [];
-    const incomingReals = incoming.realisations || [];
+    // 1. Deduplicate EXISTING realisations internally (cleans polluted RAG)
+    const deduplicatedExistingReals = deduplicateRealisations(existing.realisations || []);
 
-    const mergedRealisations = [...existingReals];
+    // 2. Deduplicate INCOMING realisations internally (cleans Gemini output)
+    const deduplicatedIncomingReals = deduplicateRealisations(incoming.realisations || []);
 
-    for (const newReal of incomingReals) {
-        const isDuplicate = existingReals.some((existReal: any) =>
+    // 3. Merge the two cleaned lists
+    const mergedRealisations = [...deduplicatedExistingReals];
+
+    for (const newReal of deduplicatedIncomingReals) {
+        const isDuplicate = deduplicatedExistingReals.some((existReal: any) =>
             areSimilar(existReal.description || '', newReal.description || '', 0.85)
         );
 
@@ -78,13 +192,13 @@ function mergeExperiences(existing: any, incoming: any): any {
         }
     }
 
-    // Deduplicate technologies using similarity
-    const existingTechs = existing.technologies || [];
-    const incomingTechs = incoming.technologies || [];
-    const mergedTechnologies = [...existingTechs];
+    // Same for technologies
+    const deduplicatedExistingTechs = deduplicateStrings(existing.technologies || [], 0.9);
+    const deduplicatedIncomingTechs = deduplicateStrings(incoming.technologies || [], 0.9);
+    const mergedTechnologies = [...deduplicatedExistingTechs];
 
-    for (const tech of incomingTechs) {
-        const isDuplicate = existingTechs.some((existTech: string) =>
+    for (const tech of deduplicatedIncomingTechs) {
+        const isDuplicate = deduplicatedExistingTechs.some((existTech: string) =>
             areSimilar(existTech, tech, 0.9)
         );
         if (!isDuplicate) {
@@ -160,12 +274,23 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
         competences: {
             explicit: {
                 techniques: (() => {
-                    const existingTechs = existing.competences?.explicit?.techniques || [];
-                    const incomingTechs = incoming.competences?.explicit?.techniques || [];
-                    const result = [...existingTechs];
+                    // 1. Deduplicate existing internally
+                    const deduplicatedExisting = deduplicateStrings(
+                        existing.competences?.explicit?.techniques || [],
+                        0.9
+                    );
 
-                    for (const tech of incomingTechs) {
-                        const isDuplicate = existingTechs.some((existTech: string) =>
+                    // 2. Deduplicate incoming internally
+                    const deduplicatedIncoming = deduplicateStrings(
+                        incoming.competences?.explicit?.techniques || [],
+                        0.9
+                    );
+
+                    // 3. Merge the two cleaned lists
+                    const result = [...deduplicatedExisting];
+
+                    for (const tech of deduplicatedIncoming) {
+                        const isDuplicate = deduplicatedExisting.some((existTech: string) =>
                             areSimilar(existTech, tech, 0.9)
                         );
                         if (!isDuplicate) {
@@ -176,12 +301,23 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
                     return result;
                 })(),
                 soft_skills: (() => {
-                    const existingSkills = existing.competences?.explicit?.soft_skills || [];
-                    const incomingSkills = incoming.competences?.explicit?.soft_skills || [];
-                    const result = [...existingSkills];
+                    // 1. Deduplicate existing internally
+                    const deduplicatedExisting = deduplicateStrings(
+                        existing.competences?.explicit?.soft_skills || [],
+                        0.9
+                    );
 
-                    for (const skill of incomingSkills) {
-                        const isDuplicate = existingSkills.some((existSkill: string) =>
+                    // 2. Deduplicate incoming internally
+                    const deduplicatedIncoming = deduplicateStrings(
+                        incoming.competences?.explicit?.soft_skills || [],
+                        0.9
+                    );
+
+                    // 3. Merge the two cleaned lists
+                    const result = [...deduplicatedExisting];
+
+                    for (const skill of deduplicatedIncoming) {
+                        const isDuplicate = deduplicatedExisting.some((existSkill: string) =>
                             areSimilar(existSkill, skill, 0.9)
                         );
                         if (!isDuplicate) {
@@ -194,12 +330,23 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
             },
             inferred: {
                 techniques: (() => {
-                    const existingTechs = existing.competences?.inferred?.techniques || [];
-                    const incomingTechs = incoming.competences?.inferred?.techniques || [];
-                    const result = [...existingTechs];
+                    // 1. Deduplicate existing internally
+                    const deduplicatedExisting = deduplicateNamedObjects(
+                        existing.competences?.inferred?.techniques || [],
+                        0.9
+                    );
 
-                    for (const tech of incomingTechs) {
-                        const isDuplicate = existingTechs.some((existTech: any) =>
+                    // 2. Deduplicate incoming internally
+                    const deduplicatedIncoming = deduplicateNamedObjects(
+                        incoming.competences?.inferred?.techniques || [],
+                        0.9
+                    );
+
+                    // 3. Merge the two cleaned lists
+                    const result = [...deduplicatedExisting];
+
+                    for (const tech of deduplicatedIncoming) {
+                        const isDuplicate = deduplicatedExisting.some((existTech: any) =>
                             areSimilar(existTech.name || '', tech.name || '', 0.9)
                         );
                         if (!isDuplicate) {
@@ -210,12 +357,23 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
                     return result;
                 })(),
                 tools: (() => {
-                    const existingTools = existing.competences?.inferred?.tools || [];
-                    const incomingTools = incoming.competences?.inferred?.tools || [];
-                    const result = [...existingTools];
+                    // 1. Deduplicate existing internally
+                    const deduplicatedExisting = deduplicateNamedObjects(
+                        existing.competences?.inferred?.tools || [],
+                        0.9
+                    );
 
-                    for (const tool of incomingTools) {
-                        const isDuplicate = existingTools.some((existTool: any) =>
+                    // 2. Deduplicate incoming internally
+                    const deduplicatedIncoming = deduplicateNamedObjects(
+                        incoming.competences?.inferred?.tools || [],
+                        0.9
+                    );
+
+                    // 3. Merge the two cleaned lists
+                    const result = [...deduplicatedExisting];
+
+                    for (const tool of deduplicatedIncoming) {
+                        const isDuplicate = deduplicatedExisting.some((existTool: any) =>
                             areSimilar(existTool.name || '', tool.name || '', 0.9)
                         );
                         if (!isDuplicate) {
@@ -226,12 +384,23 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
                     return result;
                 })(),
                 soft_skills: (() => {
-                    const existingSkills = existing.competences?.inferred?.soft_skills || [];
-                    const incomingSkills = incoming.competences?.inferred?.soft_skills || [];
-                    const result = [...existingSkills];
+                    // 1. Deduplicate existing internally
+                    const deduplicatedExisting = deduplicateNamedObjects(
+                        existing.competences?.inferred?.soft_skills || [],
+                        0.9
+                    );
 
-                    for (const skill of incomingSkills) {
-                        const isDuplicate = existingSkills.some((existSkill: any) =>
+                    // 2. Deduplicate incoming internally
+                    const deduplicatedIncoming = deduplicateNamedObjects(
+                        incoming.competences?.inferred?.soft_skills || [],
+                        0.9
+                    );
+
+                    // 3. Merge the two cleaned lists
+                    const result = [...deduplicatedExisting];
+
+                    for (const skill of deduplicatedIncoming) {
+                        const isDuplicate = deduplicatedExisting.some((existSkill: any) =>
                             areSimilar(existSkill.name || '', skill.name || '', 0.9)
                         );
                         if (!isDuplicate) {
@@ -246,12 +415,17 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
 
         // ===== FORMATIONS =====
         formations: (() => {
-            const existingForms = existing.formations || [];
-            const incomingForms = incoming.formations || [];
-            const result = [...existingForms];
+            // 1. Deduplicate existing internally
+            const deduplicatedExisting = deduplicateFormations(existing.formations || []);
 
-            for (const newForm of incomingForms) {
-                const isDuplicate = result.some((f: any) => {
+            // 2. Deduplicate incoming internally
+            const deduplicatedIncoming = deduplicateFormations(incoming.formations || []);
+
+            // 3. Merge the two cleaned lists
+            const result = [...deduplicatedExisting];
+
+            for (const newForm of deduplicatedIncoming) {
+                const isDuplicate = deduplicatedExisting.some((f: any) => {
                     const diplomeSimilar = areSimilar(f.diplome || '', newForm.diplome || '', 0.9);
                     const ecoleSimilar = areSimilar(f.ecole || '', newForm.ecole || '', 0.8);
                     return diplomeSimilar && ecoleSimilar;
@@ -267,12 +441,23 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
 
         // ===== CERTIFICATIONS =====
         certifications: (() => {
-            const existingCerts = existing.certifications || [];
-            const incomingCerts = incoming.certifications || [];
-            const result = [...existingCerts];
+            // 1. Deduplicate existing internally
+            const deduplicatedExisting = deduplicateStrings(
+                existing.certifications || [],
+                0.9
+            );
 
-            for (const cert of incomingCerts) {
-                const isDuplicate = existingCerts.some((existCert: string) =>
+            // 2. Deduplicate incoming internally
+            const deduplicatedIncoming = deduplicateStrings(
+                incoming.certifications || [],
+                0.9
+            );
+
+            // 3. Merge the two cleaned lists
+            const result = [...deduplicatedExisting];
+
+            for (const cert of deduplicatedIncoming) {
+                const isDuplicate = deduplicatedExisting.some((existCert: string) =>
                     areSimilar(existCert, cert, 0.9)
                 );
                 if (!isDuplicate) {
@@ -291,12 +476,17 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
 
         // ===== PROJETS =====
         projets: (() => {
-            const existingProjs = existing.projets || [];
-            const incomingProjs = incoming.projets || [];
-            const result = [...existingProjs];
+            // 1. Deduplicate existing internally
+            const deduplicatedExisting = deduplicateProjets(existing.projets || []);
 
-            for (const proj of incomingProjs) {
-                const isDuplicate = existingProjs.some((existProj: any) =>
+            // 2. Deduplicate incoming internally
+            const deduplicatedIncoming = deduplicateProjets(incoming.projets || []);
+
+            // 3. Merge the two cleaned lists
+            const result = [...deduplicatedExisting];
+
+            for (const proj of deduplicatedIncoming) {
+                const isDuplicate = deduplicatedExisting.some((existProj: any) =>
                     areSimilar(existProj.nom || '', proj.nom || '', 0.9)
                 );
                 if (!isDuplicate) {
