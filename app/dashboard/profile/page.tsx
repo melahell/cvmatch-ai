@@ -11,6 +11,7 @@ import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2 } from "lucide-react";
+import { ValidationWarnings } from "@/components/profile/ValidationWarnings";
 import { OverviewTab } from "@/components/profile/OverviewTab";
 import { WeightTab } from "@/components/profile/WeightTab";
 import { DocumentsTab } from "@/components/profile/DocumentsTab";
@@ -40,6 +41,11 @@ function ProfileContent() {
     const [regenerating, setRegenerating] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [customNotes, setCustomNotes] = useState("");
+    const [validationData, setValidationData] = useState<{
+        warnings?: any[];
+        suggestions?: string[];
+        quality_breakdown?: { overall: number; completeness: number; quality: number; impact: number };
+    } | null>(null);
 
     // Load custom notes
     useEffect(() => {
@@ -171,6 +177,15 @@ function ProfileContent() {
 
                 const result = await res.json();
                 logger.success(`[INCREMENTAL] ${doc.filename} processed - Score: ${result.qualityScore}`);
+
+                // Store validation data from last document (will have merged all previous)
+                if (processed === totalDocs && result.validation) {
+                    setValidationData({
+                        warnings: result.validation?.warnings,
+                        suggestions: result.suggestions,
+                        quality_breakdown: result.quality_breakdown
+                    });
+                }
             }
 
             // Refetch the final merged RAG
@@ -185,6 +200,7 @@ function ProfileContent() {
         } finally {
             setRegenerating(false);
         }
+
     };
 
     const handleUpload = async (file: File) => {
@@ -291,6 +307,15 @@ function ProfileContent() {
                         )}
                     </div>
                 </div>
+
+                {/* Validation Warnings & Quality Feedback */}
+                {validationData && (
+                    <ValidationWarnings
+                        warnings={validationData.warnings}
+                        suggestions={validationData.suggestions}
+                        qualityBreakdown={validationData.quality_breakdown}
+                    />
+                )}
 
                 {/* Tabs */}
                 <Tabs defaultValue={activeTab} className="w-full">
