@@ -10,7 +10,7 @@ import { useProfileForm } from "@/hooks/useProfileForm";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2 } from "lucide-react";
+import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2, Trash2 } from "lucide-react";
 import { OverviewTab } from "@/components/profile/OverviewTab";
 import { WeightTab } from "@/components/profile/WeightTab";
 import { DocumentsTab } from "@/components/profile/DocumentsTab";
@@ -38,6 +38,7 @@ function ProfileContent() {
 
     // Local state only for UI-specific functionality
     const [regenerating, setRegenerating] = useState(false);
+    const [cleaning, setCleaning] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [customNotes, setCustomNotes] = useState("");
 
@@ -187,6 +188,60 @@ function ProfileContent() {
         }
     };
 
+    const cleanupDuplicates = async () => {
+        if (!userId) {
+            alert("⚠️ Erreur: utilisateur non connecté");
+            return;
+        }
+
+        const confirmed = confirm(
+            "🧹 Purger les doublons?\n\n" +
+            "Cette opération va :\n" +
+            "✓ Supprimer tous les doublons de votre RAG\n" +
+            "✓ Garder uniquement les entrées uniques\n" +
+            "✓ Améliorer la qualité de votre profil\n\n" +
+            "⚠️ Cette action est irréversible.\n\n" +
+            "Continuer ?"
+        );
+
+        if (!confirmed) return;
+
+        setCleaning(true);
+        try {
+            logger.info("[CLEANUP] Starting duplicate cleanup");
+
+            const res = await fetch("/api/rag/cleanup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId })
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || "Échec du nettoyage");
+            }
+
+            const result = await res.json();
+            logger.success("[CLEANUP] Completed:", result);
+
+            // Refetch data
+            await refetch();
+
+            alert(
+                `✅ Nettoyage terminé!\n\n` +
+                `📊 Réalisations: ${result.before.realisations} → ${result.after.realisations}\n` +
+                `🗑️  ${result.reduction.realisations} doublons supprimés\n\n` +
+                `📈 Score qualité: ${result.qualityScore}/100`
+            );
+
+        } catch (e: any) {
+            logger.error("[CLEANUP] Error:", e);
+            alert(`❌ Erreur: ${e.message}`);
+        } finally {
+            setCleaning(false);
+        }
+    };
+
     const handleUpload = async (file: File) => {
         if (!userId) return;
 
@@ -264,6 +319,13 @@ function ProfileContent() {
                     <div className="flex gap-2">
                         {(activeTab === "vue") && (
                             <>
+                                <Button onClick={cleanupDuplicates} disabled={cleaning} variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-50">
+                                    {cleaning ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Nettoyage...</>
+                                    ) : (
+                                        <><Trash2 className="w-4 h-4 mr-2" /> Purger doublons</>
+                                    )}
+                                </Button>
                                 <Button onClick={regenerateProfile} disabled={regenerating} variant="outline">
                                     {regenerating ? (
                                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Régénération...</>
