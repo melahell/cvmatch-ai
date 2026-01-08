@@ -289,21 +289,29 @@ export default function DashboardPage() {
                             </Card>
                         </Link>
 
-                        {/* Skills - with robust fallback for different data structures */}
+                        {/* Skills - extracted from RAG competences.explicit + competences.inferred */}
                         {(() => {
-                            // Try multiple paths for skills
-                            const skills = ragData?.competences?.techniques
-                                || (Array.isArray(ragData?.competences) ? ragData.competences : null)
-                                || [];
-                            return skills.length > 0 ? (
+                            // Extract skills from RAG structure: competences.explicit.techniques + inferred
+                            const explicitTech = ragData?.competences?.explicit?.techniques || [];
+                            const inferredTech = (ragData?.competences?.inferred?.techniques || [])
+                                .map((t: any) => typeof t === 'string' ? t : t.name)
+                                .filter(Boolean);
+                            const inferredTools = (ragData?.competences?.inferred?.tools || [])
+                                .map((t: any) => typeof t === 'string' ? t : t.name)
+                                .filter(Boolean);
+
+                            // Merge all and dedupe
+                            const allSkills = [...new Set([...explicitTech, ...inferredTech, ...inferredTools])];
+
+                            return allSkills.length > 0 ? (
                                 <Card>
                                     <CardHeader className="pb-2">
                                         <CardTitle className="text-sm">Compétences clés</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <BadgeList
-                                            items={skills}
-                                            maxItems={8}
+                                            items={allSkills}
+                                            maxItems={10}
                                             variant="secondary"
                                         />
                                     </CardContent>
