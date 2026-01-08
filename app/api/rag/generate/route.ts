@@ -6,7 +6,7 @@ import { getDocumentProxy, extractText } from "unpdf";
 import { validateRAGData, formatValidationReport } from "@/lib/rag/validation";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quality-scoring";
-import { enrichRAGData, generateImprovementSuggestions } from "@/lib/rag/enrichment";
+
 import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
@@ -250,9 +250,9 @@ export async function POST(req: Request) {
         ragData = consolidateClients(ragData);
         console.log('[CONSOLIDATION] Clients:', ragData?.references?.clients?.length || 0);
 
-        // Step 3: Enrich data (normalize, compute fields, detect anomalies)
-        ragData = enrichRAGData(ragData);
-        console.log('[ENRICHMENT] Operations:', ragData.enrichment_metadata?.enrichment_log?.length || 0);
+        // Step 3: Enrichment - REMOVED (dead code cleanup, enrichment.ts deleted)
+        // ragData = enrichRAGData(ragData);
+        console.log('[ENRICHMENT] Skipped (module removed)');
 
         // Step 4: Calculate quality score (multi-dimensional)
         const qualityScoreResult = calculateQualityScore(ragData);
@@ -269,10 +269,18 @@ export async function POST(req: Request) {
         // Step 6: Add quality metrics
         ragData.quality_metrics = qualityScoreResult.quality_metrics;
 
-        // Step 7: Generate improvement suggestions
-        const suggestions = generateImprovementSuggestions(ragData);
+        // Step 7: Generate improvement suggestions (inline replacement)
+        const suggestions: string[] = [];
+        if (validationResult.metrics.quantification_percentage < 60) {
+            suggestions.push(`Ajouter des impacts quantifiés (actuellement ${validationResult.metrics.quantification_percentage}%)`);
+        }
+        if (validationResult.metrics.elevator_pitch_length < 200) {
+            suggestions.push(`Enrichir l'elevator pitch (${validationResult.metrics.elevator_pitch_length} caractères)`);
+        }
+        if (validationResult.metrics.clients_count < 3) {
+            suggestions.push(`Ajouter des références clients (${validationResult.metrics.clients_count} trouvés)`);
+        }
         console.log('[SUGGESTIONS]:', suggestions.length);
-
         // 4. Generate Top 10 Jobs - DISABLED to prevent timeout
         // TODO: Move to separate endpoint for async generation
         let top10Jobs: any[] = [];

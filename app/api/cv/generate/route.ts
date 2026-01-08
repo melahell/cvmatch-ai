@@ -2,11 +2,6 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
-import { generateOptimizedCV, convertToLegacyFormat, getTemplateProps } from "@/lib/cv/pipeline";
-import { calculateQualityScore, validateCVQuality } from "@/lib/cv/quality-metrics";
-import { transformRAGToOptimized } from "@/lib/cv/schema-transformer";
-import { autoCompressCV } from "@/lib/cv/compressor";
-import { validatePreGeneration, formatWarnings } from "@/lib/cv/pre-generation-validation";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
@@ -14,9 +9,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
     try {
-        // QUICK FIX: Disable CDC Pipeline to use RAG profile directly
-        // This bypasses the complex transformation chain that was causing data loss
-        const { userId, analysisId, template, includePhoto = true, useCDCPipeline = false } = await req.json();
+        const { userId, analysisId, template, includePhoto = true } = await req.json();
 
         if (!userId || !analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -84,14 +77,6 @@ export async function POST(req: Request) {
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
 
-        // Pre-generation validation (non-blocking)
-        const validationResult = validatePreGeneration(ragData);
-        if (validationResult.warnings.length > 0) {
-            console.warn("=== CV PRE-GENERATION WARNINGS ===");
-            formatWarnings(validationResult).forEach(w => console.warn(w));
-            console.warn("Quality indicators:", validationResult.qualityIndicators);
-        }
-
         // Get photo URL if needed
         let photoUrl = null;
         let photoWarning = null;
@@ -117,7 +102,6 @@ export async function POST(req: Request) {
         const prompt = getCVOptimizationPrompt(profile, jobDescription, customNotes);
 
         console.log("=== CV GENERATION START ===");
-        console.log("Using CDC Pipeline:", useCDCPipeline);
         console.log("Using model: gemini-3-flash-preview");
 
         // Retry wrapper
@@ -166,13 +150,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
         }
 
-        // 3. ALWAYS merge original RAG profile with Gemini output
-        // to preserve identity data (nom, prenom, email, etc.)
-        let finalCV = {
+        // 3. Merge original RAG profile with Gemini output to preserve identity data
+        const finalCV = {
             ...aiOptimizedCV,
             profil: {
                 ...aiOptimizedCV.profil,
-                // Force original identity data from RAG profile
                 nom: profile.nom || aiOptimizedCV.profil?.nom,
                 prenom: profile.prenom || aiOptimizedCV.profil?.prenom,
                 email: profile.email || aiOptimizedCV.profil?.email,
@@ -181,6 +163,7 @@ export async function POST(req: Request) {
                 linkedin: profile.linkedin || aiOptimizedCV.profil?.linkedin,
                 titre_principal: profile.titre_principal || aiOptimizedCV.profil?.titre_principal,
                 elevator_pitch: aiOptimizedCV.profil?.elevator_pitch || profile.elevator_pitch,
+                photo_url: includePhoto && photoUrl ? photoUrl : undefined
             },
             experiences: aiOptimizedCV.experiences || profile.experiences,
             competences: aiOptimizedCV.competences || profile.competences,
@@ -188,86 +171,8 @@ export async function POST(req: Request) {
             langues: aiOptimizedCV.langues || profile.langues,
             certifications: aiOptimizedCV.certifications || profile.certifications,
         };
-        let qualityScore = null;
-        let compressionInfo = null;
 
-        if (useCDCPipeline) {
-            try {
-                // CRITICAL FIX: Merge original RAG profile with Gemini output
-                // to preserve identity data (nom, prenom, email, etc.)
-                const mergedData = {
-                    ...aiOptimizedCV,
-                    profil: {
-                        ...aiOptimizedCV.profil,       // Gemini optimizations
-                        // Force original identity data from RAG profile
-                        nom: profile.nom || aiOptimizedCV.profil?.nom,
-                        prenom: profile.prenom || aiOptimizedCV.profil?.prenom,
-                        email: profile.email || aiOptimizedCV.profil?.email,
-                        telephone: profile.telephone || aiOptimizedCV.profil?.telephone,
-                        localisation: profile.localisation || aiOptimizedCV.profil?.localisation,
-                        linkedin: profile.linkedin || aiOptimizedCV.profil?.linkedin,
-                        titre_principal: profile.titre_principal || aiOptimizedCV.profil?.titre_principal,
-                        elevator_pitch: profile.elevator_pitch || aiOptimizedCV.profil?.elevator_pitch,
-                    },
-                    // Also preserve experiences, competences, formations from RAG if missing
-                    experiences: aiOptimizedCV.experiences || profile.experiences,
-                    competences: aiOptimizedCV.competences || profile.competences,
-                    formations: aiOptimizedCV.formations || profile.formations,
-                    langues: aiOptimizedCV.langues || profile.langues,
-                };
-
-                // Transform to CVOptimized format
-                const cvOptimized = transformRAGToOptimized(
-                    mergedData,
-                    analysisData.match_report,
-                    template || "modern"
-                );
-
-                // Apply auto-compression
-                const compressionResult = autoCompressCV(cvOptimized, includePhoto);
-
-                // Calculate quality score
-                qualityScore = calculateQualityScore(compressionResult.cv, jobDescription);
-
-                // Validate CV
-                const validation = validateCVQuality(compressionResult.cv);
-                if (!validation.valid) {
-                    console.warn("CV validation warnings:", validation.blocking_issues);
-                }
-
-                // Convert to legacy format for template compatibility
-                finalCV = convertToLegacyFormat(compressionResult.cv);
-
-                compressionInfo = {
-                    level: compressionResult.compression_applied,
-                    actions: compressionResult.actions_taken,
-                    pages: compressionResult.final_page_count,
-                    warnings: compressionResult.warnings
-                };
-
-                console.log("CDC Pipeline applied:");
-                console.log("- Seniority:", compressionResult.cv.cv_metadata.seniority_level);
-                console.log("- Compression level:", compressionResult.compression_applied);
-                console.log("- Quality score:", qualityScore.overall);
-                console.log("- Pages:", compressionResult.final_page_count);
-            } catch (pipelineError: any) {
-                console.error("CDC Pipeline error, using raw AI output:", pipelineError.message);
-                // Fallback to raw AI output
-            }
-        }
-
-        // Add photo_url to the CV data if included
-        if (includePhoto && photoUrl) {
-            finalCV.profil = finalCV.profil || {};
-            finalCV.profil.photo_url = photoUrl;
-        }
-
-        // 4. Get template props based on compression
-        const templateProps = useCDCPipeline && finalCV.cv_metadata
-            ? getTemplateProps(finalCV.cv_metadata)
-            : { dense: false, ultraCompact: false, showTechnologies: true, maxBullets: 4, fontSize: 'normal' };
-
-        // 5. Save Generated CV
+        // 4. Save Generated CV
         const { data: cvGen, error: cvError } = await supabase
             .from("cv_generations")
             .insert({
@@ -275,7 +180,7 @@ export async function POST(req: Request) {
                 job_analysis_id: analysisId,
                 template_name: template || "modern",
                 cv_data: finalCV,
-                optimizations_applied: finalCV.optimizations_applied || finalCV.cv_metadata?.optimizations_applied || []
+                optimizations_applied: finalCV.optimizations_applied || []
             })
             .select("id")
             .single();
@@ -285,12 +190,9 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
         }
 
-        // Compile all warnings
+        // Compile warnings
         const allWarnings: string[] = [];
         if (photoWarning) allWarnings.push(photoWarning);
-        if (validationResult.warnings.length > 0) {
-            allWarnings.push(...validationResult.warnings.map(w => `${w.category}: ${w.message}`));
-        }
 
         return NextResponse.json({
             success: true,
@@ -298,30 +200,7 @@ export async function POST(req: Request) {
             cvData: finalCV,
             templateName: template || "modern",
             includePhoto,
-            // Warnings for user visibility
-            warnings: allWarnings.length > 0 ? allWarnings : undefined,
-            // Pre-generation validation
-            preValidation: validationResult.warnings.length > 0 ? {
-                qualityIndicators: validationResult.qualityIndicators,
-                warnings: validationResult.warnings.map(w => ({
-                    severity: w.severity,
-                    category: w.category,
-                    message: w.message,
-                    recommendation: w.recommendation
-                }))
-            } : undefined,
-            // CDC Pipeline extras
-            cdcPipeline: useCDCPipeline,
-            qualityScore: qualityScore ? {
-                overall: qualityScore.overall,
-                ats: qualityScore.ats.score,
-                density: qualityScore.density.score,
-                coherence: qualityScore.coherence.score,
-                warnings: qualityScore.warnings,
-                suggestions: qualityScore.suggestions
-            } : null,
-            compression: compressionInfo,
-            templateProps
+            warnings: allWarnings.length > 0 ? allWarnings : undefined
         });
 
     } catch (error: any) {
@@ -329,4 +208,3 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
-

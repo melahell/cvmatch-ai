@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { createClient } from "@supabase/supabase-js";
-import { PDFCache } from "@/lib/cv/pdf-cache";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Maximum execution time for Vercel
@@ -43,37 +42,8 @@ export async function GET(
             );
         }
 
-        // Check cache first (skip cache in dev for easier testing)
-        const isProduction = process.env.NODE_ENV === "production";
-
-        if (isProduction) {
-            try {
-                const cache = new PDFCache();
-                const cachedPDF = await cache.getCachedPDF(id, format as "A4" | "Letter");
-
-                if (cachedPDF) {
-                    console.log(`✅ PDF Cache HIT for CV ${id} (${format})`);
-
-                    const fileName = cvData.cv_data?.profil?.nom
-                        ? `CV_${cvData.cv_data.profil.prenom}_${cvData.cv_data.profil.nom}.pdf`
-                        : `CV_${id}.pdf`;
-
-                    return new NextResponse(Buffer.from(cachedPDF), {
-                        headers: {
-                            "Content-Type": "application/pdf",
-                            "Content-Disposition": `attachment; filename="${fileName}"`,
-                            "Cache-Control": "public, max-age=86400", // 24h browser cache
-                            "X-Cache-Status": "HIT",
-                        },
-                    });
-                }
-
-                console.log(`⚠️ PDF Cache MISS for CV ${id} (${format}) - Generating...`);
-            } catch (cacheError) {
-                console.error("Cache check error:", cacheError);
-                // Continue to generation if cache fails
-            }
-        }
+        // PDF caching removed (pdf-cache.ts deleted in cleanup)
+        console.log(`Generating PDF for CV ${id} (${format})...`);
 
         // Determine if running locally or on Vercel
         const isLocal = process.env.NODE_ENV === "development";
@@ -155,13 +125,7 @@ export async function GET(
             ? `CV_${cvData.cv_data.profil.prenom}_${cvData.cv_data.profil.nom}.pdf`
             : `CV_${id}.pdf`;
 
-        // Store in cache for future requests (fire-and-forget in production)
-        if (isProduction) {
-            const cache = new PDFCache();
-            cache.storePDF(id, format as "A4" | "Letter", pdfBuffer)
-                .then(() => console.log(`💾 PDF cached successfully for CV ${id} (${format})`))
-                .catch(err => console.error("Cache store error:", err));
-        }
+        // PDF cache storage removed (pdf-cache.ts deleted in cleanup)
 
         // Return PDF as download
         return new NextResponse(Buffer.from(pdfBuffer), {
