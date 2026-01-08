@@ -1,6 +1,6 @@
 {
-    "name": "CVMatch AI",
-    "short_name": "CVMatch",
+    "name": "CV Crush",
+    "short_name": "CV Crush",
     "description": "Boostez votre carrière avec l'IA - Analysez les offres d'emploi et générez des CVs personnalisés",
     "start_url": "/dashboard",
     "display": "standalone",

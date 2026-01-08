@@ -17,7 +17,7 @@ export default function LandingPage() {
                         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                             <Sparkles className="w-5 h-5" />
                         </div>
-                        CVMatch<span className="text-blue-600">AI</span>
+                        CV Crush
                     </div>
                     <div className="flex gap-4">
                         <Link href="/login">

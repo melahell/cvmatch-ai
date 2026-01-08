@@ -52,7 +52,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                 <span className="text-white font-bold text-sm">CV</span>
                             </div>
                             <span className="font-bold text-xl text-slate-900 dark:text-white hidden sm:inline">
-                                CVMatch
+                                CV Crush
                             </span>
                         </Link>
 
@@ -155,7 +155,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     {/* Footer */}
                                     <div className="border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
                                         <div className="px-4 py-1 text-xs text-slate-400">
-                                            CVMatch v1.7.0
+                                            CV Crush v1.7.0
                                         </div>
                                         <button
                                             onClick={() => { setMenuOpen(false); logout(); }}

@@ -52,10 +52,10 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
 
             if (format === "json") {
                 blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-                filename = `cvmatch_export_${new Date().toISOString().split('T')[0]}.json`;
+                filename = `cvcrush_export_${new Date().toISOString().split('T')[0]}.json`;
             } else {
                 // Convert to readable text format
-                let text = `=== EXPORT CVMATCH ===\n`;
+                let text = `=== EXPORT CV CRUSH ===\n`;
                 text += `Date: ${new Date().toLocaleString('fr-FR')}\n\n`;
 
                 text += `--- PROFIL ---\n`;
@@ -79,7 +79,7 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                 });
 
                 blob = new Blob([text], { type: "text/plain" });
-                filename = `cvmatch_export_${new Date().toISOString().split('T')[0]}.txt`;
+                filename = `cvcrush_export_${new Date().toISOString().split('T')[0]}.txt`;
             }
 
             // Download
@@ -137,8 +137,8 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                         <button
                             onClick={() => setFormat("json")}
                             className={`p-4 rounded-lg border-2 transition-all ${format === "json"
-                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
                                 }`}
                         >
                             <FileJson className={`w-8 h-8 mx-auto mb-2 ${format === "json" ? "text-blue-600" : "text-slate-400"
@@ -151,8 +151,8 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                         <button
                             onClick={() => setFormat("txt")}
                             className={`p-4 rounded-lg border-2 transition-all ${format === "txt"
-                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
-                                    : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
                                 }`}
                         >
                             <FileText className={`w-8 h-8 mx-auto mb-2 ${format === "txt" ? "text-blue-600" : "text-slate-400"

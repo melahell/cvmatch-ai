@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cvmatch-v1';
+const CACHE_NAME = 'cvcrush-v1';
 const STATIC_ASSETS = [
     '/',
     '/dashboard',

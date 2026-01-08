@@ -15,7 +15,7 @@ export function Footer() {
                             <span className="text-white font-bold text-xs">CV</span>
                         </div>
                         <span className="text-sm text-slate-500">
-                            CVMatch © {currentYear}
+                            CV Crush © {currentYear}
                         </span>
                     </div>
 
