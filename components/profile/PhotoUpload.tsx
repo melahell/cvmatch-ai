@@ -11,9 +11,20 @@ interface PhotoUploadProps {
     currentPhoto?: string | null;
     userId: string;
     onUploadSuccess: (url: string) => void;
+    // Optional profile info to display
+    profileName?: string;
+    profileTitle?: string;
+    profileLocation?: string;
 }
 
-export function PhotoUpload({ currentPhoto, userId, onUploadSuccess }: PhotoUploadProps) {
+export function PhotoUpload({
+    currentPhoto,
+    userId,
+    onUploadSuccess,
+    profileName,
+    profileTitle,
+    profileLocation
+}: PhotoUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState<string | null>(currentPhoto || null);
 
@@ -89,7 +100,7 @@ export function PhotoUpload({ currentPhoto, userId, onUploadSuccess }: PhotoUplo
 
     return (
         <Card className="p-3 sm:p-4 md:p-6">
-            <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
+            <div className="flex items-start gap-3 sm:gap-4 md:gap-6">
                 {/* Avatar Preview */}
                 <div className="relative flex-shrink-0">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-slate-200">
@@ -117,17 +128,33 @@ export function PhotoUpload({ currentPhoto, userId, onUploadSuccess }: PhotoUplo
                     )}
                 </div>
 
-                {/* Upload Controls */}
+                {/* Profile Info + Upload */}
                 <div className="flex-1 min-w-0">
-                    <h3 className="text-sm sm:text-base font-semibold mb-0.5 sm:mb-1">Photo de profil</h3>
-                    <p className="text-xs sm:text-sm text-slate-500 mb-2 sm:mb-3">
-                        JPG, PNG ou GIF. Max 2MB.
-                    </p>
+                    {/* Profile Name & Title */}
+                    {profileName ? (
+                        <>
+                            <h3 className="font-bold text-base sm:text-lg text-slate-900 truncate">{profileName}</h3>
+                            {profileTitle && (
+                                <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">{profileTitle}</p>
+                            )}
+                            {profileLocation && (
+                                <p className="text-xs sm:text-sm text-slate-500 mt-1">📍 {profileLocation}</p>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            <h3 className="text-sm sm:text-base font-semibold mb-0.5 sm:mb-1">Photo de profil</h3>
+                            <p className="text-xs sm:text-sm text-slate-500 mb-2 sm:mb-3">
+                                JPG, PNG ou GIF. Max 2MB.
+                            </p>
+                        </>
+                    )}
 
-                    <div className="flex gap-2">
+                    {/* Upload Button */}
+                    <div className="flex gap-2 mt-2 sm:mt-3">
                         <label>
                             <Button
-                                variant={preview ? "outline" : "default"}
+                                variant="outline"
                                 disabled={uploading}
                                 className="cursor-pointer"
                                 size="sm"
@@ -142,7 +169,7 @@ export function PhotoUpload({ currentPhoto, userId, onUploadSuccess }: PhotoUplo
                                     ) : (
                                         <>
                                             <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                                            <span className="text-xs sm:text-sm">{preview ? 'Changer' : 'Télécharger'}</span>
+                                            <span className="text-xs sm:text-sm">{preview ? 'Changer' : 'Ajouter photo'}</span>
                                         </>
                                     )}
                                 </span>

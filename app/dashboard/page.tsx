@@ -217,27 +217,15 @@ export default function DashboardPage() {
                     {/* PROFILE SECTION - 2 columns */}
                     <div className="md:col-span-2 space-y-4">
 
-                        {/* Profile Card - Wave 1: Using PhotoUpload component */}
-                        <div className="space-y-3 sm:space-y-4">
-                            <PhotoUpload
-                                currentPhoto={ragData?.photo_url}
-                                userId={userId || ''}
-                                onUploadSuccess={() => { window.location.reload(); }}
-                            />
-                            {(ragData?.profil?.prenom || ragData?.profil?.nom || ragData?.profil?.titre_principal || ragData?.profil?.localisation) && (
-                                <Card>
-                                    <CardContent className="p-3 sm:p-4 md:p-6">
-                                        <div className="font-bold text-base sm:text-lg">{ragData?.profil?.prenom} {ragData?.profil?.nom}</div>
-                                        {ragData?.profil?.titre_principal && (
-                                            <div className="text-xs sm:text-sm text-slate-500 mt-1">{ragData?.profil?.titre_principal}</div>
-                                        )}
-                                        {ragData?.profil?.localisation && (
-                                            <div className="text-xs sm:text-sm text-slate-500 mt-2">📍 {ragData?.profil?.localisation}</div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </div>
+                        {/* Profile Card - Combined Photo + Name */}
+                        <PhotoUpload
+                            currentPhoto={ragData?.photo_url}
+                            userId={userId || ''}
+                            onUploadSuccess={() => { window.location.reload(); }}
+                            profileName={ragData?.profil ? `${ragData.profil.prenom || ''} ${ragData.profil.nom || ''}`.trim() : undefined}
+                            profileTitle={ragData?.profil?.titre_principal}
+                            profileLocation={ragData?.profil?.localisation}
+                        />
 
                         {/* Documents */}
                         <Link href="/dashboard/profile?tab=docs" className="block">
@@ -301,33 +289,28 @@ export default function DashboardPage() {
                             </Card>
                         </Link>
 
-                        {/* Skills - Wave 2 Item 4: Show more skills */}
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm">Compétences clés</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {(ragData?.competences?.techniques?.length || 0) > 0 ? (
-                                    <BadgeList
-                                        items={ragData?.competences?.techniques || []}
-                                        maxItems={8}
-                                        variant="secondary"
-                                    />
-                                ) : (
-                                    <span className="text-sm text-slate-400">Aucune</span>
-                                )}
-                            </CardContent>
-                        </Card>
+                        {/* Skills - with robust fallback for different data structures */}
+                        {(() => {
+                            // Try multiple paths for skills
+                            const skills = ragData?.competences?.techniques
+                                || (Array.isArray(ragData?.competences) ? ragData.competences : null)
+                                || [];
+                            return skills.length > 0 ? (
+                                <Card>
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm">Compétences clés</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <BadgeList
+                                            items={skills}
+                                            maxItems={8}
+                                            variant="secondary"
+                                        />
+                                    </CardContent>
+                                </Card>
+                            ) : null;
+                        })()}
 
-                        {/* Link to profile */}
-                        <Link href="/dashboard/profile">
-                            <Card className="hover:bg-slate-50 cursor-pointer transition-colors">
-                                <CardContent className="p-4 flex items-center justify-between">
-                                    <span className="text-sm font-medium text-blue-600">📝 Mes informations</span>
-                                    <ExternalLink className="w-4 h-4 text-slate-400" />
-                                </CardContent>
-                            </Card>
-                        </Link>
                     </div>
 
                     {/* TOP JOBS - 1 column, compact */}
