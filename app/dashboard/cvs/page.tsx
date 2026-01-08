@@ -98,13 +98,16 @@ export default function CVListPage() {
                 ) : (
                     <div className="space-y-3">
                         {sortedCVs.map((cv) => {
-                            const jobAnalysis = cv.job_analyses?.[0];
+                            // Supabase returns object for one-to-one relations, array for one-to-many
+                            const jobAnalysis = Array.isArray(cv.job_analyses)
+                                ? cv.job_analyses[0]
+                                : cv.job_analyses;
                             const jobTitle = jobAnalysis?.job_title ||
                                 cv.cv_data?.profil?.titre_principal ||
-                                jobAnalysis?.match_report?.poste_cible ||
+                                jobAnalysis?.match_report?.job_title ||
                                 "CV Personnalisé";
                             const company = jobAnalysis?.company ||
-                                jobAnalysis?.match_report?.entreprise || "";
+                                jobAnalysis?.match_report?.company || "";
                             const matchScore = jobAnalysis?.match_score;
                             const date = new Date(cv.created_at).toLocaleDateString("fr-FR", {
                                 day: "numeric",
