@@ -349,8 +349,8 @@ export default function DashboardPage() {
                             )}
                         </div>
                         {ragData && ragData.topJobs.length > 0 ? (
-                            <div className="space-y-2">
-                                {ragData.topJobs.slice(0, 5).map((job: any, i: number) => (
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                                {ragData.topJobs.slice(0, 10).map((job: any, i: number) => (
                                     <div key={i} className="p-2 bg-slate-50 rounded text-xs">
                                         <div className="font-medium text-slate-600 truncate">{job.titre_poste || job.ligne || "Poste"}</div>
                                         <div className="text-slate-400 flex justify-between mt-1">
