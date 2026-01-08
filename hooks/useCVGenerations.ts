@@ -6,7 +6,7 @@ interface CVGeneration {
     id: string;
     created_at: string;
     cv_data: any;
-    analysis_id: string;
+    job_analysis_id: string;
     job_analyses?: {
         job_url: string;
         match_score: number;
@@ -60,7 +60,7 @@ export function useCVGenerations(userId: string | null): UseCVGenerationsReturn 
           id,
           created_at,
           cv_data,
-          analysis_id,
+          job_analysis_id,
           job_analyses (
             job_url,
             match_score,

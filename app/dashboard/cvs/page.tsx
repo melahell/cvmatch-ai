@@ -14,7 +14,7 @@ interface CVGeneration {
     id: string;
     created_at: string;
     cv_data: any;
-    analysis_id: string;
+    job_analysis_id: string;
     job_analyses?: {
         job_url: string;
         match_score: number;

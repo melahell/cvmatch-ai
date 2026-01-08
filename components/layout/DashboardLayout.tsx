@@ -117,15 +117,6 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                                 Templates CV
                                             </button>
                                         </Link>
-                                        <Link href="/dashboard/compare">
-                                            <button
-                                                onClick={() => setMenuOpen(false)}
-                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-                                            >
-                                                <GitCompare className="w-4 h-4" />
-                                                Comparer analyses
-                                            </button>
-                                        </Link>
                                         <Link href="/dashboard/stats">
                                             <button
                                                 onClick={() => setMenuOpen(false)}
