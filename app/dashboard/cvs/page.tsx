@@ -16,6 +16,8 @@ interface CVGeneration {
     cv_data: any;
     job_analysis_id: string;
     job_analyses?: {
+        job_title: string;
+        company: string;
         job_url: string;
         match_score: number;
         match_report: any;
@@ -67,10 +69,12 @@ export default function CVListPage() {
                 <div className="space-y-3">
                     {cvs.map((cv) => {
                         const jobAnalysis = cv.job_analyses?.[0];
-                        const jobTitle = cv.cv_data?.profil?.titre_principal ||
+                        const jobTitle = jobAnalysis?.job_title ||
+                            cv.cv_data?.profil?.titre_principal ||
                             jobAnalysis?.match_report?.poste_cible ||
                             "CV Personnalisé";
-                        const company = jobAnalysis?.match_report?.entreprise || "";
+                        const company = jobAnalysis?.company ||
+                            jobAnalysis?.match_report?.entreprise || "";
                         const matchScore = jobAnalysis?.match_score;
                         const date = new Date(cv.created_at).toLocaleDateString("fr-FR", {
                             day: "numeric",

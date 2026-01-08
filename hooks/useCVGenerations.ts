@@ -8,6 +8,8 @@ interface CVGeneration {
     cv_data: any;
     job_analysis_id: string;
     job_analyses?: {
+        job_title: string;
+        company: string;
         job_url: string;
         match_score: number;
         match_report: any;
@@ -62,6 +64,8 @@ export function useCVGenerations(userId: string | null): UseCVGenerationsReturn 
           cv_data,
           job_analysis_id,
           job_analyses (
+            job_title,
+            company,
             job_url,
             match_score,
             match_report
