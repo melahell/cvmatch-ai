@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target, Eye, Download, RefreshCw, Loader2 } from "lucide-react";
+import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target, Eye, Download, RefreshCw, Loader2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,9 @@ export default function DashboardPage() {
 
     // State for job suggestions generation
     const [generatingJobs, setGeneratingJobs] = useState(false);
+
+    // State for job detail modal
+    const [selectedJob, setSelectedJob] = useState<any>(null);
 
     // Generate job suggestions
     const generateJobSuggestions = async () => {
@@ -349,12 +352,13 @@ export default function DashboardPage() {
                             )}
                         </div>
                         {ragData && ragData.topJobs.length > 0 ? (
-                            <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                            <div className="space-y-2">
                                 {ragData.topJobs.slice(0, 10).map((job: any, i: number) => {
                                     const score = job.match_score || job.score || 0;
                                     const salaryMin = job.salaire_min || job.salary_min;
                                     const salaryMax = job.salaire_max || job.salary_max;
                                     const sector = job.secteurs?.[0] || job.secteur || "Tech";
+                                    const jobTitle = job.titre_poste || job.ligne || "Poste";
 
                                     // Medal for top 3
                                     const getMedal = (rank: number) => {
@@ -376,7 +380,8 @@ export default function DashboardPage() {
                                     return (
                                         <div
                                             key={i}
-                                            className={`p-3 rounded-lg border transition-all hover:shadow-md ${i < 3 ? 'bg-gradient-to-r from-slate-50 to-white border-slate-200' : 'bg-white border-slate-100'}`}
+                                            onClick={() => setSelectedJob({ ...job, rank: i + 1, jobTitle, sector, score, salaryMin, salaryMax })}
+                                            className={`p-3 rounded-lg border transition-all hover:shadow-md cursor-pointer ${i < 3 ? 'bg-gradient-to-r from-slate-50 to-white border-slate-200' : 'bg-white border-slate-100'}`}
                                         >
                                             <div className="flex items-center gap-3">
                                                 {/* Medal/Rank */}
@@ -387,8 +392,11 @@ export default function DashboardPage() {
                                                 {/* Job Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-semibold text-slate-800 text-sm truncate">
-                                                            {job.titre_poste || job.ligne || "Poste"}
+                                                        <span
+                                                            className="font-semibold text-slate-800 text-sm truncate"
+                                                            title={jobTitle}
+                                                        >
+                                                            {jobTitle}
                                                         </span>
                                                         {score >= 90 && <span title="Excellent match!">🔥</span>}
                                                     </div>
@@ -444,6 +452,83 @@ export default function DashboardPage() {
 
                 </div>
             </div>
+
+            {/* Job Detail Modal */}
+            {selectedJob && (
+                <div
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+                    onClick={() => setSelectedJob(null)}
+                >
+                    <div
+                        className="bg-white rounded-xl max-w-md w-full p-6 relative shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => setSelectedJob(null)}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        {/* Rank badge */}
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="text-3xl">
+                                {selectedJob.rank === 1 ? "🥇" : selectedJob.rank === 2 ? "🥈" : selectedJob.rank === 3 ? "🥉" : `#${selectedJob.rank}`}
+                            </span>
+                            <div className={`text-2xl font-bold ${selectedJob.score >= 90 ? 'text-green-600' : selectedJob.score >= 70 ? 'text-lime-600' : 'text-orange-500'}`}>
+                                {selectedJob.score}%
+                                {selectedJob.score >= 90 && <span className="ml-1">🔥</span>}
+                            </div>
+                        </div>
+
+                        {/* Full job title */}
+                        <h3 className="text-xl font-bold text-slate-900 mb-2">
+                            {selectedJob.jobTitle}
+                        </h3>
+
+                        {/* Sector */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                                {selectedJob.sector}
+                            </span>
+                            {selectedJob.secteurs?.slice(1).map((s: string, i: number) => (
+                                <span key={i} className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">
+                                    {s}
+                                </span>
+                            ))}
+                        </div>
+
+                        {/* Salary */}
+                        {(selectedJob.salaryMin || selectedJob.salaryMax) && (
+                            <div className="bg-green-50 rounded-lg p-4 mb-4">
+                                <div className="text-sm text-green-700 font-medium">💰 Fourchette salariale estimée</div>
+                                <div className="text-2xl font-bold text-green-800 mt-1">
+                                    {selectedJob.salaryMin && selectedJob.salaryMax
+                                        ? `${selectedJob.salaryMin}k€ - ${selectedJob.salaryMax}k€`
+                                        : `${selectedJob.salaryMin || selectedJob.salaryMax}k€`}
+                                    <span className="text-sm font-normal text-green-600"> / an</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Reason */}
+                        {selectedJob.raison && (
+                            <div className="bg-slate-50 rounded-lg p-4">
+                                <div className="text-sm text-slate-500 font-medium mb-1">💡 Pourquoi ce poste ?</div>
+                                <p className="text-slate-700">{selectedJob.raison}</p>
+                            </div>
+                        )}
+
+                        {/* Close button */}
+                        <button
+                            onClick={() => setSelectedJob(null)}
+                            className="w-full mt-4 bg-slate-900 text-white py-2 rounded-lg hover:bg-slate-800 transition-colors"
+                        >
+                            Fermer
+                        </button>
+                    </div>
+                </div>
+            )}
         </DashboardLayout>
     );
 }
