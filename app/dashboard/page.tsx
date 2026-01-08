@@ -1,6 +1,7 @@
 "use client";
 
-import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target, Eye, Download } from "lucide-react";
+import { useState } from "react";
+import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target, Eye, Download, RefreshCw, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +29,36 @@ export default function DashboardPage() {
     // Use centralized hooks - Wave 1 improvements
     const { data: ragData, loading: ragLoading, error: ragError, refetch: refetchRAG } = useRAGData(userId);
     const { stats, uploadedDocs, loading: dashboardLoading } = useDashboardData(userId);
+
+    // State for job suggestions generation
+    const [generatingJobs, setGeneratingJobs] = useState(false);
+
+    // Generate job suggestions
+    const generateJobSuggestions = async () => {
+        if (!userId || generatingJobs) return;
+
+        setGeneratingJobs(true);
+        try {
+            const response = await fetch('/api/rag/suggest-jobs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Échec de la génération');
+            }
+
+            toast.success('Suggestions de postes générées !');
+            refetchRAG(); // Refresh to show new jobs
+        } catch (error: any) {
+            console.error('Job suggestions error:', error);
+            toast.error(error.message || 'Erreur lors de la génération');
+        } finally {
+            setGeneratingJobs(false);
+        }
+    };
 
     // Combined loading state
     const loading = ragLoading || dashboardLoading || authLoading;
@@ -298,20 +329,50 @@ export default function DashboardPage() {
 
                     {/* TOP JOBS - 1 column, compact */}
                     <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-slate-500 flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4" /> Postes suggérés
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                                <TrendingUp className="w-4 h-4" /> Postes suggérés
+                            </h3>
+                            {ragData && ragData.score > 0 && (
+                                <button
+                                    onClick={generateJobSuggestions}
+                                    disabled={generatingJobs}
+                                    className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 disabled:opacity-50"
+                                    title="Générer les suggestions de postes"
+                                >
+                                    {generatingJobs ? (
+                                        <><Loader2 className="w-3 h-3 animate-spin" /> Génération...</>
+                                    ) : (
+                                        <><RefreshCw className="w-3 h-3" /> Actualiser</>
+                                    )}
+                                </button>
+                            )}
+                        </div>
                         {ragData && ragData.topJobs.length > 0 ? (
                             <div className="space-y-2">
                                 {ragData.topJobs.slice(0, 5).map((job: any, i: number) => (
                                     <div key={i} className="p-2 bg-slate-50 rounded text-xs">
-                                        <div className="font-medium text-slate-600 truncate">{job.ligne || job.titre_poste || "Poste"}</div>
+                                        <div className="font-medium text-slate-600 truncate">{job.titre_poste || job.ligne || "Poste"}</div>
                                         <div className="text-slate-400 flex justify-between mt-1">
-                                            <span className="truncate">{job.secteurs?.[0] || "Tech"}</span>
-                                            <span className="font-medium">{job.match_score}%</span>
+                                            <span className="truncate">{job.secteurs?.[0] || job.secteur || "Tech"}</span>
+                                            <span className="font-medium text-green-600">{job.match_score || job.score}%</span>
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        ) : ragData && ragData.score > 0 ? (
+                            <div className="text-center py-4">
+                                <p className="text-xs text-slate-400 mb-2">Pas encore de suggestions</p>
+                                <button
+                                    onClick={generateJobSuggestions}
+                                    disabled={generatingJobs}
+                                    className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1 mx-auto"
+                                >
+                                    {generatingJobs ? (
+                                        <><Loader2 className="w-3 h-3 animate-spin" /> Génération...</>
+                                    ) : (
+                                        <><TrendingUp className="w-3 h-3" /> Générer</>)}
+                                </button>
                             </div>
                         ) : (
                             <div className="text-xs text-slate-400 p-2">Uploadez un CV pour voir les suggestions</div>

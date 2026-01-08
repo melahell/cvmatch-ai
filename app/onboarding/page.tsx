@@ -118,9 +118,25 @@ export default function OnboardingPage() {
             const data = await generateRes.json();
             console.log("RAG Generated:", data);
 
+            setProgress(80);
+
+            // 3. Generate Job Suggestions (async, non-blocking)
+            try {
+                const jobsRes = await fetch("/api/rag/suggest-jobs", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId }),
+                });
+                if (jobsRes.ok) {
+                    console.log("Job suggestions generated");
+                }
+            } catch (e) {
+                console.warn("Job suggestions failed (non-critical)", e);
+            }
+
             setProgress(100);
 
-            // Redirect to dashboard (mock path for now)
+            // Redirect to dashboard
             setTimeout(() => {
                 router.push("/dashboard");
             }, 1000);
