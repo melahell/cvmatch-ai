@@ -127,14 +127,32 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Erreur d'analyse. Réessayez avec moins de texte." }, { status: 500 });
         }
 
+        // Extract job_title and company with fallbacks (Gemini sometimes uses different field names)
+        const extractedJobTitle =
+            matchData.job_title ||
+            matchData.jobTitle ||
+            matchData.poste ||
+            matchData.titre ||
+            matchData.match_report?.job_title ||
+            null;
+
+        const extractedCompany =
+            matchData.company ||
+            matchData.entreprise ||
+            matchData.societe ||
+            matchData.match_report?.company ||
+            null;
+
+        console.log(`📊 Match Analysis - job_title: "${extractedJobTitle}", company: "${extractedCompany}", score: ${matchData.match_score}`);
+
         // 4. Save to DB
         const { data: insertData } = await supabase
             .from("job_analyses")
             .insert({
                 user_id: userId,
                 job_url: jobUrl,
-                job_title: matchData.job_title || null,
-                company: matchData.company || null,
+                job_title: extractedJobTitle,
+                company: extractedCompany,
                 location: matchData.location || null,
                 job_description: fullJobText.substring(0, 10000),
                 match_score: matchData.match_score,
