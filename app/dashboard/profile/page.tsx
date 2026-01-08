@@ -10,12 +10,13 @@ import { useProfileForm } from "@/hooks/useProfileForm";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2 } from "lucide-react";
+import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2, Upload, ExternalLink } from "lucide-react";
 import { ValidationWarnings } from "@/components/profile/ValidationWarnings";
 import { OverviewTab } from "@/components/profile/OverviewTab";
 import { WeightTab } from "@/components/profile/WeightTab";
-import { DocumentsTab } from "@/components/profile/DocumentsTab";
 import { AdvancedTab } from "@/components/profile/AdvancedTab";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 
@@ -346,12 +347,28 @@ function ProfileContent() {
                     </TabsContent>
 
                     <TabsContent value="docs">
-                        <DocumentsTab
-                            documents={documents}
-                            onDelete={async (id) => { await deleteDocument(id); }}
-                            onUpload={handleUpload}
-                            uploading={uploading}
-                        />
+                        <Card className="border-dashed border-2">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <Upload className="w-5 h-5" />
+                                    Ajouter des documents
+                                </CardTitle>
+                                <CardDescription>
+                                    Pour importer de nouveaux documents (CV, LinkedIn PDF, etc.), utilisez la page d'onboarding.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <Link href="/onboarding">
+                                    <Button className="gap-2">
+                                        <ExternalLink className="w-4 h-4" />
+                                        Aller à l'import de documents
+                                    </Button>
+                                </Link>
+                                <p className="text-sm text-slate-500 mt-4">
+                                    Documents actuels: {documents?.length || 0} fichier(s)
+                                </p>
+                            </CardContent>
+                        </Card>
                     </TabsContent>
 
                     <TabsContent value="avance">
