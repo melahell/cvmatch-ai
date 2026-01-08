@@ -349,16 +349,79 @@ export default function DashboardPage() {
                             )}
                         </div>
                         {ragData && ragData.topJobs.length > 0 ? (
-                            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                                {ragData.topJobs.slice(0, 10).map((job: any, i: number) => (
-                                    <div key={i} className="p-2 bg-slate-50 rounded text-xs">
-                                        <div className="font-medium text-slate-600 truncate">{job.titre_poste || job.ligne || "Poste"}</div>
-                                        <div className="text-slate-400 flex justify-between mt-1">
-                                            <span className="truncate">{job.secteurs?.[0] || job.secteur || "Tech"}</span>
-                                            <span className="font-medium text-green-600">{job.match_score || job.score}%</span>
+                            <div className="space-y-2 max-h-[480px] overflow-y-auto pr-1">
+                                {ragData.topJobs.slice(0, 10).map((job: any, i: number) => {
+                                    const score = job.match_score || job.score || 0;
+                                    const salaryMin = job.salaire_min || job.salary_min;
+                                    const salaryMax = job.salaire_max || job.salary_max;
+                                    const sector = job.secteurs?.[0] || job.secteur || "Tech";
+
+                                    // Medal for top 3
+                                    const getMedal = (rank: number) => {
+                                        if (rank === 0) return "🥇";
+                                        if (rank === 1) return "🥈";
+                                        if (rank === 2) return "🥉";
+                                        return <span className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600">{rank + 1}</span>;
+                                    };
+
+                                    // Progress bar color based on score
+                                    const getBarColor = (s: number) => {
+                                        if (s >= 90) return "bg-gradient-to-r from-green-400 to-emerald-500";
+                                        if (s >= 80) return "bg-gradient-to-r from-lime-400 to-green-500";
+                                        if (s >= 70) return "bg-gradient-to-r from-yellow-400 to-lime-500";
+                                        if (s >= 60) return "bg-gradient-to-r from-orange-400 to-yellow-500";
+                                        return "bg-gradient-to-r from-red-400 to-orange-500";
+                                    };
+
+                                    return (
+                                        <div
+                                            key={i}
+                                            className={`p-3 rounded-lg border transition-all hover:shadow-md ${i < 3 ? 'bg-gradient-to-r from-slate-50 to-white border-slate-200' : 'bg-white border-slate-100'}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {/* Medal/Rank */}
+                                                <div className="flex-shrink-0 text-lg">
+                                                    {getMedal(i)}
+                                                </div>
+
+                                                {/* Job Info */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-semibold text-slate-800 text-sm truncate">
+                                                            {job.titre_poste || job.ligne || "Poste"}
+                                                        </span>
+                                                        {score >= 90 && <span title="Excellent match!">🔥</span>}
+                                                    </div>
+
+                                                    {/* Sector tag + Salary */}
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                                            {sector}
+                                                        </span>
+                                                        {(salaryMin || salaryMax) && (
+                                                            <span className="text-xs text-slate-500 font-medium">
+                                                                💰 {salaryMin && salaryMax ? `${salaryMin}-${salaryMax}k€` : `${salaryMin || salaryMax}k€`}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Progress bar */}
+                                                    <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div
+                                                            className={`h-full ${getBarColor(score)} transition-all duration-500`}
+                                                            style={{ width: `${score}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Score */}
+                                                <div className={`flex-shrink-0 font-bold text-lg ${score >= 90 ? 'text-green-600' : score >= 70 ? 'text-lime-600' : 'text-orange-500'}`}>
+                                                    {score}%
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : ragData && ragData.score > 0 ? (
                             <div className="text-center py-4">
