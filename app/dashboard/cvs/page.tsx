@@ -26,9 +26,17 @@ interface CVGeneration {
 
 export default function CVListPage() {
     const { userId, isLoading: authLoading } = useAuth();
+    const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
 
     // Use centralized CV generations hook
     const { data: cvs, loading } = useCVGenerations(userId);
+
+    // Sort CVs based on selection
+    const sortedCVs = [...cvs].sort((a, b) => {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
 
     const handleDownloadPDF = async (cvId: string) => {
         window.open(`/dashboard/cv/${cvId}?print=true`, "_blank");
@@ -42,17 +50,27 @@ export default function CVListPage() {
         <div className="container mx-auto py-8 px-4 max-w-4xl">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900">Mes CVs 📄</h1>
-                    <p className="text-slate-500">Historique des CVs générés pour vos candidatures</p>
+                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Mes CVs 📄</h1>
+                    <p className="text-slate-500">{cvs.length} CV{cvs.length > 1 ? 's' : ''} généré{cvs.length > 1 ? 's' : ''}</p>
                 </div>
-                <Link href="/dashboard/analyze">
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                        <Plus className="w-4 h-4 mr-2" /> Nouvelle Analyse
-                    </Button>
-                </Link>
+                <div className="flex items-center gap-3">
+                    <select
+                        value={sortOrder}
+                        onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest")}
+                        className="px-3 py-2 text-sm border rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700"
+                    >
+                        <option value="newest">Plus récent</option>
+                        <option value="oldest">Plus ancien</option>
+                    </select>
+                    <Link href="/dashboard/analyze">
+                        <Button className="bg-blue-600 hover:bg-blue-700">
+                            <Plus className="w-4 h-4 mr-2" /> Nouvelle Analyse
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
-            {cvs.length === 0 ? (
+            {sortedCVs.length === 0 ? (
                 <Card>
                     <CardContent className="p-12 text-center">
                         <FileText className="w-16 h-16 mx-auto text-slate-300 mb-4" />
@@ -67,7 +85,7 @@ export default function CVListPage() {
                 </Card>
             ) : (
                 <div className="space-y-3">
-                    {cvs.map((cv) => {
+                    {sortedCVs.map((cv) => {
                         const jobAnalysis = cv.job_analyses?.[0];
                         const jobTitle = jobAnalysis?.job_title ||
                             cv.cv_data?.profil?.titre_principal ||
