@@ -44,12 +44,46 @@ function areExperiencesSimilar(exp1: any, exp2: any): boolean {
 }
 
 /**
- * Check if two realisations are similar (75% threshold)
+ * Check if two realisations are similar using word-based matching
+ * Uses Jaccard index (55% threshold) - better for reformulated sentences
+ * 
+ * Example: "Gestion de 100 utilisateurs" vs "Gouvernance de 100 utilisateurs"
+ * → Levenshtein: 67% (MISS)
+ * → Jaccard: 75% (DETECTED)
  */
 function areRealisationsSimilar(real1: any, real2: any): boolean {
     const desc1 = real1?.description || "";
     const desc2 = real2?.description || "";
-    return areStringsSimilar(desc1, desc2, 0.75);
+
+    if (!desc1 || !desc2) return false;
+
+    // Exact match shortcut
+    if (desc1.toLowerCase().trim() === desc2.toLowerCase().trim()) return true;
+
+    // Use word-based similarity (Jaccard) - more robust for reformulations
+    const stopWords = new Set(["de", "du", "des", "la", "le", "les", "et", "à", "pour", "en", "un", "une", "—", "-", "&"]);
+
+    const tokenize = (s: string): Set<string> => {
+        const words = s
+            .toLowerCase()
+            .replace(/[^\w\sàâäéèêëïîôùûüç0-9-]/g, " ")
+            .split(/\s+/)
+            .filter(w => w.length > 2 && !stopWords.has(w));
+        return new Set(words);
+    };
+
+    const set1 = tokenize(desc1);
+    const set2 = tokenize(desc2);
+
+    if (set1.size === 0 || set2.size === 0) return false;
+
+    // Jaccard index: intersection / union
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    const jaccard = intersection.size / union.size;
+
+    // 55% threshold - detects reformulations while avoiding false positives
+    return jaccard >= 0.55;
 }
 
 /**
