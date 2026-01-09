@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
+import { ContextualLoader } from "@/components/loading/ContextualLoader";
 
 function ProfileContent() {
     const searchParams = useSearchParams();
@@ -262,6 +263,24 @@ function ProfileContent() {
             <DashboardLayout>
                 <LoadingSpinner fullScreen />
             </DashboardLayout>
+        );
+    }
+
+    // Show contextual loader during regeneration
+    if (regenerating) {
+        return (
+            <ContextualLoader
+                context="refreshing-profile"
+            />
+        );
+    }
+
+    // Show contextual loader during upload
+    if (uploading) {
+        return (
+            <ContextualLoader
+                context="uploading-photo"
+            />
         );
     }
 
