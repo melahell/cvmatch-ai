@@ -185,8 +185,18 @@ export default function CVViewPage() {
                             className="dark:border-slate-700 dark:text-slate-300"
                         >
                             <RefreshCw className="w-4 h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Changer</span>
+                            <span className="hidden sm:inline">Template</span>
                         </Button>
+                        <Link href={`/dashboard/cvs/${id}/edit`}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300"
+                            >
+                                <FileText className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Éditer</span>
+                            </Button>
+                        </Link>
                         <Button
                             size="sm"
                             onClick={handleDownloadPDF}
@@ -201,7 +211,7 @@ export default function CVViewPage() {
                             ) : (
                                 <>
                                     <Download className="w-4 h-4 sm:mr-2" />
-                                    <span className="hidden sm:inline">Télécharger PDF</span>
+                                    <span className="hidden sm:inline">PDF</span>
                                 </>
                             )}
                         </Button>
