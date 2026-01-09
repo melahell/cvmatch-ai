@@ -75,6 +75,14 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
     const [newItemValue2, setNewItemValue2] = useState(""); // For second field (ecole, niveau)
     const [addingItem, setAddingItem] = useState(false);
 
+    // Delete confirmation state
+    const [pendingDelete, setPendingDelete] = useState<{
+        type: "certification" | "formation" | "langue" | "realisation" | "experience";
+        index: number;
+        label: string;
+        options?: { experienceIndex?: number; key?: string };
+    } | null>(null);
+
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
@@ -113,6 +121,23 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
         } finally {
             setDeletingItem(null);
         }
+    };
+
+    // Handler to confirm and execute delete
+    const confirmDelete = async () => {
+        if (!pendingDelete) return;
+        await handleDeleteItem(pendingDelete.type, pendingDelete.index, pendingDelete.options);
+        setPendingDelete(null);
+    };
+
+    // Handler to request delete with confirmation
+    const requestDelete = (
+        type: "certification" | "formation" | "langue" | "realisation" | "experience",
+        index: number,
+        label: string,
+        options?: { experienceIndex?: number; key?: string }
+    ) => {
+        setPendingDelete({ type, index, label, options });
     };
 
     // Handler for updating profile fields inline
@@ -433,7 +458,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                                                 {r.impact && <span className="text-blue-600"> — {r.impact}</span>}
                                                             </span>
                                                             <button
-                                                                onClick={() => handleDeleteItem("realisation", j, { experienceIndex: i })}
+                                                                onClick={() => requestDelete("realisation", j, r.description?.substring(0, 50) + (r.description?.length > 50 ? '...' : '') || 'Réalisation', { experienceIndex: i })}
                                                                 disabled={isDeleting}
                                                                 className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
                                                                 title="Supprimer cette réalisation"
@@ -654,7 +679,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                                 onChange={(w) => onWeightChange("formations", i, w)}
                                             />
                                             <button
-                                                onClick={() => handleDeleteItem("formation", i)}
+                                                onClick={() => requestDelete("formation", i, f.diplome || 'Formation')}
                                                 disabled={isDeleting}
                                                 className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                                                 title="Supprimer cette formation"
@@ -704,7 +729,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                             <div className="flex items-center gap-2">
                                                 <span className="text-slate-600">{niveau as string}</span>
                                                 <button
-                                                    onClick={() => handleDeleteItem("langue", i, { key: lang })}
+                                                    onClick={() => requestDelete("langue", i, lang, { key: lang })}
                                                     disabled={isDeleting}
                                                     className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                                                     title="Supprimer cette langue"
@@ -749,7 +774,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                         {typeof cert === 'string' ? cert : (cert?.nom || JSON.stringify(cert))}
                                     </Badge>
                                     <button
-                                        onClick={() => handleDeleteItem("certification", i)}
+                                        onClick={() => requestDelete("certification", i, typeof cert === 'string' ? cert : (cert?.nom || 'Certification'))}
                                         disabled={isDeleting}
                                         className="absolute right-1 p-0.5 rounded-full hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
                                         title="Supprimer cette certification"
@@ -894,6 +919,49 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                     <>
                                         <Plus className="w-4 h-4" />
                                         Ajouter
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {pendingDelete && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl">
+                        <h3 className="text-lg font-bold mb-2 text-red-600 flex items-center gap-2">
+                            <Trash2 className="w-5 h-5" />
+                            Confirmer la suppression
+                        </h3>
+                        <p className="text-slate-600 mb-4">
+                            Êtes-vous sûr de vouloir supprimer <strong>"{pendingDelete.label}"</strong> ?
+                        </p>
+                        <p className="text-sm text-slate-500 mb-4">
+                            Cette action est irréversible.
+                        </p>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setPendingDelete(null)}
+                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                disabled={!!deletingItem}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {deletingItem ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Suppression...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Trash2 className="w-4 h-4" />
+                                        Supprimer
                                     </>
                                 )}
                             </button>

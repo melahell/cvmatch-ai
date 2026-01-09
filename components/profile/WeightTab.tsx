@@ -15,10 +15,13 @@ interface WeightBadgeProps {
 const WeightBadge = ({ weight, onChange }: WeightBadgeProps) => {
     const weights: WeightValue[] = ["important", "inclus", "exclu"];
     const idx = weights.indexOf(weight);
+    const [justChanged, setJustChanged] = useState(false);
 
     const cycle = () => {
         const nextIdx = (idx + 1) % weights.length;
         onChange(weights[nextIdx]);
+        setJustChanged(true);
+        setTimeout(() => setJustChanged(false), 500);
     };
 
     const styles = {
@@ -33,10 +36,17 @@ const WeightBadge = ({ weight, onChange }: WeightBadgeProps) => {
         exclu: "❌ Exclu"
     };
 
+    const tooltips = {
+        important: "Cliquez pour changer → Sera mis en avant dans vos CVs",
+        inclus: "Cliquez pour changer → Inclus par défaut dans vos CVs",
+        exclu: "Cliquez pour changer → Ne sera jamais inclus dans vos CVs"
+    };
+
     return (
         <button
             onClick={cycle}
-            className={`px-2 py-1 text-xs font-medium rounded border transition-colors ${styles[weight]}`}
+            title={tooltips[weight]}
+            className={`px-2 py-1 text-xs font-medium rounded border transition-all duration-200 ${styles[weight]} ${justChanged ? "scale-110 ring-2 ring-offset-1" : ""}`}
         >
             {labels[weight]}
         </button>
