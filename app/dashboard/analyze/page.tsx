@@ -12,6 +12,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { AnalysisHistory } from "@/components/analyze/AnalysisHistory";
+import { ContextualLoader } from "@/components/loading/ContextualLoader";
 
 type Mode = "url" | "text" | "file";
 
@@ -290,6 +291,15 @@ export default function AnalyzePage() {
     }, [mode, text, url, file, loading]);
 
     const isReady = (mode === "url" && url) || (mode === "text" && text) || (mode === "file" && file);
+
+    // Show contextual loader during analysis
+    if (loading) {
+        return (
+            <ContextualLoader
+                context="analyzing-job"
+            />
+        );
+    }
 
     return (
         <DashboardLayout>

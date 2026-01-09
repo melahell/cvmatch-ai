@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { createSupabaseClient } from "@/lib/supabase";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ContextualLoader } from "@/components/loading/ContextualLoader";
 
 export default function OnboardingPage() {
     const router = useRouter();
@@ -148,6 +149,16 @@ export default function OnboardingPage() {
             setProcessing(false);
         }
     };
+
+    // Show contextual loader during processing
+    if (processing) {
+        return (
+            <ContextualLoader
+                context="generating-rag"
+                progress={progress}
+            />
+        );
+    }
 
     return (
         <DashboardLayout>

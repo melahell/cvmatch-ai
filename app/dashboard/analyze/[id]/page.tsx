@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { useRAGData } from "@/hooks/useRAGData";
+import { ContextualLoader } from "@/components/loading/ContextualLoader";
 import Cookies from "js-cookie";
 
 export default function MatchResultPage() {
@@ -82,6 +83,16 @@ export default function MatchResultPage() {
     }
 
     if (!analysis) return <div className="p-10 text-center">Analyse introuvable</div>;
+
+    // Show contextual loader during CV generation
+    if (generatingCV) {
+        return (
+            <ContextualLoader
+                context="generating-cv"
+                jobTitle={analysis.job_title}
+            />
+        );
+    }
 
     const score = analysis.match_score;
     const matchColor = score >= 70 ? "text-green-600" : score >= 50 ? "text-yellow-600" : "text-red-600";
