@@ -43,6 +43,13 @@ function ProfileContent() {
     const [regenerating, setRegenerating] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [customNotes, setCustomNotes] = useState("");
+
+    // Progress tracking for ContextualLoader
+    const [currentDocName, setCurrentDocName] = useState("");
+    const [currentDocIndex, setCurrentDocIndex] = useState(0);
+    const [totalDocsCount, setTotalDocsCount] = useState(0);
+    const [regenProgress, setRegenProgress] = useState(0);
+
     const [validationData, setValidationData] = useState<{
         warnings?: any[];
         suggestions?: string[];
@@ -148,6 +155,7 @@ function ProfileContent() {
 
         setRegenerating(true);
         const totalDocs = documents.length;
+        setTotalDocsCount(totalDocs);
         let processed = 0;
 
         try {
@@ -156,10 +164,10 @@ function ProfileContent() {
             // Process each document sequentially
             for (const doc of documents) {
                 processed++;
+                setCurrentDocIndex(processed);
+                setCurrentDocName(doc.filename);
+                setRegenProgress(Math.round((processed / totalDocs) * 100));
                 logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`);
-
-                // Update UI with progress
-                setRegenerating(true);
 
                 const res = await fetch("/api/rag/generate-incremental", {
                     method: "POST",
@@ -271,6 +279,12 @@ function ProfileContent() {
         return (
             <ContextualLoader
                 context="refreshing-profile"
+                userName={(ragData as any)?.prenom || (ragData as any)?.nom || undefined}
+                currentStep={currentDocIndex - 1}
+                totalSteps={totalDocsCount}
+                currentItem={currentDocName}
+                progress={regenProgress}
+                onCancel={() => setRegenerating(false)}
             />
         );
     }
