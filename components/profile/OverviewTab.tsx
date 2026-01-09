@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Briefcase, Code, GraduationCap, Languages, ChevronDown, ChevronUp, Sparkles, Info } from "lucide-react";
+import { User, Briefcase, Code, GraduationCap, Languages, ChevronDown, ChevronUp, Sparkles, Info, X, Trash2, Plus, Pencil, Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { InferredSkillCard } from "./InferredSkillCard";
+import { EditableField } from "@/components/ui/EditableField";
 import type { InferredSkill } from "@/types/rag";
 import { normalizeCompetences } from "@/lib/utils/normalize-competences";
 
@@ -66,9 +67,71 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
 
     const [addingSkill, setAddingSkill] = useState<string | null>(null);
     const [rejectingSkill, setRejectingSkill] = useState<string | null>(null);
+    const [deletingItem, setDeletingItem] = useState<string | null>(null);
 
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    };
+
+    // Handler for deleting items (certifications, formations, langues, realisations)
+    const handleDeleteItem = async (
+        type: "certification" | "formation" | "langue" | "realisation" | "experience",
+        index: number,
+        options?: { experienceIndex?: number; key?: string }
+    ) => {
+        const itemKey = `${type}-${index}-${options?.experienceIndex ?? ""}`;
+        setDeletingItem(itemKey);
+
+        try {
+            const response = await fetch("/api/profile/delete-item", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    type,
+                    index,
+                    experienceIndex: options?.experienceIndex,
+                    key: options?.key
+                })
+            });
+
+            if (response.ok) {
+                onRefetch?.();
+            } else {
+                const error = await response.json();
+                console.error("Failed to delete:", error);
+                alert(`Erreur: ${error.error || "Suppression échouée"}`);
+            }
+        } catch (error) {
+            console.error("Delete error:", error);
+        } finally {
+            setDeletingItem(null);
+        }
+    };
+
+    // Handler for updating profile fields inline
+    const handleUpdateProfile = async (field: string, value: string) => {
+        try {
+            const response = await fetch("/api/profile/update-item", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    type: "profil",
+                    data: { [field]: value }
+                })
+            });
+
+            if (response.ok) {
+                onRefetch?.();
+            } else {
+                const error = await response.json();
+                throw new Error(error.error || "Échec de la mise à jour");
+            }
+        } catch (error: any) {
+            console.error("Update profile error:", error);
+            throw error;
+        }
     };
 
     // Normalize competences to handle old/new format
@@ -200,38 +263,66 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                     </span>
                 </div>
             </div>
-
-            {/* Profile */}
+            {/* Profile - Editable */}
             {ragData?.profil && (
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <User className="w-5 h-5" /> Profil
+                            <span className="text-xs font-normal text-slate-400 ml-2">
+                                (Cliquez sur un champ pour modifier)
+                            </span>
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
-                        {ragData.profil.prenom && (
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <strong className="text-slate-700">Nom :</strong>{" "}
-                                {ragData.profil.prenom} {ragData.profil.nom}
+                                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Prénom</label>
+                                <EditableField
+                                    value={ragData.profil.prenom || ""}
+                                    onSave={(v) => handleUpdateProfile("prenom", v)}
+                                    placeholder="Votre prénom"
+                                    context="profil"
+                                />
                             </div>
-                        )}
-                        {ragData.profil.titre_principal && (
                             <div>
-                                <strong className="text-slate-700">Titre :</strong> {ragData.profil.titre_principal}
+                                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Nom</label>
+                                <EditableField
+                                    value={ragData.profil.nom || ""}
+                                    onSave={(v) => handleUpdateProfile("nom", v)}
+                                    placeholder="Votre nom"
+                                    context="profil"
+                                />
                             </div>
-                        )}
-                        {ragData.profil.localisation && (
-                            <div>
-                                <strong className="text-slate-700">Localisation :</strong> {ragData.profil.localisation}
-                            </div>
-                        )}
-                        {ragData.profil.elevator_pitch && (
-                            <div>
-                                <strong className="text-slate-700">Pitch :</strong>
-                                <p className="text-sm text-slate-600 mt-1">{ragData.profil.elevator_pitch}</p>
-                            </div>
-                        )}
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Titre professionnel</label>
+                            <EditableField
+                                value={ragData.profil.titre_principal || ""}
+                                onSave={(v) => handleUpdateProfile("titre_principal", v)}
+                                placeholder="Ex: Chef de Projet Digital"
+                                context="titre"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Localisation</label>
+                            <EditableField
+                                value={ragData.profil.localisation || ""}
+                                onSave={(v) => handleUpdateProfile("localisation", v)}
+                                placeholder="Ex: Paris, France"
+                                context="localisation"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Elevator Pitch</label>
+                            <EditableField
+                                value={ragData.profil.elevator_pitch || ""}
+                                onSave={(v) => handleUpdateProfile("elevator_pitch", v)}
+                                placeholder="Décrivez-vous en quelques phrases..."
+                                multiline
+                                context="pitch"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
             )}
@@ -270,13 +361,28 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <div className="mt-2">
                                             <div className="text-sm font-medium mb-1">Réalisations :</div>
-                                            <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
-                                                {exp.realisations.map((r: any, j: number) => (
-                                                    <li key={j}>
-                                                        {r.description}
-                                                        {r.impact && <span className="text-blue-600"> — {r.impact}</span>}
-                                                    </li>
-                                                ))}
+                                            <ul className="text-sm text-slate-600 space-y-1">
+                                                {exp.realisations.map((r: any, j: number) => {
+                                                    const itemKey = `realisation-${j}-${i}`;
+                                                    const isDeleting = deletingItem === itemKey;
+                                                    return (
+                                                        <li key={j} className="flex items-start gap-2 group py-1 px-2 -mx-2 rounded hover:bg-slate-50">
+                                                            <span className="text-slate-400 mt-0.5">•</span>
+                                                            <span className="flex-1">
+                                                                {r.description}
+                                                                {r.impact && <span className="text-blue-600"> — {r.impact}</span>}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => handleDeleteItem("realisation", j, { experienceIndex: i })}
+                                                                disabled={isDeleting}
+                                                                className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                                                                title="Supprimer cette réalisation"
+                                                            >
+                                                                {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                })}
                                             </ul>
                                         </div>
                                     )}
@@ -464,20 +570,34 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                     </CardHeader>
                     {expandedSections.formations && (
                         <CardContent className="space-y-3">
-                            {ragData.formations.map((f: any, i: number) => (
-                                <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0 last:pb-0">
-                                    <div>
-                                        <div className="font-semibold">{f.diplome}</div>
-                                        <div className="text-sm text-slate-500">
-                                            {f.ecole} • {f.annee}
+                            {ragData.formations.map((f: any, i: number) => {
+                                const itemKey = `formation-${i}-`;
+                                const isDeleting = deletingItem === itemKey;
+                                return (
+                                    <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0 last:pb-0 group">
+                                        <div className="flex-1">
+                                            <div className="font-semibold">{f.diplome}</div>
+                                            <div className="text-sm text-slate-500">
+                                                {f.ecole} • {f.annee}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <WeightBadge
+                                                weight={f.weight || "inclus"}
+                                                onChange={(w) => onWeightChange("formations", i, w)}
+                                            />
+                                            <button
+                                                onClick={() => handleDeleteItem("formation", i)}
+                                                disabled={isDeleting}
+                                                className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                                                title="Supprimer cette formation"
+                                            >
+                                                {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                            </button>
                                         </div>
                                     </div>
-                                    <WeightBadge
-                                        weight={f.weight || "inclus"}
-                                        onChange={(w) => onWeightChange("formations", i, w)}
-                                    />
-                                </div>
-                            ))}
+                                );
+                            })}
                         </CardContent>
                     )}
                 </Card>
@@ -501,12 +621,26 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                     {expandedSections.langues && (
                         <CardContent>
                             <div className="grid grid-cols-2 gap-2">
-                                {Object.entries(ragData.langues).map(([lang, niveau]) => (
-                                    <div key={lang} className="flex justify-between">
-                                        <span className="font-medium">{lang} :</span>
-                                        <span className="text-slate-600">{niveau as string}</span>
-                                    </div>
-                                ))}
+                                {Object.entries(ragData.langues).map(([lang, niveau], i) => {
+                                    const itemKey = `langue-${i}-`;
+                                    const isDeleting = deletingItem === itemKey;
+                                    return (
+                                        <div key={lang} className="flex justify-between items-center group">
+                                            <span className="font-medium">{lang} :</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-slate-600">{niveau as string}</span>
+                                                <button
+                                                    onClick={() => handleDeleteItem("langue", i, { key: lang })}
+                                                    disabled={isDeleting}
+                                                    className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                                                    title="Supprimer cette langue"
+                                                >
+                                                    {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </CardContent>
                     )}
@@ -524,11 +658,29 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-wrap gap-2">
-                            {ragData.certifications.map((cert: any, i: number) => (
-                                <Badge key={i} variant="outline" className="bg-yellow-50 border-yellow-200">
-                                    {typeof cert === 'string' ? cert : (cert?.nom || JSON.stringify(cert))}
-                                </Badge>
-                            ))}
+                            {ragData.certifications.map((cert: any, i: number) => {
+                                const itemKey = `certification-${i}-`;
+                                const isDeleting = deletingItem === itemKey;
+                                return (
+                                    <div key={i} className="group relative inline-flex items-center">
+                                        <Badge variant="outline" className="bg-yellow-50 border-yellow-200 pr-7">
+                                            {typeof cert === 'string' ? cert : (cert?.nom || JSON.stringify(cert))}
+                                        </Badge>
+                                        <button
+                                            onClick={() => handleDeleteItem("certification", i)}
+                                            disabled={isDeleting}
+                                            className="absolute right-1 p-0.5 rounded-full hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
+                                            title="Supprimer cette certification"
+                                        >
+                                            {isDeleting ? (
+                                                <Loader2 className="w-3 h-3 animate-spin" />
+                                            ) : (
+                                                <X className="w-3 h-3" />
+                                            )}
+                                        </button>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </CardContent>
                 </Card>
