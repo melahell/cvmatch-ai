@@ -1,6 +1,6 @@
 Excellente idée ! C'est totalement possible et ça va vraiment améliorer l'expérience utilisateur. Les écrans de chargement contextuels et personnalisés rendent l'attente beaucoup plus agréable.
 
-Voici comment implémenter ça dans CVMatch AI :
+Voici comment implémenter ça dans CV Crush :
 
 ## 📋 Structure de la solution
 

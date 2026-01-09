@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Politique de Confidentialité - CVMatch",
-    description: "Politique de confidentialité et protection des données personnelles de CVMatch",
+    title: "Politique de Confidentialité - CV Crush",
+    description: "Politique de confidentialité et protection des données personnelles de CV Crush",
 };
 
 export default function PrivacyPage() {
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
                             1. Responsable du Traitement
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
-                            CVMatch, représenté par son équipe fondatrice, est responsable du traitement
+                            CV Crush, représenté par son équipe fondatrice, est responsable du traitement
                             de vos données personnelles. Pour toute question, contactez-nous via notre
                             formulaire de contact.
                         </p>
@@ -118,7 +118,7 @@ export default function PrivacyPage() {
                         </ul>
                         <p className="text-slate-600 leading-relaxed mt-4">
                             Pour exercer ces droits, contactez-nous via le formulaire de contact ou à
-                            l'adresse : privacy@cvmatch.ai
+                            l'adresse : privacy@cvcrush.ai
                         </p>
                     </section>
 
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
                             8. Cookies
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
-                            CVMatch utilise des cookies essentiels au fonctionnement du service (authentification,
+                            CV Crush utilise des cookies essentiels au fonctionnement du service (authentification,
                             préférences). Nous n'utilisons pas de cookies publicitaires ou de tracking tiers.
                             Vous pouvez désactiver les cookies dans votre navigateur, mais cela peut affecter
                             le fonctionnement du service.

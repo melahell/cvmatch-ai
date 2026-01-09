@@ -160,11 +160,11 @@ export default function ContactPage() {
                         Vous pouvez aussi nous contacter directement :
                     </p>
                     <a
-                        href="mailto:contact@cvmatch.ai"
+                        href="mailto:contact@cvcrush.ai"
                         className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
                     >
                         <Mail className="w-4 h-4" />
-                        contact@cvmatch.ai
+                        contact@cvcrush.ai
                     </a>
                 </div>
 

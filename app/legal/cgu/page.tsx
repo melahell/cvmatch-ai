@@ -1,8 +1,8 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-    title: "Conditions Générales d'Utilisation - CVMatch",
-    description: "Conditions Générales d'Utilisation de la plateforme CVMatch",
+    title: "Conditions Générales d'Utilisation - CV Crush",
+    description: "Conditions Générales d'Utilisation de la plateforme CV Crush",
 };
 
 export default function CGUPage() {
@@ -24,7 +24,7 @@ export default function CGUPage() {
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
                             Les présentes Conditions Générales d'Utilisation (CGU) régissent l'accès et l'utilisation
-                            de la plateforme CVMatch, un service d'analyse et d'optimisation de CV basé sur
+                            de la plateforme CV Crush, un service d'analyse et d'optimisation de CV basé sur
                             l'intelligence artificielle.
                         </p>
                     </section>
@@ -34,7 +34,7 @@ export default function CGUPage() {
                             2. Description du Service
                         </h2>
                         <p className="text-slate-600 leading-relaxed mb-4">
-                            CVMatch propose les services suivants :
+                            CV Crush propose les services suivants :
                         </p>
                         <ul className="list-disc pl-6 text-slate-600 space-y-2">
                             <li>Analyse de CV et extraction de compétences via IA</li>
@@ -50,7 +50,7 @@ export default function CGUPage() {
                             3. Inscription et Compte
                         </h2>
                         <p className="text-slate-600 leading-relaxed mb-4">
-                            Pour utiliser CVMatch, vous devez créer un compte en fournissant une adresse
+                            Pour utiliser CV Crush, vous devez créer un compte en fournissant une adresse
                             email valide. Vous êtes responsable de la confidentialité de vos identifiants
                             de connexion.
                         </p>
@@ -65,8 +65,8 @@ export default function CGUPage() {
                             4. Propriété Intellectuelle
                         </h2>
                         <p className="text-slate-600 leading-relaxed mb-4">
-                            La plateforme CVMatch, son code source, son design et ses algorithmes sont
-                            la propriété exclusive de CVMatch. Toute reproduction non autorisée est interdite.
+                            La plateforme CV Crush, son code source, son design et ses algorithmes sont
+                            la propriété exclusive de CV Crush. Toute reproduction non autorisée est interdite.
                         </p>
                         <p className="text-slate-600 leading-relaxed">
                             Les documents que vous uploadez (CV, lettres de motivation) restent votre propriété.
@@ -79,7 +79,7 @@ export default function CGUPage() {
                             5. Utilisation de l'IA
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
-                            CVMatch utilise des modèles d'intelligence artificielle pour analyser vos documents
+                            CV Crush utilise des modèles d'intelligence artificielle pour analyser vos documents
                             et générer des recommandations. Les résultats sont fournis à titre indicatif et ne
                             constituent pas des conseils professionnels. Nous ne garantissons pas l'obtention
                             d'un emploi suite à l'utilisation du service.
@@ -91,7 +91,7 @@ export default function CGUPage() {
                             6. Responsabilités
                         </h2>
                         <p className="text-slate-600 leading-relaxed mb-4">
-                            CVMatch s'engage à fournir un service sécurisé et disponible. Cependant, nous ne
+                            CV Crush s'engage à fournir un service sécurisé et disponible. Cependant, nous ne
                             pouvons garantir un fonctionnement ininterrompu.
                         </p>
                         <p className="text-slate-600 leading-relaxed">
@@ -106,7 +106,7 @@ export default function CGUPage() {
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
                             Vous pouvez supprimer votre compte à tout moment depuis les paramètres de votre profil.
-                            La suppression entraîne la perte de toutes vos données. CVMatch se réserve le droit
+                            La suppression entraîne la perte de toutes vos données. CV Crush se réserve le droit
                             de suspendre ou résilier un compte en cas de violation des présentes CGU.
                         </p>
                     </section>
@@ -116,7 +116,7 @@ export default function CGUPage() {
                             8. Modification des CGU
                         </h2>
                         <p className="text-slate-600 leading-relaxed">
-                            CVMatch peut modifier ces CGU à tout moment. Les utilisateurs seront informés
+                            CV Crush peut modifier ces CGU à tout moment. Les utilisateurs seront informés
                             par email ou notification dans l'application. La poursuite de l'utilisation
                             du service vaut acceptation des nouvelles conditions.
                         </p>

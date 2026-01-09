@@ -10,13 +10,13 @@ import { Toaster } from "sonner";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-    title: "CVMatch AI",
+    title: "CV Crush",
     description: "Boostez votre carrière avec l'IA - Analysez les offres d'emploi et générez des CVs personnalisés",
     manifest: "/manifest.json",
     appleWebApp: {
         capable: true,
         statusBarStyle: "default",
-        title: "CVMatch AI",
+        title: "CV Crush",
     },
     formatDetection: {
         telephone: false,

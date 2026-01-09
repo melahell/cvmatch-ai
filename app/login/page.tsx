@@ -68,7 +68,7 @@ export default function LoginPage() {
                 provider: 'google',
                 options: {
                     // Explicitly use production URL to ensure Vercel deployment works
-                    redirectTo: `https://cvmatch-ai-prod.vercel.app/auth/confirm`,
+                    redirectTo: `https://cvcrush-prod.vercel.app/auth/confirm`,
                 },
             });
             if (error) throw error;
@@ -128,7 +128,7 @@ export default function LoginPage() {
                             Transformez votre carrière avec l'IA.
                         </h1>
                         <p className="text-slate-300 text-lg leading-relaxed mb-8">
-                            Rejoignez les candidats qui utilisent CVMatch AI pour décrocher plus d'entretiens en moins de temps.
+                            Rejoignez les candidats qui utilisent CV Crush pour décrocher plus d'entretiens en moins de temps.
                         </p>
 
                         <div className="bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/20">

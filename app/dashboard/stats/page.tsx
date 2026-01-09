@@ -114,7 +114,7 @@ export default function StatsPage() {
                         Mes Statistiques
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400">
-                        Vue d'ensemble de votre activité sur CVMatch
+                        Vue d'ensemble de votre activité sur CV Crush
                     </p>
                 </div>
 

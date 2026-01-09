@@ -1,5 +1,5 @@
 /**
- * Structured Logger for CVMatch AI
+ * Structured Logger for CV Crush
  * Production-ready with JSON structured logging
  */
 

@@ -1,4 +1,4 @@
-# 🎯 CONTEXT.md - CVMatch AI - Référence Centrale
+# 🎯 CONTEXT.md - CV Crush - Référence Centrale
 
 **Date de création** : 2 janvier 2026  
 **Dernière mise à jour** : 2 janvier 2026  
@@ -8,7 +8,7 @@
 
 ## 📌 OBJECTIF DE L'APPLICATION
 
-**CVMatch AI** est une plateforme SaaS B2C qui révolutionne la recherche d'emploi en utilisant l'IA (Gemini) pour :
+**CV Crush** est une plateforme SaaS B2C qui révolutionne la recherche d'emploi en utilisant l'IA (Gemini) pour :
 
 1. ✅ **Générer un profil RAG structuré** à partir de documents uploadés (CV, LinkedIn, etc.)
 2. ✅ **Analyser le match** entre le profil utilisateur et une offre d'emploi (score 0-100)

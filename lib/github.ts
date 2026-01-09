@@ -39,8 +39,8 @@ export async function pushToGitHub(path: string, content: string, message: strin
             path: path,
             message: message,
             committer: {
-                name: 'CVMatch AI Bot',
-                email: 'bot@cvmatch.ai'
+                name: 'CV Crush Bot',
+                email: 'bot@cvcrush.ai'
             },
             content: Buffer.from(content).toString('base64'),
             sha: sha, // Include SHA if updating

@@ -1,5 +1,5 @@
 ---
-description: Configuration des modèles Gemini AI pour CVMatch
+description: Configuration des modèles Gemini AI pour CV Crush
 ---
 
 # Modèles Gemini - NE PAS CHANGER
