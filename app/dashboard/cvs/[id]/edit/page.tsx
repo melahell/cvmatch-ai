@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Eye, Download, Check, Loader2, Plus, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { normalizeRAGToCV } from "@/components/cv/normalizeData";
 
 export default function CVEditorPage() {
     const { id } = useParams();
@@ -44,7 +45,9 @@ export default function CVEditorPage() {
                 .single();
 
             if (data) {
-                setCvData(data.cv_data);
+                // Normalize the data to ensure consistent structure
+                const normalized = normalizeRAGToCV(data.cv_data);
+                setCvData(normalized);
             }
             setLoading(false);
         }
