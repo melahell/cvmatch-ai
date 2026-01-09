@@ -34,11 +34,19 @@ export async function POST(req: Request) {
     const startTime = Date.now();
 
     try {
-        const { userId, documentId } = await req.json();
+        const { userId, documentId, mode, isFirstDocument } = await req.json();
+        // mode: "completion" | "regeneration" (default: completion)
+        // isFirstDocument: true if this is the first document being processed
 
         if (!userId || !documentId) {
             return NextResponse.json({ error: "Missing userId or documentId" }, { status: 400 });
         }
+
+        logger.info(`Incremental RAG generation`, {
+            documentId,
+            mode: mode || "completion",
+            isFirstDocument: isFirstDocument || false
+        });
 
         // Check API key
         const apiKey = process.env.GEMINI_API_KEY;
@@ -208,10 +216,24 @@ export async function POST(req: Request) {
             .eq("user_id", userId)
             .single();
 
-        // 7. Merge with existing RAG (or use new data if first document)
+        // 7. Handle merge based on mode:
+        // - regeneration + isFirstDocument: start fresh (don't merge with existing)
+        // - regeneration + NOT first: merge with previous documents in this batch
+        // - completion: always merge with existing
         let mergedRAG;
-        if (existingRag?.completeness_details) {
-            logger.info("Merging with existing RAG", { filename: doc.filename });
+
+        if (mode === "regeneration" && isFirstDocument) {
+            // REGENERATION MODE - First document: Start fresh, don't merge with old RAG
+            logger.info("Regeneration mode - starting fresh", { filename: doc.filename });
+            mergedRAG = newRAGData;
+
+            // Preserve user preferences (rejected_inferred)
+            if (existingRag?.completeness_details?.rejected_inferred) {
+                mergedRAG.rejected_inferred = existingRag.completeness_details.rejected_inferred;
+            }
+        } else if (existingRag?.completeness_details) {
+            // COMPLETION MODE or subsequent documents in regeneration: Merge
+            logger.info("Merging with existing RAG", { filename: doc.filename, mode: mode || "completion" });
             const mergeResult = mergeRAGData(existingRag.completeness_details, newRAGData);
             mergedRAG = mergeResult.merged;
             logger.info("Merge complete", {
@@ -220,6 +242,7 @@ export async function POST(req: Request) {
                 conflictsCount: mergeResult.conflicts.length
             });
         } else {
+            // No existing RAG - creating base
             logger.info("First document - creating base RAG", { filename: doc.filename });
             mergedRAG = newRAGData;
         }

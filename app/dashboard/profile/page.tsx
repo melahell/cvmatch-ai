@@ -182,19 +182,23 @@ function ProfileContent() {
             logger.info(`[INCREMENTAL] Starting regeneration for ${totalDocs} document(s)`);
 
             // Process each document sequentially
-            for (const doc of documents) {
+            for (let i = 0; i < documents.length; i++) {
+                const doc = documents[i];
+                const isFirstDocument = i === 0;
                 processed++;
                 setCurrentDocIndex(processed);
                 setCurrentDocName(doc.filename);
                 setRegenProgress(Math.round((processed / totalDocs) * 100));
-                logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`);
+                logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`, { mode, isFirstDocument });
 
                 const res = await fetch("/api/rag/generate-incremental", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         userId,
-                        documentId: doc.id
+                        documentId: doc.id,
+                        mode, // "completion" or "regeneration"
+                        isFirstDocument // true only for first doc when regenerating
                     })
                 });
 
