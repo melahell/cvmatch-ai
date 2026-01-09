@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, Download, Check, Loader2, Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Eye, Download, Check, Loader2, Plus, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export default function CVEditorPage() {
@@ -29,6 +29,7 @@ export default function CVEditorPage() {
         formations: false,
         langues: false
     });
+    const [consolidating, setConsolidating] = useState(false);
 
     const supabase = createSupabaseClient();
 
@@ -123,6 +124,35 @@ export default function CVEditorPage() {
         window.open(`/dashboard/cv/${id}`, "_blank");
     };
 
+    const handleConsolidateAI = async () => {
+        if (!cvData) return;
+        setConsolidating(true);
+
+        try {
+            // Call AI consolidation API
+            const response = await fetch("/api/cv/consolidate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cvData })
+            });
+
+            if (response.ok) {
+                const { consolidatedData } = await response.json();
+                setCvData(consolidatedData);
+                // Trigger save
+                await saveCV(consolidatedData);
+            } else {
+                console.error("Consolidation failed");
+                alert("Erreur lors de la consolidation IA. Réessayez.");
+            }
+        } catch (error) {
+            console.error("Consolidation error:", error);
+            alert("Erreur lors de la consolidation IA.");
+        } finally {
+            setConsolidating(false);
+        }
+    };
+
     if (loading) {
         return <LoadingSpinner fullScreen />;
     }
@@ -163,6 +193,25 @@ export default function CVEditorPage() {
                                 <span className="hidden sm:inline">Aperçu</span>
                             </Button>
                         </Link>
+                        <Button
+                            onClick={handleConsolidateAI}
+                            disabled={consolidating}
+                            variant="outline"
+                            size="sm"
+                            className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                        >
+                            {consolidating ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin sm:mr-2" />
+                                    <span className="hidden sm:inline">Correction...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-4 h-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Consolidation IA</span>
+                                </>
+                            )}
+                        </Button>
                         <Button onClick={handleExportPDF} size="sm">
                             <Download className="w-4 h-4 sm:mr-2" />
                             <span className="hidden sm:inline">PDF</span>
