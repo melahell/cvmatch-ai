@@ -64,17 +64,18 @@ export default function LoginPage() {
 
         try {
             const supabase = createSupabaseClient();
+            // Use dynamic origin to work on any deployment
+            const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://cvcrush.vercel.app';
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    // Explicitly use production URL to ensure Vercel deployment works
-                    redirectTo: `https://cvcrush-prod.vercel.app/auth/confirm`,
+                    redirectTo: `${currentOrigin}/auth/confirm`,
                 },
             });
             if (error) throw error;
         } catch (err: any) {
             console.error("Login Error:", err);
-            alert(`Erreur de configuration ou de connexion: ${err.message}. \n\nSi l'erreur persiste sur Vercel, vérifiez que NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY sont bien définis dans les Settings.`);
+            alert(`Erreur de connexion: ${err.message}`);
             setLoading(false);
         }
     };
