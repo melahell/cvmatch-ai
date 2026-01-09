@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Upload, FileText, Sparkles, Target, RefreshCw,
-    Save, Camera, Download, LogIn, Mail
+    Save, Camera, Download, LogIn, Mail, X, CheckCircle
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import confetti from "canvas-confetti";
 
 export type LoadingContext =
     | "login"
@@ -23,7 +25,12 @@ interface ContextualLoaderProps {
     context: LoadingContext;
     userName?: string;
     jobTitle?: string;
-    progress?: number; // 0-100, optional for real progress
+    progress?: number;
+    currentStep?: number;
+    totalSteps?: number;
+    currentItem?: string;
+    onCancel?: () => void;
+    isOverlay?: boolean; // New: show as overlay instead of full screen
 }
 
 // Messages par contexte
@@ -37,7 +44,6 @@ const LOADING_MESSAGES: Record<LoadingContext, string[]> = {
         "Extraction de vos documents...",
         "Analyse de votre parcours professionnel...",
         "Identification de vos compétences clés...",
-        "Structuration de votre profil...",
     ],
     "generating-rag": [
         "L'IA analyse vos documents...",
@@ -46,36 +52,28 @@ const LOADING_MESSAGES: Record<LoadingContext, string[]> = {
         "Analyse de vos expériences...",
         "Calcul de votre score de complétude...",
         "Génération de vos suggestions de postes...",
-        "Finalisation de votre profil...",
     ],
     "analyzing-job": [
         "Lecture de l'offre d'emploi...",
         "Analyse des compétences requises...",
         "Comparaison avec votre profil...",
         "Calcul du score de match...",
-        "Identification de vos points forts...",
-        "Analyse des écarts...",
         "Génération des recommandations...",
     ],
     "generating-cv": [
         "Sélection de vos meilleures expériences...",
         "Optimisation pour les ATS...",
-        "Adaptation du contenu à l'offre...",
-        "Mise en avant des mots-clés...",
-        "Mise en forme du document...",
+        "Adaptation à l'offre...",
         "Génération du CV personnalisé...",
     ],
     "generating-lm": [
         "Analyse du ton de l'entreprise...",
         "Rédaction de votre accroche...",
-        "Mise en avant de vos atouts...",
         "Personnalisation du contenu...",
-        "Finalisation de la lettre...",
     ],
     "refreshing-profile": [
         "Synchronisation de vos données...",
         "Recalcul de votre score...",
-        "Mise à jour de vos opportunités...",
         "Actualisation de votre profil...",
     ],
     "saving-changes": [
@@ -89,73 +87,20 @@ const LOADING_MESSAGES: Record<LoadingContext, string[]> = {
     "exporting-data": [
         "Préparation de vos données...",
         "Génération du fichier...",
-        "Finalisation de l'export...",
     ],
 };
 
-// Messages personnalisés avec prénom
-const getPersonalizedMessage = (context: LoadingContext, name: string): string | null => {
-    const messages: Partial<Record<LoadingContext, string[]>> = {
-        "generating-rag": [
-            `${name}, l'IA construit votre profil...`,
-            `On extrait vos points forts, ${name}...`,
-        ],
-        "analyzing-job": [
-            `${name}, on analyse cette opportunité pour vous...`,
-            `Calcul de votre compatibilité, ${name}...`,
-        ],
-        "generating-cv": [
-            `${name}, création de votre CV sur-mesure...`,
-            `On optimise votre CV, ${name}...`,
-        ],
-    };
-
-    const contextMessages = messages[context];
-    if (!contextMessages) return null;
-    return contextMessages[Math.floor(Math.random() * contextMessages.length)];
-};
-
-// Tips pendant le chargement
-const LOADING_TIPS: Record<LoadingContext, string[]> = {
-    "login": [
-        "💡 Utilisez Google pour une connexion plus rapide",
-    ],
-    "importing-docs": [
-        "💡 Plus vous fournissez de contexte, meilleur sera votre profil",
-        "💡 N'oubliez pas vos certifications et projets personnels",
-    ],
-    "generating-rag": [
-        "💡 Votre profil RAG est unique et basé sur vos documents",
-        "💡 Ajoutez plus de documents pour améliorer votre score",
-        "💡 Les chiffres et résultats concrets augmentent votre crédibilité",
-    ],
-    "analyzing-job": [
-        "💡 Un bon match commence à partir de 70/100",
-        "💡 Même un match à 60% peut mériter une candidature",
-        "💡 L'IA identifie aussi les opportunités cachées",
-    ],
-    "generating-cv": [
-        "💡 Votre CV est optimisé pour passer les ATS",
-        "💡 Chaque CV est unique et adapté à l'offre",
-        "💡 Les mots-clés sont placés stratégiquement",
-    ],
-    "generating-lm": [
-        "💡 Une bonne lettre : 300-400 mots maximum",
-        "💡 L'IA adapte le ton selon l'entreprise",
-    ],
-    "refreshing-profile": [
-        "💡 Mettez à jour votre profil régulièrement",
-    ],
-    "saving-changes": [
-        "💡 Vos modifications sont sauvegardées automatiquement",
-    ],
-    "uploading-photo": [
-        "💡 Une photo pro augmente vos chances de 40%",
-    ],
-    "exporting-data": [
-        "💡 Conforme RGPD : vos données vous appartiennent",
-    ],
-};
+// Fun facts pendant le chargement
+const FUN_FACTS = [
+    "💡 Les recruteurs passent en moyenne 7 secondes sur un CV",
+    "💡 75% des CV sont rejetés par les ATS avant d'être lus",
+    "💡 Un CV optimisé augmente vos chances de 40%",
+    "💡 Les mots-clés comptent plus que le design pour les ATS",
+    "💡 Une photo pro augmente les réponses de 30%",
+    "💡 Les chiffres et résultats attirent l'attention des recruteurs",
+    "💡 Personnaliser chaque CV triple vos chances d'entretien",
+    "💡 La lettre de motivation reste importante pour 60% des recruteurs",
+];
 
 // Titres par contexte
 const CONTEXT_TITLES: Record<LoadingContext, string> = {
@@ -185,23 +130,181 @@ const CONTEXT_ICONS: Record<LoadingContext, React.ReactNode> = {
     "exporting-data": <Download className="w-8 h-8 text-white" />,
 };
 
+// Temps estimés par contexte (en secondes)
+const ESTIMATED_TIMES: Record<LoadingContext, number> = {
+    "login": 3,
+    "importing-docs": 15,
+    "generating-rag": 45,
+    "analyzing-job": 20,
+    "generating-cv": 15,
+    "generating-lm": 15,
+    "refreshing-profile": 30,
+    "saving-changes": 3,
+    "uploading-photo": 5,
+    "exporting-data": 5,
+};
+
+// Étapes par contexte
+const CONTEXT_STEPS: Record<LoadingContext, string[]> = {
+    "login": ["Authentification", "Chargement"],
+    "importing-docs": ["Upload", "Extraction", "Validation"],
+    "generating-rag": ["Lecture", "Analyse IA", "Structuration", "Finalisation"],
+    "analyzing-job": ["Extraction", "Comparaison", "Score", "Recommandations"],
+    "generating-cv": ["Sélection", "Optimisation", "Génération", "PDF"],
+    "generating-lm": ["Analyse", "Rédaction", "Finalisation"],
+    "refreshing-profile": ["Sync", "Calcul", "Update"],
+    "saving-changes": ["Sauvegarde"],
+    "uploading-photo": ["Upload", "Traitement"],
+    "exporting-data": ["Préparation", "Export"],
+};
+
+// Floating particles component
+function FloatingParticles() {
+    const particles = useMemo(() =>
+        Array.from({ length: 20 }, (_, i) => ({
+            id: i,
+            x: Math.random() * 100,
+            y: Math.random() * 100,
+            size: Math.random() * 4 + 2,
+            duration: Math.random() * 3 + 2,
+            delay: Math.random() * 2,
+        })), []
+    );
+
+    return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {particles.map((p) => (
+                <motion.div
+                    key={p.id}
+                    className="absolute rounded-full bg-white/20"
+                    style={{
+                        left: `${p.x}%`,
+                        top: `${p.y}%`,
+                        width: p.size,
+                        height: p.size,
+                    }}
+                    animate={{
+                        y: [0, -30, 0],
+                        opacity: [0.2, 0.6, 0.2],
+                        scale: [1, 1.2, 1],
+                    }}
+                    transition={{
+                        duration: p.duration,
+                        repeat: Infinity,
+                        delay: p.delay,
+                        ease: "easeInOut",
+                    }}
+                />
+            ))}
+        </div>
+    );
+}
+
+// Circular progress component
+function CircularProgress({ progress, size = 120 }: { progress: number; size?: number }) {
+    const strokeWidth = 8;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const offset = circumference - (progress / 100) * circumference;
+
+    return (
+        <div className="relative" style={{ width: size, height: size }}>
+            {/* Background circle */}
+            <svg className="absolute" width={size} height={size}>
+                <circle
+                    className="text-white/20"
+                    strokeWidth={strokeWidth}
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                />
+            </svg>
+            {/* Progress circle */}
+            <svg className="absolute -rotate-90" width={size} height={size}>
+                <motion.circle
+                    className="text-white"
+                    strokeWidth={strokeWidth}
+                    stroke="currentColor"
+                    fill="transparent"
+                    r={radius}
+                    cx={size / 2}
+                    cy={size / 2}
+                    strokeLinecap="round"
+                    initial={{ strokeDashoffset: circumference }}
+                    animate={{ strokeDashoffset: offset }}
+                    style={{ strokeDasharray: circumference }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                />
+            </svg>
+            {/* Percentage text */}
+            <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">{Math.round(progress)}%</span>
+            </div>
+        </div>
+    );
+}
+
+// Step timeline component
+function StepTimeline({ steps, currentStep }: { steps: string[]; currentStep: number }) {
+    return (
+        <div className="flex items-center justify-center gap-2 mt-4">
+            {steps.map((step, i) => (
+                <div key={step} className="flex items-center">
+                    <div className="flex flex-col items-center">
+                        <motion.div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${i < currentStep
+                                    ? "bg-green-500 text-white"
+                                    : i === currentStep
+                                        ? "bg-white text-blue-600"
+                                        : "bg-white/30 text-white/60"
+                                }`}
+                            animate={i === currentStep ? { scale: [1, 1.1, 1] } : {}}
+                            transition={{ duration: 1, repeat: Infinity }}
+                        >
+                            {i < currentStep ? <CheckCircle className="w-4 h-4" /> : i + 1}
+                        </motion.div>
+                        <span className="text-xs text-white/80 mt-1 max-w-[60px] text-center truncate">
+                            {step}
+                        </span>
+                    </div>
+                    {i < steps.length - 1 && (
+                        <div className={`w-8 h-0.5 mx-1 ${i < currentStep ? "bg-green-500" : "bg-white/30"}`} />
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export function ContextualLoader({
     context,
     userName,
     jobTitle,
     progress: externalProgress,
+    currentStep = 0,
+    totalSteps,
+    currentItem,
+    onCancel,
+    isOverlay = true, // Default to overlay mode
 }: ContextualLoaderProps) {
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-    const [currentTipIndex, setCurrentTipIndex] = useState(0);
+    const [currentFactIndex, setCurrentFactIndex] = useState(0);
     const [internalProgress, setInternalProgress] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(ESTIMATED_TIMES[context]);
+    const [isComplete, setIsComplete] = useState(false);
 
     const messages = LOADING_MESSAGES[context];
-    const tips = LOADING_TIPS[context];
     const title = jobTitle || CONTEXT_TITLES[context];
     const icon = CONTEXT_ICONS[context];
-
-    // Use external progress if provided, otherwise simulate
+    const steps = CONTEXT_STEPS[context];
     const progress = externalProgress ?? internalProgress;
+
+    // Calculate current step based on progress if not provided
+    const calculatedStep = totalSteps
+        ? currentStep
+        : Math.min(Math.floor((progress / 100) * steps.length), steps.length - 1);
 
     // Rotate messages every 3 seconds
     useEffect(() => {
@@ -211,13 +314,22 @@ export function ContextualLoader({
         return () => clearInterval(interval);
     }, [messages.length]);
 
-    // Rotate tips every 5 seconds
+    // Rotate fun facts every 6 seconds
     useEffect(() => {
         const interval = setInterval(() => {
-            setCurrentTipIndex((prev) => (prev + 1) % tips.length);
-        }, 5000);
+            setCurrentFactIndex((prev) => (prev + 1) % FUN_FACTS.length);
+        }, 6000);
         return () => clearInterval(interval);
-    }, [tips.length]);
+    }, []);
+
+    // Countdown timer
+    useEffect(() => {
+        if (timeLeft <= 0) return;
+        const interval = setInterval(() => {
+            setTimeLeft((prev) => Math.max(0, prev - 1));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [timeLeft]);
 
     // Simulate progress if not provided externally
     useEffect(() => {
@@ -226,105 +338,180 @@ export function ContextualLoader({
         const interval = setInterval(() => {
             setInternalProgress((prev) => {
                 if (prev >= 95) return prev;
-                return prev + Math.random() * 8;
+                return prev + Math.random() * 5;
             });
-        }, 600);
+        }, 800);
         return () => clearInterval(interval);
     }, [externalProgress]);
 
-    // Get current message (personalized if userName provided)
-    const currentMessage = userName
-        ? (getPersonalizedMessage(context, userName) || messages[currentMessageIndex])
+    // Confetti when complete
+    useEffect(() => {
+        if (progress >= 100 && !isComplete) {
+            setIsComplete(true);
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        }
+    }, [progress, isComplete]);
+
+    // Personalized message
+    const personalizedMessage = userName
+        ? `${userName}, ${messages[currentMessageIndex].toLowerCase()}`
         : messages[currentMessageIndex];
 
     return (
-        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center z-50">
-            <div className="max-w-md w-full px-6 text-center">
+        <AnimatePresence>
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={`fixed inset-0 z-50 flex items-center justify-center ${isOverlay ? "backdrop-blur-md bg-black/40" : "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500"
+                    }`}
+            >
+                {/* Floating particles */}
+                <FloatingParticles />
 
-                {/* Animated Icon */}
+                {/* Animated gradient background (only in full mode) */}
+                {!isOverlay && (
+                    <motion.div
+                        className="absolute inset-0 opacity-30"
+                        animate={{
+                            background: [
+                                "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%)",
+                                "radial-gradient(circle at 80% 50%, rgba(255,255,255,0.3) 0%, transparent 50%)",
+                                "radial-gradient(circle at 50% 80%, rgba(255,255,255,0.3) 0%, transparent 50%)",
+                                "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%)",
+                            ],
+                        }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    />
+                )}
+
+                {/* Glassmorphism card */}
                 <motion.div
-                    className="mb-8"
-                    animate={{
-                        scale: [1, 1.1, 1],
-                        rotate: [0, 5, -5, 0],
-                    }}
-                    transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                    }}
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    className="relative bg-gradient-to-br from-blue-600/90 via-purple-600/90 to-pink-500/90 backdrop-blur-xl rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 border border-white/20"
                 >
-                    <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                        {icon}
+                    {/* Cancel button */}
+                    {onCancel && (
+                        <button
+                            onClick={onCancel}
+                            className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    )}
+
+                    <div className="text-center">
+                        {/* Animated icon with pulse glow */}
+                        <div className="relative mx-auto mb-6 w-fit">
+                            <motion.div
+                                className="absolute inset-0 bg-white/30 rounded-2xl blur-xl"
+                                animate={{
+                                    scale: [1, 1.3, 1],
+                                    opacity: [0.3, 0.6, 0.3],
+                                }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut",
+                                }}
+                            />
+                            <motion.div
+                                className="relative w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/30"
+                                animate={{
+                                    rotate: [0, 5, -5, 0],
+                                }}
+                                transition={{
+                                    duration: 3,
+                                    repeat: Infinity,
+                                    ease: "easeInOut",
+                                }}
+                            >
+                                {icon}
+                            </motion.div>
+                        </div>
+
+                        {/* Title */}
+                        <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
+
+                        {/* Current item being processed */}
+                        {currentItem && (
+                            <p className="text-white/80 text-sm mb-2">
+                                📄 {currentItem}
+                            </p>
+                        )}
+
+                        {/* Step counter */}
+                        {totalSteps && (
+                            <p className="text-white/80 text-sm mb-4">
+                                Document {currentStep + 1}/{totalSteps}
+                            </p>
+                        )}
+
+                        {/* Rotating message */}
+                        <AnimatePresence mode="wait">
+                            <motion.p
+                                key={currentMessageIndex}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className="text-white/90 mb-6 h-6"
+                            >
+                                {personalizedMessage}
+                            </motion.p>
+                        </AnimatePresence>
+
+                        {/* Circular progress */}
+                        <div className="flex justify-center mb-6">
+                            <CircularProgress progress={progress} />
+                        </div>
+
+                        {/* Step timeline */}
+                        <StepTimeline steps={steps} currentStep={calculatedStep} />
+
+                        {/* Time estimate */}
+                        {timeLeft > 0 && (
+                            <p className="text-white/60 text-xs mt-4">
+                                ⏱ Environ {timeLeft}s restantes
+                            </p>
+                        )}
+
+                        {/* Fun fact */}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentFactIndex}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.5 }}
+                                className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10"
+                            >
+                                <p className="text-sm text-white/80">
+                                    {FUN_FACTS[currentFactIndex]}
+                                </p>
+                            </motion.div>
+                        </AnimatePresence>
+
+                        {/* Cancel button */}
+                        {onCancel && (
+                            <Button
+                                variant="ghost"
+                                onClick={onCancel}
+                                className="mt-6 text-white/60 hover:text-white hover:bg-white/10"
+                            >
+                                Annuler
+                            </Button>
+                        )}
                     </div>
                 </motion.div>
-
-                {/* Title */}
-                <h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    {title}
-                </h2>
-
-                {/* Rotating message */}
-                <AnimatePresence mode="wait">
-                    <motion.p
-                        key={currentMessageIndex}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.5 }}
-                        className="text-gray-600 mb-8 h-6"
-                    >
-                        {currentMessage}
-                    </motion.p>
-                </AnimatePresence>
-
-                {/* Progress bar */}
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-2 overflow-hidden">
-                    <motion.div
-                        className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(progress, 100)}%` }}
-                        transition={{ duration: 0.5 }}
-                    />
-                </div>
-                <p className="text-xs text-gray-400 mb-8">{Math.round(progress)}%</p>
-
-                {/* Animated dots */}
-                <div className="flex justify-center gap-2 mb-8">
-                    {[0, 1, 2].map((i) => (
-                        <motion.div
-                            key={i}
-                            className="w-3 h-3 bg-blue-500 rounded-full"
-                            animate={{
-                                scale: [1, 1.5, 1],
-                                opacity: [0.3, 1, 0.3],
-                            }}
-                            transition={{
-                                duration: 1,
-                                repeat: Infinity,
-                                delay: i * 0.2,
-                            }}
-                        />
-                    ))}
-                </div>
-
-                {/* Rotating tips */}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentTipIndex}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.5 }}
-                        className="bg-blue-50 border border-blue-100 rounded-lg p-4"
-                    >
-                        <p className="text-sm text-blue-800">
-                            {tips[currentTipIndex]}
-                        </p>
-                    </motion.div>
-                </AnimatePresence>
-            </div>
-        </div>
+            </motion.div>
+        </AnimatePresence>
     );
 }
 
