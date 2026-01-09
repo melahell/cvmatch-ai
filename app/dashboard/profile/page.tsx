@@ -10,7 +10,15 @@ import { useProfileForm } from "@/hooks/useProfileForm";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2, Upload, ExternalLink } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2, Upload, ExternalLink, AlertTriangle, PlusCircle, Trash2 } from "lucide-react";
 import { ValidationWarnings } from "@/components/profile/ValidationWarnings";
 import { OverviewTab } from "@/components/profile/OverviewTab";
 import { WeightTab } from "@/components/profile/WeightTab";
@@ -43,6 +51,7 @@ function ProfileContent() {
     const [regenerating, setRegenerating] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [customNotes, setCustomNotes] = useState("");
+    const [showModeDialog, setShowModeDialog] = useState(false);
 
     // Progress tracking for ContextualLoader
     const [currentDocName, setCurrentDocName] = useState("");
@@ -147,11 +156,22 @@ function ProfileContent() {
         }
     };
 
-    const regenerateProfile = async () => {
+    // Open mode dialog instead of regenerating directly
+    const handleRegenerateClick = () => {
         if (!userId || !documents || documents.length === 0) {
             alert("⚠️ Aucun document à traiter");
             return;
         }
+        setShowModeDialog(true);
+    };
+
+    const regenerateProfile = async (mode: "completion" | "regeneration") => {
+        if (!userId || !documents || documents.length === 0) {
+            alert("⚠️ Aucun document à traiter");
+            return;
+        }
+
+        setShowModeDialog(false);
 
         setRegenerating(true);
         const totalDocs = documents.length;
@@ -296,6 +316,70 @@ function ProfileContent() {
                 />
             )}
 
+            {/* Mode Selection Dialog */}
+            <Dialog open={showModeDialog} onOpenChange={setShowModeDialog}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <RefreshCw className="w-5 h-5 text-blue-600" />
+                            Régénération du profil
+                        </DialogTitle>
+                        <DialogDescription>
+                            Choisissez comment traiter vos documents et mettre à jour votre profil.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        {/* Option 1: Completion */}
+                        <button
+                            onClick={() => regenerateProfile("completion")}
+                            className="w-full p-4 rounded-lg border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-left"
+                        >
+                            <div className="flex items-start gap-3">
+                                <PlusCircle className="w-6 h-6 text-blue-600 mt-0.5" />
+                                <div>
+                                    <h4 className="font-semibold text-slate-900">Compléter mon profil</h4>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        Ajoute les nouvelles informations sans supprimer les données existantes.
+                                        Fusion intelligente avec déduplication.
+                                    </p>
+                                    <span className="inline-block mt-2 text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                        Recommandé
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+
+                        {/* Option 2: Regeneration */}
+                        <button
+                            onClick={() => regenerateProfile("regeneration")}
+                            className="w-full p-4 rounded-lg border-2 border-orange-200 hover:border-orange-500 hover:bg-orange-50 transition-all text-left"
+                        >
+                            <div className="flex items-start gap-3">
+                                <Trash2 className="w-6 h-6 text-orange-600 mt-0.5" />
+                                <div>
+                                    <h4 className="font-semibold text-slate-900">Régénérer depuis zéro</h4>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        Efface le profil existant et recrée tout à partir des documents.
+                                        Les préférences utilisateur sont conservées.
+                                    </p>
+                                    <span className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        Écrase les données
+                                    </span>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowModeDialog(false)}>
+                            Annuler
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <DashboardLayout>
                 <div className="container mx-auto py-6 px-4 max-w-5xl">
                     {/* Header */}
@@ -311,7 +395,7 @@ function ProfileContent() {
                         <div className="flex gap-2">
                             {(activeTab === "vue") && (
                                 <>
-                                    <Button onClick={regenerateProfile} disabled={regenerating} variant="outline">
+                                    <Button onClick={handleRegenerateClick} disabled={regenerating} variant="outline">
                                         {regenerating ? (
                                             <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Régénération...</>
                                         ) : (

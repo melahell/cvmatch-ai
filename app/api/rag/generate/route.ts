@@ -6,6 +6,7 @@ import { getDocumentProxy, extractText } from "unpdf";
 import { validateRAGData, formatValidationReport } from "@/lib/rag/validation";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quality-scoring";
+import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
 
 import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
@@ -52,11 +53,17 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     try {
-        const { userId } = await req.json();
+        const { userId, mode } = await req.json();
+        // mode: "creation" | "completion" | "regeneration" | undefined
+        // - creation: First time RAG generation (no existing RAG)
+        // - completion: Add to existing RAG (smart merge - default)
+        // - regeneration: Overwrite existing RAG completely
 
         if (!userId) {
             return NextResponse.json({ error: "Missing userId" }, { status: 400 });
         }
+
+        console.log(`[RAG GENERATE] Mode: ${mode || "auto"}, User: ${userId}`);
 
         // Rate limiting: 5 RAG generations per hour
         const rateLimitResult = checkRateLimit(`rag:${userId}`, RATE_LIMITS.RAG_GENERATION);
@@ -250,9 +257,21 @@ export async function POST(req: Request) {
         ragData = consolidateClients(ragData);
         console.log('[CONSOLIDATION] Clients:', ragData?.references?.clients?.length || 0);
 
-        // Step 3: Enrichment - REMOVED (dead code cleanup, enrichment.ts deleted)
-        // ragData = enrichRAGData(ragData);
-        console.log('[ENRICHMENT] Skipped (module removed)');
+        // Step 3: Contextual Enrichment - Deduce implicit responsibilities & tacit skills
+        try {
+            console.log('[ENRICHMENT] Generating contextual enrichment...');
+            const contexteEnrichi = await generateContexteEnrichi(ragData, generateWithFallback);
+            if (contexteEnrichi) {
+                ragData.contexte_enrichi = contexteEnrichi;
+                console.log('[ENRICHMENT] Success:', {
+                    responsabilites: contexteEnrichi.responsabilites_implicites?.length || 0,
+                    competences: contexteEnrichi.competences_tacites?.length || 0
+                });
+            }
+        } catch (e: any) {
+            console.warn('[ENRICHMENT] Failed (non-blocking):', e.message);
+            // Non-blocking - continue without enrichment
+        }
 
         // Step 4: Calculate quality score (multi-dimensional)
         const qualityScoreResult = calculateQualityScore(ragData);
@@ -293,7 +312,9 @@ export async function POST(req: Request) {
         //     console.warn("Failed to generate Top 10 Jobs, continuing without");
         // }
 
-        // 6. Merge with existing RAG data (if any) to avoid data loss
+        // 6. Handle merge based on mode:
+        // - regeneration: Overwrite completely
+        // - completion/undefined: Smart merge
         const { data: existingRag } = await supabase
             .from("rag_metadata")
             .select("id, completeness_details")
@@ -302,14 +323,41 @@ export async function POST(req: Request) {
 
         let finalRAGData = ragData;
         let mergeStats: any = null;
+        let actualMode = mode || "auto";
 
-        if (existingRag?.completeness_details) {
-            console.log('[MERGE] Merging with existing RAG data...');
+        if (mode === "regeneration") {
+            // REGENERATION: Overwrite completely, but preserve user rejections
+            console.log('[MODE] Regeneration - overwriting existing RAG');
+            finalRAGData = ragData;
+
+            // Preserve rejected_inferred from existing (user preference must be respected)
+            if (existingRag?.completeness_details?.rejected_inferred) {
+                finalRAGData.rejected_inferred = existingRag.completeness_details.rejected_inferred;
+            }
+
+            actualMode = "regeneration";
+        } else if (existingRag?.completeness_details) {
+            // COMPLETION: Smart merge with existing
+            console.log('[MODE] Completion - merging with existing RAG data');
             const mergeResult = mergeRAGData(existingRag.completeness_details, ragData);
             finalRAGData = mergeResult.merged;
             mergeStats = mergeResult.stats;
             console.log('[MERGE] Stats:', mergeStats);
+
+            actualMode = "completion";
+        } else {
+            // CREATION: First time
+            console.log('[MODE] Creation - no existing RAG');
+            actualMode = "creation";
         }
+
+        // Add metadata about how RAG was generated/updated
+        finalRAGData.metadata = {
+            ...finalRAGData.metadata,
+            update_mode: actualMode,
+            last_update: new Date().toISOString(),
+            gemini_model_used: useProModel ? "pro" : "flash"
+        };
 
         // Use new multi-dimensional quality score (overall_score is the main score)
         // But we keep completeness_score for backward compatibility

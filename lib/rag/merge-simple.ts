@@ -1,44 +1,92 @@
 /**
  * Simple RAG Merge - Compatible with new types
  * Merges incoming RAG data with existing RAG data
+ * 
+ * Enhanced with:
+ * - Company name normalization (VW FS = Volkswagen Financial Services)
+ * - Fuzzy position matching (60% similarity threshold)
+ * - Date tolerance (±6 months)
  */
 
+import { normalizeCompanyName } from './normalize-company';
+import { combinedSimilarity, areStringsSimilar } from './string-similarity';
+
 /**
- * Check if two experiences are similar (same company + overlapping dates)
+ * Check if two experiences are similar (same company + overlapping dates + similar position)
+ * 
+ * Criteria (all must match):
+ * 1. Same company after normalization
+ * 2. Start dates within 6 months
+ * 3. Position similarity >= 60%
  */
 function areExperiencesSimilar(exp1: any, exp2: any): boolean {
     if (!exp1 || !exp2) return false;
 
-    // Same company?
-    const company1 = exp1.entreprise?.toLowerCase().trim();
-    const company2 = exp2.entreprise?.toLowerCase().trim();
+    // 1. Compare companies with normalization
+    const company1 = normalizeCompanyName(exp1.entreprise);
+    const company2 = normalizeCompanyName(exp2.entreprise);
     if (company1 !== company2) return false;
 
-    // Same or overlapping dates?
+    // 2. Compare dates with ±6 months tolerance
     const start1 = new Date(exp1.debut || "2000-01");
     const start2 = new Date(exp2.debut || "2000-01");
-    const yearDiff = Math.abs(start1.getFullYear() - start2.getFullYear());
+    const monthsDiff = Math.abs(
+        (start1.getFullYear() - start2.getFullYear()) * 12 +
+        (start1.getMonth() - start2.getMonth())
+    );
+    if (monthsDiff > 6) return false;
 
-    return yearDiff <= 1; // Within 1 year = probably same experience
+    // 3. Compare positions with fuzzy matching (60% threshold)
+    const positionSimilarity = combinedSimilarity(exp1.poste, exp2.poste);
+    if (positionSimilarity < 0.6) return false;
+
+    return true;
+}
+
+/**
+ * Check if two realisations are similar (75% threshold)
+ */
+function areRealisationsSimilar(real1: any, real2: any): boolean {
+    const desc1 = real1?.description || "";
+    const desc2 = real2?.description || "";
+    return areStringsSimilar(desc1, desc2, 0.75);
 }
 
 /**
  * Merge two experiences (combine realisations, technologies, clients)
+ * Uses 75% similarity threshold to avoid near-duplicate realisations
  */
 function mergeExperiences(existing: any, incoming: any): any {
+    // Deduplicate realisations with 75% similarity
+    const existingRealisations = existing.realisations || [];
+    const incomingRealisations = incoming.realisations || [];
+
+    const uniqueNewRealisations = incomingRealisations.filter((newReal: any) =>
+        !existingRealisations.some((existReal: any) =>
+            areRealisationsSimilar(existReal, newReal)
+        )
+    );
+
+    // Prefer longer/more detailed company name and position
+    const preferredCompanyName =
+        (incoming.entreprise?.length || 0) > (existing.entreprise?.length || 0)
+            ? incoming.entreprise
+            : existing.entreprise;
+
+    const preferredPosition =
+        (incoming.poste?.length || 0) > (existing.poste?.length || 0)
+            ? incoming.poste
+            : existing.poste;
+
     return {
         ...existing,
         ...incoming,
-        // Merge realisations (keep unique descriptions)
-        realisations: [
-            ...(existing.realisations || []),
-            ...(incoming.realisations || []).filter((newReal: any) =>
-                !(existing.realisations || []).some((existReal: any) =>
-                    existReal.description?.toLowerCase() === newReal.description?.toLowerCase()
-                )
-            )
-        ],
-        // Merge technologies
+        // Use preferred (longer) names
+        entreprise: preferredCompanyName,
+        poste: preferredPosition,
+        // Merge realisations (unique by similarity)
+        realisations: [...existingRealisations, ...uniqueNewRealisations],
+        // Merge technologies (union)
         technologies: [...new Set([
             ...(existing.technologies || []),
             ...(incoming.technologies || [])
@@ -103,44 +151,77 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
         })(),
 
         // ===== COMPETENCES =====
-        competences: {
-            explicit: {
-                techniques: [...new Set([
-                    ...(existing.competences?.explicit?.techniques || []),
-                    ...(incoming.competences?.explicit?.techniques || [])
-                ])],
-                soft_skills: [...new Set([
-                    ...(existing.competences?.explicit?.soft_skills || []),
-                    ...(incoming.competences?.explicit?.soft_skills || [])
-                ])]
-            },
-            inferred: {
-                techniques: [
-                    ...(existing.competences?.inferred?.techniques || []),
-                    ...(incoming.competences?.inferred?.techniques || []).filter((newSkill: any) =>
-                        !(existing.competences?.inferred?.techniques || []).some((existSkill: any) =>
-                            existSkill.name?.toLowerCase() === newSkill.name?.toLowerCase()
-                        )
+        competences: (() => {
+            // Get the rejected list to filter out rejected inferred skills
+            const rejectedInferred = new Set(
+                (existing.rejected_inferred || []).map((s: string) => s.toLowerCase())
+            );
+
+            // Filter function: exclude if skill was rejected by user
+            const isNotRejected = (skill: any) => {
+                const skillName = (skill?.name || skill || "").toLowerCase();
+                return !rejectedInferred.has(skillName);
+            };
+
+            // Merge inferred skills: keep higher confidence, exclude rejected
+            const mergeInferredSkills = (existingSkills: any[], incomingSkills: any[]) => {
+                const skillMap = new Map<string, any>();
+
+                // Add existing
+                for (const skill of existingSkills) {
+                    const key = skill.name?.toLowerCase();
+                    if (key && isNotRejected(skill)) {
+                        skillMap.set(key, skill);
+                    }
+                }
+
+                // Merge incoming (prefer higher confidence)
+                for (const skill of incomingSkills) {
+                    const key = skill.name?.toLowerCase();
+                    if (!key || !isNotRejected(skill)) continue;
+
+                    const existing = skillMap.get(key);
+                    if (!existing) {
+                        skillMap.set(key, skill);
+                    } else if ((skill.confidence || 0) > (existing.confidence || 0)) {
+                        // Keep higher confidence, merge sources
+                        skillMap.set(key, {
+                            ...skill,
+                            sources: [...new Set([...(existing.sources || []), ...(skill.sources || [])])]
+                        });
+                    }
+                }
+
+                return Array.from(skillMap.values());
+            };
+
+            return {
+                explicit: {
+                    techniques: [...new Set([
+                        ...(existing.competences?.explicit?.techniques || []),
+                        ...(incoming.competences?.explicit?.techniques || [])
+                    ])],
+                    soft_skills: [...new Set([
+                        ...(existing.competences?.explicit?.soft_skills || []),
+                        ...(incoming.competences?.explicit?.soft_skills || [])
+                    ])]
+                },
+                inferred: {
+                    techniques: mergeInferredSkills(
+                        existing.competences?.inferred?.techniques || [],
+                        incoming.competences?.inferred?.techniques || []
+                    ),
+                    tools: mergeInferredSkills(
+                        existing.competences?.inferred?.tools || [],
+                        incoming.competences?.inferred?.tools || []
+                    ),
+                    soft_skills: mergeInferredSkills(
+                        existing.competences?.inferred?.soft_skills || [],
+                        incoming.competences?.inferred?.soft_skills || []
                     )
-                ],
-                tools: [
-                    ...(existing.competences?.inferred?.tools || []),
-                    ...(incoming.competences?.inferred?.tools || []).filter((newSkill: any) =>
-                        !(existing.competences?.inferred?.tools || []).some((existSkill: any) =>
-                            existSkill.name?.toLowerCase() === newSkill.name?.toLowerCase()
-                        )
-                    )
-                ],
-                soft_skills: [
-                    ...(existing.competences?.inferred?.soft_skills || []),
-                    ...(incoming.competences?.inferred?.soft_skills || []).filter((newSkill: any) =>
-                        !(existing.competences?.inferred?.soft_skills || []).some((existSkill: any) =>
-                            existSkill.name?.toLowerCase() === newSkill.name?.toLowerCase()
-                        )
-                    )
-                ]
-            }
-        },
+                }
+            };
+        })(),
 
         // ===== FORMATIONS =====
         formations: (() => {
