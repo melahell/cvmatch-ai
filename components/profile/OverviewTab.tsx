@@ -69,6 +69,12 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
     const [rejectingSkill, setRejectingSkill] = useState<string | null>(null);
     const [deletingItem, setDeletingItem] = useState<string | null>(null);
 
+    // Add modal states
+    const [showAddModal, setShowAddModal] = useState<"certification" | "formation" | "langue" | null>(null);
+    const [newItemValue, setNewItemValue] = useState("");
+    const [newItemValue2, setNewItemValue2] = useState(""); // For second field (ecole, niveau)
+    const [addingItem, setAddingItem] = useState(false);
+
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
     };
@@ -131,6 +137,60 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
         } catch (error: any) {
             console.error("Update profile error:", error);
             throw error;
+        }
+    };
+
+    // Handler for adding new items
+    const handleAddItem = async () => {
+        if (!newItemValue.trim()) return;
+
+        setAddingItem(true);
+
+        try {
+            let data: any;
+
+            switch (showAddModal) {
+                case "certification":
+                    data = newItemValue.trim();
+                    break;
+                case "formation":
+                    data = {
+                        diplome: newItemValue.trim(),
+                        ecole: newItemValue2.trim() || "Non spécifié",
+                        annee: new Date().getFullYear().toString()
+                    };
+                    break;
+                case "langue":
+                    data = {
+                        nom: newItemValue.trim(),
+                        niveau: newItemValue2.trim() || "Courant"
+                    };
+                    break;
+            }
+
+            const response = await fetch("/api/profile/update-item", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    type: showAddModal,
+                    data
+                })
+            });
+
+            if (response.ok) {
+                setShowAddModal(null);
+                setNewItemValue("");
+                setNewItemValue2("");
+                onRefetch?.();
+            } else {
+                const error = await response.json();
+                alert(`Erreur: ${error.error || "Ajout échoué"}`);
+            }
+        } catch (error) {
+            console.error("Add item error:", error);
+        } finally {
+            setAddingItem(false);
         }
     };
 
@@ -556,16 +616,23 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
             {/* Formations */}
             {ragData?.formations && ragData.formations.length > 0 && (
                 <Card>
-                    <CardHeader className="cursor-pointer" onClick={() => toggleSection("formations")}>
+                    <CardHeader className="cursor-pointer">
                         <CardTitle className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" onClick={() => toggleSection("formations")}>
                                 <GraduationCap className="w-5 h-5" /> Formations ({ragData.formations.length})
+                                {expandedSections.formations ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                )}
                             </div>
-                            {expandedSections.formations ? (
-                                <ChevronUp className="w-4 h-4" />
-                            ) : (
-                                <ChevronDown className="w-4 h-4" />
-                            )}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowAddModal("formation"); }}
+                                className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-600 transition-colors"
+                                title="Ajouter une formation"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </button>
                         </CardTitle>
                     </CardHeader>
                     {expandedSections.formations && (
@@ -606,16 +673,23 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
             {/* Langues */}
             {ragData?.langues && Object.keys(ragData.langues).length > 0 && (
                 <Card>
-                    <CardHeader className="cursor-pointer" onClick={() => toggleSection("langues")}>
+                    <CardHeader className="cursor-pointer">
                         <CardTitle className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" onClick={() => toggleSection("langues")}>
                                 <Languages className="w-5 h-5" /> Langues ({Object.keys(ragData.langues).length})
+                                {expandedSections.langues ? (
+                                    <ChevronUp className="w-4 h-4" />
+                                ) : (
+                                    <ChevronDown className="w-4 h-4" />
+                                )}
                             </div>
-                            {expandedSections.langues ? (
-                                <ChevronUp className="w-4 h-4" />
-                            ) : (
-                                <ChevronDown className="w-4 h-4" />
-                            )}
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowAddModal("langue"); }}
+                                className="p-1.5 rounded-lg hover:bg-green-100 text-green-600 transition-colors"
+                                title="Ajouter une langue"
+                            >
+                                <Plus className="w-4 h-4" />
+                            </button>
                         </CardTitle>
                     </CardHeader>
                     {expandedSections.langues && (
@@ -648,43 +722,53 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
             )}
 
             {/* Certifications */}
-            {ragData?.certifications && ragData.certifications.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                             <Badge className="bg-yellow-100 text-yellow-700">🏆</Badge>
-                            Certifications ({ragData.certifications.length})
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                            {ragData.certifications.map((cert: any, i: number) => {
-                                const itemKey = `certification-${i}-`;
-                                const isDeleting = deletingItem === itemKey;
-                                return (
-                                    <div key={i} className="group relative inline-flex items-center">
-                                        <Badge variant="outline" className="bg-yellow-50 border-yellow-200 pr-7">
-                                            {typeof cert === 'string' ? cert : (cert?.nom || JSON.stringify(cert))}
-                                        </Badge>
-                                        <button
-                                            onClick={() => handleDeleteItem("certification", i)}
-                                            disabled={isDeleting}
-                                            className="absolute right-1 p-0.5 rounded-full hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
-                                            title="Supprimer cette certification"
-                                        >
-                                            {isDeleting ? (
-                                                <Loader2 className="w-3 h-3 animate-spin" />
-                                            ) : (
-                                                <X className="w-3 h-3" />
-                                            )}
-                                        </button>
-                                    </div>
-                                );
-                            })}
+                            Certifications ({ragData?.certifications?.length || 0})
                         </div>
-                    </CardContent>
-                </Card>
-            )}
+                        <button
+                            onClick={() => setShowAddModal("certification")}
+                            className="p-1.5 rounded-lg hover:bg-yellow-100 text-yellow-600 transition-colors"
+                            title="Ajouter une certification"
+                        >
+                            <Plus className="w-4 h-4" />
+                        </button>
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                        {ragData?.certifications?.map((cert: any, i: number) => {
+                            const itemKey = `certification-${i}-`;
+                            const isDeleting = deletingItem === itemKey;
+                            return (
+                                <div key={i} className="group relative inline-flex items-center">
+                                    <Badge variant="outline" className="bg-yellow-50 border-yellow-200 pr-7">
+                                        {typeof cert === 'string' ? cert : (cert?.nom || JSON.stringify(cert))}
+                                    </Badge>
+                                    <button
+                                        onClick={() => handleDeleteItem("certification", i)}
+                                        disabled={isDeleting}
+                                        className="absolute right-1 p-0.5 rounded-full hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
+                                        title="Supprimer cette certification"
+                                    >
+                                        {isDeleting ? (
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                            <X className="w-3 h-3" />
+                                        )}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        {(!ragData?.certifications || ragData.certifications.length === 0) && (
+                            <p className="text-sm text-slate-400 italic">Aucune certification. Cliquez sur + pour en ajouter.</p>
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Clients & Références */}
             {(ragData?.references?.clients?.length > 0 ||
@@ -737,6 +821,86 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                         </CardContent>
                     </Card>
                 )}
+
+            {/* Add Item Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+                        <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                            <Plus className="w-5 h-5 text-blue-600" />
+                            Ajouter {showAddModal === "certification" ? "une certification" :
+                                showAddModal === "formation" ? "une formation" : "une langue"}
+                        </h3>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 block mb-1">
+                                    {showAddModal === "certification" ? "Nom de la certification" :
+                                        showAddModal === "formation" ? "Diplôme / Formation" : "Langue"}
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newItemValue}
+                                    onChange={(e) => setNewItemValue(e.target.value)}
+                                    placeholder={
+                                        showAddModal === "certification" ? "Ex: PMP, AWS Certified..." :
+                                            showAddModal === "formation" ? "Ex: Master en Management..." : "Ex: Anglais"
+                                    }
+                                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    autoFocus
+                                />
+                            </div>
+
+                            {(showAddModal === "formation" || showAddModal === "langue") && (
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700 block mb-1">
+                                        {showAddModal === "formation" ? "École / Organisme" : "Niveau"}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={newItemValue2}
+                                        onChange={(e) => setNewItemValue2(e.target.value)}
+                                        placeholder={
+                                            showAddModal === "formation" ? "Ex: HEC Paris" : "Ex: Courant, Natif, B2..."
+                                        }
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-2 mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowAddModal(null);
+                                    setNewItemValue("");
+                                    setNewItemValue2("");
+                                }}
+                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={handleAddItem}
+                                disabled={!newItemValue.trim() || addingItem}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {addingItem ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Ajout...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="w-4 h-4" />
+                                        Ajouter
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
