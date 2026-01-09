@@ -274,146 +274,144 @@ function ProfileContent() {
         );
     }
 
-    // Show contextual loader during regeneration
-    if (regenerating) {
-        return (
-            <ContextualLoader
-                context="refreshing-profile"
-                userName={(ragData as any)?.prenom || (ragData as any)?.nom || undefined}
-                currentStep={currentDocIndex - 1}
-                totalSteps={totalDocsCount}
-                currentItem={currentDocName}
-                progress={regenProgress}
-                onCancel={() => setRegenerating(false)}
-            />
-        );
-    }
-
-    // Show contextual loader during upload
-    if (uploading) {
-        return (
-            <ContextualLoader
-                context="uploading-photo"
-            />
-        );
-    }
-
     return (
-        <DashboardLayout>
-            <div className="container mx-auto py-6 px-4 max-w-5xl">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Mon Profil RAG</h1>
-                        <p className="text-slate-500 text-sm">
-                            Score de complétude : {ragData?.score || 0}/100
-                        </p>
-                    </div>
+        <>
+            {/* Overlay loader - renders ON TOP of page content */}
+            {regenerating && (
+                <ContextualLoader
+                    context="refreshing-profile"
+                    userName={(ragData as any)?.prenom || (ragData as any)?.nom || undefined}
+                    currentStep={currentDocIndex - 1}
+                    totalSteps={totalDocsCount}
+                    currentItem={currentDocName}
+                    progress={regenProgress}
+                    onCancel={() => setRegenerating(false)}
+                />
+            )}
 
-                    {/* Tab-specific actions */}
-                    <div className="flex gap-2">
-                        {(activeTab === "vue") && (
-                            <>
-                                <Button onClick={regenerateProfile} disabled={regenerating} variant="outline">
-                                    {regenerating ? (
-                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Régénération...</>
-                                    ) : (
-                                        <><RefreshCw className="w-4 h-4 mr-2" /> Régénérer</>
-                                    )}
-                                </Button>
-                                <Button onClick={saveWeights} disabled={saving}>
+            {uploading && (
+                <ContextualLoader
+                    context="uploading-photo"
+                    onCancel={() => setUploading(false)}
+                />
+            )}
+
+            <DashboardLayout>
+                <div className="container mx-auto py-6 px-4 max-w-5xl">
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900">Mon Profil RAG</h1>
+                            <p className="text-slate-500 text-sm">
+                                Score de complétude : {ragData?.score || 0}/100
+                            </p>
+                        </div>
+
+                        {/* Tab-specific actions */}
+                        <div className="flex gap-2">
+                            {(activeTab === "vue") && (
+                                <>
+                                    <Button onClick={regenerateProfile} disabled={regenerating} variant="outline">
+                                        {regenerating ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Régénération...</>
+                                        ) : (
+                                            <><RefreshCw className="w-4 h-4 mr-2" /> Régénérer</>
+                                        )}
+                                    </Button>
+                                    <Button onClick={saveWeights} disabled={saving}>
+                                        {saving ? (
+                                            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
+                                        ) : (
+                                            <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                                        )}
+                                    </Button>
+                                </>
+                            )}
+                            {activeTab === "avance" && (
+                                <Button onClick={saveWeights} disabled={saving} variant="outline">
                                     {saving ? (
                                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
                                     ) : (
-                                        <><Save className="w-4 h-4 mr-2" /> Enregistrer</>
+                                        <><Save className="w-4 h-4 mr-2" /> Sauvegarder notes</>
                                     )}
                                 </Button>
-                            </>
-                        )}
-                        {activeTab === "avance" && (
-                            <Button onClick={saveWeights} disabled={saving} variant="outline">
-                                {saving ? (
-                                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sauvegarde...</>
-                                ) : (
-                                    <><Save className="w-4 h-4 mr-2" /> Sauvegarder notes</>
-                                )}
-                            </Button>
-                        )}
+                            )}
+                        </div>
                     </div>
+
+                    {/* Validation Warnings & Quality Feedback */}
+                    {validationData && (
+                        <ValidationWarnings
+                            warnings={validationData.warnings}
+                            suggestions={validationData.suggestions}
+                            qualityBreakdown={validationData.quality_breakdown}
+                        />
+                    )}
+
+                    {/* Tabs */}
+                    <Tabs defaultValue={activeTab} className="w-full">
+                        <TabsList className="grid w-full grid-cols-3 mb-6">
+                            <TabsTrigger value="vue" className="flex items-center gap-2">
+                                <Eye className="w-4 h-4" />
+                                <span className="hidden sm:inline">Vue & Pondération</span>
+                                <span className="sm:hidden">Vue</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="docs" className="flex items-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                <span className="hidden sm:inline">Documents</span>
+                                <span className="sm:hidden">Docs</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="avance" className="flex items-center gap-2">
+                                <Settings className="w-4 h-4" />
+                                <span className="hidden sm:inline">Avancé</span>
+                            </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="vue">
+                            <OverviewTab
+                                ragData={ragData || ragData}
+                                userId={userId || ""}
+                                onWeightChange={handleWeightChange}
+                                onRefetch={refetch}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="docs">
+                            <Card className="border-dashed border-2">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Upload className="w-5 h-5" />
+                                        Ajouter des documents
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Pour importer de nouveaux documents (CV, LinkedIn PDF, etc.), utilisez la page d'onboarding.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Link href="/onboarding">
+                                        <Button className="gap-2">
+                                            <ExternalLink className="w-4 h-4" />
+                                            Aller à l'import de documents
+                                        </Button>
+                                    </Link>
+                                    <p className="text-sm text-slate-500 mt-4">
+                                        Documents actuels: {documents?.length || 0} fichier(s)
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+
+                        <TabsContent value="avance">
+                            <AdvancedTab
+                                customNotes={customNotes}
+                                onNotesChange={setCustomNotes}
+                                onReset={handleReset}
+                            />
+                        </TabsContent>
+                    </Tabs>
                 </div>
-
-                {/* Validation Warnings & Quality Feedback */}
-                {validationData && (
-                    <ValidationWarnings
-                        warnings={validationData.warnings}
-                        suggestions={validationData.suggestions}
-                        qualityBreakdown={validationData.quality_breakdown}
-                    />
-                )}
-
-                {/* Tabs */}
-                <Tabs defaultValue={activeTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 mb-6">
-                        <TabsTrigger value="vue" className="flex items-center gap-2">
-                            <Eye className="w-4 h-4" />
-                            <span className="hidden sm:inline">Vue & Pondération</span>
-                            <span className="sm:hidden">Vue</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="docs" className="flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            <span className="hidden sm:inline">Documents</span>
-                            <span className="sm:hidden">Docs</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="avance" className="flex items-center gap-2">
-                            <Settings className="w-4 h-4" />
-                            <span className="hidden sm:inline">Avancé</span>
-                        </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="vue">
-                        <OverviewTab
-                            ragData={ragData || ragData}
-                            userId={userId || ""}
-                            onWeightChange={handleWeightChange}
-                            onRefetch={refetch}
-                        />
-                    </TabsContent>
-
-                    <TabsContent value="docs">
-                        <Card className="border-dashed border-2">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Upload className="w-5 h-5" />
-                                    Ajouter des documents
-                                </CardTitle>
-                                <CardDescription>
-                                    Pour importer de nouveaux documents (CV, LinkedIn PDF, etc.), utilisez la page d'onboarding.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <Link href="/onboarding">
-                                    <Button className="gap-2">
-                                        <ExternalLink className="w-4 h-4" />
-                                        Aller à l'import de documents
-                                    </Button>
-                                </Link>
-                                <p className="text-sm text-slate-500 mt-4">
-                                    Documents actuels: {documents?.length || 0} fichier(s)
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="avance">
-                        <AdvancedTab
-                            customNotes={customNotes}
-                            onNotesChange={setCustomNotes}
-                            onReset={handleReset}
-                        />
-                    </TabsContent>
-                </Tabs>
-            </div>
-        </DashboardLayout>
+            </DashboardLayout>
+        </>
     );
 }
 
