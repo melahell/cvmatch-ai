@@ -151,16 +151,18 @@ export async function POST(req: Request) {
         }
 
         // 3. Merge original RAG profile with Gemini output to preserve identity data
+        // Note: RAG schema stores email/telephone in profil.contact.{email|telephone}
+        const profileContact = profile.contact || {};
         const finalCV = {
             ...aiOptimizedCV,
             profil: {
                 ...aiOptimizedCV.profil,
                 nom: profile.nom || aiOptimizedCV.profil?.nom,
                 prenom: profile.prenom || aiOptimizedCV.profil?.prenom,
-                email: profile.email || aiOptimizedCV.profil?.email,
-                telephone: profile.telephone || aiOptimizedCV.profil?.telephone,
-                localisation: profile.localisation || aiOptimizedCV.profil?.localisation,
-                linkedin: profile.linkedin || aiOptimizedCV.profil?.linkedin,
+                email: profileContact.email || profile.email || aiOptimizedCV.profil?.email,
+                telephone: profileContact.telephone || profile.telephone || aiOptimizedCV.profil?.telephone,
+                localisation: profile.localisation || profileContact.ville || aiOptimizedCV.profil?.localisation,
+                linkedin: profileContact.linkedin || profile.linkedin || aiOptimizedCV.profil?.linkedin,
                 titre_principal: profile.titre_principal || aiOptimizedCV.profil?.titre_principal,
                 elevator_pitch: aiOptimizedCV.profil?.elevator_pitch || profile.elevator_pitch,
                 photo_url: includePhoto && photoUrl ? photoUrl : undefined
