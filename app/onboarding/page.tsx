@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Upload, CheckCircle, FileText, ArrowRight } from "lucide-react";
+import { Loader2, Upload, CheckCircle, FileText, Info, ShieldCheck } from "lucide-react";
 import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,6 +15,9 @@ export default function OnboardingPage() {
     const [uploading, setUploading] = useState(false);
     const [processing, setProcessing] = useState(false);
     const [progress, setProgress] = useState(0);
+    const [showConsentModal, setShowConsentModal] = useState(false);
+    const [geminiConsent, setGeminiConsent] = useState(false);
+    const [consentChecked, setConsentChecked] = useState(false);
 
     const [userId, setUserId] = useState<string | null>(null);
 
@@ -27,8 +30,56 @@ export default function OnboardingPage() {
             router.push("/login"); // Redirect if no auth
         } else {
             setUserId(storedId);
+            checkExistingConsent(storedId);
         }
     }, [router]);
+
+    const checkExistingConsent = async (uid: string) => {
+        const { data } = await supabase
+            .from("users")
+            .select("gemini_consent")
+            .eq("id", uid)
+            .single();
+
+        if (data?.gemini_consent) {
+            setGeminiConsent(true);
+            setConsentChecked(true);
+        } else {
+            // Afficher la modale de consentement au premier chargement
+            setShowConsentModal(true);
+        }
+    };
+
+    const handleAcceptConsent = async () => {
+        if (!userId) return;
+
+        try {
+            // Sauvegarder le consentement
+            await supabase
+                .from("users")
+                .update({
+                    gemini_consent: true,
+                    gemini_consent_date: new Date().toISOString()
+                })
+                .eq("id", userId);
+
+            setGeminiConsent(true);
+            setConsentChecked(true);
+            setShowConsentModal(false);
+
+            console.log("[GDPR] User granted Gemini consent");
+        } catch (error) {
+            alert("Erreur lors de l'enregistrement du consentement");
+        }
+    };
+
+    const handleDeclineConsent = () => {
+        alert(
+            "Sans l'analyse IA, nous ne pouvons pas extraire votre profil automatiquement. " +
+            "Vous pouvez accepter plus tard dans vos paramètres."
+        );
+        router.push("/dashboard");
+    };
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -65,6 +116,12 @@ export default function OnboardingPage() {
     const startProcess = async () => {
         if (files.length === 0) return;
 
+        if (!geminiConsent) {
+            alert("Vous devez accepter l'analyse IA pour continuer.");
+            setShowConsentModal(true);
+            return;
+        }
+
         setUploading(true);
         setProgress(10);
 
@@ -92,7 +149,10 @@ export default function OnboardingPage() {
                 body: JSON.stringify({ userId }),
             });
 
-            if (!generateRes.ok) throw new Error("Generation failed");
+            if (!generateRes.ok) {
+                const errorData = await generateRes.json();
+                throw new Error(errorData.error || "Generation failed");
+            }
 
             const data = await generateRes.json();
             console.log("RAG Generated:", data);
@@ -104,9 +164,9 @@ export default function OnboardingPage() {
                 router.push("/dashboard");
             }, 1000);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Une erreur est survenue.");
+            alert(`Une erreur est survenue: ${error.message}`);
             setUploading(false);
             setProcessing(false);
         }
@@ -114,6 +174,81 @@ export default function OnboardingPage() {
 
     return (
         <div className="container mx-auto max-w-2xl py-20 px-4">
+            {/* MODALE DE CONSENTEMENT GEMINI */}
+            {showConsentModal && (
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+                    <Card className="max-w-lg w-full">
+                        <CardHeader>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-blue-100 rounded-full">
+                                    <ShieldCheck className="w-6 h-6 text-blue-600" />
+                                </div>
+                                <CardTitle className="text-xl">Analyse IA de votre CV</CardTitle>
+                            </div>
+                            <CardDescription>
+                                Consentement requis pour continuer (RGPD)
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <p className="text-sm text-slate-700 mb-3">
+                                    Pour extraire et analyser votre CV, nous utilisons{" "}
+                                    <strong>Google Gemini AI</strong>. Vos données professionnelles
+                                    (nom, expériences, compétences) seront traitées par Google Cloud Platform.
+                                </p>
+                                <div className="space-y-2 text-xs text-slate-600">
+                                    <p><strong>Données analysées :</strong></p>
+                                    <ul className="list-disc list-inside space-y-1 ml-2">
+                                        <li>Nom, prénom, localisation</li>
+                                        <li>Expériences professionnelles</li>
+                                        <li>Compétences et formations</li>
+                                        <li>Contact (email, téléphone, LinkedIn)</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <div className="flex items-start gap-2">
+                                    <Info className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                    <div className="text-xs text-green-800">
+                                        <strong>Vos droits (RGPD) :</strong>
+                                        <ul className="mt-1 space-y-0.5">
+                                            <li>• Vous pouvez révoquer ce consentement à tout moment</li>
+                                            <li>• Vous pouvez consulter l'historique des analyses</li>
+                                            <li>• Vous pouvez supprimer toutes vos données</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="text-xs text-slate-500">
+                                En acceptant, vous autorisez CVMatch AI à traiter vos données avec
+                                Google Gemini conformément à notre{" "}
+                                <a href="/privacy" className="text-blue-600 hover:underline">
+                                    Politique de Confidentialité
+                                </a>.
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleDeclineConsent}
+                                    className="flex-1"
+                                >
+                                    Refuser
+                                </Button>
+                                <Button
+                                    onClick={handleAcceptConsent}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-700"
+                                >
+                                    ✓ Accepter et Continuer
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
             <Card>
                 <CardHeader>
                     <CardTitle className="text-2xl font-bold text-center">
@@ -125,6 +260,33 @@ export default function OnboardingPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {/* Banner de statut du consentement */}
+                    {consentChecked && (
+                        <div className={`mb-4 p-3 rounded-lg border ${
+                            geminiConsent
+                                ? "bg-green-50 border-green-200"
+                                : "bg-yellow-50 border-yellow-200"
+                        }`}>
+                            <div className="flex items-center gap-2 text-sm">
+                                {geminiConsent ? (
+                                    <>
+                                        <CheckCircle className="w-4 h-4 text-green-600" />
+                                        <span className="text-green-800 font-medium">
+                                            Analyse IA activée
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Info className="w-4 h-4 text-yellow-600" />
+                                        <span className="text-yellow-800 font-medium">
+                                            Analyse IA désactivée
+                                        </span>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     <div
                         className={`border-2 border-dashed rounded-xl p-10 text-center transition-colors ${dragActive ? "border-blue-500 bg-blue-50" : "border-slate-200"
                             } `}
@@ -183,7 +345,7 @@ export default function OnboardingPage() {
                     <div className="mt-8">
                         <Button
                             className="w-full h-12 text-lg"
-                            disabled={files.length === 0 || uploading || processing}
+                            disabled={files.length === 0 || uploading || processing || !geminiConsent}
                             onClick={startProcess}
                         >
                             {uploading ? (
@@ -198,6 +360,18 @@ export default function OnboardingPage() {
                                 "Analyser mon profil avec l'IA ✨"
                             )}
                         </Button>
+
+                        {!geminiConsent && consentChecked && (
+                            <p className="text-xs text-center text-slate-500 mt-2">
+                                <button
+                                    onClick={() => setShowConsentModal(true)}
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    Activer l'analyse IA
+                                </button>
+                                {" "}pour continuer
+                            </p>
+                        )}
                     </div>
                 </CardContent>
             </Card>

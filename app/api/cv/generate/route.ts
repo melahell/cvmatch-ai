@@ -2,6 +2,7 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
+import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
 
 // Helper for tokens (stub)
 export const runtime = "nodejs";
@@ -13,6 +14,15 @@ export async function POST(req: Request) {
 
         if (!userId || !analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+        }
+
+        // Check GDPR consent for Gemini usage
+        const consentCheck = await checkGeminiConsent(userId);
+        if (!consentCheck.hasConsent) {
+            return NextResponse.json(
+                { error: "gemini_consent_required", message: consentCheck.message },
+                { status: 403 }
+            );
         }
 
         // 1. Fetch Job Analysis & User Profile
@@ -45,6 +55,13 @@ export async function POST(req: Request) {
 
         const result = await models.flash.generateContent(prompt);
         const responseText = result.response.text();
+
+        // Log Gemini usage for transparency (RGPD Article 15)
+        await logGeminiUsage(userId, "cv_generation", {
+            analysis_id: analysisId,
+            template: template || "standard"
+        });
+
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
         let optimizedCV;

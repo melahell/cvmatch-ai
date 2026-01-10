@@ -5,6 +5,7 @@ import { createSupabaseClient } from "@/lib/supabase";
 import mammoth from "mammoth";
 const pdf = require("pdf-parse");
 import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
+import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
 
 // We use Node.js runtime because pdf-parse/mammoth might rely on node APIs not available in Edge
 export const runtime = "nodejs";
@@ -16,6 +17,15 @@ export async function POST(req: Request) {
 
         if (!userId) {
             return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+        }
+
+        // Check GDPR consent for Gemini usage
+        const consentCheck = await checkGeminiConsent(userId);
+        if (!consentCheck.hasConsent) {
+            return NextResponse.json(
+                { error: "gemini_consent_required", message: consentCheck.message },
+                { status: 403 }
+            );
         }
 
         // 1. Fetch pending documents for this user
@@ -72,6 +82,12 @@ export async function POST(req: Request) {
 
         const result = await models.flash.generateContent(prompt);
         const responseText = result.response.text();
+
+        // Log Gemini usage for transparency (RGPD Article 15)
+        await logGeminiUsage(userId, "rag_extraction", {
+            documents_count: docs.length,
+            text_length: allExtractedText.length
+        });
 
         // Clean markdown if present
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
