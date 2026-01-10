@@ -2,8 +2,17 @@
 import { Octokit } from "octokit";
 
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const REPO_OWNER = process.env.GITHUB_REPO_OWNER || "melahell"; // Fallback to prompt owner
-const REPO_NAME = process.env.GITHUB_REPO_NAME || "cv-rag-data";
+const REPO_OWNER = process.env.GITHUB_REPO_OWNER;
+const REPO_NAME = process.env.GITHUB_REPO_NAME;
+
+// Validation au démarrage
+if (!REPO_OWNER || !REPO_NAME) {
+    console.warn(
+        "⚠️ GitHub configuration incomplete:\n" +
+        "GITHUB_REPO_OWNER and GITHUB_REPO_NAME should be set in environment variables.\n" +
+        "GitHub sync will be disabled."
+    );
+}
 
 // Initialize Octokit
 const octokit = new Octokit({

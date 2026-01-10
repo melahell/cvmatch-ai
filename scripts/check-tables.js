@@ -1,8 +1,15 @@
 
 const { createClient } = require('@supabase/supabase-js');
+require('dotenv').config(); // Charger .env.local
 
-const SUPABASE_URL = "https://tyaoacdfxigxffdbhqja.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_jfSZuKZ5ZzCwdJvNV7nGJQ_t3f79x70";
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('❌ Missing environment variables: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+    console.error('Create a .env.local file with these variables.');
+    process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
