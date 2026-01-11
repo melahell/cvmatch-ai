@@ -1,6 +1,6 @@
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { models } from "@/lib/ai/gemini";
+import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 
@@ -104,31 +104,10 @@ export async function POST(req: Request) {
         console.log("=== CV GENERATION START ===");
         console.log("Using model: gemini-3-flash-preview");
 
-        // Retry wrapper
-        const callWithRetry = async (maxRetries = 2): Promise<string> => {
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
-                try {
-                    const result = await models.flash.generateContent(prompt);
-                    return result.response.text();
-                } catch (error: any) {
-                    const isRateLimit = error.message?.includes("429") || error.message?.includes("quota");
-                    const isTimeout = error.message?.includes("timeout") || error.message?.includes("deadline");
-
-                    if ((isRateLimit || isTimeout) && attempt < maxRetries - 1) {
-                        const delay = 3000 * Math.pow(2, attempt); // 3s, 6s
-                        console.log(`CV Generation retry ${attempt + 1}/${maxRetries} after ${delay}ms...`);
-                        await new Promise(r => setTimeout(r, delay));
-                        continue;
-                    }
-                    throw error;
-                }
-            }
-            throw new Error("Max retries exceeded");
-        };
-
         let responseText: string;
         try {
-            responseText = await callWithRetry();
+            const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
+            responseText = cascadeResult.result.response.text();
             console.log("Gemini response length:", responseText.length);
         } catch (geminiError: any) {
             console.error("Gemini API Error:", geminiError.message);

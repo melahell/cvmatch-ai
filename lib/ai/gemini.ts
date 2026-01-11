@@ -1,93 +1,94 @@
-import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.GEMINI_API_KEY;
+export const GEMINI_MODELS = {
+    principal: "gemini-3-pro-preview",
+    fallback: "gemini-3-flash-preview",
+} as const;
 
-if (!apiKey) {
-    console.warn("Missing GEMINI_API_KEY environment variable");
+export type GeminiModel = (typeof GEMINI_MODELS)[keyof typeof GEMINI_MODELS];
+
+const MODEL_CASCADE: GeminiModel[] = [GEMINI_MODELS.principal, GEMINI_MODELS.fallback];
+
+function getApiKey() {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error("GEMINI_API_KEY manquante");
+    }
+    return apiKey;
 }
 
-const genAI = new GoogleGenerativeAI(apiKey || "dummy-key");
+function isRateLimitError(error: unknown) {
+    const anyError = error as any;
+    const status = anyError?.status ?? anyError?.response?.status;
+    const message = typeof anyError?.message === "string" ? anyError.message : "";
 
-// Model cascade: Gemini 3 models (GA since Dec 28, 2025)
-// gemini-3-pro-preview (principal) + gemini-3-flash-preview (fallback)
-const MODEL_CASCADE = [
-    "gemini-3-pro-preview",      // Best quality
-    "gemini-3-flash-preview",    // Fallback if pro rate-limited
-];
+    return (
+        status === 429 ||
+        message.includes("429") ||
+        message.toLowerCase().includes("rate limit") ||
+        message.toLowerCase().includes("quota") ||
+        message.toLowerCase().includes("resource_exhausted")
+    );
+}
 
-// Legacy exports for backward compatibility
-export const models = {
-    flash: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
-    pro: genAI.getGenerativeModel({ model: "gemini-3-pro-preview" }),
-    vision: genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }),
-};
+async function delay(ms: number) {
+    await new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
-/**
- * Generates content with automatic model cascade fallback
- * Tries each model in order until one succeeds
- */
 export async function generateWithCascade(
     prompt: string | any[],
     options?: { startFromIndex?: number }
-): Promise<{ result: any; modelUsed: string }> {
+): Promise<{ result: any; modelUsed: GeminiModel }> {
     const startIndex = options?.startFromIndex ?? 0;
+    const genAI = new GoogleGenerativeAI(getApiKey());
 
     for (let i = startIndex; i < MODEL_CASCADE.length; i++) {
         const modelName = MODEL_CASCADE[i];
         const model = genAI.getGenerativeModel({ model: modelName });
-
         try {
-            console.log(`Trying model: ${modelName}`);
             const result = await model.generateContent(prompt);
-            console.log(`Success with model: ${modelName}`);
             return { result, modelUsed: modelName };
-        } catch (error: any) {
-            const isQuotaError =
-                error.message?.includes("429") ||
-                error.message?.includes("quota") ||
-                error.message?.includes("Too Many") ||
-                error.message?.includes("RESOURCE_EXHAUSTED");
-
-            if (isQuotaError && i < MODEL_CASCADE.length - 1) {
-                console.log(`Model ${modelName} quota exceeded, trying next...`);
+        } catch (error) {
+            if (isRateLimitError(error) && i < MODEL_CASCADE.length - 1) {
                 continue;
             }
-
-            // Not a quota error or last model - throw
             throw error;
         }
     }
 
-    throw new Error("All models exhausted - please try again later");
+    throw new Error("Tous les modèles Gemini sont indisponibles");
 }
 
-/**
- * Retry wrapper with exponential backoff
- */
 export async function callWithRetry<T>(
     fn: () => Promise<T>,
-    maxRetries: number = 2,
-    baseDelay: number = 5000
+    maxRetries: number = 2
 ): Promise<T> {
+    const backoffsMs = [30_000, 60_000, 120_000];
+
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
             return await fn();
-        } catch (error: any) {
-            const isRateLimit =
-                error.message?.includes("429") ||
-                error.message?.includes("quota") ||
-                error.message?.includes("Too Many");
-
-            if (isRateLimit && attempt < maxRetries - 1) {
-                const delay = baseDelay * Math.pow(2, attempt);
-                console.log(`Rate limited, waiting ${delay / 1000}s...`);
-                await new Promise(r => setTimeout(r, delay));
-                continue;
+        } catch (error) {
+            const isRateLimited = isRateLimitError(error);
+            if (!isRateLimited || attempt >= maxRetries - 1) {
+                throw error;
             }
-            throw error;
+
+            const delayMs = backoffsMs[Math.min(attempt, backoffsMs.length - 1)];
+            await delay(delayMs);
         }
     }
+
     throw new Error("Max retries exceeded");
 }
 
-export { genAI, MODEL_CASCADE };
+export async function generateWithGemini(params: {
+    prompt: string | any[];
+    model?: GeminiModel;
+}) {
+    const startFromIndex = params.model === GEMINI_MODELS.fallback ? 1 : 0;
+    const { result } = await callWithRetry(() =>
+        generateWithCascade(params.prompt, { startFromIndex })
+    );
+    return result.response.text();
+}

@@ -1,7 +1,7 @@
 
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { models } from "@/lib/ai/gemini";
+import { generateWithGemini } from "@/lib/ai/gemini";
 
 export const runtime = "nodejs";
 
@@ -38,8 +38,7 @@ export async function POST(req: Request) {
             FORMAT: Retourne le texte de la lettre directement, avec des sauts de ligne, sans Markdown complexe (juste texte).
         `;
 
-        const result = await models.flash.generateContent(prompt);
-        const letter = result.response.text();
+        const letter = await generateWithGemini({ prompt });
 
         // 3. Save to Match Report (JSON Storage)
         // We store the cover letter inside the match_report JSONB to allow flexibility without schema migration.
