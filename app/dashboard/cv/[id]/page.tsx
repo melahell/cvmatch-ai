@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CVRenderer from "@/components/cv/CVRenderer";
@@ -33,10 +33,19 @@ export default function CVViewPage() {
         async function fetchCV() {
             if (!id) return;
 
+            const { data: authData } = await supabase.auth.getUser();
+            const user = authData.user;
+            if (!user) {
+                setCvGeneration(null);
+                setLoading(false);
+                return;
+            }
+
             const { data, error } = await supabase
                 .from("cv_generations")
                 .select("id, cv_data, template_name, job_analysis_id")
                 .eq("id", id)
+                .eq("user_id", user.id)
                 .single();
 
             if (error) {
@@ -62,37 +71,32 @@ export default function CVViewPage() {
 
         setGeneratingPDF(true);
         try {
-            const html2pdf = (await import('html2pdf.js')).default;
-
-            const element = document.querySelector('.cv-page') as HTMLElement;
-            if (!element) {
-                throw new Error('CV element not found');
+            const headers = await getSupabaseAuthHeader();
+            const pdfUrl = `/api/cv/${cvGeneration.id}/pdf?format=A4&template=${encodeURIComponent(currentTemplate)}&photo=${currentIncludePhoto ? "true" : "false"}`;
+            const res = await fetch(pdfUrl, { headers });
+            if (!res.ok) {
+                throw new Error(`PDF download failed (${res.status})`);
             }
 
-            const options = {
-                margin: 0,
-                filename: `CV_${cvGeneration.cv_data?.profil?.nom || 'Document'}.pdf`,
-                image: { type: 'jpeg' as const, quality: 1 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    logging: false
-                },
-                jsPDF: {
-                    unit: 'mm' as const,
-                    format: 'a4' as const,
-                    orientation: 'portrait' as const
-                }
-            };
+            const blob = await res.blob();
+            const contentDisposition = res.headers.get("content-disposition") || "";
+            const filenameMatch = /filename="?([^";]+)"?/i.exec(contentDisposition);
+            const filename = filenameMatch?.[1] || `CV_${cvGeneration.cv_data?.profil?.nom || "Document"}.pdf`;
 
-            await html2pdf().set(options).from(element).save();
+            const objectUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = objectUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(objectUrl);
         } catch (error) {
             console.error('PDF Error:', error);
-            // Fallback to browser print
-            if (confirm('La génération PDF a échoué. Utiliser l\'impression du navigateur?')) {
-                window.print();
-            }
+            window.open(
+                `/dashboard/cv/${cvGeneration.id}/print?format=A4&template=${encodeURIComponent(currentTemplate)}&photo=${currentIncludePhoto ? "true" : "false"}`,
+                "_blank"
+            );
         } finally {
             setGeneratingPDF(false);
         }
@@ -299,4 +303,3 @@ export default function CVViewPage() {
         </div>
     );
 }
-

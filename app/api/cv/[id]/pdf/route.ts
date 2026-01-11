@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer-core";
+import puppeteer, { type Browser } from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { logger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Maximum execution time for Vercel
@@ -10,10 +11,14 @@ export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    let browser: Browser | undefined;
     try {
         const { id } = params;
         const { searchParams } = new URL(request.url);
         const format = searchParams.get("format") || "A4";
+        const templateParam = searchParams.get("template") || "modern";
+        const template = /^[a-z0-9_-]+$/i.test(templateParam) ? templateParam : "modern";
+        const photoQuery = searchParams.get("photo") === "false" ? "false" : "true";
 
         // Validate format
         if (!["A4", "Letter"].includes(format)) {
@@ -23,16 +28,19 @@ export async function GET(
             );
         }
 
-        // Verify CV exists in database
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const auth = await requireSupabaseUser(request);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
 
         const { data: cvData, error: dbError } = await supabase
             .from("cv_generations")
             .select("*")
             .eq("id", id)
+            .eq("user_id", userId)
             .single();
 
         if (dbError || !cvData) {
@@ -43,12 +51,10 @@ export async function GET(
         }
 
         // PDF caching removed (pdf-cache.ts deleted in cleanup)
-        console.log(`Generating PDF for CV ${id} (${format})...`);
+        logger.info("PDF génération démarrée", { cvId: id, format, template, photo: photoQuery });
 
         // Determine if running locally or on Vercel
         const isLocal = process.env.NODE_ENV === "development";
-
-        let browser;
 
         if (isLocal) {
             // For local development, use locally installed Chrome
@@ -70,13 +76,41 @@ export async function GET(
 
         const page = await browser.newPage();
 
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        if (!supabaseUrl) {
+            return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
+        }
+
+        await page.evaluateOnNewDocument(
+            (supabaseUrlArg: string, accessToken: string, user: any) => {
+                const hostname = new URL(supabaseUrlArg).hostname;
+                const projectRef = hostname.split('.')[0];
+                const storageKey = `sb-${projectRef}-auth-token`;
+                const expiresAt = Math.floor(Date.now() / 1000) + 60 * 30;
+
+                const session = {
+                    access_token: accessToken,
+                    token_type: 'bearer',
+                    expires_in: 60 * 30,
+                    expires_at: expiresAt,
+                    refresh_token: '',
+                    user,
+                };
+
+                localStorage.setItem(storageKey, JSON.stringify(session));
+            },
+            supabaseUrl,
+            auth.token,
+            auth.user
+        );
+
         // Build the URL for the print page
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
             `${request.nextUrl.protocol}//${request.nextUrl.host}`;
-        const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${format}`;
+        const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${encodeURIComponent(format)}&template=${encodeURIComponent(template)}&photo=${encodeURIComponent(photoQuery)}`;
 
         // Navigate to the print page
-        console.log(`📄 Navigating to print page: ${printUrl}`);
+        logger.info("PDF navigation print page", { cvId: id, format, template });
 
         await page.goto(printUrl, {
             waitUntil: "networkidle0",
@@ -89,16 +123,16 @@ export async function GET(
                 () => (window as any).__CV_RENDER_COMPLETE__ === true,
                 { timeout: 10000 }
             );
-            console.log('✅ CV render complete signal received');
+            logger.info("PDF rendu CV prêt", { cvId: id });
         } catch (timeoutError) {
-            console.warn('⚠️ CV render timeout - proceeding anyway after 10s');
+            logger.warn("PDF timeout rendu CV", { cvId: id });
         }
 
         // Additional safety delay for final layout
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Generate PDF with optimized settings
-        console.log('📸 Generating PDF...');
+        logger.info("PDF génération buffer", { cvId: id });
 
         const pdfBuffer = await page.pdf({
             format: format === "Letter" ? "Letter" : "A4",
@@ -116,9 +150,7 @@ export async function GET(
             scale: 1,
         });
 
-        console.log(`✅ PDF generated: ${pdfBuffer.length} bytes`);
-
-        await browser.close();
+        logger.info("PDF généré", { cvId: id, bytes: pdfBuffer.length });
 
         // Get profile name for filename
         const fileName = cvData.cv_data?.profil?.nom
@@ -138,7 +170,7 @@ export async function GET(
         });
 
     } catch (error: any) {
-        console.error("PDF Generation Error:", error);
+        logger.error("PDF Generation Error", { error: error?.message });
         return NextResponse.json(
             {
                 error: "Failed to generate PDF",
@@ -146,5 +178,9 @@ export async function GET(
             },
             { status: 500 }
         );
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
     }
 }

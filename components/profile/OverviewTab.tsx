@@ -10,6 +10,7 @@ import { InferredSkillCard } from "./InferredSkillCard";
 import { EditableField } from "@/components/ui/EditableField";
 import type { InferredSkill } from "@/types/rag";
 import { normalizeCompetences } from "@/lib/utils/normalize-competences";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 
 type WeightValue = "important" | "inclus" | "exclu";
 
@@ -145,7 +146,10 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
         try {
             const response = await fetch("/api/profile/update-item", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: JSON.stringify({
                     userId,
                     type: "profil",
@@ -195,7 +199,10 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
 
             const response = await fetch("/api/profile/update-item", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: JSON.stringify({
                     userId,
                     type: showAddModal,
@@ -243,7 +250,10 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
         try {
             const response = await fetch("/api/profile/add-skill", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: JSON.stringify({
                     userId,
                     skill: skill.name,
@@ -271,7 +281,10 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
         try {
             const response = await fetch("/api/profile/reject-skill", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: JSON.stringify({
                     userId,
                     skill: skill.name,

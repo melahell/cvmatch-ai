@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import CVRenderer from "@/components/cv/CVRenderer";
+import { createSupabaseClient } from "@/lib/supabase";
 
 export default function CVPrintPage() {
     const { id } = useParams();
@@ -17,17 +17,22 @@ export default function CVPrintPage() {
     const [rendered, setRendered] = useState(false);
 
     useEffect(() => {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createSupabaseClient();
         async function fetchCV() {
             if (!id) return;
 
+            const { data: authData } = await supabase.auth.getUser();
+            const user = authData.user;
+            if (!user) {
+                setLoading(false);
+                return;
+            }
+
             const { data, error } = await supabase
                 .from("cv_generations")
-                .select("*")
+                .select("cv_data")
                 .eq("id", id)
+                .eq("user_id", user.id)
                 .single();
 
             if (data) {

@@ -3,6 +3,7 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Github, Linkedin, Globe } from "lucide-react";
+import Image from "next/image";
 
 // Tech-specific color palette
 const COLORS = {
@@ -143,9 +144,12 @@ export default function TechTemplate({
                             className="w-20 h-20 rounded-lg border-2 border-emerald-500 p-0.5 mb-3 overflow-hidden"
                             style={{ boxShadow: `0 0 15px ${COLORS.primary}40` }}
                         >
-                            <img
+                            <Image
                                 src={profil.photo_url}
                                 alt={`${profil.prenom} ${profil.nom}`}
+                                width={80}
+                                height={80}
+                                unoptimized
                                 className="w-full h-full object-cover rounded-md"
                             />
                         </div>

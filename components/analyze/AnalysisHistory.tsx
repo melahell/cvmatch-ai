@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,11 +32,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     const [filter, setFilter] = useState('all');
     const [search, setSearch] = useState('');
 
-    useEffect(() => {
-        fetchAnalyses();
-    }, [userId]);
-
-    const fetchAnalyses = async () => {
+    const fetchAnalyses = useCallback(async () => {
         try {
             const supabase = createSupabaseClient();
             const { data, error } = await supabase
@@ -53,7 +49,11 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [userId]);
+
+    useEffect(() => {
+        fetchAnalyses();
+    }, [fetchAnalyses]);
 
     const filteredAnalyses = analyses
         .filter(a => {

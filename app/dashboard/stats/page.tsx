@@ -17,7 +17,7 @@ interface StatsData {
         job_title: string;
         company: string;
         match_score: number;
-        created_at: string;
+        submitted_at: string;
     }>;
     topSkills: Array<{ skill: string; count: number }>;
     scoreHistory: Array<{ date: string; score: number }>;
@@ -37,13 +37,13 @@ export default function StatsPage() {
             // Fetch analyses
             const { data: analyses } = await supabase
                 .from("job_analyses")
-                .select("id, job_title, company, match_score, created_at")
+                .select("id, job_title, company, match_score, submitted_at")
                 .eq("user_id", userId)
-                .order("created_at", { ascending: false });
+                .order("submitted_at", { ascending: false });
 
             // Fetch generated CVs
             const { data: cvs } = await supabase
-                .from("generated_cvs")
+                .from("cv_generations")
                 .select("id")
                 .eq("user_id", userId);
 
@@ -68,7 +68,7 @@ export default function StatsPage() {
                 .slice(0, 7)
                 .reverse()
                 .map(a => ({
-                    date: new Date(a.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
+                    date: new Date(a.submitted_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' }),
                     score: a.match_score
                 }));
 
@@ -267,7 +267,7 @@ export default function StatsPage() {
                                                 {analysis.job_title || "Poste non spécifié"}
                                             </p>
                                             <p className="text-sm text-slate-500 dark:text-slate-400">
-                                                {analysis.company || "Entreprise"} · {new Date(analysis.created_at).toLocaleDateString('fr-FR')}
+                                                {analysis.company || "Entreprise"} · {new Date(analysis.submitted_at).toLocaleDateString('fr-FR')}
                                             </p>
                                         </div>
                                         <div className={`px-3 py-1 rounded-full text-sm font-bold ${analysis.match_score >= 80

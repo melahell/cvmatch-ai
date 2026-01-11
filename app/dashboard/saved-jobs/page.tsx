@@ -46,11 +46,14 @@ export default function SavedJobsPage() {
     }, [userId]);
 
     const handleUnsave = async (jobId: string) => {
+        if (!userId) return;
+
         const supabase = createSupabaseClient();
         const { error } = await supabase
             .from("saved_jobs")
             .delete()
-            .eq("id", jobId);
+            .eq("id", jobId)
+            .eq("user_id", userId);
 
         if (!error) {
             setSavedJobs(prev => prev.filter(j => j.id !== jobId));

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Loader2, Upload, Link2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -129,34 +129,22 @@ export default function AnalyzePage() {
 
     // Phase 1 Item 7: Auto-detect clipboard
     useEffect(() => {
-        if (mode === 'url') {
-            navigator.clipboard.readText().then(clipText => {
-                if (validateUrl(clipText) && !url) {
-                    toast.info('URL détectée dans le presse-papier', {
-                        duration: 5000,
-                        action: {
-                            label: 'Coller',
-                            onClick: () => setUrl(clipText)
-                        }
-                    });
-                }
-            }).catch(() => {/* Permission denied */ });
-        }
-    }, [mode]);
+        if (mode !== 'url') return;
 
-    // Phase 1 Item 9: Keyboard shortcut
-    useEffect(() => {
-        const handleKeyPress = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                if (canAnalyze && !loading) {
-                    handleAnalyze();
-                }
+        navigator.clipboard.readText().then(clipText => {
+            if (validateUrl(clipText) && !url) {
+                toast.info('URL détectée dans le presse-papier', {
+                    duration: 5000,
+                    action: {
+                        label: 'Coller',
+                        onClick: () => setUrl(clipText)
+                    }
+                });
             }
-        };
-
-        window.addEventListener('keydown', handleKeyPress);
-        return () => window.removeEventListener('keydown', handleKeyPress);
-    }, [loading, mode, url, text, file]);
+        }).catch(() => {
+            return;
+        });
+    }, [mode, url]);
 
     // Phase 1 Item 10: Generate file preview
     const generatePreview = async (f: File) => {
@@ -193,7 +181,7 @@ export default function AnalyzePage() {
             .trim();
     };
 
-    const handleAnalyze = async () => {
+    const handleAnalyze = useCallback(async () => {
         if (mode === "url" && !url) return;
         if (mode === "text" && !text) return;
         if (mode === "file" && !file) return;
@@ -279,7 +267,7 @@ export default function AnalyzePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [file, mode, router, text, url, userId]);
 
     // Phase 1 Item 3: Can analyze logic
     const canAnalyze = useMemo(() => {
@@ -289,6 +277,19 @@ export default function AnalyzePage() {
         if (mode === 'file') return !!file;
         return false;
     }, [mode, text, url, file, loading]);
+
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (canAnalyze && !loading) {
+                    handleAnalyze();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [canAnalyze, handleAnalyze, loading]);
 
     const isReady = (mode === "url" && url) || (mode === "text" && text) || (mode === "file" && file);
 

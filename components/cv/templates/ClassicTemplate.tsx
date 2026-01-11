@@ -3,6 +3,7 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin } from "lucide-react";
+import Image from "next/image";
 
 // Sanitize text by fixing spacing issues (applied at render time)
 function sanitizeText(text: string | undefined | null): string {
@@ -93,9 +94,12 @@ export default function ClassicTemplate({
                     {includePhoto && (
                         <div className="w-24 h-24 rounded-lg border-4 border-white/30 overflow-hidden shadow-lg flex-shrink-0">
                             {profil.photo_url ? (
-                                <img
+                                <Image
                                     src={profil.photo_url}
                                     alt={`${profil.prenom} ${profil.nom}`}
+                                    width={96}
+                                    height={96}
+                                    unoptimized
                                     className="w-full h-full object-cover"
                                 />
                             ) : (

@@ -31,11 +31,10 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
             const supabase = createSupabaseClient();
 
             // Fetch all user data
-            const [ragData, analyses, cvs, applications] = await Promise.all([
+            const [ragData, analyses, cvs] = await Promise.all([
                 supabase.from("rag_metadata").select("*").eq("user_id", userId).single(),
                 supabase.from("job_analyses").select("*").eq("user_id", userId),
-                supabase.from("generated_cvs").select("*").eq("user_id", userId),
-                supabase.from("applications").select("*").eq("user_id", userId),
+                supabase.from("cv_generations").select("*").eq("user_id", userId),
             ]);
 
             const exportData = {
@@ -43,8 +42,7 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                 user_id: userId,
                 profile: ragData.data?.completeness_details || {},
                 analyses: analyses.data || [],
-                generated_cvs: cvs.data || [],
-                applications: applications.data || [],
+                cv_generations: cvs.data || [],
             };
 
             let blob: Blob;
@@ -67,16 +65,11 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                 });
                 text += "\n";
 
-                text += `--- CV GÉNÉRÉS (${exportData.generated_cvs.length}) ---\n`;
-                exportData.generated_cvs.forEach((cv: any, i: number) => {
-                    text += `${i + 1}. ${cv.title || 'CV'} - ${new Date(cv.created_at).toLocaleDateString('fr-FR')}\n`;
+                text += `--- CVS GÉNÉRÉS (${exportData.cv_generations.length}) ---\n`;
+                exportData.cv_generations.forEach((cv: any, i: number) => {
+                    text += `${i + 1}. ${cv.template_name || 'CV'} - ${new Date(cv.created_at).toLocaleDateString('fr-FR')}\n`;
                 });
                 text += "\n";
-
-                text += `--- CANDIDATURES (${exportData.applications.length}) ---\n`;
-                exportData.applications.forEach((app: any, i: number) => {
-                    text += `${i + 1}. ${app.company} - ${app.position} (${app.status})\n`;
-                });
 
                 blob = new Blob([text], { type: "text/plain" });
                 filename = `cvcrush_export_${new Date().toISOString().split('T')[0]}.txt`;

@@ -11,6 +11,14 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+CREATE OR REPLACE FUNCTION update_last_updated_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.last_updated = NOW();
+  RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Triggers pour updated_at
 CREATE TRIGGER update_users_updated_at
   BEFORE UPDATE ON users
@@ -22,10 +30,10 @@ CREATE TRIGGER update_job_analyses_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER update_rag_metadata_updated_at
+CREATE TRIGGER update_rag_metadata_last_updated
   BEFORE UPDATE ON rag_metadata
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
+  EXECUTE FUNCTION update_last_updated_column();
 
 -- =============================================
 -- Function pour créer automatiquement un user après signup

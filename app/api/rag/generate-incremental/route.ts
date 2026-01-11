@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { getRAGExtractionPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
@@ -9,6 +8,7 @@ import { mergeRAGData } from "@/lib/rag/merge-simple";
 import { validateRAGData } from "@/lib/rag/validation";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
+import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -30,16 +30,23 @@ async function callWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promi
  * Compatible with Vercel Free plan (10s max)
  */
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
     const startTime = Date.now();
 
     try {
-        const { userId, documentId, mode, isFirstDocument } = await req.json();
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
+
+        const { documentId, mode, isFirstDocument } = await req.json();
         // mode: "completion" | "regeneration" (default: completion)
         // isFirstDocument: true if this is the first document being processed
 
-        if (!userId || !documentId) {
-            return NextResponse.json({ error: "Missing userId or documentId" }, { status: 400 });
+        if (!documentId) {
+            return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
         }
 
         logger.info(`Incremental RAG generation`, {
@@ -57,9 +64,6 @@ export async function POST(req: Request) {
                 errorCode: "CONFIG_ERROR"
             }, { status: 500 });
         }
-
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" }); // Use Flash 3 for speed
 
         // 1. Fetch the specific document
         const { data: doc, error: dbError } = await supabase
@@ -107,7 +111,11 @@ export async function POST(req: Request) {
                     extractedText = pdfText;
                 } catch (pdfError: any) {
                     logger.error("PDF extraction failed", { error: pdfError.message, filename: doc.filename });
-                    await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
+                    await supabase
+                        .from("uploaded_documents")
+                        .update({ extraction_status: "failed" })
+                        .eq("id", doc.id)
+                        .eq("user_id", userId);
                     return NextResponse.json({
                         error: "PDF extraction failed",
                         errorCode: "PDF_ERROR"
@@ -121,7 +129,11 @@ export async function POST(req: Request) {
                     extractedText = result.value;
                 } catch (docxError: any) {
                     logger.error("DOCX extraction failed", { error: docxError.message, filename: doc.filename });
-                    await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
+                    await supabase
+                        .from("uploaded_documents")
+                        .update({ extraction_status: "failed" })
+                        .eq("id", doc.id)
+                        .eq("user_id", userId);
                     return NextResponse.json({
                         error: "DOCX extraction failed",
                         errorCode: "DOCX_ERROR"
@@ -136,8 +148,9 @@ export async function POST(req: Request) {
             // Cache the extracted text
             await supabase
                 .from("uploaded_documents")
-                .update({ extracted_text: extractedText, extraction_status: "processed" })
-                .eq("id", doc.id);
+                .update({ extracted_text: extractedText, extraction_status: "completed" })
+                .eq("id", doc.id)
+                .eq("user_id", userId);
         }
 
         const extractDuration = Date.now() - extractStart;
@@ -162,20 +175,23 @@ export async function POST(req: Request) {
         // 4. Call Gemini with timeout (45s - adequate for large documents)
         const geminiStart = Date.now();
         let responseText: string;
+        let modelUsed: string | null = null;
 
         try {
             const prompt = getRAGExtractionPrompt(truncatedText);
-            const result = await callWithTimeout(
-                model.generateContent(prompt),
-                45000 // 45s timeout - enough for complex PDFs
+            const cascade = await callWithRetry(
+                () => callWithTimeout(generateWithCascade(prompt), 45000),
+                3
             );
-            responseText = result.response.text();
+            modelUsed = cascade.modelUsed;
+            responseText = cascade.result.response.text();
 
             const geminiDuration = Date.now() - geminiStart;
             logger.info("Gemini API call successful", {
                 filename: doc.filename,
                 durationMs: geminiDuration,
-                responseLength: responseText.length
+                responseLength: responseText.length,
+                modelUsed
             });
         } catch (geminiError: any) {
             const geminiDuration = Date.now() - geminiStart;
@@ -264,7 +280,7 @@ export async function POST(req: Request) {
 
         // 9. Add metadata
         mergedRAG.extraction_metadata = {
-            gemini_model_used: "flash-3",
+            gemini_model_used: modelUsed,
             extraction_date: new Date().toISOString(),
             documents_processed: [doc.filename],
             warnings: []
@@ -331,6 +347,7 @@ export async function POST(req: Request) {
             filename: doc.filename,
             elapsed: totalElapsed,
             qualityScore: qualityScore.overall_score,
+            model_used: modelUsed,
             stats: {
                 clientsCount: mergedRAG?.references?.clients?.length || 0,
                 experiencesCount: mergedRAG?.experiences?.length || 0,

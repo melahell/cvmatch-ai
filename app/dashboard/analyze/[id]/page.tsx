@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, CheckCircle, XCircle, FileText, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { useRAGData } from "@/hooks/useRAGData";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
-import Cookies from "js-cookie";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function MatchResultPage() {
     const { id } = useParams();
@@ -21,20 +21,27 @@ export default function MatchResultPage() {
     const [generatingCV, setGeneratingCV] = useState(false);
     const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
 
+    const { userId, isLoading: authLoading } = useAuth();
+
     // Get user's photo for template selector
-    const userId = Cookies.get("userId") || null;
     const { data: ragData } = useRAGData(userId);
 
     useEffect(() => {
         const supabase = createSupabaseClient();
         async function fetchAnalysis() {
-            if (!id) return;
+            if (!id || !userId) return;
 
             const { data, error } = await supabase
                 .from("job_analyses")
                 .select("*")
                 .eq("id", id)
+                .eq("user_id", userId)
                 .single();
+
+            if (error) {
+                setLoading(false);
+                return;
+            }
 
             if (data) {
                 setAnalysis(data);
@@ -42,7 +49,7 @@ export default function MatchResultPage() {
             setLoading(false);
         }
         fetchAnalysis();
-    }, [id]);
+    }, [id, userId]);
 
     const handleGenerateCV = async (templateId: string, includePhoto: boolean) => {
         setTemplateSelectorOpen(false);
@@ -51,9 +58,11 @@ export default function MatchResultPage() {
         try {
             const res = await fetch("/api/cv/generate", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: JSON.stringify({
-                    userId: Cookies.get("userId"),
                     analysisId: id,
                     template: templateId,
                     includePhoto: includePhoto
@@ -74,7 +83,7 @@ export default function MatchResultPage() {
         }
     };
 
-    if (loading) {
+    if (authLoading || loading) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />

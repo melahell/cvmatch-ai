@@ -1,9 +1,8 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { generateWithGemini, GEMINI_MODELS } from "@/lib/ai/gemini";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,7 +12,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "CV data required" }, { status: 400 });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        logger.info("CV consolidate start", { modelUsed: GEMINI_MODELS.fallback });
 
         const prompt = `Tu es un correcteur orthographique et rédactionnel expert en français.
         
@@ -30,8 +29,10 @@ IMPORTANT: Retourne UNIQUEMENT le JSON corrigé, sans markdown, sans explication
 JSON à corriger :
 ${JSON.stringify(cvData, null, 2)}`;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await generateWithGemini({
+            prompt,
+            model: GEMINI_MODELS.fallback,
+        });
 
         // Clean up the response - remove markdown code blocks if present
         let cleanedJson = responseText
@@ -44,8 +45,10 @@ ${JSON.stringify(cvData, null, 2)}`;
         try {
             consolidatedData = JSON.parse(cleanedJson);
         } catch (parseError) {
-            console.error("JSON parse error:", parseError);
-            console.error("Raw response:", responseText);
+            logger.error("CV consolidate JSON parse error", {
+                error: (parseError as any)?.message,
+                responseLength: responseText.length
+            });
             return NextResponse.json(
                 { error: "Erreur de parsing AI. Le CV n'a pas été modifié." },
                 { status: 500 }
@@ -54,11 +57,12 @@ ${JSON.stringify(cvData, null, 2)}`;
 
         return NextResponse.json({
             consolidatedData,
-            success: true
+            success: true,
+            model_used: GEMINI_MODELS.fallback
         });
 
     } catch (error: any) {
-        console.error("Consolidation error:", error);
+        logger.error("Consolidation error", { error: error?.message });
         return NextResponse.json(
             { error: error.message || "Consolidation failed" },
             { status: 500 }

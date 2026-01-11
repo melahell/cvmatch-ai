@@ -1,17 +1,26 @@
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSignedUrl, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
+import { normalizeRAGData } from "@/lib/utils/normalize-rag";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
     try {
-        const { userId, analysisId, template, includePhoto = true } = await req.json();
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
 
-        if (!userId || !analysisId) {
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
+
+        const { analysisId, template, includePhoto = true } = await req.json();
+
+        if (!analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
 
@@ -37,7 +46,7 @@ export async function POST(req: Request) {
             const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
             if (cacheAge < CACHE_TTL) {
-                console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
+                logger.info("CV cache hit", { analysisId, template: template || "modern", cacheAgeSeconds: Math.round(cacheAge / 1000) });
                 return NextResponse.json({
                     success: true,
                     cvId: cachedCV.id,
@@ -48,7 +57,7 @@ export async function POST(req: Request) {
                     cacheAge: Math.round(cacheAge / 1000)
                 });
             } else {
-                console.log(`[CV CACHE EXPIRED] Cache too old (${Math.round(cacheAge / 1000)}s), regenerating...`);
+                logger.info("CV cache expired", { analysisId, template: template || "modern", cacheAgeSeconds: Math.round(cacheAge / 1000) });
             }
         }
 
@@ -57,6 +66,7 @@ export async function POST(req: Request) {
             .from("job_analyses")
             .select("*")
             .eq("id", analysisId)
+            .eq("user_id", userId)
             .single();
 
         if (analysisError || !analysisData) {
@@ -65,7 +75,7 @@ export async function POST(req: Request) {
 
         const { data: ragData, error: ragError } = await supabase
             .from("rag_metadata")
-            .select("completeness_details, custom_notes, photo_url")
+            .select("completeness_details, custom_notes")
             .eq("user_id", userId)
             .single();
 
@@ -73,44 +83,35 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "RAG Profile not found" }, { status: 404 });
         }
 
-        const profile = ragData.completeness_details;
+        const profile = normalizeRAGData(ragData.completeness_details);
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
+
+        logger.info("CV génération démarrée", { userId, analysisId, template: template || "modern", includePhoto });
 
         // Get photo URL if needed
         let photoUrl = null;
         let photoWarning = null;
-        if (includePhoto && ragData.photo_url) {
-            if (ragData.photo_url.startsWith('storage:')) {
-                const storagePath = ragData.photo_url.replace('storage:', '');
-                const { data: signedUrlData, error: photoError } = await supabase.storage
-                    .from('documents')
-                    .createSignedUrl(storagePath, 3600);
-
-                if (photoError) {
-                    console.error('Photo URL generation failed:', photoError.message);
-                    photoWarning = `Unable to load profile photo: ${photoError.message}`;
-                } else {
-                    photoUrl = signedUrlData?.signedUrl || null;
-                }
-            } else {
-                photoUrl = ragData.photo_url;
+        const photoRef = profile?.profil?.photo_url;
+        if (includePhoto && photoRef) {
+            photoUrl = await createSignedUrl(supabase, photoRef);
+            if (!photoUrl) {
+                photoWarning = "Unable to load profile photo";
             }
         }
 
         // 2. Generate CV with AI (with retry logic)
         const prompt = getCVOptimizationPrompt(profile, jobDescription, customNotes);
 
-        console.log("=== CV GENERATION START ===");
-        console.log("Using model: gemini-3-flash-preview");
-
         let responseText: string;
+        let modelUsed: string | null = null;
         try {
             const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
             responseText = cascadeResult.result.response.text();
-            console.log("Gemini response length:", responseText.length);
+            modelUsed = cascadeResult.modelUsed;
+            logger.info("CV génération IA OK", { modelUsed, responseLength: responseText.length });
         } catch (geminiError: any) {
-            console.error("Gemini API Error:", geminiError.message);
+            logger.error("CV génération IA KO", { error: geminiError?.message });
             return NextResponse.json({
                 error: "AI service error: Unable to generate CV at this time",
                 errorCode: "GEMINI_ERROR",
@@ -125,25 +126,25 @@ export async function POST(req: Request) {
         try {
             aiOptimizedCV = JSON.parse(jsonString);
         } catch (e) {
-            console.error("CV Parse Error - Response was:", responseText.substring(0, 500));
+            logger.error("CV parse error", { responseLength: responseText.length });
             return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
         }
 
         // 3. Merge original RAG profile with Gemini output to preserve identity data
         // Note: RAG schema stores email/telephone in profil.contact.{email|telephone}
-        const profileContact = profile.contact || {};
+        const profileContact = profile?.profil?.contact || (profile as any)?.contact || {};
         const finalCV = {
             ...aiOptimizedCV,
             profil: {
                 ...aiOptimizedCV.profil,
-                nom: profile.nom || aiOptimizedCV.profil?.nom,
-                prenom: profile.prenom || aiOptimizedCV.profil?.prenom,
-                email: profileContact.email || profile.email || aiOptimizedCV.profil?.email,
-                telephone: profileContact.telephone || profile.telephone || aiOptimizedCV.profil?.telephone,
-                localisation: profile.localisation || profileContact.ville || aiOptimizedCV.profil?.localisation,
-                linkedin: profileContact.linkedin || profile.linkedin || aiOptimizedCV.profil?.linkedin,
-                titre_principal: profile.titre_principal || aiOptimizedCV.profil?.titre_principal,
-                elevator_pitch: aiOptimizedCV.profil?.elevator_pitch || profile.elevator_pitch,
+                nom: profile?.profil?.nom || aiOptimizedCV.profil?.nom,
+                prenom: profile?.profil?.prenom || aiOptimizedCV.profil?.prenom,
+                email: profileContact.email || profile?.profil?.email || (profile as any)?.email || aiOptimizedCV.profil?.email,
+                telephone: profileContact.telephone || profile?.profil?.telephone || (profile as any)?.telephone || aiOptimizedCV.profil?.telephone,
+                localisation: profile?.profil?.localisation || profileContact.ville || aiOptimizedCV.profil?.localisation,
+                linkedin: profileContact.linkedin || profile?.profil?.linkedin || (profile as any)?.linkedin || aiOptimizedCV.profil?.linkedin,
+                titre_principal: profile?.profil?.titre_principal || aiOptimizedCV.profil?.titre_principal,
+                elevator_pitch: aiOptimizedCV.profil?.elevator_pitch || profile?.profil?.elevator_pitch,
                 photo_url: includePhoto && photoUrl ? photoUrl : undefined
             },
             experiences: aiOptimizedCV.experiences || profile.experiences,
@@ -167,7 +168,7 @@ export async function POST(req: Request) {
             .single();
 
         if (cvError) {
-            console.error("CV Save Error", cvError);
+            logger.error("CV save error", { error: cvError.message });
             return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
         }
 
@@ -181,11 +182,12 @@ export async function POST(req: Request) {
             cvData: finalCV,
             templateName: template || "modern",
             includePhoto,
+            model_used: modelUsed,
             warnings: allWarnings.length > 0 ? allWarnings : undefined
         });
 
     } catch (error: any) {
-        console.error("CV Generation Error", error);
+        logger.error("CV Generation Error", { error: error?.message });
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

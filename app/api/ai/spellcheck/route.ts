@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { generateWithGemini, GEMINI_MODELS } from "@/lib/ai/gemini";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
@@ -33,20 +34,6 @@ export async function POST(req: Request) {
             });
         }
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            console.error("GEMINI_API_KEY not found");
-            return NextResponse.json({
-                original: text,
-                corrected: text,
-                hasChanges: false,
-                error: "API non configurée"
-            });
-        }
-
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // Fast model for quick corrections
-
         const prompt = `Tu es un correcteur orthographique et grammatical expert en français professionnel.
 
 TEXTE À CORRIGER:
@@ -63,8 +50,10 @@ INSTRUCTIONS:
 
 Réponds UNIQUEMENT avec le texte corrigé, sans explication ni guillemets.`;
 
-        const result = await model.generateContent(prompt);
-        const corrected = result.response.text().trim();
+        const corrected = (await generateWithGemini({
+            prompt,
+            model: GEMINI_MODELS.fallback,
+        })).trim();
 
         // Remove any quotes that might have been added
         const cleanedCorrected = corrected.replace(/^["']|["']$/g, '').trim();
@@ -75,11 +64,12 @@ Réponds UNIQUEMENT avec le texte corrigé, sans explication ni guillemets.`;
             original: text,
             corrected: cleanedCorrected,
             hasChanges,
+            model_used: GEMINI_MODELS.fallback,
             changes: hasChanges ? findChanges(text, cleanedCorrected) : []
         });
 
     } catch (error: any) {
-        console.error("Spellcheck error:", error);
+        logger.error("Spellcheck error", { error: error?.message });
         return NextResponse.json({
             original: "",
             corrected: "",

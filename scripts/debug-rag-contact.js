@@ -4,9 +4,16 @@
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
 
+const serviceKey = process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+const key = serviceKey ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !key) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL and no usable Supabase key found');
+}
+
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    key
 );
 
 async function debugRAGContact() {

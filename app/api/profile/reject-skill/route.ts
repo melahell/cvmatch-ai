@@ -1,19 +1,25 @@
 import { NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 
 export async function POST(request: Request) {
     try {
-        const { userId, skill, type } = await request.json();
+        const auth = await requireSupabaseUser(request);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
 
-        if (!userId || !skill || !type) {
+        const { skill, type } = await request.json();
+
+        if (!skill || !type) {
             return NextResponse.json(
-                { error: "Missing required fields: userId, skill, type" },
+                { error: "Missing required fields: skill, type" },
                 { status: 400 }
             );
         }
 
-        const supabase = createSupabaseClient();
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
 
         // 1. Fetch current RAG metadata
         const { data: current, error: fetchError } = await supabase

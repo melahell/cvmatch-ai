@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
-import Cookies from "js-cookie";
 import { Loader2, ArrowRight, Sparkles, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,13 +37,6 @@ export default function LoginPage() {
 
                         if (error) throw error;
                         if (data.session) {
-                            const userId = data.session.user.id;
-                            const userName = data.session.user.user_metadata.full_name ||
-                                data.session.user.user_metadata.name || "User";
-
-                            Cookies.set("userId", userId, { expires: 7 });
-                            Cookies.set("userName", userName, { expires: 7 });
-
                             router.replace("/dashboard");
                             return;
                         }
@@ -86,23 +78,22 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const res = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, name }),
+            const supabase = createSupabaseClient();
+            const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
+
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    emailRedirectTo: currentOrigin ? `${currentOrigin}/auth/confirm` : undefined,
+                    data: {
+                        full_name: name,
+                    },
+                },
             });
 
-            if (!res.ok) throw new Error("Login failed");
+            if (error) throw error;
 
-            const data = await res.json();
-            Cookies.set("userId", data.userId, { expires: 7 });
-            Cookies.set("userName", data.name, { expires: 7 });
-
-            if (!data.onboarding_completed) {
-                router.push("/onboarding");
-            } else {
-                router.push("/dashboard");
-            }
+            alert("Email envoyé. Ouvrez le lien pour vous connecter.");
         } catch (error) {
             console.error(error);
             alert("Erreur de connexion");

@@ -4,7 +4,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
-import Cookies from "js-cookie";
 import { Loader2 } from "lucide-react";
 
 export default function AuthCallbackPage() {
@@ -68,12 +67,6 @@ export default function AuthCallbackPage() {
 
         const finalizeLogin = (session: any) => {
             setStatus("Succès ! Connexion en cours...");
-            const userId = session.user.id;
-            const userName = session.user.user_metadata.full_name || session.user.user_metadata.name || "User";
-
-            Cookies.set("userId", userId, { expires: 7 });
-            Cookies.set("userName", userName, { expires: 7 });
-
             router.replace("/dashboard");
         };
 

@@ -6,66 +6,29 @@
  */
 
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { getTopJobsPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // 1 minute should be enough
 
-// Retry wrapper with exponential backoff
-async function callWithRetry<T>(
-    fn: () => Promise<T>,
-    maxRetries: number = 2,
-    baseDelay: number = 3000
-): Promise<T> {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-            return await fn();
-        } catch (error: any) {
-            const isRateLimit = error.message?.includes("429") || error.message?.includes("quota");
-            const isTimeout = error.message?.includes("timeout") || error.message?.includes("deadline");
-
-            if ((isRateLimit || isTimeout) && attempt < maxRetries - 1) {
-                const delay = baseDelay * Math.pow(2, attempt); // 3s, 6s
-                console.log(`Job suggestions retry ${attempt + 1}/${maxRetries} after ${delay}ms...`);
-                await new Promise(r => setTimeout(r, delay));
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw new Error("Max retries exceeded");
-}
-
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
-
     try {
-        const { userId } = await req.json();
-
-        if (!userId) {
-            return NextResponse.json({
-                error: "Missing userId",
-                errorCode: "INVALID_REQUEST"
-            }, { status: 400 });
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
         }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
 
         // Rate limiting: 10 job suggestions per hour
         const rateLimitResult = checkRateLimit(`jobs:${userId}`, RATE_LIMITS.JOB_SUGGESTIONS);
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
-        }
-
-        // Check API key
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            console.error("GEMINI_API_KEY not found");
-            return NextResponse.json({
-                error: "Server configuration error",
-                errorCode: "CONFIG_ERROR"
-            }, { status: 500 });
         }
 
         // Fetch RAG data
@@ -82,20 +45,18 @@ export async function POST(req: Request) {
             }, { status: 404 });
         }
 
-        // Generate job suggestions with Gemini
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-
         const prompt = getTopJobsPrompt(ragData.completeness_details);
+        logger.info("Top jobs génération démarrée", { userId });
 
-        console.log("=== TOP 10 JOBS GENERATION START ===");
-
+        let modelUsed: string | null = null;
         const responseText = await callWithRetry(async () => {
-            const result = await model.generateContent(prompt);
-            return result.response.text();
-        });
-
-        console.log("Gemini response length:", responseText.length);
+            const cascade = await generateWithCascade(prompt);
+            modelUsed = cascade.modelUsed;
+            const result = cascade.result;
+            const text = result.response.text();
+            logger.info("Top jobs IA OK", { modelUsed, responseLength: text.length });
+            return text;
+        }, 3);
 
         // Parse JSON
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
@@ -109,7 +70,7 @@ export async function POST(req: Request) {
                 throw new Error("Invalid response structure");
             }
         } catch (parseError: any) {
-            console.error("Failed to parse job suggestions:", responseText.slice(0, 500));
+            logger.error("Top jobs parse error", { responseLength: responseText.length });
             return NextResponse.json({
                 error: "AI returned invalid format for job suggestions",
                 errorCode: "PARSE_ERROR",
@@ -127,7 +88,7 @@ export async function POST(req: Request) {
             .eq("user_id", userId);
 
         if (updateError) {
-            console.error("Failed to save job suggestions:", updateError);
+            logger.error("Top jobs save error", { error: updateError.message });
             // Continue anyway, just log the error
         }
 
@@ -135,11 +96,12 @@ export async function POST(req: Request) {
             success: true,
             jobs: top10Jobs,
             count: top10Jobs.length,
+            model_used: modelUsed,
             generatedAt: new Date().toISOString()
         });
 
     } catch (error: any) {
-        console.error("Job suggestions error:", error);
+        logger.error("Job suggestions error", { error: error?.message });
 
         // Granular error handling
         if (error.message?.includes("GEMINI") || error.message?.includes("API")) {

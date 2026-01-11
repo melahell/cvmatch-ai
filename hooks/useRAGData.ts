@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSignedUrl, createSupabaseClient } from "@/lib/supabase";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
 import { logger } from "@/lib/utils/logger";
@@ -57,7 +57,7 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
 
             const { data: ragData, error: ragError } = await supabase
                 .from("rag_metadata")
-                .select("completeness_details,top_10_jobs,completeness_score,custom_notes,photo_url")
+                .select("completeness_details,top_10_jobs,completeness_score,custom_notes")
                 .eq("user_id", userId)
                 .single();
 
@@ -84,15 +84,8 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
             // Calculate breakdown from normalized data
             const { breakdown } = calculateCompletenessWithBreakdown(normalized);
 
-            // Handle photo_url - generate signed URL if it's a storage path
-            let photoUrl = ragData.photo_url || null;
-            if (photoUrl && photoUrl.startsWith('storage:')) {
-                const storagePath = photoUrl.replace('storage:', '');
-                const { data: signedUrlData } = await supabase.storage
-                    .from('documents')
-                    .createSignedUrl(storagePath, 3600); // 1 hour validity
-                photoUrl = signedUrlData?.signedUrl || null;
-            }
+            const profilePhotoRef = normalized?.profil?.photo_url || null;
+            const photoUrl = await createSignedUrl(supabase, profilePhotoRef);
 
             // Return COMPLETE normalized data, not just a subset
             setData({

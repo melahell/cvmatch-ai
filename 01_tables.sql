@@ -157,6 +157,24 @@ CREATE TABLE uploaded_documents (
 CREATE INDEX idx_uploaded_documents_user_id ON uploaded_documents(user_id);
 
 -- =============================================
+-- TABLE: saved_jobs
+-- Offres sauvegardées par l'utilisateur
+-- =============================================
+CREATE TABLE saved_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  job_url TEXT NOT NULL,
+  job_title VARCHAR(500),
+  company VARCHAR(255),
+  match_score INTEGER,
+  saved_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX idx_saved_jobs_user_job_url ON saved_jobs(user_id, job_url);
+CREATE INDEX idx_saved_jobs_user_id ON saved_jobs(user_id);
+CREATE INDEX idx_saved_jobs_saved_at ON saved_jobs(saved_at DESC);
+
+-- =============================================
 -- TABLE: analytics_events
 -- Événements pour analytics
 -- =============================================

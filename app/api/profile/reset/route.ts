@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { logger } from "@/lib/utils/logger";
 
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
-
     try {
-        const { userId } = await req.json();
-
-        if (!userId) {
-            return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
         }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
 
         // 1. Delete all documents from storage
         const { data: docs } = await supabase
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("Reset profile error:", error);
+        logger.error("Reset profile error", { error: error?.message });
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

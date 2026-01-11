@@ -74,6 +74,10 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
 
     const updateStatus = async (id: string, newStatus: JobAnalysis["application_status"]) => {
         try {
+            if (!userId) {
+                throw new Error("User not authenticated");
+            }
+
             // Optimistic update
             setData(prev => prev.map(j => j.id === id ? { ...j, application_status: newStatus } : j));
 
@@ -81,7 +85,8 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
             const { error } = await supabase
                 .from("job_analyses")
                 .update({ application_status: newStatus })
-                .eq("id", id);
+                .eq("id", id)
+                .eq("user_id", userId);
 
             if (error) {
                 // Revert on error
@@ -98,6 +103,10 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
 
     const deleteJob = async (id: string) => {
         try {
+            if (!userId) {
+                throw new Error("User not authenticated");
+            }
+
             // Optimistic update
             setData(prev => prev.filter(j => j.id !== id));
 
@@ -105,7 +114,8 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
             const { error } = await supabase
                 .from("job_analyses")
                 .delete()
-                .eq("id", id);
+                .eq("id", id)
+                .eq("user_id", userId);
 
             if (error) {
                 // Revert on error

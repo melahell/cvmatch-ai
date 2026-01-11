@@ -1,18 +1,19 @@
-import { createSupabaseClient } from '@/lib/supabase';
+import { createSignedUrl, createSupabaseUserClient, parseStorageRef, requireSupabaseUser } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
+import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: Request) {
     try {
-        const supabase = createSupabaseClient();
+        const auth = await requireSupabaseUser(request);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+        }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
 
         const formData = await request.formData();
         const photo = formData.get('photo') as File;
-        const userId = formData.get('userId') as string;
-
-        // Get userId from FormData (same pattern as other API routes)
-        if (!userId) {
-            return NextResponse.json({ error: 'userId requis' }, { status: 401 });
-        }
 
         if (!photo) {
             return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
@@ -28,68 +29,75 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Image trop volumineuse (max 2MB)' }, { status: 400 });
         }
 
-        // Delete old photo if exists
-        const { data: userData } = await supabase
-            .from('users')
-            .select('photo_url')
-            .eq('id', userId)
-            .single();
+        const { data: ragRow, error: ragRowError } = await supabase
+            .from('rag_metadata')
+            .select('id, completeness_details')
+            .eq('user_id', userId)
+            .maybeSingle();
 
-        if (userData?.photo_url) {
-            // Extract path from URL and delete
-            const oldPath = userData.photo_url.split('/').pop();
-            if (oldPath) {
-                await supabase.storage
-                    .from('documents')
-                    .remove([`photos/${userId}/${oldPath}`]);
-            }
+        if (ragRowError) {
+            return NextResponse.json({ error: ragRowError.message || 'Erreur DB' }, { status: 500 });
         }
 
-        // Upload new photo to Supabase Storage (use 'documents' bucket with photos/ prefix)
+        const existingDetails = (ragRow?.completeness_details as any) || {};
+        const existingPhotoRef = existingDetails?.profil?.photo_url as string | undefined;
+        const parsedExisting = existingPhotoRef ? parseStorageRef(existingPhotoRef) : null;
+        if (parsedExisting) {
+            await supabase.storage.from(parsedExisting.bucket).remove([parsedExisting.path]);
+        }
+
+        const bucket = 'profile-photos';
+
         const fileExt = photo.name.split('.').pop();
-        const fileName = `photos/${userId}/${Date.now()}.${fileExt}`;
+        const fileName = `avatars/${userId}/${Date.now()}.${fileExt}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('documents')
+            .from(bucket)
             .upload(fileName, photo, {
                 cacheControl: '3600',
                 upsert: true
             });
 
         if (uploadError) {
-            console.error('Upload error:', uploadError);
+            logger.error('Photo upload storage error', { error: uploadError.message });
             return NextResponse.json({ error: uploadError.message || 'Échec upload storage' }, { status: 500 });
         }
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-            .from('documents')
-            .getPublicUrl(uploadData.path);
-
-        // Store the storage path (for signed URL generation) AND public URL fallback
         const storagePath = uploadData.path;
+        const storageRef = `storage:${bucket}:${storagePath}`;
+        const nextDetails = {
+            ...existingDetails,
+            profil: {
+                ...(existingDetails?.profil || {}),
+                photo_url: storageRef,
+            },
+        };
 
-        // Update photo_url column with storage path (prefixed to identify as path)
-        const { error: updateError } = await supabase
-            .from('rag_metadata')
-            .update({ photo_url: `storage:${storagePath}` })
-            .eq('user_id', userId);
-
-        if (updateError) {
-            console.error('Update photo_url error:', updateError);
+        if (ragRow?.id) {
+            const { error: updateError } = await supabase
+                .from('rag_metadata')
+                .update({ completeness_details: nextDetails })
+                .eq('id', ragRow.id);
+            if (updateError) {
+                return NextResponse.json({ error: updateError.message || 'Erreur DB' }, { status: 500 });
+            }
+        } else {
+            const { error: insertError } = await supabase
+                .from('rag_metadata')
+                .insert({ user_id: userId, completeness_details: nextDetails });
+            if (insertError) {
+                return NextResponse.json({ error: insertError.message || 'Erreur DB' }, { status: 500 });
+            }
         }
 
-        // Return signed URL valid for 1 hour
-        const { data: signedUrlData } = await supabase.storage
-            .from('documents')
-            .createSignedUrl(storagePath, 3600);
+        const signedUrl = await createSignedUrl(supabase, storageRef);
 
         return NextResponse.json({
-            photo_url: signedUrlData?.signedUrl || publicUrl,
-            storage_path: storagePath
+            photo_url: signedUrl,
+            storage_ref: storageRef
         });
     } catch (error: any) {
-        console.error('Photo upload error:', error);
+        logger.error('Photo upload error', { error: error?.message });
         return NextResponse.json(
             { error: error.message || 'Erreur serveur' },
             { status: 500 }
@@ -99,41 +107,55 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        const supabase = createSupabaseClient();
-
-        const formData = await request.formData();
-        const userId = formData.get('userId') as string;
-
-        if (!userId) {
-            return NextResponse.json({ error: 'userId requis' }, { status: 401 });
+        const auth = await requireSupabaseUser(request);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
         }
 
-        // Get current photo URL
-        const { data: userData } = await supabase
-            .from('users')
-            .select('photo_url')
-            .eq('id', userId)
-            .single();
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
 
-        if (userData?.photo_url) {
-            // Delete from storage
-            const oldPath = userData.photo_url.split('/').pop();
-            if (oldPath) {
-                await supabase.storage
-                    .from('documents')
-                    .remove([`photos/${userId}/${oldPath}`]);
-            }
+        const { data: ragRow, error: ragRowError } = await supabase
+            .from('rag_metadata')
+            .select('id, completeness_details')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (ragRowError) {
+            return NextResponse.json({ error: ragRowError.message || 'Erreur DB' }, { status: 500 });
         }
 
-        // Update user record
-        await supabase
-            .from('users')
-            .update({ photo_url: null })
-            .eq('id', userId);
+        if (!ragRow?.id) {
+            return NextResponse.json({ success: true });
+        }
+
+        const existingDetails = (ragRow?.completeness_details as any) || {};
+        const existingPhotoRef = existingDetails?.profil?.photo_url as string | undefined;
+        const parsedExisting = existingPhotoRef ? parseStorageRef(existingPhotoRef) : null;
+        if (parsedExisting) {
+            await supabase.storage.from(parsedExisting.bucket).remove([parsedExisting.path]);
+        }
+
+        const nextDetails = {
+            ...existingDetails,
+            profil: {
+                ...(existingDetails?.profil || {}),
+                photo_url: null,
+            },
+        };
+
+        const { error: updateError } = await supabase
+            .from('rag_metadata')
+            .update({ completeness_details: nextDetails })
+            .eq('id', ragRow.id);
+
+        if (updateError) {
+            return NextResponse.json({ error: updateError.message || 'Erreur DB' }, { status: 500 });
+        }
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('Photo delete error:', error);
+        logger.error('Photo delete error', { error: error?.message });
         return NextResponse.json(
             { error: error.message || 'Erreur serveur' },
             { status: 500 }

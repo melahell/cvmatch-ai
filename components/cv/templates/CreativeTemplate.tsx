@@ -3,6 +3,7 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Sparkles } from "lucide-react";
+import Image from "next/image";
 
 // Vibrant creative palette
 const COLORS = {
@@ -122,9 +123,12 @@ export default function CreativeTemplate({
                             style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
                         >
                             {profil.photo_url ? (
-                                <img
+                                <Image
                                     src={profil.photo_url}
                                     alt={`${profil.prenom} ${profil.nom}`}
+                                    width={112}
+                                    height={112}
+                                    unoptimized
                                     className="w-full h-full object-cover"
                                 />
                             ) : (

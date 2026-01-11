@@ -44,9 +44,9 @@
 4. **`job_analyses`** : Analyses de match offre/profil
    - `match_score` : Score 0-100
    - `match_report` (JSONB) : Détails du match
-5. **`generated_cvs`** : CVs générés
+5. **`cv_generations`** : CVs générés
    - `cv_data` (JSONB) : Contenu structuré
-   - `pdf_url` : URL du PDF
+   - `cv_url` : URL du CV (optionnel)
 
 ### Storage Buckets
 - **`documents`** : Fichiers docs uploadés (PDF, DOCX, TXT, MD)
@@ -141,7 +141,7 @@ Il est calculé côté client via `calculateCompletenessWithBreakdown()` depuis 
 ### Photo de Profil
 - **Bucket** : `profile-photos` (PRIVÉ, pas public)
 - **URLs** : Signed URLs (expiration 1 an)
-- **Stockage** : `completeness_details.photo_url`
+- **Stockage** : `completeness_details.profil.photo_url`
 - **Upload** : Dashboard → Avatar → Sélectionner image → Upload + Update profil complet
 
 ---
@@ -282,10 +282,9 @@ Il est calculé côté client via `calculateCompletenessWithBreakdown()` depuis 
 1. User clique "Générer CV" depuis une analyse → POST `/api/cv/generate`
 2. Fetch profil RAG + analyse de match
 3. Prompt Gemini : Génère CV optimisé pour cette offre
-4. Génère PDF via template React
-5. Upload PDF → Storage bucket `cvs`
-6. Insert dans `generated_cvs`
-7. Retour URL de téléchargement
+4. Sauvegarde JSON dans `cv_generations`
+5. Génération PDF à la demande → GET `/api/cv/[id]/pdf` (Puppeteer)
+6. Retour à l'aperçu + téléchargement PDF
 
 ---
 

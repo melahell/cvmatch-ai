@@ -20,7 +20,7 @@ import { ClickableCard } from "@/components/ui/ClickableCard";
 import { BadgeList } from "@/components/ui/BadgeList";
 import { getWelcomeMessage, shouldShowOnboardingCTA, shouldShowCompletionTips, getScoreDescription } from "@/lib/dashboardHelpers";
 import Link from "next/link";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSignedUrl, createSupabaseClient } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function DashboardPage() {
@@ -257,18 +257,18 @@ export default function DashboardPage() {
                                                         <button onClick={async (e) => {
                                                             e.preventDefault();
                                                             const supabase = createSupabaseClient();
-                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
-                                                            if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+                                                            const signedUrl = await createSignedUrl(supabase, doc.storage_path, { bucket: "documents" });
+                                                            if (signedUrl) window.open(signedUrl, '_blank');
                                                         }} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 sm:p-1 hover:bg-slate-100 rounded transition-opacity" title="Voir">
                                                             <Eye className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                         </button>
                                                         <button onClick={async (e) => {
                                                             e.preventDefault();
                                                             const supabase = createSupabaseClient();
-                                                            const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
-                                                            if (data?.signedUrl) {
+                                                            const signedUrl = await createSignedUrl(supabase, doc.storage_path, { bucket: "documents" });
+                                                            if (signedUrl) {
                                                                 const a = document.createElement('a');
-                                                                a.href = data.signedUrl;
+                                                                a.href = signedUrl;
                                                                 a.download = doc.filename;
                                                                 a.click();
                                                             }
@@ -523,4 +523,3 @@ export default function DashboardPage() {
         </DashboardLayout>
     );
 }
-

@@ -1,40 +1,48 @@
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "edge";
 
 export async function POST(req: Request) {
     try {
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
+
         const formData = await req.formData();
         const files = formData.getAll("files") as File[];
-        const userId = formData.get("userId") as string;
+        const userId = auth.user.id;
 
         if (!files.length || !userId) {
             return NextResponse.json({ error: "Missing files or userId" }, { status: 400 });
         }
 
-        const supabase = createSupabaseClient();
+        const supabase = createSupabaseUserClient(auth.token);
 
-        // First, ensure user exists in users table (auto-create if not)
-        const { data: existingUser, error: userCheckError } = await supabase
+        const { data: existingUser } = await supabase
             .from("users")
             .select("id")
             .eq("id", userId)
-            .single();
+            .maybeSingle();
 
         if (!existingUser) {
-            // Create user in users table
+            const email = auth.user.email ?? `user-${userId.slice(0, 8)}@temp.com`;
+            const usernameSource = email.split("@")[0] || userId.slice(0, 8);
+            const userIdSlug = usernameSource.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 100);
+
             const { error: createUserError } = await supabase
                 .from("users")
                 .insert({
                     id: userId,
-                    email: `user-${userId.slice(0, 8)}@temp.com`, // Temporary email
-                    user_id: userId.slice(0, 20), // Required field
+                    email,
+                    user_id: userIdSlug,
                     onboarding_completed: false
                 });
 
             if (createUserError) {
-                console.error("Failed to create user:", createUserError);
+                logger.error("Failed to create user", { error: createUserError.message });
                 // Continue anyway, maybe user exists but RLS blocked the select
             }
         }
@@ -58,7 +66,7 @@ export async function POST(req: Request) {
                 });
 
             if (error) {
-                console.error("Storage upload error:", error);
+                logger.error("Storage upload error", { error: error.message, filename: file.name });
                 uploads.push({
                     filename: file.name,
                     error: error.message,
@@ -78,7 +86,7 @@ export async function POST(req: Request) {
             });
 
             if (dbError) {
-                console.error("DB Insert error:", dbError);
+                logger.error("DB Insert error", { error: dbError.message, filename: file.name });
                 uploads.push({ filename: file.name, error: "Database error: " + dbError.message });
             } else {
                 successCount++;
@@ -96,7 +104,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, successCount, uploads });
     } catch (error: any) {
-        console.error("Server error:", error);
+        logger.error("Upload server error", { error: error?.message });
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
 }

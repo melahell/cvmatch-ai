@@ -1,21 +1,24 @@
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
-
     try {
-        const body = await req.json();
-        const { userId, jobUrl, jobText, fileData, fileName, fileType } = body;
-
-        if (!userId) {
-            return NextResponse.json({ error: "Utilisateur non identifié." }, { status: 400 });
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
         }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
+
+        const body = await req.json();
+        const { jobUrl, jobText, fileData, fileName, fileType } = body;
 
         if (!jobUrl && !jobText && !fileData) {
             return NextResponse.json({ error: "Fournissez une URL, un texte ou un fichier." }, { status: 400 });
@@ -50,14 +53,14 @@ export async function POST(req: Request) {
                 const { result, modelUsed } = await callWithRetry(() =>
                     generateWithCascade(extractionPrompt)
                 );
-                console.log(`File extraction with: ${modelUsed}`);
+                logger.info("Extraction offre fichier", { modelUsed });
                 fullJobText = result.response.text();
 
                 if (fullJobText.length < 50) {
                     return NextResponse.json({ error: "Fichier illisible. Essayez un texte copié-collé." }, { status: 400 });
                 }
             } catch (err: any) {
-                console.error("File extraction error:", err.message);
+                logger.error("File extraction error", { error: err?.message });
                 return NextResponse.json({
                     error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
                 }, { status: 503 });
@@ -109,9 +112,9 @@ export async function POST(req: Request) {
             const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
             result = cascadeResult.result;
             modelUsed = cascadeResult.modelUsed;
-            console.log(`Match analysis with: ${modelUsed}`);
+            logger.info("Analyse match IA", { modelUsed });
         } catch (err: any) {
-            console.error("All models failed:", err.message);
+            logger.error("Analyse match IA KO", { error: err?.message });
             return NextResponse.json({
                 error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
             }, { status: 503 });
@@ -143,7 +146,11 @@ export async function POST(req: Request) {
             matchData.match_report?.company ||
             null;
 
-        console.log(`📊 Match Analysis - job_title: "${extractedJobTitle}", company: "${extractedCompany}", score: ${matchData.match_score}`);
+        logger.info("Match analysé", {
+            job_title: extractedJobTitle,
+            company: extractedCompany,
+            score: matchData.match_score,
+        });
 
         // 4. Save to DB
         const { data: insertData } = await supabase
@@ -174,7 +181,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("Analyze Error:", error);
+        logger.error("Analyze Error", { error: error?.message });
         return NextResponse.json({ error: "Erreur inattendue. Réessayez." }, { status: 500 });
     }
 }
