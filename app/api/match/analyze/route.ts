@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { models } from "@/lib/ai/gemini";
 import { JobAnalysis } from "@/types";
 import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
+import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
 
 // Edge runtime to mock quickly, but scraping usually needs Node 
 // Let's use Node runtime for robustness with potential scraping libraries
@@ -16,6 +17,15 @@ export async function POST(req: Request) {
 
         if (!userId || (!jobUrl && !jobText)) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        }
+
+        // Check GDPR consent for Gemini usage
+        const consentCheck = await checkGeminiConsent(userId);
+        if (!consentCheck.hasConsent) {
+            return NextResponse.json(
+                { error: "gemini_consent_required", message: consentCheck.message },
+                { status: 403 }
+            );
         }
 
         // 1. Get User RAG Profile
@@ -74,6 +84,13 @@ export async function POST(req: Request) {
 
         const result = await models.flash.generateContent(prompt);
         const responseText = result.response.text();
+
+        // Log Gemini usage for transparency (RGPD Article 15)
+        await logGeminiUsage(userId, "job_analysis", {
+            job_url: jobUrl || "manual_text",
+            job_text_length: fullJobText.length
+        });
+
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
         let matchData;
