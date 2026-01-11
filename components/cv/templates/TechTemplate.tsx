@@ -168,7 +168,7 @@ export default function TechTemplate({
 
                 {/* Contact - Terminal style */}
                 <div className="space-y-1.5 mb-4 text-[7pt] font-mono">
-                    <div className="text-emerald-300 text-[6pt] mb-1">// contact</div>
+                    <div className="text-emerald-300 text-[6pt] mb-1">{'// contact'}</div>
                     {profil.email && (
                         <div className="flex items-center gap-2">
                             <Mail className="w-3 h-3 text-cyan-400" />
@@ -201,7 +201,7 @@ export default function TechTemplate({
 
                 {/* Skills by Category */}
                 <div className="space-y-3 flex-1">
-                    <div className="text-emerald-300 text-[6pt] font-mono">// tech_stack</div>
+                    <div className="text-emerald-300 text-[6pt] font-mono">{'// tech_stack'}</div>
 
                     {skillCategories.languages.length > 0 && (
                         <div>
@@ -274,7 +274,7 @@ export default function TechTemplate({
                 {/* Languages */}
                 {langues && langues.length > 0 && (
                     <div className="pt-3 border-t border-slate-700 mt-auto">
-                        <div className="text-emerald-300 text-[6pt] font-mono mb-1">// languages</div>
+                        <div className="text-emerald-300 text-[6pt] font-mono mb-1">{'// languages'}</div>
                         <div className="flex flex-wrap gap-2">
                             {langues.map((lang, i) => (
                                 <span key={i} className="text-[7pt] text-slate-300">
@@ -297,7 +297,7 @@ export default function TechTemplate({
                     {jobContext?.job_title && (
                         <div className="mt-2 px-2 py-1 bg-emerald-50 rounded inline-block">
                             <span className="text-[7pt] text-emerald-700 font-mono">
-                                // Candidature: {jobContext.job_title}
+                                {'// Candidature: '} {jobContext.job_title}
                                 {jobContext.company && ` @ ${jobContext.company}`}
                                 {jobContext.match_score && ` | Match: ${jobContext.match_score}%`}
                             </span>
