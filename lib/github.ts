@@ -25,13 +25,21 @@ export async function pushToGitHub(path: string, content: string, message: strin
         return null;
     }
 
+    const owner = REPO_OWNER;
+    const repo = REPO_NAME;
+
+    if (!owner || !repo) {
+        console.warn("GITHUB_REPO_OWNER or GITHUB_REPO_NAME missing, skipping GitHub sync");
+        return null;
+    }
+
     try {
         // 1. Get current file SHA (if exists) to update
         let sha;
         try {
             const { data } = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', {
-                owner: REPO_OWNER,
-                repo: REPO_NAME,
+                owner,
+                repo,
                 path: path,
             });
             if (!Array.isArray(data)) {
@@ -43,8 +51,8 @@ export async function pushToGitHub(path: string, content: string, message: strin
 
         // 2. Create or Update file
         const response = await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
-            owner: REPO_OWNER,
-            repo: REPO_NAME,
+            owner,
+            repo,
             path: path,
             message: message,
             committer: {

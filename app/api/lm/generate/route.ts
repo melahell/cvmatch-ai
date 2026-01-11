@@ -1,7 +1,7 @@
 
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { models } from "@/lib/ai/gemini";
+import { GEMINI_MODELS, generateWithGemini } from "@/lib/ai/gemini";
 import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
 
 export const runtime = "nodejs";
@@ -52,8 +52,10 @@ export async function POST(req: Request) {
             FORMAT: Retourne le texte de la lettre directement, avec des sauts de ligne, sans Markdown complexe (juste texte).
         `;
 
-        const result = await models.flash.generateContent(prompt);
-        const letter = result.response.text();
+        const letter = await generateWithGemini({
+            prompt,
+            model: GEMINI_MODELS.fallback,
+        });
 
         // Log Gemini usage for transparency (RGPD Article 15)
         await logGeminiUsage(userId, "lm_generation", {

@@ -1,6 +1,6 @@
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { models } from "@/lib/ai/gemini";
+import { GEMINI_MODELS, generateWithGemini } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
 import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
 
@@ -53,8 +53,10 @@ export async function POST(req: Request) {
         // We ask Gemini to rewrite the profile summary and experience bullets.
         const prompt = getCVOptimizationPrompt(profile, jobDescription);
 
-        const result = await models.flash.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await generateWithGemini({
+            prompt,
+            model: GEMINI_MODELS.fallback,
+        });
 
         // Log Gemini usage for transparency (RGPD Article 15)
         await logGeminiUsage(userId, "cv_generation", {

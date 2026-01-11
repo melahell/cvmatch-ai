@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { models } from "@/lib/ai/gemini";
-import { pushToGitHub } from "@/lib/github";
+import { GEMINI_MODELS, generateWithGemini } from "@/lib/ai/gemini";
 import { createSupabaseClient } from "@/lib/supabase";
 import mammoth from "mammoth";
 const pdf = require("pdf-parse");
@@ -80,8 +79,10 @@ export async function POST(req: Request) {
         // 3. Process with Gemini
         const prompt = getRAGExtractionPrompt(allExtractedText);
 
-        const result = await models.flash.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await generateWithGemini({
+            prompt,
+            model: GEMINI_MODELS.fallback,
+        });
 
         // Log Gemini usage for transparency (RGPD Article 15)
         await logGeminiUsage(userId, "rag_extraction", {
@@ -102,8 +103,10 @@ export async function POST(req: Request) {
 
         // 4. Generate Top 10 Jobs
         const jobPrompt = getTopJobsPrompt(ragData);
-        const jobResult = await models.flash.generateContent(jobPrompt);
-        const jobResponseText = jobResult.response.text();
+        const jobResponseText = await generateWithGemini({
+            prompt: jobPrompt,
+            model: GEMINI_MODELS.fallback,
+        });
         const jobJsonString = jobResponseText.replace(/```json/g, "").replace(/```/g, "").trim();
         let top10Jobs = [];
         try {

@@ -1,7 +1,7 @@
 
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { models } from "@/lib/ai/gemini";
+import { GEMINI_MODELS, generateWithGemini } from "@/lib/ai/gemini";
 import { JobAnalysis } from "@/types";
 import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
 import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
@@ -82,8 +82,10 @@ export async function POST(req: Request) {
         // 3. Analyze Match with Gemini
         const prompt = getMatchAnalysisPrompt(ragData.completeness_details, fullJobText);
 
-        const result = await models.flash.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await generateWithGemini({
+            prompt,
+            model: GEMINI_MODELS.fallback,
+        });
 
         // Log Gemini usage for transparency (RGPD Article 15)
         await logGeminiUsage(userId, "job_analysis", {
