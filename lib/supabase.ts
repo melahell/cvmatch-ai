@@ -101,21 +101,57 @@ export const resetSupabaseInstance = () => {
 
 const DEFAULT_SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 365;
 
+const KNOWN_STORAGE_BUCKETS = ["documents", "cvs", "profile-photos"] as const;
+
+const normalizeStoragePath = (path: string) => {
+    const trimmed = path.trim();
+    return trimmed.startsWith("/") ? trimmed.slice(1) : trimmed;
+};
+
+const inferBucketFromPath = (path: string): string | null => {
+    const p = normalizeStoragePath(path);
+    if (p.startsWith("avatars/")) return "profile-photos";
+    if (p.startsWith("profile-photos/")) return "profile-photos";
+    if (p.startsWith("documents/")) return "documents";
+    if (p.startsWith("cvs/")) return "cvs";
+    return null;
+};
+
+const stripBucketPrefix = (bucket: string, path: string) => {
+    const p = normalizeStoragePath(path);
+    const prefix = `${bucket}/`;
+    return p.startsWith(prefix) ? p.slice(prefix.length) : p;
+};
+
 export const parseStorageRef = (value: string): { bucket: string; path: string } | null => {
     if (!value) return null;
-    if (value.startsWith("http://") || value.startsWith("https://")) {
+    const input = value.trim();
+    if (!input) return null;
+
+    if (input.startsWith("http://") || input.startsWith("https://")) {
         return null;
     }
 
-    if (!value.startsWith("storage:")) {
-        return { bucket: "documents", path: value };
+    for (const bucket of KNOWN_STORAGE_BUCKETS) {
+        const prefix = `${bucket}:`;
+        if (input.startsWith(prefix)) {
+            const path = input.slice(prefix.length);
+            if (!path) return null;
+            return { bucket, path: stripBucketPrefix(bucket, path) };
+        }
     }
 
-    const raw = value.slice("storage:".length);
+    if (!input.startsWith("storage:")) {
+        const inferredBucket = inferBucketFromPath(input) ?? "documents";
+        return { bucket: inferredBucket, path: stripBucketPrefix(inferredBucket, input) };
+    }
+
+    const raw = input.slice("storage:".length);
     const firstColon = raw.indexOf(":");
 
     if (firstColon === -1) {
-        return { bucket: "documents", path: raw };
+        const inferredBucket = inferBucketFromPath(raw) ?? "documents";
+        return { bucket: inferredBucket, path: stripBucketPrefix(inferredBucket, raw) };
     }
 
     const bucket = raw.slice(0, firstColon);
@@ -124,7 +160,7 @@ export const parseStorageRef = (value: string): { bucket: string; path: string }
         return null;
     }
 
-    return { bucket, path };
+    return { bucket, path: stripBucketPrefix(bucket, path) };
 };
 
 export const createSignedUrl = async (
