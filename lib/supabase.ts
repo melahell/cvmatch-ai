@@ -111,6 +111,7 @@ const normalizeStoragePath = (path: string) => {
 const inferBucketFromPath = (path: string): string | null => {
     const p = normalizeStoragePath(path);
     if (p.startsWith("avatars/")) return "profile-photos";
+    if (p.startsWith("photos/")) return "profile-photos";
     if (p.startsWith("profile-photos/")) return "profile-photos";
     if (p.startsWith("documents/")) return "documents";
     if (p.startsWith("cvs/")) return "cvs";

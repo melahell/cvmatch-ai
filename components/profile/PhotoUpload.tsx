@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import Image from "next/image";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 
 interface PhotoUploadProps {
     currentPhoto?: string | null;
@@ -60,12 +61,15 @@ export function PhotoUpload({
 
             const response = await fetch('/api/profile/photo', {
                 method: 'POST',
+                headers: {
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: formData,
             });
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.message || 'Échec de l\'upload');
+                throw new Error(error?.message || error?.error || 'Échec de l\'upload');
             }
 
             const data = await response.json();
@@ -85,16 +89,22 @@ export function PhotoUpload({
             formData.append('userId', userId);
             const response = await fetch('/api/profile/photo', {
                 method: 'DELETE',
+                headers: {
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: formData,
             });
 
-            if (!response.ok) throw new Error();
+            if (!response.ok) {
+                const error = await response.json().catch(() => null);
+                throw new Error(error?.message || error?.error || 'Erreur lors de la suppression');
+            }
 
             setPreview(null);
             onUploadSuccess('');
             toast.success('Photo supprimée');
-        } catch {
-            toast.error('Erreur lors de la suppression');
+        } catch (error: any) {
+            toast.error(error.message || 'Erreur lors de la suppression');
         }
     };
 

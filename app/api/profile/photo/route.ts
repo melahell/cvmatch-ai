@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     try {
         const auth = await requireSupabaseUser(request);
         if (auth.error || !auth.user || !auth.token) {
-            return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+            return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
         const supabase = createSupabaseUserClient(auth.token);
@@ -16,17 +16,17 @@ export async function POST(request: Request) {
         const photo = formData.get('photo') as File;
 
         if (!photo) {
-            return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 });
+            return NextResponse.json({ error: 'Aucun fichier fourni', message: 'Aucun fichier fourni' }, { status: 400 });
         }
 
         // Validation server-side
         if (!photo.type.startsWith('image/')) {
-            return NextResponse.json({ error: 'Le fichier doit être une image' }, { status: 400 });
+            return NextResponse.json({ error: 'Le fichier doit être une image', message: 'Le fichier doit être une image' }, { status: 400 });
         }
 
         const MAX_SIZE = 2 * 1024 * 1024; // 2MB
         if (photo.size > MAX_SIZE) {
-            return NextResponse.json({ error: 'Image trop volumineuse (max 2MB)' }, { status: 400 });
+            return NextResponse.json({ error: 'Image trop volumineuse (max 2MB)', message: 'Image trop volumineuse (max 2MB)' }, { status: 400 });
         }
 
         const { data: ragRow, error: ragRowError } = await supabase
@@ -36,7 +36,8 @@ export async function POST(request: Request) {
             .maybeSingle();
 
         if (ragRowError) {
-            return NextResponse.json({ error: ragRowError.message || 'Erreur DB' }, { status: 500 });
+            const message = ragRowError.message || 'Erreur DB';
+            return NextResponse.json({ error: message, message }, { status: 500 });
         }
 
         const existingDetails = (ragRow?.completeness_details as any) || {};
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
 
         const bucket = 'profile-photos';
 
-        const fileExt = photo.name.split('.').pop();
+        const rawExt = photo.name.split('.').pop();
+        const fileExt = (rawExt && rawExt.length <= 10 ? rawExt : 'jpg').toLowerCase();
         const fileName = `avatars/${userId}/${Date.now()}.${fileExt}`;
 
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -60,7 +62,8 @@ export async function POST(request: Request) {
 
         if (uploadError) {
             logger.error('Photo upload storage error', { error: uploadError.message });
-            return NextResponse.json({ error: uploadError.message || 'Échec upload storage' }, { status: 500 });
+            const message = uploadError.message || 'Échec upload storage';
+            return NextResponse.json({ error: message, message }, { status: 500 });
         }
 
         const storagePath = uploadData.path;
@@ -79,14 +82,16 @@ export async function POST(request: Request) {
                 .update({ completeness_details: nextDetails })
                 .eq('id', ragRow.id);
             if (updateError) {
-                return NextResponse.json({ error: updateError.message || 'Erreur DB' }, { status: 500 });
+                const message = updateError.message || 'Erreur DB';
+                return NextResponse.json({ error: message, message }, { status: 500 });
             }
         } else {
             const { error: insertError } = await supabase
                 .from('rag_metadata')
                 .insert({ user_id: userId, completeness_details: nextDetails });
             if (insertError) {
-                return NextResponse.json({ error: insertError.message || 'Erreur DB' }, { status: 500 });
+                const message = insertError.message || 'Erreur DB';
+                return NextResponse.json({ error: message, message }, { status: 500 });
             }
         }
 
@@ -99,7 +104,7 @@ export async function POST(request: Request) {
     } catch (error: any) {
         logger.error('Photo upload error', { error: error?.message });
         return NextResponse.json(
-            { error: error.message || 'Erreur serveur' },
+            { error: error.message || 'Erreur serveur', message: error.message || 'Erreur serveur' },
             { status: 500 }
         );
     }
@@ -109,7 +114,7 @@ export async function DELETE(request: Request) {
     try {
         const auth = await requireSupabaseUser(request);
         if (auth.error || !auth.user || !auth.token) {
-            return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
+            return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
         const supabase = createSupabaseUserClient(auth.token);
@@ -122,7 +127,8 @@ export async function DELETE(request: Request) {
             .maybeSingle();
 
         if (ragRowError) {
-            return NextResponse.json({ error: ragRowError.message || 'Erreur DB' }, { status: 500 });
+            const message = ragRowError.message || 'Erreur DB';
+            return NextResponse.json({ error: message, message }, { status: 500 });
         }
 
         if (!ragRow?.id) {
@@ -150,14 +156,15 @@ export async function DELETE(request: Request) {
             .eq('id', ragRow.id);
 
         if (updateError) {
-            return NextResponse.json({ error: updateError.message || 'Erreur DB' }, { status: 500 });
+            const message = updateError.message || 'Erreur DB';
+            return NextResponse.json({ error: message, message }, { status: 500 });
         }
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
         logger.error('Photo delete error', { error: error?.message });
         return NextResponse.json(
-            { error: error.message || 'Erreur serveur' },
+            { error: error.message || 'Erreur serveur', message: error.message || 'Erreur serveur' },
             { status: 500 }
         );
     }
