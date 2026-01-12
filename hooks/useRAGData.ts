@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createSignedUrl, createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
 import { logger } from "@/lib/utils/logger";
@@ -84,8 +84,14 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
             // Calculate breakdown from normalized data
             const { breakdown } = calculateCompletenessWithBreakdown(normalized);
 
-            const profilePhotoRef = normalized?.profil?.photo_url || null;
-            const photoUrl = await createSignedUrl(supabase, profilePhotoRef);
+            const headers = await getSupabaseAuthHeader();
+            const photoRes = await fetch('/api/profile/photo', {
+                method: 'GET',
+                headers,
+            });
+
+            const photoJson = photoRes.ok ? await photoRes.json().catch(() => null) : null;
+            const photoUrl = (photoJson?.photo_url as string | null) ?? null;
 
             // Return COMPLETE normalized data, not just a subset
             setData({

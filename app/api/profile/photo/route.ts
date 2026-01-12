@@ -1,6 +1,66 @@
-import { createSignedUrl, createSupabaseUserClient, parseStorageRef, requireSupabaseUser } from '@/lib/supabase';
+import { createSignedUrl, createSupabaseAdminClient, createSupabaseUserClient, parseStorageRef, requireSupabaseUser } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
+
+export async function GET(request: Request) {
+    try {
+        const auth = await requireSupabaseUser(request);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
+        }
+
+        const userId = auth.user.id;
+        const supabase = createSupabaseUserClient(auth.token);
+
+        const { data: ragRow, error: ragRowError } = await supabase
+            .from('rag_metadata')
+            .select('completeness_details')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (ragRowError) {
+            const message = ragRowError.message || 'Erreur DB';
+            return NextResponse.json({ error: message, message }, { status: 500 });
+        }
+
+        const existingDetails = (ragRow?.completeness_details as any) || {};
+        const ref = existingDetails?.profil?.photo_url as string | undefined;
+        if (!ref) {
+            return NextResponse.json({ photo_url: null });
+        }
+
+        if (ref.startsWith('http://') || ref.startsWith('https://')) {
+            return NextResponse.json({ photo_url: ref });
+        }
+
+        const parsed = parseStorageRef(ref);
+        if (!parsed) {
+            return NextResponse.json({ photo_url: null });
+        }
+
+        const path = parsed.path;
+        const allowedProfilePhotos = path.startsWith(`avatars/${userId}/`) || path.startsWith(`photos/${userId}/`);
+        const allowedLegacyDocumentsPhotos = path.startsWith(`photos/${userId}/`);
+
+        if (parsed.bucket === 'profile-photos' && !allowedProfilePhotos) {
+            return NextResponse.json({ error: 'Chemin photo invalide', message: 'Chemin photo invalide' }, { status: 400 });
+        }
+
+        if (parsed.bucket === 'documents' && !allowedLegacyDocumentsPhotos) {
+            return NextResponse.json({ error: 'Chemin photo invalide', message: 'Chemin photo invalide' }, { status: 400 });
+        }
+
+        const admin = createSupabaseAdminClient();
+        const signedUrl = await createSignedUrl(admin, `storage:${parsed.bucket}:${path}`);
+        return NextResponse.json({ photo_url: signedUrl });
+    } catch (error: any) {
+        logger.error('Photo get error', { error: error?.message });
+        return NextResponse.json(
+            { error: error.message || 'Erreur serveur', message: error.message || 'Erreur serveur' },
+            { status: 500 }
+        );
+    }
+}
 
 export async function POST(request: Request) {
     try {
