@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import Image from "next/image";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 
 interface PhotoUploadProps {
     currentPhoto?: string | null;
@@ -58,8 +59,14 @@ export function PhotoUpload({
             formData.append('photo', file);
             formData.append('userId', userId);
 
+            const authHeaders = await getSupabaseAuthHeader();
+            if (!authHeaders.Authorization) {
+                throw new Error('Session expirée, reconnecte-toi.');
+            }
+
             const response = await fetch('/api/profile/photo', {
                 method: 'POST',
+                headers: authHeaders,
                 body: formData,
             });
 
@@ -83,8 +90,15 @@ export function PhotoUpload({
         try {
             const formData = new FormData();
             formData.append('userId', userId);
+
+            const authHeaders = await getSupabaseAuthHeader();
+            if (!authHeaders.Authorization) {
+                throw new Error('Session expirée, reconnecte-toi.');
+            }
+
             const response = await fetch('/api/profile/photo', {
                 method: 'DELETE',
+                headers: authHeaders,
                 body: formData,
             });
 
@@ -93,8 +107,8 @@ export function PhotoUpload({
             setPreview(null);
             onUploadSuccess('');
             toast.success('Photo supprimée');
-        } catch {
-            toast.error('Erreur lors de la suppression');
+        } catch (error: any) {
+            toast.error(error?.message || 'Erreur lors de la suppression');
         }
     };
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cvcrush-v5.0.11';
+const CACHE_NAME = 'cvcrush-v5.0.12';
 const STATIC_ASSETS = [
     '/',
     '/login',
@@ -29,21 +29,33 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Fetch event - Network first, fallback to cache
+// Fetch event - Cache uniquement les assets explicitement listés
 self.addEventListener('fetch', (event) => {
     // Skip non-GET requests
     if (event.request.method !== 'GET') return;
 
-    // Skip API calls and external resources
     const url = new URL(event.request.url);
-    if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) {
+    if (url.origin !== self.location.origin) {
+        return;
+    }
+
+    if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/')) {
+        return;
+    }
+
+    if (url.searchParams.has('_rsc')) {
+        return;
+    }
+
+    if (!STATIC_ASSETS.includes(url.pathname)) {
         return;
     }
 
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                // Clone and cache successful responses
+        caches.match(event.request).then((cached) => {
+            if (cached) return cached;
+
+            return fetch(event.request).then((response) => {
                 if (response.status === 200) {
                     const responseClone = response.clone();
                     caches.open(CACHE_NAME).then((cache) => {
@@ -51,10 +63,7 @@ self.addEventListener('fetch', (event) => {
                     });
                 }
                 return response;
-            })
-            .catch(() => {
-                // Fallback to cache
-                return caches.match(event.request);
-            })
+            });
+        })
     );
 });
