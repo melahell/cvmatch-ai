@@ -1,7 +1,6 @@
-const CACHE_NAME = 'cvcrush-v1';
+const CACHE_NAME = 'cvcrush-v5.0.11';
 const STATIC_ASSETS = [
     '/',
-    '/dashboard',
     '/login',
     '/manifest.json'
 ];
