@@ -1,10 +1,7 @@
 import {
     createSignedUrl,
-    createSupabaseClient,
     createSupabaseAdminClient,
-    createSupabaseUserClient,
     parseStorageRef,
-    requireSupabaseUser,
 } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -19,17 +16,23 @@ const getCookieUserId = (): string | null => {
     return value;
 };
 
+const getUserIdFromUrl = (request: Request): string | null => {
+    const url = new URL(request.url);
+    const value = url.searchParams.get('userId');
+    if (!value) return null;
+    if (!UUID_REGEX.test(value)) return null;
+    return value;
+};
+
 export async function GET(request: Request) {
     try {
-        const auth = await requireSupabaseUser(request);
-        const userId = auth.user?.id ?? getCookieUserId();
+        const userId = getCookieUserId() ?? getUserIdFromUrl(request);
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
-        const supabase = auth.token ? createSupabaseUserClient(auth.token) : createSupabaseClient();
-
-        const { data: ragRow, error: ragRowError } = await supabase
+        const admin = createSupabaseAdminClient();
+        const { data: ragRow, error: ragRowError } = await admin
             .from('rag_metadata')
             .select('completeness_details')
             .eq('user_id', userId)
@@ -67,7 +70,6 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Chemin photo invalide', message: 'Chemin photo invalide' }, { status: 400 });
         }
 
-        const admin = createSupabaseAdminClient();
         const signedUrl = await createSignedUrl(admin, `storage:${parsed.bucket}:${path}`);
         return NextResponse.json({ photo_url: signedUrl });
     } catch (error: any) {
@@ -81,16 +83,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const auth = await requireSupabaseUser(request);
-        const userId = auth.user?.id ?? getCookieUserId();
+        const admin = createSupabaseAdminClient();
+
+        const formData = await request.formData();
+        const userIdFromBody = formData.get('userId');
+        const userId = getCookieUserId() ?? (typeof userIdFromBody === 'string' && UUID_REGEX.test(userIdFromBody) ? userIdFromBody : null);
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
-        const supabase = auth.token ? createSupabaseUserClient(auth.token) : createSupabaseClient();
-        const admin = createSupabaseAdminClient();
-
-        const formData = await request.formData();
         const photo = formData.get('photo') as File;
 
         if (!photo) {
@@ -106,7 +107,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Image trop volumineuse (max 2MB)', message: 'Image trop volumineuse (max 2MB)' }, { status: 400 });
         }
 
-        const { data: ragRow, error: ragRowError } = await supabase
+        const { data: ragRow, error: ragRowError } = await admin
             .from('rag_metadata')
             .select('id, completeness_details')
             .eq('user_id', userId)
@@ -153,7 +154,7 @@ export async function POST(request: Request) {
         };
 
         if (ragRow?.id) {
-            const { error: updateError } = await supabase
+            const { error: updateError } = await admin
                 .from('rag_metadata')
                 .update({ completeness_details: nextDetails })
                 .eq('id', ragRow.id);
@@ -162,7 +163,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: message, message }, { status: 500 });
             }
         } else {
-            const { error: insertError } = await supabase
+            const { error: insertError } = await admin
                 .from('rag_metadata')
                 .insert({ user_id: userId, completeness_details: nextDetails });
             if (insertError) {
@@ -202,16 +203,19 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
     try {
-        const auth = await requireSupabaseUser(request);
-        const userId = auth.user?.id ?? getCookieUserId();
+        const admin = createSupabaseAdminClient();
+
+        let userId: string | null = getCookieUserId();
+        if (!userId) {
+            const formData = await request.formData();
+            const userIdFromBody = formData.get('userId');
+            userId = typeof userIdFromBody === 'string' && UUID_REGEX.test(userIdFromBody) ? userIdFromBody : null;
+        }
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
-        const supabase = auth.token ? createSupabaseUserClient(auth.token) : createSupabaseClient();
-        const admin = createSupabaseAdminClient();
-
-        const { data: ragRow, error: ragRowError } = await supabase
+        const { data: ragRow, error: ragRowError } = await admin
             .from('rag_metadata')
             .select('id, completeness_details')
             .eq('user_id', userId)
@@ -251,7 +255,7 @@ export async function DELETE(request: Request) {
             },
         };
 
-        const { error: updateError } = await supabase
+        const { error: updateError } = await admin
             .from('rag_metadata')
             .update({ completeness_details: nextDetails })
             .eq('id', ragRow.id);

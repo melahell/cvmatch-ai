@@ -65,6 +65,7 @@ export function PhotoUpload({
                 method: 'POST',
                 headers: authHeaders,
                 body: formData,
+                credentials: 'include',
             });
 
             if (!response.ok) {
@@ -93,6 +94,7 @@ export function PhotoUpload({
                 method: 'DELETE',
                 headers: authHeaders,
                 body: formData,
+                credentials: 'include',
             });
 
             if (!response.ok) throw new Error();
