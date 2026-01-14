@@ -87,7 +87,7 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
             let photoUrl = (normalized?.profil?.photo_url as string | undefined) || null;
             if (photoUrl) {
                 const authHeaders = await getSupabaseAuthHeader();
-                const res = await fetch(`/api/profile/photo?userId=${encodeURIComponent(userId)}`, {
+                const res = await fetch('/api/profile/photo', {
                     method: 'GET',
                     headers: authHeaders,
                     credentials: 'include',

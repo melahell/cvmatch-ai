@@ -16,17 +16,9 @@ const getCookieUserId = (): string | null => {
     return value;
 };
 
-const getUserIdFromUrl = (request: Request): string | null => {
-    const url = new URL(request.url);
-    const value = url.searchParams.get('userId');
-    if (!value) return null;
-    if (!UUID_REGEX.test(value)) return null;
-    return value;
-};
-
 export async function GET(request: Request) {
     try {
-        const userId = getCookieUserId() ?? getUserIdFromUrl(request);
+        const userId = getCookieUserId();
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
@@ -85,13 +77,12 @@ export async function POST(request: Request) {
     try {
         const admin = createSupabaseAdminClient();
 
-        const formData = await request.formData();
-        const userIdFromBody = formData.get('userId');
-        const userId = getCookieUserId() ?? (typeof userIdFromBody === 'string' && UUID_REGEX.test(userIdFromBody) ? userIdFromBody : null);
+        const userId = getCookieUserId();
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
+        const formData = await request.formData();
         const photo = formData.get('photo') as File;
 
         if (!photo) {
@@ -205,12 +196,7 @@ export async function DELETE(request: Request) {
     try {
         const admin = createSupabaseAdminClient();
 
-        let userId: string | null = getCookieUserId();
-        if (!userId) {
-            const formData = await request.formData();
-            const userIdFromBody = formData.get('userId');
-            userId = typeof userIdFromBody === 'string' && UUID_REGEX.test(userIdFromBody) ? userIdFromBody : null;
-        }
+        const userId = getCookieUserId();
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }

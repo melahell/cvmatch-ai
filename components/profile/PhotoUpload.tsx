@@ -57,7 +57,6 @@ export function PhotoUpload({
         try {
             const formData = new FormData();
             formData.append('photo', file);
-            formData.append('userId', userId);
 
             const authHeaders = await getSupabaseAuthHeader();
 
@@ -87,8 +86,6 @@ export function PhotoUpload({
     const handleRemove = async () => {
         try {
             const formData = new FormData();
-            formData.append('userId', userId);
-
             const authHeaders = await getSupabaseAuthHeader();
             const response = await fetch('/api/profile/photo', {
                 method: 'DELETE',
