@@ -56,6 +56,35 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
+    useEffect(() => {
+        if (!currentIncludePhoto) return;
+        const currentPhoto = cvGeneration?.cv_data?.profil?.photo_url;
+        if (currentPhoto) return;
+
+        const loadPhoto = async () => {
+            try {
+                const res = await fetch('/api/profile/photo', { method: 'GET', credentials: 'include' });
+                if (!res.ok) return;
+                const payload = await res.json();
+                const photoUrl = payload?.photo_url as string | null | undefined;
+                if (!photoUrl) return;
+
+                setCvGeneration((prev) => {
+                    if (!prev) return prev;
+                    const next = { ...prev } as any;
+                    next.cv_data = { ...(prev as any).cv_data };
+                    next.cv_data.profil = { ...((prev as any).cv_data?.profil || {}) };
+                    next.cv_data.profil.photo_url = photoUrl;
+                    return next;
+                });
+            } catch {
+                return;
+            }
+        };
+
+        loadPhoto();
+    }, [cvGeneration, currentIncludePhoto]);
+
     // PDF generation with html2pdf.js and fallback to window.print()
     const handleDownloadPDF = async () => {
         if (!cvGeneration || generatingPDF) return;
@@ -299,4 +328,3 @@ export default function CVViewPage() {
         </div>
     );
 }
-

@@ -38,6 +38,30 @@ export default function CVPrintPage() {
         fetchCV();
     }, [id]);
 
+    useEffect(() => {
+        if (!includePhoto) return;
+        const currentPhoto = cvData?.profil?.photo_url;
+        if (currentPhoto) return;
+
+        const loadPhoto = async () => {
+            try {
+                const res = await fetch('/api/profile/photo', { method: 'GET', credentials: 'include' });
+                if (!res.ok) return;
+                const payload = await res.json();
+                const photoUrl = payload?.photo_url as string | null | undefined;
+                if (!photoUrl) return;
+                setCvData((prev: any) => {
+                    if (!prev) return prev;
+                    return { ...prev, profil: { ...(prev.profil || {}), photo_url: photoUrl } };
+                });
+            } catch {
+                return;
+            }
+        };
+
+        loadPhoto();
+    }, [cvData, includePhoto]);
+
     // Signal when CV is fully rendered (for Puppeteer detection)
     useEffect(() => {
         if (!loading && cvData) {
