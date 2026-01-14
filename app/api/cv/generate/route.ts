@@ -1,8 +1,9 @@
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSignedUrl, createSupabaseAdminClient, createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
+import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 
 export const runtime = "nodejs";
 
@@ -37,16 +38,19 @@ export async function POST(req: Request) {
             const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
             if (cacheAge < CACHE_TTL) {
-                console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
-                return NextResponse.json({
-                    success: true,
-                    cvId: cachedCV.id,
-                    cvData: cachedCV.cv_data,
-                    templateName: cachedCV.template_name,
-                    includePhoto,
-                    cached: true,
-                    cacheAge: Math.round(cacheAge / 1000)
-                });
+                const cachedHasPhoto = !!(cachedCV as any)?.cv_data?.profil?.photo_url;
+                if (!includePhoto || cachedHasPhoto) {
+                    console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
+                    return NextResponse.json({
+                        success: true,
+                        cvId: cachedCV.id,
+                        cvData: cachedCV.cv_data,
+                        templateName: cachedCV.template_name,
+                        includePhoto,
+                        cached: true,
+                        cacheAge: Math.round(cacheAge / 1000)
+                    });
+                }
             } else {
                 console.log(`[CV CACHE EXPIRED] Cache too old (${Math.round(cacheAge / 1000)}s), regenerating...`);
             }
@@ -65,7 +69,7 @@ export async function POST(req: Request) {
 
         const { data: ragData, error: ragError } = await supabase
             .from("rag_metadata")
-            .select("completeness_details, custom_notes, photo_url")
+            .select("completeness_details, custom_notes")
             .eq("user_id", userId)
             .single();
 
@@ -73,28 +77,25 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "RAG Profile not found" }, { status: 404 });
         }
 
-        const profile = ragData.completeness_details;
+        const profile = normalizeRAGData(ragData.completeness_details);
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
 
         // Get photo URL if needed
         let photoUrl = null;
         let photoWarning = null;
-        if (includePhoto && ragData.photo_url) {
-            if (ragData.photo_url.startsWith('storage:')) {
-                const storagePath = ragData.photo_url.replace('storage:', '');
-                const { data: signedUrlData, error: photoError } = await supabase.storage
-                    .from('documents')
-                    .createSignedUrl(storagePath, 3600);
-
-                if (photoError) {
-                    console.error('Photo URL generation failed:', photoError.message);
-                    photoWarning = `Unable to load profile photo: ${photoError.message}`;
-                } else {
-                    photoUrl = signedUrlData?.signedUrl || null;
-                }
+        const photoRef = (profile as any)?.profil?.photo_url as string | undefined;
+        if (includePhoto && photoRef) {
+            if (photoRef.startsWith('http://') || photoRef.startsWith('https://')) {
+                photoUrl = photoRef;
             } else {
-                photoUrl = ragData.photo_url;
+                const admin = createSupabaseAdminClient();
+                const signed = await createSignedUrl(admin, photoRef, { expiresIn: 3600 });
+                if (!signed) {
+                    photoWarning = 'Unable to load profile photo';
+                } else {
+                    photoUrl = signed;
+                }
             }
         }
 
