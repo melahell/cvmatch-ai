@@ -60,9 +60,6 @@ export function PhotoUpload({
             formData.append('userId', userId);
 
             const authHeaders = await getSupabaseAuthHeader();
-            if (!authHeaders.Authorization) {
-                throw new Error('Session expirée, reconnecte-toi.');
-            }
 
             const response = await fetch('/api/profile/photo', {
                 method: 'POST',
@@ -92,10 +89,6 @@ export function PhotoUpload({
             formData.append('userId', userId);
 
             const authHeaders = await getSupabaseAuthHeader();
-            if (!authHeaders.Authorization) {
-                throw new Error('Session expirée, reconnecte-toi.');
-            }
-
             const response = await fetch('/api/profile/photo', {
                 method: 'DELETE',
                 headers: authHeaders,

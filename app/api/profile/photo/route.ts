@@ -1,22 +1,33 @@
 import {
     createSignedUrl,
+    createSupabaseClient,
     createSupabaseAdminClient,
     createSupabaseUserClient,
     parseStorageRef,
     requireSupabaseUser,
 } from '@/lib/supabase';
+import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { logger } from '@/lib/utils/logger';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const getCookieUserId = (): string | null => {
+    const value = cookies().get('userId')?.value ?? null;
+    if (!value) return null;
+    if (!UUID_REGEX.test(value)) return null;
+    return value;
+};
 
 export async function GET(request: Request) {
     try {
         const auth = await requireSupabaseUser(request);
-        if (auth.error || !auth.user || !auth.token) {
+        const userId = auth.user?.id ?? getCookieUserId();
+        if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
-        const userId = auth.user.id;
-        const supabase = createSupabaseUserClient(auth.token);
+        const supabase = auth.token ? createSupabaseUserClient(auth.token) : createSupabaseClient();
 
         const { data: ragRow, error: ragRowError } = await supabase
             .from('rag_metadata')
@@ -71,13 +82,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         const auth = await requireSupabaseUser(request);
-        if (auth.error || !auth.user || !auth.token) {
+        const userId = auth.user?.id ?? getCookieUserId();
+        if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
-        const supabase = createSupabaseUserClient(auth.token);
+        const supabase = auth.token ? createSupabaseUserClient(auth.token) : createSupabaseClient();
         const admin = createSupabaseAdminClient();
-        const userId = auth.user.id;
 
         const formData = await request.formData();
         const photo = formData.get('photo') as File;
@@ -192,13 +203,13 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
     try {
         const auth = await requireSupabaseUser(request);
-        if (auth.error || !auth.user || !auth.token) {
+        const userId = auth.user?.id ?? getCookieUserId();
+        if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
-        const supabase = createSupabaseUserClient(auth.token);
+        const supabase = auth.token ? createSupabaseUserClient(auth.token) : createSupabaseClient();
         const admin = createSupabaseAdminClient();
-        const userId = auth.user.id;
 
         const { data: ragRow, error: ragRowError } = await supabase
             .from('rag_metadata')
