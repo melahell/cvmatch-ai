@@ -14,14 +14,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateAdaptiveCV } from "@/lib/cv/adaptive-algorithm";
 import { ThemeId } from "@/lib/cv/types";
-import { getAllRAGFiles } from "@/lib/github/rag-storage";
-import { supabase } from "@/lib/supabase";
+import { createSupabaseClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const startTime = Date.now();
+  const supabase = createSupabaseClient();
 
   try {
     // Extract params
@@ -65,15 +65,32 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 1. Fetch RAG data
-    const ragData = await getAllRAGFiles(userId);
+    // 1. Fetch RAG data from Supabase
+    const { data: ragMetadata, error: ragError } = await supabase
+      .from("rag_metadata")
+      .select("completeness_details, custom_notes, photo_url")
+      .eq("user_id", userId)
+      .single();
 
-    if (!ragData || !ragData.profil) {
+    if (ragError || !ragMetadata) {
       return NextResponse.json(
         {
           success: false,
           error: "RAG data not found. Please complete onboarding first.",
           code: "RAG_DATA_MISSING"
+        },
+        { status: 404 }
+      );
+    }
+
+    const ragData = ragMetadata.completeness_details;
+
+    if (!ragData || !ragData.profil) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "RAG profile incomplete. Please complete onboarding.",
+          code: "RAG_DATA_INCOMPLETE"
         },
         { status: 404 }
       );

@@ -159,22 +159,18 @@ async function generateOptimizedCV(
     const geminiPrompt = getCVOptimizationPrompt(ragData, jobDescription, customNotes);
 
     // Appeler Gemini
-    const geminiResponse = await generateWithGemini(geminiPrompt, {
-      temperature: 0.7,
-      maxOutputTokens: 4000
+    const geminiText = await generateWithGemini({
+      prompt: geminiPrompt
     });
 
-    if (!geminiResponse.success) {
-      throw new Error(geminiResponse.error || "Gemini optimization failed");
-    }
-
     // Parser la réponse Gemini
-    const optimizedRAGData = parseGeminiOptimization(geminiResponse.text, ragData);
+    const optimizedRAGData = parseGeminiOptimization(geminiText, ragData);
 
     // Tracker les optimizations appliquées
     optimizationsApplied.push(...detectOptimizations(ragData, optimizedRAGData));
 
-    geminiTokensUsed = geminiResponse.tokensUsed || 0;
+    // Note: Token count not available from current Gemini wrapper
+    geminiTokensUsed = 0;
 
     const geminiTime = Date.now() - geminiStartTime;
     console.log(`[Hybrid] Gemini optimization completed in ${geminiTime}ms`);
