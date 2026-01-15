@@ -97,7 +97,6 @@ async function launchBrowser(): Promise<Browser> {
     // Environnement serverless (Vercel, AWS Lambda, etc.)
     return await puppeteer.launch({
       args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
       executablePath: await chromium.executablePath(),
       headless: chromium.headless
     });
