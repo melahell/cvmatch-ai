@@ -49,20 +49,24 @@ export async function generateHybridCV(
   const { rag_data, job_offer, theme_id, mode, user_prefs = {} } = input;
 
   try {
+    // Convertir undefined en null pour la compatibilité TypeScript
+    const normalizedJobOffer = job_offer ?? null;
+
     if (mode === "rapid") {
       // MODE RAPIDE : Algorithme adaptatif seul
-      return await generateRapidCV(rag_data, job_offer, theme_id, user_prefs, startTime);
+      return await generateRapidCV(rag_data, normalizedJobOffer, theme_id, user_prefs, startTime);
     } else {
       // MODE OPTIMISÉ : Gemini + Algorithme adaptatif
-      return await generateOptimizedCV(rag_data, job_offer, theme_id, user_prefs, startTime);
+      return await generateOptimizedCV(rag_data, normalizedJobOffer, theme_id, user_prefs, startTime);
     }
   } catch (error: any) {
     // Si mode optimisé échoue, fallback vers rapid
     if (mode === "optimized") {
       console.warn("Optimized mode failed, falling back to rapid mode:", error);
+      const normalizedJobOffer = job_offer ?? null;
       return await generateRapidCV(
         rag_data,
-        job_offer,
+        normalizedJobOffer,
         theme_id,
         user_prefs,
         startTime,
