@@ -2,6 +2,7 @@ import {
     createSignedUrl,
     createSupabaseAdminClient,
     parseStorageRef,
+    requireSupabaseUser,
 } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -16,9 +17,15 @@ const getCookieUserId = (): string | null => {
     return value;
 };
 
+const getRequestUserId = async (request: Request): Promise<string | null> => {
+    const auth = await requireSupabaseUser(request);
+    if (auth.user?.id) return auth.user.id;
+    return getCookieUserId();
+};
+
 export async function GET(request: Request) {
     try {
-        const userId = getCookieUserId();
+        const userId = await getRequestUserId(request);
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
@@ -77,7 +84,7 @@ export async function POST(request: Request) {
     try {
         const admin = createSupabaseAdminClient();
 
-        const userId = getCookieUserId();
+        const userId = await getRequestUserId(request);
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
@@ -196,7 +203,7 @@ export async function DELETE(request: Request) {
     try {
         const admin = createSupabaseAdminClient();
 
-        const userId = getCookieUserId();
+        const userId = await getRequestUserId(request);
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }

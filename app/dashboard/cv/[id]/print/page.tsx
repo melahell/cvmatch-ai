@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import CVRenderer from "@/components/cv/CVRenderer";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 
 export default function CVPrintPage() {
     const { id } = useParams();
@@ -40,18 +41,38 @@ export default function CVPrintPage() {
 
     useEffect(() => {
         if (!includePhoto) return;
-        const currentPhoto = cvData?.profil?.photo_url;
-        if (currentPhoto) return;
+        if (!cvData) return;
+
+        const currentPhoto = cvData?.profil?.photo_url as string | undefined;
+        const hasHttpPhoto =
+            typeof currentPhoto === "string" &&
+            (currentPhoto.startsWith("http://") || currentPhoto.startsWith("https://"));
+        if (hasHttpPhoto) return;
+
+        let cancelled = false;
 
         const loadPhoto = async () => {
             try {
-                const res = await fetch('/api/profile/photo', { method: 'GET', credentials: 'include' });
+                const authHeaders = await getSupabaseAuthHeader();
+                const res = await fetch("/api/profile/photo", {
+                    method: "GET",
+                    headers: authHeaders,
+                    credentials: "include",
+                });
                 if (!res.ok) return;
                 const payload = await res.json();
                 const photoUrl = payload?.photo_url as string | null | undefined;
                 if (!photoUrl) return;
+                if (cancelled) return;
                 setCvData((prev: any) => {
                     if (!prev) return prev;
+
+                    const prevPhoto = prev?.profil?.photo_url as string | undefined;
+                    const prevHasHttp =
+                        typeof prevPhoto === "string" &&
+                        (prevPhoto.startsWith("http://") || prevPhoto.startsWith("https://"));
+                    if (prevHasHttp) return prev;
+
                     return { ...prev, profil: { ...(prev.profil || {}), photo_url: photoUrl } };
                 });
             } catch {
@@ -60,7 +81,11 @@ export default function CVPrintPage() {
         };
 
         loadPhoto();
-    }, [cvData, includePhoto]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [cvData?.profil?.photo_url, includePhoto, cvData]);
 
     // Signal when CV is fully rendered (for Puppeteer detection)
     useEffect(() => {

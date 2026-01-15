@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import CVRenderer from "@/components/cv/CVRenderer";
@@ -56,21 +56,43 @@ export default function CVViewPage() {
         fetchCV();
     }, [id]);
 
+    const cvPhoto = cvGeneration?.cv_data?.profil?.photo_url as string | undefined;
+
     useEffect(() => {
         if (!currentIncludePhoto) return;
-        const currentPhoto = cvGeneration?.cv_data?.profil?.photo_url;
-        if (currentPhoto) return;
+        if (!cvGeneration) return;
+
+        const currentPhoto = cvPhoto;
+        const hasHttpPhoto =
+            typeof currentPhoto === "string" &&
+            (currentPhoto.startsWith("http://") || currentPhoto.startsWith("https://"));
+        if (hasHttpPhoto) return;
+
+        let cancelled = false;
 
         const loadPhoto = async () => {
             try {
-                const res = await fetch('/api/profile/photo', { method: 'GET', credentials: 'include' });
+                const authHeaders = await getSupabaseAuthHeader();
+                const res = await fetch("/api/profile/photo", {
+                    method: "GET",
+                    headers: authHeaders,
+                    credentials: "include",
+                });
                 if (!res.ok) return;
                 const payload = await res.json();
                 const photoUrl = payload?.photo_url as string | null | undefined;
                 if (!photoUrl) return;
+                if (cancelled) return;
 
                 setCvGeneration((prev) => {
                     if (!prev) return prev;
+
+                    const prevPhoto = (prev as any)?.cv_data?.profil?.photo_url as string | undefined;
+                    const prevHasHttp =
+                        typeof prevPhoto === "string" &&
+                        (prevPhoto.startsWith("http://") || prevPhoto.startsWith("https://"));
+                    if (prevHasHttp) return prev;
+
                     const next = { ...prev } as any;
                     next.cv_data = { ...(prev as any).cv_data };
                     next.cv_data.profil = { ...((prev as any).cv_data?.profil || {}) };
@@ -83,7 +105,11 @@ export default function CVViewPage() {
         };
 
         loadPhoto();
-    }, [cvGeneration, currentIncludePhoto]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [cvGeneration, cvGeneration?.id, currentIncludePhoto, cvPhoto]);
 
     // PDF generation with html2pdf.js and fallback to window.print()
     const handleDownloadPDF = async () => {
