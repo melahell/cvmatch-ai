@@ -72,7 +72,7 @@ USING (
 Voici le prompt à donner à Claude Chrome pour exécuter tout ça :
 ```
 Va sur mon projet Supabase (supabase.com/dashboard), 
-sélectionne le projet "cvmatch-ai", puis :
+sélectionne le projet "cvcrush", puis :
 
 1. Va dans SQL Editor > New Query
 

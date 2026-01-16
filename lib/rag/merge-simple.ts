@@ -1,0 +1,380 @@
+/**
+ * Simple RAG Merge - Compatible with new types
+ * Merges incoming RAG data with existing RAG data
+ * 
+ * Enhanced with:
+ * - Company name normalization (VW FS = Volkswagen Financial Services)
+ * - Fuzzy position matching (60% similarity threshold)
+ * - Date tolerance (±6 months)
+ */
+
+import { normalizeCompanyName } from './normalize-company';
+import { combinedSimilarity, areStringsSimilar } from './string-similarity';
+
+/**
+ * Check if two experiences are similar (same company + overlapping dates + similar position)
+ * 
+ * Criteria (all must match):
+ * 1. Same company after normalization
+ * 2. Start dates within 6 months
+ * 3. Position similarity >= 60%
+ */
+function areExperiencesSimilar(exp1: any, exp2: any): boolean {
+    if (!exp1 || !exp2) return false;
+
+    // 1. Compare companies with normalization
+    const company1 = normalizeCompanyName(exp1.entreprise);
+    const company2 = normalizeCompanyName(exp2.entreprise);
+    if (company1 !== company2) return false;
+
+    // 2. Compare dates with ±6 months tolerance
+    const start1 = new Date(exp1.debut || "2000-01");
+    const start2 = new Date(exp2.debut || "2000-01");
+    const monthsDiff = Math.abs(
+        (start1.getFullYear() - start2.getFullYear()) * 12 +
+        (start1.getMonth() - start2.getMonth())
+    );
+    if (monthsDiff > 6) return false;
+
+    // 3. Compare positions with fuzzy matching (60% threshold)
+    const positionSimilarity = combinedSimilarity(exp1.poste, exp2.poste);
+    if (positionSimilarity < 0.6) return false;
+
+    return true;
+}
+
+/**
+ * Check if two realisations are similar using word-based matching
+ * Uses Jaccard index (55% threshold) - better for reformulated sentences
+ * 
+ * Example: "Gestion de 100 utilisateurs" vs "Gouvernance de 100 utilisateurs"
+ * → Levenshtein: 67% (MISS)
+ * → Jaccard: 75% (DETECTED)
+ */
+function areRealisationsSimilar(real1: any, real2: any): boolean {
+    const desc1 = real1?.description || "";
+    const desc2 = real2?.description || "";
+
+    if (!desc1 || !desc2) return false;
+
+    // Exact match shortcut
+    if (desc1.toLowerCase().trim() === desc2.toLowerCase().trim()) return true;
+
+    // Use word-based similarity (Jaccard) - more robust for reformulations
+    const stopWords = new Set(["de", "du", "des", "la", "le", "les", "et", "à", "pour", "en", "un", "une", "—", "-", "&"]);
+
+    const tokenize = (s: string): Set<string> => {
+        const words = s
+            .toLowerCase()
+            .replace(/[^\w\sàâäéèêëïîôùûüç0-9-]/g, " ")
+            .split(/\s+/)
+            .filter(w => w.length > 2 && !stopWords.has(w));
+        return new Set(words);
+    };
+
+    const set1 = tokenize(desc1);
+    const set2 = tokenize(desc2);
+
+    if (set1.size === 0 || set2.size === 0) return false;
+
+    // Jaccard index: intersection / union
+    const intersection = new Set([...set1].filter(x => set2.has(x)));
+    const union = new Set([...set1, ...set2]);
+    const jaccard = intersection.size / union.size;
+
+    // 55% threshold - detects reformulations while avoiding false positives
+    return jaccard >= 0.55;
+}
+
+/**
+ * Merge two experiences (combine realisations, technologies, clients)
+ * Uses 75% similarity threshold to avoid near-duplicate realisations
+ */
+function mergeExperiences(existing: any, incoming: any): any {
+    // Deduplicate realisations with 75% similarity
+    const existingRealisations = existing.realisations || [];
+    const incomingRealisations = incoming.realisations || [];
+
+    const uniqueNewRealisations = incomingRealisations.filter((newReal: any) =>
+        !existingRealisations.some((existReal: any) =>
+            areRealisationsSimilar(existReal, newReal)
+        )
+    );
+
+    // Prefer longer/more detailed company name and position
+    const preferredCompanyName =
+        (incoming.entreprise?.length || 0) > (existing.entreprise?.length || 0)
+            ? incoming.entreprise
+            : existing.entreprise;
+
+    const preferredPosition =
+        (incoming.poste?.length || 0) > (existing.poste?.length || 0)
+            ? incoming.poste
+            : existing.poste;
+
+    return {
+        ...existing,
+        ...incoming,
+        // Use preferred (longer) names
+        entreprise: preferredCompanyName,
+        poste: preferredPosition,
+        // Merge realisations (unique by similarity)
+        realisations: [...existingRealisations, ...uniqueNewRealisations],
+        // Merge technologies (union)
+        technologies: [...new Set([
+            ...(existing.technologies || []),
+            ...(incoming.technologies || [])
+        ])],
+        // Merge clients
+        clients_references: [...new Set([
+            ...(existing.clients_references || []),
+            ...(incoming.clients_references || [])
+        ])]
+    };
+}
+
+/**
+ * Merge RAG data intelligently
+ */
+export function mergeRAGDataSimple(existing: any, incoming: any): any {
+    if (!existing || Object.keys(existing).length === 0) {
+        return incoming;
+    }
+
+    if (!incoming || Object.keys(incoming).length === 0) {
+        return existing;
+    }
+
+    const merged: any = {
+        // ===== PROFIL =====
+        profil: {
+            nom: incoming.profil?.nom || existing.profil?.nom,
+            prenom: incoming.profil?.prenom || existing.profil?.prenom,
+            titre_principal: incoming.profil?.titre_principal || existing.profil?.titre_principal,
+            localisation: incoming.profil?.localisation || existing.profil?.localisation,
+            // Keep the longer elevator pitch
+            elevator_pitch: (incoming.profil?.elevator_pitch?.length || 0) > (existing.profil?.elevator_pitch?.length || 0)
+                ? incoming.profil?.elevator_pitch
+                : existing.profil?.elevator_pitch,
+            contact: {
+                ...(existing.profil?.contact || {}),
+                ...(incoming.profil?.contact || {})
+            },
+            photo_url: incoming.profil?.photo_url || existing.profil?.photo_url
+        },
+
+        // ===== EXPERIENCES =====
+        experiences: (() => {
+            const existingExps = existing.experiences || [];
+            const incomingExps = incoming.experiences || [];
+            const result = [...existingExps];
+
+            for (const newExp of incomingExps) {
+                const similarIdx = result.findIndex(e => areExperiencesSimilar(e, newExp));
+
+                if (similarIdx !== -1) {
+                    // Merge with existing similar experience
+                    result[similarIdx] = mergeExperiences(result[similarIdx], newExp);
+                } else {
+                    // Add as new experience
+                    result.push(newExp);
+                }
+            }
+
+            return result;
+        })(),
+
+        // ===== COMPETENCES =====
+        competences: (() => {
+            // Get the rejected list to filter out rejected inferred skills
+            const rejectedInferred = new Set(
+                (existing.rejected_inferred || []).map((s: string) => s.toLowerCase())
+            );
+
+            // Filter function: exclude if skill was rejected by user
+            const isNotRejected = (skill: any) => {
+                const skillName = (skill?.name || skill || "").toLowerCase();
+                return !rejectedInferred.has(skillName);
+            };
+
+            // Merge inferred skills: keep higher confidence, exclude rejected
+            const mergeInferredSkills = (existingSkills: any[], incomingSkills: any[]) => {
+                const skillMap = new Map<string, any>();
+
+                // Add existing
+                for (const skill of existingSkills) {
+                    const key = skill.name?.toLowerCase();
+                    if (key && isNotRejected(skill)) {
+                        skillMap.set(key, skill);
+                    }
+                }
+
+                // Merge incoming (prefer higher confidence)
+                for (const skill of incomingSkills) {
+                    const key = skill.name?.toLowerCase();
+                    if (!key || !isNotRejected(skill)) continue;
+
+                    const existing = skillMap.get(key);
+                    if (!existing) {
+                        skillMap.set(key, skill);
+                    } else if ((skill.confidence || 0) > (existing.confidence || 0)) {
+                        // Keep higher confidence, merge sources
+                        skillMap.set(key, {
+                            ...skill,
+                            sources: [...new Set([...(existing.sources || []), ...(skill.sources || [])])]
+                        });
+                    }
+                }
+
+                return Array.from(skillMap.values());
+            };
+
+            return {
+                explicit: {
+                    techniques: [...new Set([
+                        ...(existing.competences?.explicit?.techniques || []),
+                        ...(incoming.competences?.explicit?.techniques || [])
+                    ])],
+                    soft_skills: [...new Set([
+                        ...(existing.competences?.explicit?.soft_skills || []),
+                        ...(incoming.competences?.explicit?.soft_skills || [])
+                    ])]
+                },
+                inferred: {
+                    techniques: mergeInferredSkills(
+                        existing.competences?.inferred?.techniques || [],
+                        incoming.competences?.inferred?.techniques || []
+                    ),
+                    tools: mergeInferredSkills(
+                        existing.competences?.inferred?.tools || [],
+                        incoming.competences?.inferred?.tools || []
+                    ),
+                    soft_skills: mergeInferredSkills(
+                        existing.competences?.inferred?.soft_skills || [],
+                        incoming.competences?.inferred?.soft_skills || []
+                    )
+                }
+            };
+        })(),
+
+        // ===== FORMATIONS =====
+        formations: (() => {
+            const existingForms = existing.formations || [];
+            const incomingForms = incoming.formations || [];
+            const result = [...existingForms];
+
+            for (const newForm of incomingForms) {
+                const exists = result.some(f =>
+                    f.diplome?.toLowerCase() === newForm.diplome?.toLowerCase() &&
+                    f.ecole?.toLowerCase() === newForm.ecole?.toLowerCase()
+                );
+                if (!exists) {
+                    result.push(newForm);
+                }
+            }
+
+            return result;
+        })(),
+
+        // ===== CERTIFICATIONS =====
+        certifications: [...new Set([
+            ...(existing.certifications || []),
+            ...(incoming.certifications || [])
+        ])],
+
+        // ===== LANGUES =====
+        langues: {
+            ...(existing.langues || {}),
+            ...(incoming.langues || {})
+        },
+
+        // ===== PROJETS =====
+        projets: [
+            ...(existing.projets || []),
+            ...(incoming.projets || []).filter((newProj: any) =>
+                !(existing.projets || []).some((existProj: any) =>
+                    existProj.nom?.toLowerCase() === newProj.nom?.toLowerCase()
+                )
+            )
+        ],
+
+        // ===== REFERENCES (CLIENTS) =====
+        references: {
+            clients: (() => {
+                const existingClients = existing.references?.clients || [];
+                const incomingClients = incoming.references?.clients || [];
+                const clientsMap = new Map();
+
+                // Add existing
+                for (const client of existingClients) {
+                    const key = (typeof client === 'string' ? client : client.nom).toLowerCase();
+                    clientsMap.set(key, client);
+                }
+
+                // Add incoming (merge sources if duplicate)
+                for (const client of incomingClients) {
+                    const nom = typeof client === 'string' ? client : client.nom;
+                    const key = nom.toLowerCase();
+
+                    if (clientsMap.has(key)) {
+                        const existing = clientsMap.get(key);
+                        if (typeof existing === 'object' && typeof client === 'object') {
+                            clientsMap.set(key, {
+                                ...existing,
+                                sources: [...new Set([
+                                    ...(existing.sources || []),
+                                    ...(client.sources || [])
+                                ])]
+                            });
+                        }
+                    } else {
+                        clientsMap.set(key, client);
+                    }
+                }
+
+                return Array.from(clientsMap.values());
+            })()
+        },
+
+        // Keep rejected_inferred list
+        rejected_inferred: [...new Set([
+            ...(existing.rejected_inferred || []),
+            ...(incoming.rejected_inferred || [])
+        ])]
+    };
+
+    return merged;
+}
+
+/**
+ * Result with stats
+ */
+export interface MergeResult {
+    merged: any;
+    stats: {
+        itemsAdded: number;
+        itemsUpdated: number;
+        itemsKept: number;
+    };
+    conflicts: any[];
+}
+
+/**
+ * Merge with stats
+ */
+export function mergeRAGData(existing: any, incoming: any): MergeResult {
+    const merged = mergeRAGDataSimple(existing, incoming);
+
+    // Calculate stats
+    const stats = {
+        itemsAdded: (merged.experiences?.length || 0) - (existing.experiences?.length || 0),
+        itemsUpdated: 0, // TODO: track updates
+        itemsKept: existing.experiences?.length || 0
+    };
+
+    return {
+        merged,
+        stats,
+        conflicts: [] // No conflicts in simple merge
+    };
+}

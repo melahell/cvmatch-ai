@@ -1,8 +1,7 @@
 
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { GEMINI_MODELS, generateWithGemini } from "@/lib/ai/gemini";
-import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
+import { generateWithGemini } from "@/lib/ai/gemini";
 
 export const runtime = "nodejs";
 
@@ -10,19 +9,6 @@ export async function POST(req: Request) {
     const supabase = createSupabaseClient();
     try {
         const { userId, analysisId, tone = "professional" } = await req.json();
-
-        if (!userId || !analysisId) {
-            return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-        }
-
-        // Check GDPR consent for Gemini usage
-        const consentCheck = await checkGeminiConsent(userId);
-        if (!consentCheck.hasConsent) {
-            return NextResponse.json(
-                { error: "gemini_consent_required", message: consentCheck.message },
-                { status: 403 }
-            );
-        }
 
         // 1. Fetch Data
         const { data: analysis } = await supabase.from("job_analyses").select("job_description, company, job_title").eq("id", analysisId).single();
@@ -52,16 +38,7 @@ export async function POST(req: Request) {
             FORMAT: Retourne le texte de la lettre directement, avec des sauts de ligne, sans Markdown complexe (juste texte).
         `;
 
-        const letter = await generateWithGemini({
-            prompt,
-            model: GEMINI_MODELS.fallback,
-        });
-
-        // Log Gemini usage for transparency (RGPD Article 15)
-        await logGeminiUsage(userId, "lm_generation", {
-            analysis_id: analysisId,
-            tone: tone
-        });
+        const letter = await generateWithGemini({ prompt });
 
         // 3. Save to Match Report (JSON Storage)
         // We store the cover letter inside the match_report JSONB to allow flexibility without schema migration.

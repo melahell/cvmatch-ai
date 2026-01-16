@@ -109,9 +109,9 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
                             <div className="mb-4">
                                 <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Techniques</h4>
                                 <div className="flex flex-wrap gap-2">
-                                    {competences.techniques.map((skill: string, i: number) => (
+                                    {competences.techniques.map((skill: any, i: number) => (
                                         <span key={i} className="bg-slate-100 px-2 py-1 rounded text-xs font-medium text-slate-700">
-                                            {skill}
+                                            {typeof skill === "string" ? skill : skill?.nom || skill}
                                         </span>
                                     ))}
                                 </div>
@@ -123,8 +123,8 @@ export const StandardTemplate: React.FC<CVProps> = ({ data }) => {
                             <div className="mb-4">
                                 <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Soft Skills</h4>
                                 <ul className="text-sm text-slate-700 space-y-1">
-                                    {competences.soft_skills.map((skill: string, i: number) => (
-                                        <li key={i}>• {skill}</li>
+                                    {competences.soft_skills.map((skill: any, i: number) => (
+                                        <li key={i}>• {typeof skill === "string" ? skill : skill?.nom || skill}</li>
                                     ))}
                                 </ul>
                             </div>

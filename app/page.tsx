@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, Sparkles, Zap, Shield, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import packageJson from "@/package.json";
 
 export default function LandingPage() {
     return (
@@ -16,7 +17,7 @@ export default function LandingPage() {
                         <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                             <Sparkles className="w-5 h-5" />
                         </div>
-                        CVMatch<span className="text-blue-600">AI</span>
+                        CV Crush
                     </div>
                     <div className="flex gap-4">
                         <Link href="/login">
@@ -48,7 +49,7 @@ export default function LandingPage() {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                             </span>
-                            Nouvelle version V1.0 disponible
+                            Nouvelle version v{packageJson.version} disponible
                         </div>
                     </motion.div>
 
@@ -139,3 +140,4 @@ function CardFeature({ icon, title, desc }: any) {
         </motion.div>
     )
 }
+// Trigger deploy 1767189429

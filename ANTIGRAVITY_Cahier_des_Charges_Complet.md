@@ -1,4 +1,4 @@
-# CVMatch AI - Cahier des Charges Complet
+# CV Crush - Cahier des Charges Complet
 ## Générateur de CV Intelligent avec Analyse de Match IA
 
 ---
@@ -30,9 +30,9 @@
 
 ## 1. Vue d'Ensemble
 
-### 1.1 Qu'est-ce que CVMatch AI ?
+### 1.1 Qu'est-ce que CV Crush ?
 
-**CVMatch AI** est une plateforme SaaS qui révolutionne la recherche d'emploi en utilisant l'IA pour :
+**CV Crush** est une plateforme SaaS qui révolutionne la recherche d'emploi en utilisant l'IA pour :
 
 - ✅ Structurer automatiquement les données professionnelles (RAG)
 - ✅ Analyser le match entre profil et offres d'emploi
@@ -80,7 +80,7 @@ Le CV change selon l'offre :
 
 ### 1.4 Différenciation vs Concurrence
 
-| Feature | CVMatch AI | Concurrents |
+| Feature | CV Crush | Concurrents |
 |---------|-----------|-------------|
 | Analyse de match | ✅ Score détaillé | ❌ Absent |
 | Top 10 opportunités | ✅ IA suggère | ❌ Absent |
@@ -95,7 +95,7 @@ Le CV change selon l'offre :
 
 ### 2.1 Vision Produit
 
-**CVMatch AI** est une plateforme intelligente qui transforme la recherche d'emploi en utilisant l'IA pour :
+**CV Crush** est une plateforme intelligente qui transforme la recherche d'emploi en utilisant l'IA pour :
 
 1. Structurer automatiquement les données professionnelles (RAG)
 2. Analyser le match entre profil et offres d'emploi
@@ -608,7 +608,7 @@ Return success + redirect Dashboard
 ### 7.1 Structure Projet Next.js 14
 
 ```
-cvmatch-ai/
+cvcrush/
 ├── app/
 │   ├── (auth)/
 │   │   ├── login/
@@ -695,7 +695,7 @@ GEMINI_API_KEY="..."
 
 # GitHub
 GITHUB_TOKEN="ghp_..."
-GITHUB_REPO_OWNER="cvmatch-ai"
+GITHUB_REPO_OWNER="cvcrush"
 GITHUB_REPO_NAME="cv-rag-data"
 
 # Auth

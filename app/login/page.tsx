@@ -1,15 +1,15 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
+import Cookies from "js-cookie";
 import { Loader2, ArrowRight, Sparkles, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator"; // Assuming you have or will mock this
-import Cookies from "js-cookie";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
@@ -18,22 +18,64 @@ export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [name, setName] = useState("");
 
+    // Fallback: Handle OAuth tokens if Supabase redirects to /login instead of /auth/confirm
+    useEffect(() => {
+        const handleOAuthFallback = async () => {
+            const hash = window.location.hash;
+            if (hash && hash.includes("access_token")) {
+                setLoading(true);
+                const supabase = createSupabaseClient();
+                const params = new URLSearchParams(hash.replace("#", "?"));
+                const access_token = params.get("access_token");
+                const refresh_token = params.get("refresh_token");
+
+                if (access_token && refresh_token) {
+                    try {
+                        const { data, error } = await supabase.auth.setSession({
+                            access_token,
+                            refresh_token,
+                        });
+
+                        if (error) throw error;
+                        if (data.session) {
+                            const userId = data.session.user.id;
+                            const userName = data.session.user.user_metadata.full_name ||
+                                data.session.user.user_metadata.name || "User";
+
+                            Cookies.set("userId", userId, { expires: 7 });
+                            Cookies.set("userName", userName, { expires: 7 });
+
+                            router.replace("/dashboard");
+                            return;
+                        }
+                    } catch (err: any) {
+                        console.error("OAuth Fallback Error:", err);
+                    }
+                }
+                setLoading(false);
+            }
+        };
+
+        handleOAuthFallback();
+    }, [router]);
+
     const handleGoogleLogin = async () => {
         setLoading(true);
 
         try {
             const supabase = createSupabaseClient();
+            // Use dynamic origin to work on any deployment
+            const currentOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://cvcrush.vercel.app';
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    // Explicitly use production URL to ensure Vercel deployment works
-                    redirectTo: `https://cvmatch-ai-prod.vercel.app/auth/confirm`,
+                    redirectTo: `${currentOrigin}/auth/confirm`,
                 },
             });
             if (error) throw error;
         } catch (err: any) {
             console.error("Login Error:", err);
-            alert(`Erreur de configuration ou de connexion: ${err.message}. \n\nSi l'erreur persiste sur Vercel, vérifiez que NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY sont bien définis dans les Settings.`);
+            alert(`Erreur de connexion: ${err.message}`);
             setLoading(false);
         }
     };
@@ -87,7 +129,7 @@ export default function LoginPage() {
                             Transformez votre carrière avec l'IA.
                         </h1>
                         <p className="text-slate-300 text-lg leading-relaxed mb-8">
-                            Rejoignez les candidats qui utilisent CVMatch AI pour décrocher plus d'entretiens en moins de temps.
+                            Rejoignez les candidats qui utilisent CV Crush pour décrocher plus d'entretiens en moins de temps.
                         </p>
 
                         <div className="bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/20">
@@ -180,3 +222,4 @@ export default function LoginPage() {
         </div>
     );
 }
+// Force redeploy Mon Dec 29 17:08:42 CET 2025

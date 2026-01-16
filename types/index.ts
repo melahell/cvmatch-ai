@@ -5,6 +5,7 @@ export interface UserProfile {
         titre_principal: string;
         localisation: string;
         elevator_pitch: string;
+        photo_url?: string;
         contact: {
             email: string;
             telephone: string;

@@ -1,5 +1,3 @@
-
-import { createClient } from "@supabase/supabase-js";
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
@@ -17,7 +15,32 @@ export async function POST(req: Request) {
 
         const supabase = createSupabaseClient();
 
+        // First, ensure user exists in users table (auto-create if not)
+        const { data: existingUser, error: userCheckError } = await supabase
+            .from("users")
+            .select("id")
+            .eq("id", userId)
+            .single();
+
+        if (!existingUser) {
+            // Create user in users table
+            const { error: createUserError } = await supabase
+                .from("users")
+                .insert({
+                    id: userId,
+                    email: `user-${userId.slice(0, 8)}@temp.com`, // Temporary email
+                    user_id: userId.slice(0, 20), // Required field
+                    onboarding_completed: false
+                });
+
+            if (createUserError) {
+                console.error("Failed to create user:", createUserError);
+                // Continue anyway, maybe user exists but RLS blocked the select
+            }
+        }
+
         const uploads = [];
+        let successCount = 0;
 
         for (const file of files) {
             const arrayBuffer = await file.arrayBuffer();
@@ -26,6 +49,7 @@ export async function POST(req: Request) {
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
             const path = `${userId}/${timestamp}_${safeName}`;
 
+            // Upload to storage
             const { data, error } = await supabase.storage
                 .from("documents")
                 .upload(path, buffer, {
@@ -34,31 +58,45 @@ export async function POST(req: Request) {
                 });
 
             if (error) {
-                console.error("Upload error:", error);
-                uploads.push({ filename: file.name, error: error.message });
-            } else {
-                // Record in database
-                const { error: dbError } = await supabase.from("uploaded_documents").insert({
-                    user_id: userId,
+                console.error("Storage upload error:", error);
+                uploads.push({
                     filename: file.name,
-                    file_type: file.type.split("/").pop(), // "pdf", "docx"
-                    file_size: file.size,
-                    storage_path: path,
-                    extraction_status: "pending",
+                    error: error.message,
+                    hint: error.message.includes("not found") ? "Bucket 'documents' does not exist" : undefined
                 });
+                continue;
+            }
 
-                if (dbError) {
-                    console.error("DB Insert error:", dbError);
-                    uploads.push({ filename: file.name, error: "Database error" });
-                } else {
-                    uploads.push({ filename: file.name, path, success: true });
-                }
+            // Record in database
+            const { error: dbError } = await supabase.from("uploaded_documents").insert({
+                user_id: userId,
+                filename: file.name,
+                file_type: file.type.split("/").pop(),
+                file_size: file.size,
+                storage_path: path,
+                extraction_status: "pending",
+            });
+
+            if (dbError) {
+                console.error("DB Insert error:", dbError);
+                uploads.push({ filename: file.name, error: "Database error: " + dbError.message });
+            } else {
+                successCount++;
+                uploads.push({ filename: file.name, path, success: true });
             }
         }
 
-        return NextResponse.json({ success: true, uploads });
-    } catch (error) {
+        if (successCount === 0) {
+            return NextResponse.json({
+                success: false,
+                error: "All uploads failed",
+                uploads
+            }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true, successCount, uploads });
+    } catch (error: any) {
         console.error("Server error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
     }
 }

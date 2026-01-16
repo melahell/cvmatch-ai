@@ -1,31 +1,24 @@
-
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { GEMINI_MODELS, generateWithGemini } from "@/lib/ai/gemini";
-import { JobAnalysis } from "@/types";
+import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
-import { checkGeminiConsent, logGeminiUsage } from "@/lib/gemini-consent";
 
-// Edge runtime to mock quickly, but scraping usually needs Node 
-// Let's use Node runtime for robustness with potential scraping libraries
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
-    try {
-        const { userId, jobUrl, jobText } = await req.json();
 
-        if (!userId || (!jobUrl && !jobText)) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    try {
+        const body = await req.json();
+        const { userId, jobUrl, jobText, fileData, fileName, fileType } = body;
+
+        if (!userId) {
+            return NextResponse.json({ error: "Utilisateur non identifié." }, { status: 400 });
         }
 
-        // Check GDPR consent for Gemini usage
-        const consentCheck = await checkGeminiConsent(userId);
-        if (!consentCheck.hasConsent) {
-            return NextResponse.json(
-                { error: "gemini_consent_required", message: consentCheck.message },
-                { status: 403 }
-            );
+        if (!jobUrl && !jobText && !fileData) {
+            return NextResponse.json({ error: "Fournissez une URL, un texte ou un fichier." }, { status: 400 });
         }
 
         // 1. Get User RAG Profile
@@ -36,80 +29,132 @@ export async function POST(req: Request) {
             .single();
 
         if (dbError || !ragData?.completeness_details) {
-            return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+            return NextResponse.json({
+                error: "Profil introuvable. Uploadez vos documents dans 'Gérer mon profil'."
+            }, { status: 404 });
         }
 
-        // 2. Get Job Content
         let fullJobText = jobText || "";
 
-        // TODO: Implement Real Scraping. 
-        // For POC, if URL is provided, we just assume the user pasted text or we fail gracefully if no text.
-        // Ideally we would use Puppeteer/Playwright here.
-        if (jobUrl && !jobText) {
+        // 2A. Extract text from file using Gemini Vision with cascade
+        if (fileData && !fullJobText) {
+            try {
+                const base64Data = fileData.split(",")[1];
+                const mimeType = fileType || "image/png";
+
+                const extractionPrompt = [
+                    { inlineData: { mimeType, data: base64Data } },
+                    "Extrais le texte complet de cette offre d'emploi. Retourne uniquement le texte brut."
+                ];
+
+                const { result, modelUsed } = await callWithRetry(() =>
+                    generateWithCascade(extractionPrompt)
+                );
+                console.log(`File extraction with: ${modelUsed}`);
+                fullJobText = result.response.text();
+
+                if (fullJobText.length < 50) {
+                    return NextResponse.json({ error: "Fichier illisible. Essayez un texte copié-collé." }, { status: 400 });
+                }
+            } catch (err: any) {
+                console.error("File extraction error:", err.message);
+                return NextResponse.json({
+                    error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
+                }, { status: 503 });
+            }
+        }
+
+        // 2B. Scrape URL if provided
+        if (jobUrl && !fullJobText) {
             try {
                 const cheerio = await import("cheerio");
                 const response = await fetch(jobUrl, {
                     headers: {
-                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                    }
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                        "Accept": "text/html",
+                        "Accept-Language": "fr-FR"
+                    },
+                    redirect: "follow"
                 });
 
-                if (!response.ok) throw new Error(`Failed to fetch URL: ${response.status}`);
+                if (!response.ok) {
+                    return NextResponse.json({ error: "Site inaccessible. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
+                }
 
                 const html = await response.text();
                 const $ = cheerio.load(html);
+                $('script, style, nav, header, footer, aside').remove();
 
-                // Remove scripts, styles
-                $('script').remove();
-                $('style').remove();
-
-                // Strategy: Try to find common job board containers, else body
-                // Simple generic extraction for POC "Zero Mock"
-                fullJobText = $('body').text().replace(/\s+/g, ' ').trim();
-
-                if (fullJobText.length < 50) {
-                    throw new Error("Content too short, possibly blocked by bot protection");
+                let content = "";
+                for (const sel of ['[class*="description"]', 'article', 'main', '.content', 'body']) {
+                    const found = $(sel).text().replace(/\s+/g, ' ').trim();
+                    if (found && found.length > content.length) content = found;
                 }
-            } catch (err: any) {
-                console.error("Scraping failed", err);
-                // Strict "Zero Simulation": Do not fallback to mock.
-                return NextResponse.json({
-                    error: `Impossible de lire l'offre depuis l'URL (${err.message}). Merci de copier-coller le texte de l'annonce.`
-                }, { status: 400 });
+                fullJobText = content;
+
+                if (fullJobText.length < 100) {
+                    return NextResponse.json({ error: "Contenu insuffisant. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
+                }
+            } catch {
+                return NextResponse.json({ error: "URL illisible. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
             }
         }
 
-        // 3. Analyze Match with Gemini
+        // 3. Analyze Match with Gemini cascade
         const prompt = getMatchAnalysisPrompt(ragData.completeness_details, fullJobText);
 
-        const responseText = await generateWithGemini({
-            prompt,
-            model: GEMINI_MODELS.fallback,
-        });
+        let result;
+        let modelUsed;
+        try {
+            const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
+            result = cascadeResult.result;
+            modelUsed = cascadeResult.modelUsed;
+            console.log(`Match analysis with: ${modelUsed}`);
+        } catch (err: any) {
+            console.error("All models failed:", err.message);
+            return NextResponse.json({
+                error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
+            }, { status: 503 });
+        }
 
-        // Log Gemini usage for transparency (RGPD Article 15)
-        await logGeminiUsage(userId, "job_analysis", {
-            job_url: jobUrl || "manual_text",
-            job_text_length: fullJobText.length
-        });
-
+        const responseText = result.response.text();
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
         let matchData;
         try {
             matchData = JSON.parse(jsonString);
-        } catch (e) {
-            console.error("Match Parse Error", responseText);
-            return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
+        } catch {
+            return NextResponse.json({ error: "Erreur d'analyse. Réessayez avec moins de texte." }, { status: 500 });
         }
 
+        // Extract job_title and company with fallbacks (Gemini sometimes uses different field names)
+        const extractedJobTitle =
+            matchData.job_title ||
+            matchData.jobTitle ||
+            matchData.poste ||
+            matchData.titre ||
+            matchData.match_report?.job_title ||
+            null;
+
+        const extractedCompany =
+            matchData.company ||
+            matchData.entreprise ||
+            matchData.societe ||
+            matchData.match_report?.company ||
+            null;
+
+        console.log(`📊 Match Analysis - job_title: "${extractedJobTitle}", company: "${extractedCompany}", score: ${matchData.match_score}`);
+
         // 4. Save to DB
-        const { data: insertData, error: insertError } = await supabase
+        const { data: insertData } = await supabase
             .from("job_analyses")
             .insert({
                 user_id: userId,
                 job_url: jobUrl,
-                job_description: fullJobText,
+                job_title: extractedJobTitle,
+                company: extractedCompany,
+                location: matchData.location || null,
+                job_description: fullJobText.substring(0, 10000),
                 match_score: matchData.match_score,
                 match_level: matchData.match_level,
                 match_report: matchData,
@@ -121,18 +166,15 @@ export async function POST(req: Request) {
             .select("id")
             .single();
 
-        if (insertError) {
-            console.error("DB Insert Error", insertError);
-        }
-
         return NextResponse.json({
             success: true,
             analysis_id: insertData?.id,
-            match: matchData
+            match: matchData,
+            model_used: modelUsed
         });
 
     } catch (error: any) {
-        console.error("Analyze Error", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("Analyze Error:", error);
+        return NextResponse.json({ error: "Erreur inattendue. Réessayez." }, { status: 500 });
     }
 }

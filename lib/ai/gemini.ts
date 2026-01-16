@@ -1,4 +1,3 @@
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const GEMINI_MODELS = {
@@ -8,16 +7,7 @@ export const GEMINI_MODELS = {
 
 export type GeminiModel = (typeof GEMINI_MODELS)[keyof typeof GEMINI_MODELS];
 
-async function delay(ms: number) {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
-
-function isRateLimitError(error: unknown) {
-    const anyError = error as any;
-    const status = anyError?.status ?? anyError?.response?.status;
-    const message = typeof anyError?.message === "string" ? anyError.message : "";
-    return status === 429 || message.includes("429") || message.toLowerCase().includes("rate limit");
-}
+const MODEL_CASCADE: GeminiModel[] = [GEMINI_MODELS.principal, GEMINI_MODELS.fallback];
 
 function getApiKey() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -27,46 +17,78 @@ function getApiKey() {
     return apiKey;
 }
 
-async function generateOnce(model: GeminiModel, prompt: string) {
-    const genAI = new GoogleGenerativeAI(getApiKey());
-    const generativeModel = genAI.getGenerativeModel({ model });
-    const result = await generativeModel.generateContent(prompt);
-    return result.response.text();
+function isRateLimitError(error: unknown) {
+    const anyError = error as any;
+    const status = anyError?.status ?? anyError?.response?.status;
+    const message = typeof anyError?.message === "string" ? anyError.message : "";
+
+    return (
+        status === 429 ||
+        message.includes("429") ||
+        message.toLowerCase().includes("rate limit") ||
+        message.toLowerCase().includes("quota") ||
+        message.toLowerCase().includes("resource_exhausted")
+    );
 }
 
-export async function generateWithGemini(params: {
-    prompt: string;
-    model?: GeminiModel;
-}) {
-    const model = params.model ?? GEMINI_MODELS.principal;
-    const fallbacks: GeminiModel[] = model === GEMINI_MODELS.principal
-        ? [GEMINI_MODELS.principal, GEMINI_MODELS.fallback]
-        : [GEMINI_MODELS.fallback, GEMINI_MODELS.principal];
+async function delay(ms: number) {
+    await new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
-    let lastError: unknown;
+export async function generateWithCascade(
+    prompt: string | any[],
+    options?: { startFromIndex?: number }
+): Promise<{ result: any; modelUsed: GeminiModel }> {
+    const startIndex = options?.startFromIndex ?? 0;
+    const genAI = new GoogleGenerativeAI(getApiKey());
 
-    for (const candidate of fallbacks) {
+    for (let i = startIndex; i < MODEL_CASCADE.length; i++) {
+        const modelName = MODEL_CASCADE[i];
+        const model = genAI.getGenerativeModel({ model: modelName });
         try {
-            return await generateOnce(candidate, params.prompt);
+            const result = await model.generateContent(prompt);
+            return { result, modelUsed: modelName };
         } catch (error) {
-            lastError = error;
-
-            if (isRateLimitError(error)) {
-                const backoffsMs = [30_000, 60_000, 120_000];
-                for (const backoff of backoffsMs) {
-                    await delay(backoff);
-                    try {
-                        return await generateOnce(candidate, params.prompt);
-                    } catch (retryError) {
-                        lastError = retryError;
-                        if (!isRateLimitError(retryError)) {
-                            break;
-                        }
-                    }
-                }
+            if (isRateLimitError(error) && i < MODEL_CASCADE.length - 1) {
+                continue;
             }
+            throw error;
         }
     }
 
-    throw lastError instanceof Error ? lastError : new Error("Erreur Gemini");
+    throw new Error("Tous les modèles Gemini sont indisponibles");
+}
+
+export async function callWithRetry<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 2
+): Promise<T> {
+    const backoffsMs = [30_000, 60_000, 120_000];
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error) {
+            const isRateLimited = isRateLimitError(error);
+            if (!isRateLimited || attempt >= maxRetries - 1) {
+                throw error;
+            }
+
+            const delayMs = backoffsMs[Math.min(attempt, backoffsMs.length - 1)];
+            await delay(delayMs);
+        }
+    }
+
+    throw new Error("Max retries exceeded");
+}
+
+export async function generateWithGemini(params: {
+    prompt: string | any[];
+    model?: GeminiModel;
+}) {
+    const startFromIndex = params.model === GEMINI_MODELS.fallback ? 1 : 0;
+    const { result } = await callWithRetry(() =>
+        generateWithCascade(params.prompt, { startFromIndex })
+    );
+    return result.response.text();
 }
