@@ -325,6 +325,7 @@ export default function ModernTemplate({
                                 {exp.realisations && exp.realisations.length > 0 && (() => {
                                     // Use format metadata to determine bullets count
                                     const format = (exp as any)._format || "standard";
+                                    console.log("[Template DEBUG]", exp.poste?.substring(0, 30), "_format:", format, "_relevance_score:", (exp as any)._relevance_score, "realisations:", exp.realisations?.length);
                                     let bullets: any[];
                                     switch (format) {
                                         case "detailed": bullets = exp.realisations.slice(0, 5); break;
