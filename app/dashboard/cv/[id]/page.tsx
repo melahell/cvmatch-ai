@@ -168,6 +168,13 @@ export default function CVViewPage() {
 
     // Extract CDC metadata if available
     const cvMetadata = cvGeneration?.cv_data?.cv_metadata;
+
+    // DEBUG: Log metadata to see what's available
+    console.log("[CV DEBUG] cv_metadata:", JSON.stringify(cvMetadata, null, 2));
+    console.log("[CV DEBUG] formats_used:", cvMetadata?.formats_used);
+    console.log("[CV DEBUG] job_title:", cvMetadata?.job_title);
+    console.log("[CV DEBUG] relevance_scoring_applied:", cvMetadata?.relevance_scoring_applied);
+
     const qualityScore = cvMetadata?.ats_score;
     const compressionLevel = cvMetadata?.compression_level_applied || 0;
     const pageCount = cvMetadata?.page_count || 1;
