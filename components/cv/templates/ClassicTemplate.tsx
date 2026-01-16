@@ -71,8 +71,8 @@ export default function ClassicTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'Georgia', 'Times New Roman', serif",
-                fontSize: '9pt',
-                lineHeight: '1.3'
+                fontSize: dense ? '8.5pt' : '9pt',
+                lineHeight: dense ? '1.25' : '1.3'
             }}
         >
             {/* Elegant Header */}

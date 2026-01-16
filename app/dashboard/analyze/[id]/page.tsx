@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, CheckCircle, XCircle, FileText, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,11 +49,11 @@ export default function MatchResultPage() {
         setGeneratingCV(true);
 
         try {
+            const authHeaders = await getSupabaseAuthHeader();
             const res = await fetch("/api/cv/generate", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeaders },
                 body: JSON.stringify({
-                    userId: Cookies.get("userId"),
                     analysisId: id,
                     template: templateId,
                     includePhoto: includePhoto

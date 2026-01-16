@@ -1,20 +1,30 @@
-import { createSignedUrl, createSupabaseAdminClient, createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
+import { normalizeRAGToCV } from "@/components/cv/normalizeData";
+import { fitCVToTemplate } from "@/lib/cv/validator";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
     try {
-        const { userId, analysisId, template, includePhoto = true } = await req.json();
+        const generationStartMs = Date.now();
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
 
-        if (!userId || !analysisId) {
+        const { analysisId, template, includePhoto = true } = await req.json();
+        const userId = auth.user.id;
+
+        if (!analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
         }
+
+        const supabase = createSupabaseUserClient(auth.token);
 
         // Rate limiting: 20 CV generations per hour
         const rateLimitResult = checkRateLimit(`cv:${userId}`, RATE_LIMITS.CV_GENERATION);
@@ -39,7 +49,24 @@ export async function POST(req: Request) {
 
             if (cacheAge < CACHE_TTL) {
                 const cachedHasPhoto = !!(cachedCV as any)?.cv_data?.profil?.photo_url;
-                if (!includePhoto || cachedHasPhoto) {
+                if (!includePhoto) {
+                    const cvWithoutPhoto = JSON.parse(JSON.stringify(cachedCV.cv_data));
+                    if (cvWithoutPhoto?.profil) {
+                        delete cvWithoutPhoto.profil.photo_url;
+                    }
+                    console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
+                    return NextResponse.json({
+                        success: true,
+                        cvId: cachedCV.id,
+                        cvData: cvWithoutPhoto,
+                        templateName: cachedCV.template_name,
+                        includePhoto,
+                        cached: true,
+                        cacheAge: Math.round(cacheAge / 1000)
+                    });
+                }
+
+                if (cachedHasPhoto) {
                     console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
                     return NextResponse.json({
                         success: true,
@@ -61,6 +88,7 @@ export async function POST(req: Request) {
             .from("job_analyses")
             .select("*")
             .eq("id", analysisId)
+            .eq("user_id", userId)
             .single();
 
         if (analysisError || !analysisData) {
@@ -77,38 +105,26 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "RAG Profile not found" }, { status: 404 });
         }
 
-        const profile = normalizeRAGData(ragData.completeness_details);
+        const ragProfile = normalizeRAGData(ragData.completeness_details);
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
 
-        // Get photo URL if needed
-        let photoUrl = null;
-        let photoWarning = null;
-        const photoRef = (profile as any)?.profil?.photo_url as string | undefined;
-        if (includePhoto && photoRef) {
-            if (photoRef.startsWith('http://') || photoRef.startsWith('https://')) {
-                photoUrl = photoRef;
-            } else {
-                const admin = createSupabaseAdminClient();
-                const signed = await createSignedUrl(admin, photoRef, { expiresIn: 3600 });
-                if (!signed) {
-                    photoWarning = 'Unable to load profile photo';
-                } else {
-                    photoUrl = signed;
-                }
-            }
-        }
+        const ragProfil = (ragProfile as any)?.profil || {};
+        const ragContact = ragProfil?.contact || {};
+
+        const photoRef = ragProfil?.photo_url as string | undefined;
+        const photoValue = includePhoto && photoRef ? photoRef : null;
 
         // 2. Generate CV with AI (with retry logic)
-        const prompt = getCVOptimizationPrompt(profile, jobDescription, customNotes);
+        const prompt = getCVOptimizationPrompt(ragProfile, jobDescription, customNotes);
 
         console.log("=== CV GENERATION START ===");
-        console.log("Using model: gemini-3-flash-preview");
 
         let responseText: string;
         try {
             const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
             responseText = cascadeResult.result.response.text();
+            console.log("Using model:", cascadeResult.modelUsed);
             console.log("Gemini response length:", responseText.length);
         } catch (geminiError: any) {
             console.error("Gemini API Error:", geminiError.message);
@@ -130,28 +146,51 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
         }
 
-        // 3. Merge original RAG profile with Gemini output to preserve identity data
-        // Note: RAG schema stores email/telephone in profil.contact.{email|telephone}
-        const profileContact = profile.contact || {};
-        const finalCV = {
+        const identity = (aiOptimizedCV as any)?.identity || {};
+        const identityContact = identity?.contact || {};
+        const optimizedPitchText = typeof (aiOptimizedCV as any)?.elevator_pitch?.text === "string"
+            ? (aiOptimizedCV as any).elevator_pitch.text
+            : undefined;
+
+        const mergedRaw = {
             ...aiOptimizedCV,
             profil: {
-                ...aiOptimizedCV.profil,
-                nom: profile.nom || aiOptimizedCV.profil?.nom,
-                prenom: profile.prenom || aiOptimizedCV.profil?.prenom,
-                email: profileContact.email || profile.email || aiOptimizedCV.profil?.email,
-                telephone: profileContact.telephone || profile.telephone || aiOptimizedCV.profil?.telephone,
-                localisation: profile.localisation || profileContact.ville || aiOptimizedCV.profil?.localisation,
-                linkedin: profileContact.linkedin || profile.linkedin || aiOptimizedCV.profil?.linkedin,
-                titre_principal: profile.titre_principal || aiOptimizedCV.profil?.titre_principal,
-                elevator_pitch: aiOptimizedCV.profil?.elevator_pitch || profile.elevator_pitch,
-                photo_url: includePhoto && photoUrl ? photoUrl : undefined
+                prenom: ragProfil?.prenom || identity?.prenom || "",
+                nom: ragProfil?.nom || identity?.nom || "",
+                titre_principal: identity?.titre_vise || ragProfil?.titre_principal || "",
+                email: identityContact?.email || ragContact?.email || "",
+                telephone: identityContact?.telephone || ragContact?.telephone || "",
+                localisation: identityContact?.ville || ragProfil?.localisation || "",
+                linkedin: identityContact?.linkedin || ragContact?.linkedin || "",
+                elevator_pitch: optimizedPitchText || ragProfil?.elevator_pitch || "",
+                photo_url: includePhoto && photoValue ? photoValue : undefined,
             },
-            experiences: aiOptimizedCV.experiences || profile.experiences,
-            competences: aiOptimizedCV.competences || profile.competences,
-            formations: aiOptimizedCV.formations || profile.formations,
-            langues: aiOptimizedCV.langues || profile.langues,
-            certifications: aiOptimizedCV.certifications || profile.certifications,
+        };
+
+        const normalizedCV = normalizeRAGToCV(mergedRaw);
+        const { cvData: finalCV, compressionLevelApplied, dense, unitStats } = fitCVToTemplate({
+            cvData: normalizedCV,
+            templateName: template || "modern",
+            includePhoto,
+        });
+
+        const baseMeta = (aiOptimizedCV as any)?.cv_metadata && typeof (aiOptimizedCV as any).cv_metadata === "object"
+            ? (aiOptimizedCV as any).cv_metadata
+            : {};
+        const generatedAt = typeof baseMeta.generated_at === "string" ? baseMeta.generated_at : new Date().toISOString();
+        const optimizationsApplied = Array.isArray(baseMeta.optimizations_applied) ? baseMeta.optimizations_applied : [];
+
+        (finalCV as any).cv_metadata = {
+            ...baseMeta,
+            template_used: template || "modern",
+            generated_for_job_id: analysisId,
+            match_score: typeof baseMeta.match_score === "number" ? baseMeta.match_score : analysisData.match_score,
+            generated_at: generatedAt,
+            compression_level_applied: compressionLevelApplied,
+            page_count: 1,
+            optimizations_applied: optimizationsApplied,
+            dense: !!dense,
+            unit_stats: unitStats,
         };
 
         // 4. Save Generated CV
@@ -162,7 +201,9 @@ export async function POST(req: Request) {
                 job_analysis_id: analysisId,
                 template_name: template || "modern",
                 cv_data: finalCV,
-                optimizations_applied: finalCV.optimizations_applied || []
+                optimizations_applied: (finalCV as any)?.cv_metadata?.optimizations_applied || [],
+                ats_score: (finalCV as any)?.cv_metadata?.ats_score,
+                generation_duration_ms: Date.now() - generationStartMs,
             })
             .select("id")
             .single();
@@ -172,17 +213,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
         }
 
-        // Compile warnings
-        const allWarnings: string[] = [];
-        if (photoWarning) allWarnings.push(photoWarning);
-
         return NextResponse.json({
             success: true,
             cvId: cvGen?.id,
             cvData: finalCV,
             templateName: template || "modern",
             includePhoto,
-            warnings: allWarnings.length > 0 ? allWarnings : undefined
         });
 
     } catch (error: any) {

@@ -1,0 +1,296 @@
+import { CVData } from "../../components/cv/templates";
+import { getThemeConfig } from "./theme-configs";
+import { getUnitHeight } from "./content-units-reference";
+
+type ExperienceFormat = "detailed" | "standard" | "compact" | "minimal";
+
+export interface CVAdaptationResult {
+    cvData: CVData;
+    dense: boolean;
+    totalUnitsUsed: number;
+    zoneUnitsUsed: Record<string, number>;
+    warnings: string[];
+    compressionLevelApplied: number;
+}
+
+function parseYear(value: string | undefined): number | null {
+    if (!value) return null;
+    const match = value.match(/(\d{4})/);
+    if (!match) return null;
+    const year = Number(match[1]);
+    return Number.isFinite(year) ? year : null;
+}
+
+function yearsSince(value: string | undefined): number {
+    const year = parseYear(value);
+    if (!year) return 0;
+    return Math.max(0, new Date().getFullYear() - year);
+}
+
+function getHeaderUnitType(params: { includePhoto: boolean; photoUrl?: string; contactCount: number }) {
+    if (params.includePhoto && params.photoUrl) return "header_with_photo" as const;
+    if (params.contactCount > 0) return "header_with_contacts" as const;
+    return "header_minimal" as const;
+}
+
+function pickSummaryUnitType(pitch: string | undefined) {
+    const text = (pitch || "").trim();
+    if (!text) return null;
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    if (wordCount >= 80 || text.length >= 420) return "summary_elevator" as const;
+    if (wordCount >= 45 || text.length >= 220) return "summary_standard" as const;
+    return "summary_short" as const;
+}
+
+function unitForExperience(format: ExperienceFormat) {
+    if (format === "detailed") return getUnitHeight("experience_detailed");
+    if (format === "standard") return getUnitHeight("experience_standard");
+    if (format === "compact") return getUnitHeight("experience_compact");
+    return getUnitHeight("experience_minimal");
+}
+
+function clamp(n: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, n));
+}
+
+function computeSkillLines(cvData: CVData) {
+    const techniques = Array.isArray(cvData.competences?.techniques) ? cvData.competences.techniques : [];
+    const soft = Array.isArray(cvData.competences?.soft_skills) ? cvData.competences.soft_skills : [];
+    return { techniques, soft };
+}
+
+function sliceText(text: string, maxChars: number) {
+    if (text.length <= maxChars) return text;
+    const sliced = text.slice(0, Math.max(0, maxChars - 3)).trimEnd();
+    return sliced ? sliced + "..." : "";
+}
+
+function applyExperienceFormat(exp: CVData["experiences"][number], format: ExperienceFormat, maxBullets: number) {
+    const bullets = Array.isArray(exp.realisations) ? exp.realisations : [];
+    const safeMax = clamp(maxBullets, 0, bullets.length);
+
+    if (format === "detailed") {
+        return { ...exp, realisations: bullets.slice(0, safeMax) };
+    }
+    if (format === "standard") {
+        return { ...exp, realisations: bullets.slice(0, Math.min(safeMax, 3)) };
+    }
+    if (format === "compact") {
+        const first = bullets[0];
+        const compactLine = typeof first === "string" ? sliceText(first, 110) : "";
+        return { ...exp, realisations: compactLine ? [compactLine] : [] };
+    }
+    return { ...exp, realisations: [] };
+}
+
+export function adaptCVToThemeUnits(params: {
+    cvData: CVData;
+    templateName: string;
+    includePhoto: boolean;
+}): CVAdaptationResult {
+    const theme = getThemeConfig(params.templateName);
+    const warnings: string[] = [];
+
+    let compressionLevelApplied = 0;
+    let dense = false;
+
+    const next: CVData = JSON.parse(JSON.stringify(params.cvData));
+    const profil = next.profil || ({} as any);
+
+    const contactCount = [profil.email, profil.telephone, profil.localisation, profil.linkedin]
+        .filter((v) => typeof v === "string" && v.trim().length > 0).length;
+
+    const headerUnitType = getHeaderUnitType({
+        includePhoto: params.includePhoto,
+        photoUrl: profil.photo_url,
+        contactCount,
+    });
+
+    const headerUnits = getUnitHeight(headerUnitType);
+
+    const zones = theme.zones;
+
+    const experiences = Array.isArray(next.experiences) ? next.experiences : [];
+    const sortedExperiences = [...experiences].sort((a, b) => {
+        const aYear = parseYear(a.date_debut) || 0;
+        const bYear = parseYear(b.date_debut) || 0;
+        return bYear - aYear;
+    });
+
+    const maxBullets = theme.adaptive_rules.max_bullet_points_per_exp;
+    const experienceFormats: ExperienceFormat[] = sortedExperiences.map((exp, idx) => {
+        const isOld = yearsSince(exp.date_fin) >= theme.adaptive_rules.compact_after_years;
+        if (isOld) return "compact";
+        if (idx < theme.adaptive_rules.min_detailed_experiences) return "detailed";
+        return "standard";
+    });
+
+    const computeZoneUnits = (data: CVData, formats: ExperienceFormat[]) => {
+        const zoneUnitsUsed: Record<string, number> = {};
+        zoneUnitsUsed.header = headerUnits;
+        const summaryType = pickSummaryUnitType(data.profil?.elevator_pitch);
+        zoneUnitsUsed.summary = summaryType ? getUnitHeight(summaryType) : 0;
+
+        const expUnits = formats.reduce((sum, f) => sum + unitForExperience(f), 0);
+        zoneUnitsUsed.experiences = expUnits;
+
+        const { techniques, soft } = computeSkillLines(data);
+        const skillLineUnits = getUnitHeight("skill_line");
+        zoneUnitsUsed.skills = (techniques.length + soft.length) * skillLineUnits;
+
+        zoneUnitsUsed.formation = (data.formations?.length || 0) * getUnitHeight("formation_standard");
+        zoneUnitsUsed.certifications = (data.certifications?.length || 0) * getUnitHeight("certification");
+        zoneUnitsUsed.languages = (data.langues?.length || 0) * getUnitHeight("language");
+
+        const clients = (data.clients_references?.clients || []).length;
+        zoneUnitsUsed.clients = clients * skillLineUnits;
+
+        const totalUnitsUsed = Object.values(zoneUnitsUsed).reduce((sum, n) => sum + n, 0);
+        return { zoneUnitsUsed, totalUnitsUsed };
+    };
+
+    const shrinkSummaryIfNeeded = () => {
+        if (!next.profil?.elevator_pitch) return false;
+
+        const currentType = pickSummaryUnitType(next.profil.elevator_pitch);
+        if (!currentType) return false;
+
+        if (currentType === "summary_elevator") {
+            next.profil.elevator_pitch = sliceText(next.profil.elevator_pitch, 260);
+            compressionLevelApplied++;
+            return true;
+        }
+
+        if (currentType === "summary_standard") {
+            next.profil.elevator_pitch = sliceText(next.profil.elevator_pitch, 180);
+            compressionLevelApplied++;
+            return true;
+        }
+        next.profil.elevator_pitch = "";
+        compressionLevelApplied++;
+        return true;
+    };
+
+    const fitExperiencesToCapacity = () => {
+        const cap = zones.experiences.capacity_units;
+        while (true) {
+            const { zoneUnitsUsed } = computeZoneUnits(next, experienceFormats);
+            if (zoneUnitsUsed.experiences <= cap) break;
+
+            const idx = experienceFormats.length - 1;
+            if (idx < 0) break;
+
+            const current = experienceFormats[idx];
+            if (current === "detailed") {
+                experienceFormats[idx] = "standard";
+            } else if (current === "standard") {
+                experienceFormats[idx] = "compact";
+            } else if (current === "compact") {
+                experienceFormats[idx] = "minimal";
+            } else {
+                experienceFormats.pop();
+                sortedExperiences.pop();
+            }
+            compressionLevelApplied++;
+        }
+    };
+
+    const fitSkillsToCapacity = () => {
+        const cap = zones.skills.capacity_units;
+        const skillLineUnits = getUnitHeight("skill_line");
+
+        const maxLines = Math.floor(cap / skillLineUnits);
+        const { techniques, soft } = computeSkillLines(next);
+        const combined = [...techniques, ...soft];
+
+        if (combined.length <= maxLines) return;
+
+        const trimmed = combined.slice(0, maxLines);
+        next.competences = {
+            techniques: trimmed.slice(0, Math.min(trimmed.length, techniques.length)),
+            soft_skills: trimmed.slice(Math.min(trimmed.length, techniques.length)),
+        };
+        compressionLevelApplied++;
+    };
+
+    const fitFormationToCapacity = () => {
+        const cap = zones.formation.capacity_units;
+        const per = getUnitHeight("formation_standard");
+        const maxItems = Math.floor(cap / per);
+        if (Array.isArray(next.formations) && next.formations.length > maxItems) {
+            next.formations = next.formations.slice(0, maxItems);
+            compressionLevelApplied++;
+        }
+    };
+
+    const fitCertificationsToCapacity = () => {
+        const cap = zones.certifications.capacity_units;
+        const per = getUnitHeight("certification");
+        const maxItems = Math.floor(cap / per);
+        if (Array.isArray(next.certifications) && next.certifications.length > maxItems) {
+            next.certifications = next.certifications.slice(0, maxItems);
+            compressionLevelApplied++;
+        }
+    };
+
+    const fitLanguagesToCapacity = () => {
+        const cap = zones.languages.capacity_units;
+        const per = getUnitHeight("language");
+        const maxItems = Math.floor(cap / per);
+        if (Array.isArray(next.langues) && next.langues.length > maxItems) {
+            next.langues = next.langues.slice(0, maxItems);
+            compressionLevelApplied++;
+        }
+    };
+
+    const dropClientsIfNeeded = () => {
+        if (!next.clients_references) return;
+        const cap = zones.clients.capacity_units;
+        const per = getUnitHeight("skill_line");
+        const maxItems = cap > 0 ? Math.floor(cap / per) : 0;
+        if (maxItems <= 0) {
+            delete (next as any).clients_references;
+            compressionLevelApplied++;
+            return;
+        }
+        const clients = next.clients_references.clients || [];
+        if (clients.length > maxItems) {
+            next.clients_references.clients = clients.slice(0, maxItems);
+            compressionLevelApplied++;
+        }
+    };
+
+    fitExperiencesToCapacity();
+    next.experiences = sortedExperiences.map((exp, idx) => applyExperienceFormat(exp, experienceFormats[idx] || "standard", maxBullets));
+
+    fitSkillsToCapacity();
+    fitFormationToCapacity();
+    fitCertificationsToCapacity();
+    fitLanguagesToCapacity();
+    dropClientsIfNeeded();
+
+    let computed = computeZoneUnits(next, experienceFormats);
+    const allowed = theme.page_config.total_height_units - zones.margins.capacity_units;
+
+    if (computed.totalUnitsUsed > allowed) {
+        dense = true;
+        compressionLevelApplied++;
+        if (computed.zoneUnitsUsed.summary > 0) {
+            shrinkSummaryIfNeeded();
+            computed = computeZoneUnits(next, experienceFormats);
+        }
+    }
+
+    if (computed.totalUnitsUsed > allowed) {
+        warnings.push("Le contenu dépasse la capacité estimée malgré compression");
+    }
+
+    return {
+        cvData: next,
+        dense,
+        totalUnitsUsed: computed.totalUnitsUsed,
+        zoneUnitsUsed: computed.zoneUnitsUsed,
+        warnings,
+        compressionLevelApplied,
+    };
+}

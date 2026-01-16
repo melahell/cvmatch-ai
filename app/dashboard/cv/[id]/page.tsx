@@ -73,11 +73,16 @@ export default function CVViewPage() {
         const loadPhoto = async () => {
             try {
                 const authHeaders = await getSupabaseAuthHeader();
-                const res = await fetch("/api/profile/photo", {
+
+                const init: RequestInit = {
                     method: "GET",
-                    headers: authHeaders,
                     credentials: "include",
-                });
+                };
+                if (Object.keys(authHeaders).length > 0) {
+                    init.headers = authHeaders;
+                }
+
+                const res = await fetch("/api/profile/photo", init);
                 if (!res.ok) return;
                 const payload = await res.json();
                 const photoUrl = payload?.photo_url as string | null | undefined;

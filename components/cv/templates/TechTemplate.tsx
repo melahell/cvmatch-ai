@@ -116,8 +116,8 @@ export default function TechTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                fontSize: '9pt',
-                lineHeight: '1.3'
+                fontSize: dense ? '8.5pt' : '9pt',
+                lineHeight: dense ? '1.25' : '1.3'
             }}
         >
             {/* Sidebar Gauche - Terminal Style */}

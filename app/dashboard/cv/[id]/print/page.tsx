@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import CVRenderer from "@/components/cv/CVRenderer";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
@@ -11,33 +10,46 @@ export default function CVPrintPage() {
     const { id } = useParams();
     const searchParams = useSearchParams();
     const format = searchParams.get("format") || "A4"; // A4 or Letter
-    const template = searchParams.get("template") || "modern";
+    const templateParam = searchParams.get("template");
     const includePhoto = searchParams.get("photo") !== "false";
     const [loading, setLoading] = useState(true);
     const [cvData, setCvData] = useState<any>(null);
+    const [templateId, setTemplateId] = useState<string>("modern");
     const [rendered, setRendered] = useState(false);
 
     useEffect(() => {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
         async function fetchCV() {
             if (!id) return;
 
-            const { data, error } = await supabase
-                .from("cv_generations")
-                .select("*")
-                .eq("id", id)
-                .single();
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+            if (!supabaseUrl || !anonKey) {
+                setLoading(false);
+                return;
+            }
 
-            if (data) {
-                setCvData(data.cv_data);
+            const authHeaders = await getSupabaseAuthHeader();
+            const headers: Record<string, string> = {
+                apikey: anonKey,
+            };
+            if (authHeaders.Authorization) {
+                headers.Authorization = authHeaders.Authorization;
+            }
+
+            const url = `${supabaseUrl}/rest/v1/cv_generations?id=eq.${id}&select=cv_data,template_name&limit=1`;
+            const res = await fetch(url, { method: "GET", headers });
+            if (res.ok) {
+                const rows = (await res.json()) as Array<{ cv_data: any; template_name: string | null }>;
+                const row = rows?.[0];
+                if (row?.cv_data) {
+                    setCvData(row.cv_data);
+                    setTemplateId(templateParam || row.template_name || "modern");
+                }
             }
             setLoading(false);
         }
         fetchCV();
-    }, [id]);
+    }, [id, templateParam]);
 
     useEffect(() => {
         if (!includePhoto) return;
@@ -54,11 +66,16 @@ export default function CVPrintPage() {
         const loadPhoto = async () => {
             try {
                 const authHeaders = await getSupabaseAuthHeader();
-                const res = await fetch("/api/profile/photo", {
+
+                const init: RequestInit = {
                     method: "GET",
-                    headers: authHeaders,
                     credentials: "include",
-                });
+                };
+                if (Object.keys(authHeaders).length > 0) {
+                    init.headers = authHeaders;
+                }
+
+                const res = await fetch("/api/profile/photo", init);
                 if (!res.ok) return;
                 const payload = await res.json();
                 const photoUrl = payload?.photo_url as string | null | undefined;
@@ -135,8 +152,9 @@ export default function CVPrintPage() {
 
             <CVRenderer
                 data={cvData}
-                templateId={template}
+                templateId={templateId}
                 includePhoto={includePhoto}
+                dense={!!(cvData as any)?.cv_metadata?.dense}
             />
 
             <style jsx global>{`

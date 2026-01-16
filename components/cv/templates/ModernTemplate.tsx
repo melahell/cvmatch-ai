@@ -90,8 +90,8 @@ export default function ModernTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'Inter', -apple-system, sans-serif",
-                fontSize: '8.5pt',
-                lineHeight: '1.3'
+                fontSize: dense ? '8pt' : '8.5pt',
+                lineHeight: dense ? '1.25' : '1.3'
             }}
         >
             {/* Sidebar Gauche - Sombre */}

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Maximum execution time for Vercel
@@ -11,9 +11,16 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
+        const auth = await requireSupabaseUser(request);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
+
         const { id } = params;
         const { searchParams } = new URL(request.url);
         const format = searchParams.get("format") || "A4";
+        const requestedTemplate = searchParams.get("template");
+        const requestedPhoto = searchParams.get("photo");
 
         // Validate format
         if (!["A4", "Letter"].includes(format)) {
@@ -23,16 +30,12 @@ export async function GET(
             );
         }
 
-        // Verify CV exists in database
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
-
+        const supabase = createSupabaseUserClient(auth.token);
         const { data: cvData, error: dbError } = await supabase
             .from("cv_generations")
             .select("*")
             .eq("id", id)
+            .eq("user_id", auth.user.id)
             .single();
 
         if (dbError || !cvData) {
@@ -70,10 +73,18 @@ export async function GET(
 
         const page = await browser.newPage();
 
+        await page.setExtraHTTPHeaders({
+            Authorization: `Bearer ${auth.token}`,
+        });
+
         // Build the URL for the print page
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
             `${request.nextUrl.protocol}//${request.nextUrl.host}`;
-        const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${format}`;
+        const templateName = requestedTemplate || cvData.template_name || "modern";
+        const includePhoto = requestedPhoto === "false" ? false : true;
+        const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${format}&template=${encodeURIComponent(
+            templateName
+        )}&photo=${includePhoto ? "true" : "false"}`;
 
         // Navigate to the print page
         console.log(`📄 Navigating to print page: ${printUrl}`);

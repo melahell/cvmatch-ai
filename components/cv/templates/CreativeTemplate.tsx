@@ -81,8 +81,8 @@ export default function CreativeTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'Outfit', 'Inter', sans-serif",
-                fontSize: '9pt',
-                lineHeight: '1.3'
+                fontSize: dense ? '8.5pt' : '9pt',
+                lineHeight: dense ? '1.25' : '1.3'
             }}
         >
             {/* Colorful Header Banner */}
