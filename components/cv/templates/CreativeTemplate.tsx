@@ -237,7 +237,7 @@ export default function CreativeTemplate({
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <h4 className="text-[10pt] font-extrabold text-slate-900">{exp.poste}</h4>
-                                            {(exp as any)._relevance_score >= 75 && (
+                                            {(exp as any)._relevance_score >= 50 && (
                                                 <span
                                                     className="text-[6pt] px-1.5 py-0.5 rounded font-bold text-white"
                                                     style={{ background: color }}

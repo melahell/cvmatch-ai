@@ -308,7 +308,7 @@ export default function ModernTemplate({
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
                                     <div className="flex items-center gap-2">
                                         <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
-                                        {(exp as any)._relevance_score >= 75 && (
+                                        {(exp as any)._relevance_score >= 50 && (
                                             <span className="bg-green-100 text-green-700 text-[6pt] px-1.5 py-0.5 rounded font-bold">
                                                 ★ Pertinent
                                             </span>

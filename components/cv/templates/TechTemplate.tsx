@@ -332,7 +332,7 @@ export default function TechTemplate({
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-2">
                                         <h4 className="text-[9pt] font-bold text-slate-900">{exp.poste}</h4>
-                                        {(exp as any)._relevance_score >= 75 && (
+                                        {(exp as any)._relevance_score >= 50 && (
                                             <span className="bg-emerald-100 text-emerald-700 text-[6pt] px-1.5 py-0.5 rounded font-bold font-sans">
                                                 ★ Match
                                             </span>

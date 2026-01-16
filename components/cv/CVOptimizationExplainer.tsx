@@ -31,13 +31,13 @@ export function CVOptimizationExplainer({
 }: CVOptimizationExplainerProps) {
     const [open, setOpen] = useState(false);
 
-    const hasOptimizations =
-        warnings.length > 0 ||
-        compressionLevel > 0 ||
-        experiencesSummary.excluded > 0 ||
+    // Always show if there's a job title or any experiences
+    const hasContent =
+        experiencesSummary.total > 0 ||
+        jobTitle ||
         relevanceScoringApplied;
 
-    if (!hasOptimizations) return null;
+    if (!hasContent) return null;
 
     return (
         <div className="mb-4 border border-indigo-200 rounded-lg bg-gradient-to-r from-indigo-50 to-purple-50 overflow-hidden">

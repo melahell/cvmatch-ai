@@ -175,7 +175,7 @@ export default function ClassicTemplate({
                                 <div className="flex justify-between items-baseline mb-1">
                                     <div className="flex items-center gap-2">
                                         <h4 className="text-[10pt] font-bold text-slate-900">{exp.poste}</h4>
-                                        {(exp as any)._relevance_score >= 75 && (
+                                        {(exp as any)._relevance_score >= 50 && (
                                             <span className="bg-slate-200 text-slate-700 text-[6pt] px-1.5 py-0.5 rounded font-bold">
                                                 ★ Pertinent
                                             </span>
