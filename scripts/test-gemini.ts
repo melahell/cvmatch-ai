@@ -32,8 +32,6 @@ async function main() {
     const models = [
         "gemini-3-flash-preview",
         "gemini-3-pro-preview",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro",
     ];
 
     console.log("=== GEMINI MODEL TEST ===\n");
