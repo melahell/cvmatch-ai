@@ -68,20 +68,30 @@ function sliceText(text: string, maxChars: number) {
 
 function applyExperienceFormat(exp: CVData["experiences"][number], format: ExperienceFormat, maxBullets: number) {
     const bullets = Array.isArray(exp.realisations) ? exp.realisations : [];
-    const safeMax = clamp(maxBullets, 0, bullets.length);
 
-    if (format === "detailed") {
-        return { ...exp, realisations: bullets.slice(0, safeMax) };
-    }
-    if (format === "standard") {
-        return { ...exp, realisations: bullets.slice(0, Math.min(safeMax, 3)) };
-    }
+    // CDC format limits: detailed=5, standard=3, compact=1, minimal=0
+    // Note: maxBullets from theme is used as fallback but CDC takes priority
+    const formatLimits: Record<ExperienceFormat, number> = {
+        detailed: 5,
+        standard: 3,
+        compact: 1,
+        minimal: 0,
+    };
+
+    const limit = formatLimits[format] ?? 3;
+    const effectiveLimit = Math.min(limit, bullets.length);
+
     if (format === "compact") {
         const first = bullets[0];
         const compactLine = typeof first === "string" ? sliceText(first, 110) : "";
         return { ...exp, realisations: compactLine ? [compactLine] : [] };
     }
-    return { ...exp, realisations: [] };
+
+    if (format === "minimal") {
+        return { ...exp, realisations: [] };
+    }
+
+    return { ...exp, realisations: bullets.slice(0, effectiveLimit) };
 }
 
 export function adaptCVToThemeUnits(params: {
