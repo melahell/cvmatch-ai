@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import CVRenderer from "@/components/cv/CVRenderer";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { TEMPLATES } from "@/components/cv/templates";
+import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
 
 interface CVGeneration {
@@ -73,11 +74,16 @@ export default function CVViewPage() {
         const loadPhoto = async () => {
             try {
                 const authHeaders = await getSupabaseAuthHeader();
-                const res = await fetch("/api/profile/photo", {
+
+                const init: RequestInit = {
                     method: "GET",
-                    headers: authHeaders,
                     credentials: "include",
-                });
+                };
+                if (Object.keys(authHeaders).length > 0) {
+                    init.headers = authHeaders;
+                }
+
+                const res = await fetch("/api/profile/photo", init);
                 if (!res.ok) return;
                 const payload = await res.json();
                 const photoUrl = payload?.photo_url as string | null | undefined;
@@ -144,10 +150,9 @@ export default function CVViewPage() {
             await html2pdf().set(options).from(element).save();
         } catch (error) {
             console.error('PDF Error:', error);
-            // Fallback to browser print
-            if (confirm('La génération PDF a échoué. Utiliser l\'impression du navigateur?')) {
-                window.print();
-            }
+            // Fallback silencieux vers l'impression du navigateur
+            console.warn('Fallback vers impression navigateur');
+            window.print();
         } finally {
             setGeneratingPDF(false);
         }
@@ -163,6 +168,13 @@ export default function CVViewPage() {
 
     // Extract CDC metadata if available
     const cvMetadata = cvGeneration?.cv_data?.cv_metadata;
+
+    // DEBUG: Log metadata to see what's available
+    console.log("[CV DEBUG] cv_metadata:", JSON.stringify(cvMetadata, null, 2));
+    console.log("[CV DEBUG] formats_used:", cvMetadata?.formats_used);
+    console.log("[CV DEBUG] job_title:", cvMetadata?.job_title);
+    console.log("[CV DEBUG] relevance_scoring_applied:", cvMetadata?.relevance_scoring_applied);
+
     const qualityScore = cvMetadata?.ats_score;
     const compressionLevel = cvMetadata?.compression_level_applied || 0;
     const pageCount = cvMetadata?.page_count || 1;
@@ -292,6 +304,28 @@ export default function CVViewPage() {
                     )}
                 </div>
             </div>
+
+            {/* CV Optimization Explainer Accordion */}
+            {cvMetadata && (
+                <div className="container mx-auto px-4 pt-6 print:hidden" style={{ maxWidth: '210mm' }}>
+                    <CVOptimizationExplainer
+                        warnings={cvMetadata.warnings || []}
+                        experiencesSummary={cvMetadata.formats_used ? {
+                            total: (cvMetadata.formats_used.detailed || 0) + (cvMetadata.formats_used.standard || 0) +
+                                (cvMetadata.formats_used.compact || 0) + (cvMetadata.formats_used.minimal || 0),
+                            detailed: cvMetadata.formats_used.detailed || 0,
+                            standard: cvMetadata.formats_used.standard || 0,
+                            compact: cvMetadata.formats_used.compact || 0,
+                            minimal: cvMetadata.formats_used.minimal || 0,
+                            excluded: 0,
+                        } : computeExperienceSummary(cvGeneration.cv_data?.experiences || [])}
+                        relevanceScoringApplied={cvMetadata.relevance_scoring_applied || false}
+                        jobTitle={cvMetadata.job_title}
+                        compressionLevel={compressionLevel}
+                        dense={cvMetadata.dense || false}
+                    />
+                </div>
+            )}
 
             {/* CV Preview Area */}
             <div className="container mx-auto py-8 print:p-0" ref={cvRef}>

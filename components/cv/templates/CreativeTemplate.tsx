@@ -81,8 +81,8 @@ export default function CreativeTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'Outfit', 'Inter', sans-serif",
-                fontSize: '9pt',
-                lineHeight: '1.3'
+                fontSize: dense ? '8.5pt' : '9pt',
+                lineHeight: dense ? '1.25' : '1.3'
             }}
         >
             {/* Colorful Header Banner */}
@@ -235,18 +235,39 @@ export default function CreativeTemplate({
                                         <div className="text-[8pt] font-bold" style={{ color }}>
                                             {exp.date_debut} - {exp.date_fin || 'Présent'}
                                         </div>
-                                        <h4 className="text-[10pt] font-extrabold text-slate-900">{exp.poste}</h4>
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-[10pt] font-extrabold text-slate-900">{exp.poste}</h4>
+                                            {(exp as any)._relevance_score >= 50 && (
+                                                <span
+                                                    className="text-[6pt] px-1.5 py-0.5 rounded font-bold text-white"
+                                                    style={{ background: color }}
+                                                >
+                                                    ★ Match
+                                                </span>
+                                            )}
+                                        </div>
                                         <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}</p>
 
-                                        {exp.realisations && exp.realisations.length > 0 && (
-                                            <ul className="text-[8pt] text-slate-700 space-y-0.5">
-                                                {exp.realisations.map((r, j) => (
-                                                    <li key={j} className="flex items-start gap-1.5">
-                                                        <span style={{ color }}>→</span> {safeString(r)}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
+                                        {exp.realisations && exp.realisations.length > 0 && (() => {
+                                            const format = (exp as any)._format || "standard";
+                                            let bullets: any[];
+                                            switch (format) {
+                                                case "detailed": bullets = exp.realisations.slice(0, 5); break;
+                                                case "standard": bullets = exp.realisations.slice(0, 3); break;
+                                                case "compact": bullets = exp.realisations.slice(0, 1); break;
+                                                case "minimal": bullets = []; break;
+                                                default: bullets = exp.realisations.slice(0, 3);
+                                            }
+                                            return bullets.length > 0 ? (
+                                                <ul className="text-[8pt] text-slate-700 space-y-0.5">
+                                                    {bullets.map((r, j) => (
+                                                        <li key={j} className="flex items-start gap-1.5">
+                                                            <span style={{ color }}>→</span> {safeString(r)}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : null;
+                                        })()}
                                     </div>
                                 );
                             })}

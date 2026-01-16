@@ -116,8 +116,8 @@ export default function TechTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                fontSize: '9pt',
-                lineHeight: '1.3'
+                fontSize: dense ? '8.5pt' : '9pt',
+                lineHeight: dense ? '1.25' : '1.3'
             }}
         >
             {/* Sidebar Gauche - Terminal Style */}
@@ -330,26 +330,42 @@ export default function TechTemplate({
                                 style={{ borderColor: i === 0 ? COLORS.primary : i === 1 ? COLORS.secondary : COLORS.accent }}
                             >
                                 <div className="flex justify-between items-start">
-                                    <div>
+                                    <div className="flex items-center gap-2">
                                         <h4 className="text-[9pt] font-bold text-slate-900">{exp.poste}</h4>
-                                        <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
-                                            @ {exp.entreprise}
-                                        </p>
+                                        {(exp as any)._relevance_score >= 50 && (
+                                            <span className="bg-emerald-100 text-emerald-700 text-[6pt] px-1.5 py-0.5 rounded font-bold font-sans">
+                                                ★ Match
+                                            </span>
+                                        )}
                                     </div>
                                     <span className="text-[7pt] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
                                         {exp.date_debut} → {exp.date_fin || 'now'}
                                     </span>
                                 </div>
-                                {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="mt-1.5 space-y-0.5 text-[8pt] text-slate-700">
-                                        {exp.realisations.map((r, j) => (
-                                            <li key={j} className="flex items-start gap-1.5">
-                                                <span className="text-emerald-500 mt-0.5">→</span>
-                                                {safeString(r)}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
+                                <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
+                                    @ {exp.entreprise}
+                                </p>
+                                {exp.realisations && exp.realisations.length > 0 && (() => {
+                                    const format = (exp as any)._format || "standard";
+                                    let bullets: any[];
+                                    switch (format) {
+                                        case "detailed": bullets = exp.realisations.slice(0, 5); break;
+                                        case "standard": bullets = exp.realisations.slice(0, 3); break;
+                                        case "compact": bullets = exp.realisations.slice(0, 1); break;
+                                        case "minimal": bullets = []; break;
+                                        default: bullets = exp.realisations.slice(0, 3);
+                                    }
+                                    return bullets.length > 0 ? (
+                                        <ul className="mt-1.5 space-y-0.5 text-[8pt] text-slate-700">
+                                            {bullets.map((r, j) => (
+                                                <li key={j} className="flex items-start gap-1.5">
+                                                    <span className="text-emerald-500 mt-0.5">→</span>
+                                                    {safeString(r)}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : null;
+                                })()}
                             </div>
                         ))}
                     </div>

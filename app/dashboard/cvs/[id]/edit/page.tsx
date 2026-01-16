@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -132,10 +132,11 @@ export default function CVEditorPage() {
         setConsolidating(true);
 
         try {
+            const authHeaders = await getSupabaseAuthHeader();
             // Call AI consolidation API
             const response = await fetch("/api/cv/consolidate", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeaders },
                 body: JSON.stringify({ cvData })
             });
 

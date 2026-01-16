@@ -1,19 +1,19 @@
-"use server";
-
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { generateWithGemini } from "@/lib/ai/gemini";
+import { requireSupabaseUser } from "@/lib/supabase";
 
 export async function POST(request: NextRequest) {
     try {
+        const auth = await requireSupabaseUser(request);
+        if (auth.error) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
+
         const { cvData } = await request.json();
 
         if (!cvData) {
             return NextResponse.json({ error: "CV data required" }, { status: 400 });
         }
-
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const prompt = `Tu es un correcteur orthographique et rédactionnel expert en français.
         
@@ -30,8 +30,7 @@ IMPORTANT: Retourne UNIQUEMENT le JSON corrigé, sans markdown, sans explication
 JSON à corriger :
 ${JSON.stringify(cvData, null, 2)}`;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
+        const responseText = await generateWithGemini({ prompt });
 
         // Clean up the response - remove markdown code blocks if present
         let cleanedJson = responseText

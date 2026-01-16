@@ -2,6 +2,8 @@
  * CV Validation utilities to ensure content fits on one A4 page
  */
 
+import { adaptCVToThemeUnits } from "./adaptive-algorithm";
+
 export interface CVValidationResult {
     isValid: boolean;
     errors: string[];
@@ -17,7 +19,69 @@ export interface CVValidationResult {
     };
 }
 
-export function validateCVContent(cvData: any): CVValidationResult {
+export interface CVContentLimits {
+    maxExperiences: number;
+    maxBulletsPerExperience: number;
+    maxTotalBullets: number;
+    maxTechnicalSkills: number;
+    maxSoftSkills: number;
+    maxFormations: number;
+    maxElevatorPitchChars: number;
+}
+
+const DEFAULT_LIMITS: CVContentLimits = {
+    maxExperiences: 3,
+    maxBulletsPerExperience: 4,
+    maxTotalBullets: 12,
+    maxTechnicalSkills: 12,
+    maxSoftSkills: 6,
+    maxFormations: 2,
+    maxElevatorPitchChars: 250,
+};
+
+function getLimitsForTemplate(templateName: string, includePhoto: boolean): CVContentLimits {
+    const template = (templateName || "").toLowerCase();
+
+    if (template === "classic") {
+        return {
+            maxExperiences: includePhoto ? 3 : 4,
+            maxBulletsPerExperience: 4,
+            maxTotalBullets: 14,
+            maxTechnicalSkills: 14,
+            maxSoftSkills: 8,
+            maxFormations: 3,
+            maxElevatorPitchChars: 280,
+        };
+    }
+
+    if (template === "creative") {
+        return {
+            maxExperiences: 3,
+            maxBulletsPerExperience: 3,
+            maxTotalBullets: 10,
+            maxTechnicalSkills: 12,
+            maxSoftSkills: 7,
+            maxFormations: 2,
+            maxElevatorPitchChars: 240,
+        };
+    }
+
+    if (template === "tech") {
+        return {
+            maxExperiences: 3,
+            maxBulletsPerExperience: 3,
+            maxTotalBullets: 10,
+            maxTechnicalSkills: 14,
+            maxSoftSkills: 6,
+            maxFormations: 2,
+            maxElevatorPitchChars: 220,
+        };
+    }
+
+    return DEFAULT_LIMITS;
+}
+
+export function validateCVContent(cvData: any, limits: CVContentLimits = DEFAULT_LIMITS): CVValidationResult {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -45,45 +109,45 @@ export function validateCVContent(cvData: any): CVValidationResult {
     };
 
     // Validate constraints
-    if (stats.experiencesCount > 3) {
+    if (stats.experiencesCount > limits.maxExperiences) {
         errors.push(
-            `Trop d'expériences: ${stats.experiencesCount} (max 3). Le CV risque de déborder.`
+            `Trop d'expériences: ${stats.experiencesCount} (max ${limits.maxExperiences}). Le CV risque de déborder.`
         );
     }
 
-    if (stats.maxBulletsPerExperience > 4) {
+    if (stats.maxBulletsPerExperience > limits.maxBulletsPerExperience) {
         errors.push(
-            `Trop de bullets dans une expérience: ${stats.maxBulletsPerExperience} (max 4).`
+            `Trop de bullets dans une expérience: ${stats.maxBulletsPerExperience} (max ${limits.maxBulletsPerExperience}).`
         );
     }
 
-    if (stats.totalBullets > 12) {
+    if (stats.totalBullets > limits.maxTotalBullets) {
         warnings.push(
-            `Beaucoup de bullets au total: ${stats.totalBullets}. Idéalement max 12.`
+            `Beaucoup de bullets au total: ${stats.totalBullets}. Idéalement max ${limits.maxTotalBullets}.`
         );
     }
 
-    if (stats.technicalSkillsCount > 12) {
+    if (stats.technicalSkillsCount > limits.maxTechnicalSkills) {
         warnings.push(
-            `Trop de compétences techniques: ${stats.technicalSkillsCount} (max 12).`
+            `Trop de compétences techniques: ${stats.technicalSkillsCount} (max ${limits.maxTechnicalSkills}).`
         );
     }
 
-    if (stats.softSkillsCount > 6) {
+    if (stats.softSkillsCount > limits.maxSoftSkills) {
         warnings.push(
-            `Trop de soft skills: ${stats.softSkillsCount} (max 6).`
+            `Trop de soft skills: ${stats.softSkillsCount} (max ${limits.maxSoftSkills}).`
         );
     }
 
-    if (stats.formationsCount > 3) {
+    if (stats.formationsCount > limits.maxFormations + 1) {
         warnings.push(
             `Beaucoup de formations: ${stats.formationsCount}. Idéalement max 2-3.`
         );
     }
 
-    if (stats.elevatorPitchLength > 300) {
+    if (stats.elevatorPitchLength > limits.maxElevatorPitchChars + 50) {
         warnings.push(
-            `Elevator pitch trop long: ${stats.elevatorPitchLength} caractères (max 250).`
+            `Elevator pitch trop long: ${stats.elevatorPitchLength} caractères (max ${limits.maxElevatorPitchChars}).`
         );
     }
 
@@ -148,4 +212,63 @@ export function autoCompressCV(cvData: any): any {
     }
 
     return compressed;
+}
+
+function sliceToLimits(cvData: any, limits: CVContentLimits) {
+    const next = JSON.parse(JSON.stringify(cvData));
+
+    const experiences = Array.isArray(next.experiences) ? next.experiences : [];
+    next.experiences = experiences
+        .filter((e: any) => e?.display !== false)
+        .slice(0, limits.maxExperiences)
+        .map((exp: any) => ({
+            ...exp,
+            realisations: (Array.isArray(exp.realisations) ? exp.realisations : [])
+                .filter((r: any) => (typeof r === "object" && r !== null ? r.display !== false : true))
+                .slice(0, limits.maxBulletsPerExperience),
+        }));
+
+    if (next.competences?.techniques?.length > limits.maxTechnicalSkills) {
+        next.competences.techniques = next.competences.techniques.slice(0, limits.maxTechnicalSkills);
+    }
+    if (next.competences?.soft_skills?.length > limits.maxSoftSkills) {
+        next.competences.soft_skills = next.competences.soft_skills.slice(0, limits.maxSoftSkills);
+    }
+
+    if (Array.isArray(next.formations) && next.formations.length > limits.maxFormations) {
+        next.formations = next.formations.slice(0, limits.maxFormations);
+    }
+
+    if (typeof next.profil?.elevator_pitch === "string" && next.profil.elevator_pitch.length > limits.maxElevatorPitchChars) {
+        next.profil.elevator_pitch = next.profil.elevator_pitch.substring(0, Math.max(0, limits.maxElevatorPitchChars - 3)) + "...";
+    }
+
+    return next;
+}
+
+export function fitCVToTemplate(params: {
+    cvData: any;
+    templateName: string;
+    includePhoto: boolean;
+    jobOffer?: any;
+}) {
+    const baseLimits = getLimitsForTemplate(params.templateName, params.includePhoto);
+    const adapted = adaptCVToThemeUnits({
+        cvData: params.cvData,
+        templateName: params.templateName,
+        includePhoto: params.includePhoto,
+        jobOffer: params.jobOffer || null,
+    });
+    const validation = validateCVContent(adapted.cvData, baseLimits);
+    return {
+        cvData: adapted.cvData,
+        compressionLevelApplied: adapted.compressionLevelApplied,
+        validation,
+        dense: adapted.dense,
+        unitStats: {
+            totalUnitsUsed: adapted.totalUnitsUsed,
+            zoneUnitsUsed: adapted.zoneUnitsUsed,
+            warnings: adapted.warnings,
+        },
+    };
 }

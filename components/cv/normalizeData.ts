@@ -229,7 +229,7 @@ export function normalizeRAGToCV(raw: any): CVData {
     const elevatorPitch = profil.elevator_pitch || (data as any).elevator_pitch?.text || '';
     const photoUrl = profil.photo_url || identity.photo_url || '';
 
-    // Normalize experiences with sanitization
+    // Normalize experiences with sanitization - PRESERVE _format and _relevance_score from adaptive algorithm
     const experiences = (data.experiences || []).map((exp: any) => ({
         poste: sanitizeText(exp.poste),
         entreprise: sanitizeText(exp.entreprise),
@@ -256,7 +256,10 @@ export function normalizeRAGToCV(raw: any): CVData {
                     text = String(r);
                 }
                 return sanitizeText(text);
-            })
+            }),
+        // PRESERVE adaptive algorithm metadata for templates
+        _format: exp._format,
+        _relevance_score: exp._relevance_score,
     })).filter((exp: any) => {
         // Filter out hidden experiences (from CDC compressor)
         const rawExp = (data.experiences || []).find((e: any) => e.poste === exp.poste);

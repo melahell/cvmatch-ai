@@ -90,8 +90,8 @@ export default function ModernTemplate({
                 overflow: 'hidden',
                 boxSizing: 'border-box',
                 fontFamily: "'Inter', -apple-system, sans-serif",
-                fontSize: '8.5pt',
-                lineHeight: '1.3'
+                fontSize: dense ? '8pt' : '8.5pt',
+                lineHeight: dense ? '1.25' : '1.3'
             }}
         >
             {/* Sidebar Gauche - Sombre */}
@@ -306,7 +306,14 @@ export default function ModernTemplate({
                                 />
 
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
-                                    <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
+                                        {(exp as any)._relevance_score >= 50 && (
+                                            <span className="bg-green-100 text-green-700 text-[6pt] px-1.5 py-0.5 rounded font-bold">
+                                                ★ Pertinent
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded text-[7pt]">
                                         {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
                                     </span>
@@ -315,14 +322,25 @@ export default function ModernTemplate({
                                     {sanitizeText(exp.entreprise)}
                                     {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
                                 </p>
-                                {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
-                                        {/* Progressive sizing: first 2 experiences full, rest compact (max 3 bullets) */}
-                                        {(i < 2 ? exp.realisations : exp.realisations.slice(0, 3)).map((r, j) => (
-                                            <li key={j}>{renderRealisation(r)}</li>
-                                        ))}
-                                    </ul>
-                                )}
+                                {exp.realisations && exp.realisations.length > 0 && (() => {
+                                    // Use format metadata to determine bullets count
+                                    const format = (exp as any)._format || "standard";
+                                    let bullets: any[];
+                                    switch (format) {
+                                        case "detailed": bullets = exp.realisations.slice(0, 5); break;
+                                        case "standard": bullets = exp.realisations.slice(0, 3); break;
+                                        case "compact": bullets = exp.realisations.slice(0, 1); break;
+                                        case "minimal": bullets = []; break;
+                                        default: bullets = exp.realisations.slice(0, 3);
+                                    }
+                                    return bullets.length > 0 ? (
+                                        <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
+                                            {bullets.map((r, j) => (
+                                                <li key={j}>{renderRealisation(r)}</li>
+                                            ))}
+                                        </ul>
+                                    ) : null;
+                                })()}
                             </div>
                         ))}
                     </div>

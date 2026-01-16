@@ -699,7 +699,7 @@ GITHUB_REPO_OWNER="cvcrush"
 GITHUB_REPO_NAME="cv-rag-data"
 
 # Auth
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="https://cv-crush.vercel.app"
 NEXTAUTH_SECRET="..."
 
 # Email (Resend)
