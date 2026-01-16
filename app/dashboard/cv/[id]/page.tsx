@@ -149,10 +149,9 @@ export default function CVViewPage() {
             await html2pdf().set(options).from(element).save();
         } catch (error) {
             console.error('PDF Error:', error);
-            // Fallback to browser print
-            if (confirm('La génération PDF a échoué. Utiliser l\'impression du navigateur?')) {
-                window.print();
-            }
+            // Fallback silencieux vers l'impression du navigateur
+            console.warn('Fallback vers impression navigateur');
+            window.print();
         } finally {
             setGeneratingPDF(false);
         }

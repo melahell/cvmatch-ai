@@ -6,6 +6,7 @@ import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/r
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { normalizeRAGToCV } from "@/components/cv/normalizeData";
 import { fitCVToTemplate } from "@/lib/cv/validator";
+import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scoring";
 
 export const runtime = "nodejs";
 
@@ -168,10 +169,21 @@ export async function POST(req: Request) {
         };
 
         const normalizedCV = normalizeRAGToCV(mergedRaw);
+
+        // Extract job offer context for relevance scoring
+        const jobOfferContext: JobOfferContext | null = jobDescription
+            ? {
+                ...parseJobOfferFromText(jobDescription),
+                title: analysisData.job_title || parseJobOfferFromText(jobDescription).title,
+                sector: analysisData.company_name || undefined,
+            }
+            : null;
+
         const { cvData: finalCV, compressionLevelApplied, dense, unitStats } = fitCVToTemplate({
             cvData: normalizedCV,
             templateName: template || "modern",
             includePhoto,
+            jobOffer: jobOfferContext,
         });
 
         const baseMeta = (aiOptimizedCV as any)?.cv_metadata && typeof (aiOptimizedCV as any).cv_metadata === "object"

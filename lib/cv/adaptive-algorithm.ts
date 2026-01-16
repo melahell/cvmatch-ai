@@ -1,6 +1,7 @@
 import { CVData } from "../../components/cv/templates";
 import { getThemeConfig } from "./theme-configs";
 import { getUnitHeight } from "./content-units-reference";
+import { JobOfferContext, sortExperiencesByRelevance } from "./relevance-scoring";
 
 type ExperienceFormat = "detailed" | "standard" | "compact" | "minimal";
 
@@ -87,6 +88,7 @@ export function adaptCVToThemeUnits(params: {
     cvData: CVData;
     templateName: string;
     includePhoto: boolean;
+    jobOffer?: JobOfferContext | null;
 }): CVAdaptationResult {
     const theme = getThemeConfig(params.templateName);
     const warnings: string[] = [];
@@ -111,11 +113,15 @@ export function adaptCVToThemeUnits(params: {
     const zones = theme.zones;
 
     const experiences = Array.isArray(next.experiences) ? next.experiences : [];
-    const sortedExperiences = [...experiences].sort((a, b) => {
-        const aYear = parseYear(a.date_debut) || 0;
-        const bYear = parseYear(b.date_debut) || 0;
-        return bYear - aYear;
-    });
+
+    // Sort by relevance if job offer provided, otherwise by date
+    const sortedExperiences: typeof experiences = params.jobOffer
+        ? (sortExperiencesByRelevance(experiences as any, params.jobOffer) as typeof experiences)
+        : [...experiences].sort((a, b) => {
+            const aYear = parseYear(a.date_debut) || 0;
+            const bYear = parseYear(b.date_debut) || 0;
+            return bYear - aYear;
+        });
 
     const maxBullets = theme.adaptive_rules.max_bullet_points_per_exp;
     const experienceFormats: ExperienceFormat[] = sortedExperiences.map((exp, idx) => {
@@ -173,6 +179,8 @@ export function adaptCVToThemeUnits(params: {
 
     const fitExperiencesToCapacity = () => {
         const cap = zones.experiences.capacity_units;
+        const excludedExperiences: string[] = [];
+
         while (true) {
             const { zoneUnitsUsed } = computeZoneUnits(next, experienceFormats);
             if (zoneUnitsUsed.experiences <= cap) break;
@@ -181,6 +189,8 @@ export function adaptCVToThemeUnits(params: {
             if (idx < 0) break;
 
             const current = experienceFormats[idx];
+            const exp = sortedExperiences[idx];
+
             if (current === "detailed") {
                 experienceFormats[idx] = "standard";
             } else if (current === "standard") {
@@ -188,10 +198,19 @@ export function adaptCVToThemeUnits(params: {
             } else if (current === "compact") {
                 experienceFormats[idx] = "minimal";
             } else {
+                // Track excluded experience for warning
+                if (exp) {
+                    excludedExperiences.push(`${exp.poste} (${exp.entreprise})`);
+                }
                 experienceFormats.pop();
                 sortedExperiences.pop();
             }
             compressionLevelApplied++;
+        }
+
+        // Add explicit warnings for excluded experiences
+        if (excludedExperiences.length > 0) {
+            warnings.push(`⚠️ ${excludedExperiences.length} expérience(s) exclue(s) par manque d'espace: ${excludedExperiences.slice(0, 3).join(", ")}${excludedExperiences.length > 3 ? "..." : ""}`);
         }
     };
 
@@ -282,7 +301,7 @@ export function adaptCVToThemeUnits(params: {
     }
 
     if (computed.totalUnitsUsed > allowed) {
-        warnings.push("Le contenu dépasse la capacité estimée malgré compression");
+        warnings.push(`⚠️ Contenu dépasse la capacité (${computed.totalUnitsUsed}/${allowed} units) - Considérez un template plus compact`);
     }
 
     return {

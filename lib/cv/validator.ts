@@ -250,12 +250,14 @@ export function fitCVToTemplate(params: {
     cvData: any;
     templateName: string;
     includePhoto: boolean;
+    jobOffer?: any;
 }) {
     const baseLimits = getLimitsForTemplate(params.templateName, params.includePhoto);
     const adapted = adaptCVToThemeUnits({
         cvData: params.cvData,
         templateName: params.templateName,
         includePhoto: params.includePhoto,
+        jobOffer: params.jobOffer || null,
     });
     const validation = validateCVContent(adapted.cvData, baseLimits);
     return {
