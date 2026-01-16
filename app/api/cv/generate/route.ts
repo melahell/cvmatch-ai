@@ -186,6 +186,18 @@ export async function POST(req: Request) {
             jobOffer: jobOfferContext,
         });
 
+        // Count formats used
+        const formatsUsed = {
+            detailed: 0,
+            standard: 0,
+            compact: 0,
+            minimal: 0,
+        };
+        for (const exp of (finalCV.experiences || [])) {
+            const fmt = (exp as any)._format || "standard";
+            if (fmt in formatsUsed) formatsUsed[fmt as keyof typeof formatsUsed]++;
+        }
+
         const baseMeta = (aiOptimizedCV as any)?.cv_metadata && typeof (aiOptimizedCV as any).cv_metadata === "object"
             ? (aiOptimizedCV as any).cv_metadata
             : {};
@@ -203,6 +215,11 @@ export async function POST(req: Request) {
             optimizations_applied: optimizationsApplied,
             dense: !!dense,
             unit_stats: unitStats,
+            // New fields for UI accordion
+            warnings: unitStats?.warnings || [],
+            formats_used: formatsUsed,
+            relevance_scoring_applied: !!jobOfferContext,
+            job_title: analysisData.job_title || null,
         };
 
         // 4. Save Generated CV

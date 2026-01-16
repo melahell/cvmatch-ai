@@ -280,7 +280,16 @@ export function adaptCVToThemeUnits(params: {
     };
 
     fitExperiencesToCapacity();
-    next.experiences = sortedExperiences.map((exp, idx) => applyExperienceFormat(exp, experienceFormats[idx] || "standard", maxBullets));
+    // Enrich each experience with format and relevance metadata for templates
+    next.experiences = sortedExperiences.map((exp, idx) => {
+        const format = experienceFormats[idx] || "standard";
+        const baseExp = applyExperienceFormat(exp, format, maxBullets);
+        return {
+            ...baseExp,
+            _format: format,
+            _relevance_score: (exp as any)._relevance_score || 0,
+        };
+    });
 
     fitSkillsToCapacity();
     fitFormationToCapacity();

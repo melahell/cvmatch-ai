@@ -173,7 +173,14 @@ export default function ClassicTemplate({
                         {limitedExperiences.map((exp, i) => (
                             <div key={i} className="border-l-4 border-slate-400 pl-4 py-2">
                                 <div className="flex justify-between items-baseline mb-1">
-                                    <h4 className="text-[10pt] font-bold text-slate-900">{exp.poste}</h4>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="text-[10pt] font-bold text-slate-900">{exp.poste}</h4>
+                                        {(exp as any)._relevance_score >= 75 && (
+                                            <span className="bg-slate-200 text-slate-700 text-[6pt] px-1.5 py-0.5 rounded font-bold">
+                                                ★ Pertinent
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-[8pt] text-slate-500 italic">
                                         {exp.date_debut} - {exp.date_fin || 'Présent'}
                                     </span>
@@ -181,13 +188,24 @@ export default function ClassicTemplate({
                                 <p className="text-[9pt] italic text-slate-600 mb-2">
                                     {exp.entreprise}{exp.lieu && `, ${exp.lieu}`}
                                 </p>
-                                {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="text-[8pt] text-slate-700 space-y-1 list-disc list-inside">
-                                        {exp.realisations.map((r, j) => (
-                                            <li key={j}>{safeString(r)}</li>
-                                        ))}
-                                    </ul>
-                                )}
+                                {exp.realisations && exp.realisations.length > 0 && (() => {
+                                    const format = (exp as any)._format || "standard";
+                                    let bullets: any[];
+                                    switch (format) {
+                                        case "detailed": bullets = exp.realisations.slice(0, 5); break;
+                                        case "standard": bullets = exp.realisations.slice(0, 3); break;
+                                        case "compact": bullets = exp.realisations.slice(0, 1); break;
+                                        case "minimal": bullets = []; break;
+                                        default: bullets = exp.realisations.slice(0, 3);
+                                    }
+                                    return bullets.length > 0 ? (
+                                        <ul className="text-[8pt] text-slate-700 space-y-1 list-disc list-inside">
+                                            {bullets.map((r, j) => (
+                                                <li key={j}>{safeString(r)}</li>
+                                            ))}
+                                        </ul>
+                                    ) : null;
+                                })()}
                             </div>
                         ))}
                     </div>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import CVRenderer from "@/components/cv/CVRenderer";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { TEMPLATES } from "@/components/cv/templates";
+import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
 
 interface CVGeneration {
@@ -296,6 +297,28 @@ export default function CVViewPage() {
                     )}
                 </div>
             </div>
+
+            {/* CV Optimization Explainer Accordion */}
+            {cvMetadata && (
+                <div className="container mx-auto px-4 pt-6 print:hidden" style={{ maxWidth: '210mm' }}>
+                    <CVOptimizationExplainer
+                        warnings={cvMetadata.warnings || []}
+                        experiencesSummary={cvMetadata.formats_used ? {
+                            total: (cvMetadata.formats_used.detailed || 0) + (cvMetadata.formats_used.standard || 0) +
+                                (cvMetadata.formats_used.compact || 0) + (cvMetadata.formats_used.minimal || 0),
+                            detailed: cvMetadata.formats_used.detailed || 0,
+                            standard: cvMetadata.formats_used.standard || 0,
+                            compact: cvMetadata.formats_used.compact || 0,
+                            minimal: cvMetadata.formats_used.minimal || 0,
+                            excluded: 0,
+                        } : computeExperienceSummary(cvGeneration.cv_data?.experiences || [])}
+                        relevanceScoringApplied={cvMetadata.relevance_scoring_applied || false}
+                        jobTitle={cvMetadata.job_title}
+                        compressionLevel={compressionLevel}
+                        dense={cvMetadata.dense || false}
+                    />
+                </div>
+            )}
 
             {/* CV Preview Area */}
             <div className="container mx-auto py-8 print:p-0" ref={cvRef}>
