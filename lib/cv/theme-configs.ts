@@ -1,4 +1,4 @@
-export type CVThemeId = "modern" | "tech" | "classic" | "creative";
+export type CVThemeId = "modern" | "tech" | "classic" | "creative" | "compact_ats";
 
 export type CVZoneName =
     | "header"
@@ -166,6 +166,53 @@ export const CV_THEMES: Record<CVThemeId, CVThemeConfig> = {
             max_bullet_points_per_exp: 3,
         },
         visual_config: { unit_to_mm: 4, spacing_multiplier: 1.1 },
+    },
+    compact_ats: {
+        id: "compact_ats",
+        name: "Compact ATS-Optimized",
+        description: "Maximum d'information, optimisé pour parsing ATS, toujours 1 page",
+        page_config: {
+            ...BASE_PAGE,
+            supports_two_pages: false,
+            two_pages_threshold: 999,  // Never go to 2 pages
+        },
+        zones: {
+            header: { name: "header", capacity_units: 8, min_units: 8, flex: false, flex_priority: 1, overflow_strategy: "hide" },
+            summary: { name: "summary", capacity_units: 7, min_units: 5, flex: true, flex_priority: 4, overflow_strategy: "compact" },
+            experiences: { name: "experiences", capacity_units: 110, min_units: 70, flex: true, flex_priority: 10, overflow_strategy: "compact" },
+            skills: { name: "skills", capacity_units: 30, min_units: 20, flex: true, flex_priority: 9, overflow_strategy: "compact" },
+            formation: { name: "formation", capacity_units: 18, min_units: 9, flex: true, flex_priority: 5, overflow_strategy: "compact" },
+            projects: { name: "projects", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
+            certifications: { name: "certifications", capacity_units: 12, min_units: 0, flex: true, flex_priority: 6, overflow_strategy: "compact" },
+            languages: { name: "languages", capacity_units: 4, min_units: 0, flex: true, flex_priority: 3, overflow_strategy: "hide" },
+            interests: { name: "interests", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
+            footer: { name: "footer", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
+            margins: { name: "margins", capacity_units: 12, min_units: 12, flex: false, flex_priority: 1, overflow_strategy: "hide" },
+            clients: { name: "clients", capacity_units: 0, min_units: 0, flex: true, flex_priority: 1, overflow_strategy: "hide" },
+        },
+        adaptive_rules: {
+            min_detailed_experiences: 3,  // More detailed experiences for ATS
+            prefer_detailed_for_recent: true,
+            compact_after_years: 12,
+            skills_display_mode: "full",  // Always full skills list for ATS
+            max_bullet_points_per_exp: 4,
+        },
+        visual_config: {
+            unit_to_mm: 3.8,  // Slightly more compact
+            font_sizes: {
+                name: 20,
+                title: 12,
+                section_header: 11,
+                body: 9,
+                small: 8
+            },
+            colors: {
+                primary: "#000000",
+                secondary: "#333333",
+                accent: "#666666"
+            },
+            spacing_multiplier: 0.8  // Less spacing for compact layout
+        },
     },
 };
 

@@ -248,26 +248,16 @@ export default function CreativeTemplate({
                                         </div>
                                         <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}</p>
 
-                                        {exp.realisations && exp.realisations.length > 0 && (() => {
-                                            const format = (exp as any)._format || "standard";
-                                            let bullets: any[];
-                                            switch (format) {
-                                                case "detailed": bullets = exp.realisations.slice(0, 5); break;
-                                                case "standard": bullets = exp.realisations.slice(0, 3); break;
-                                                case "compact": bullets = exp.realisations.slice(0, 1); break;
-                                                case "minimal": bullets = []; break;
-                                                default: bullets = exp.realisations.slice(0, 3);
-                                            }
-                                            return bullets.length > 0 ? (
-                                                <ul className="text-[8pt] text-slate-700 space-y-0.5">
-                                                    {bullets.map((r, j) => (
-                                                        <li key={j} className="flex items-start gap-1.5">
-                                                            <span style={{ color }}>→</span> {safeString(r)}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            ) : null;
-                                        })()}
+                                        {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
+                                        {exp.realisations && exp.realisations.length > 0 && (
+                                            <ul className="text-[8pt] text-slate-700 space-y-0.5">
+                                                {exp.realisations.map((r, j) => (
+                                                    <li key={j} className="flex items-start gap-1.5">
+                                                        <span style={{ color }}>→</span> {safeString(r)}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 );
                             })}

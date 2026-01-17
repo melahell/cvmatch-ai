@@ -68,10 +68,11 @@ export default function ModernTemplate({
         return String(s);
     };
 
-    // Show all data - let CDC Pipeline handle optimization
+    // Data is pre-adapted by the CDC Pipeline (adaptive-algorithm.ts)
+    // Templates only render, no slicing or limits here
     const limitedExperiences = experiences || [];
-    const limitedSkills = (competences?.techniques || []).slice(0, 12);  // Max 12 for space
-    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, 6);  // Max 6 for space
+    const limitedSkills = competences?.techniques || [];
+    const limitedSoftSkills = competences?.soft_skills || [];
     const limitedFormations = formations || [];
 
     // Sanitize elevator pitch
@@ -322,25 +323,14 @@ export default function ModernTemplate({
                                     {sanitizeText(exp.entreprise)}
                                     {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
                                 </p>
-                                {exp.realisations && exp.realisations.length > 0 && (() => {
-                                    // Use format metadata to determine bullets count
-                                    const format = (exp as any)._format || "standard";
-                                    let bullets: any[];
-                                    switch (format) {
-                                        case "detailed": bullets = exp.realisations.slice(0, 5); break;
-                                        case "standard": bullets = exp.realisations.slice(0, 3); break;
-                                        case "compact": bullets = exp.realisations.slice(0, 1); break;
-                                        case "minimal": bullets = []; break;
-                                        default: bullets = exp.realisations.slice(0, 3);
-                                    }
-                                    return bullets.length > 0 ? (
-                                        <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
-                                            {bullets.map((r, j) => (
-                                                <li key={j}>{renderRealisation(r)}</li>
-                                            ))}
-                                        </ul>
-                                    ) : null;
-                                })()}
+                                {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
+                                {exp.realisations && exp.realisations.length > 0 && (
+                                    <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
+                                        {exp.realisations.map((r, j) => (
+                                            <li key={j}>{renderRealisation(r)}</li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                         ))}
                     </div>
