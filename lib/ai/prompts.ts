@@ -436,9 +436,12 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - NE PAS limiter artificiellement le nombre de compétences
    - Objectif : montrer l'étendue complète du profil
 
-8. FORMATIONS :
-   - CONSERVER TOUTES les formations et certifications du profil source
-   - NE PAS supprimer de formations
+8. FORMATIONS (COPIE EXACTE OBLIGATOIRE) :
+   ⛔ INTERDICTION ABSOLUE D'INVENTER DES FORMATIONS
+   - COPIER UNIQUEMENT les formations présentes dans le profil source
+   - NE JAMAIS inventer d'école (HEC, ESSEC, Polytechnique, etc.)
+   - NE JAMAIS inventer de diplôme ou d'année
+   - Si le profil source n'a pas de formations, laisser le tableau VIDE []
 
 9. TONALITÉ "${sectorConfig.tone.toUpperCase()}" :
    ${sectorConfig.tone === 'formal' ? '- Vocabulaire professionnel strict\n   - Phrases factuelles\n   - Pas de superlatifs' : ''}
@@ -459,6 +462,22 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Espaces autour parenthèses : "test (exemple) suite"
 
    ⚠️ VÉRIFIE le formatage de CHAQUE phrase avant de générer le JSON final.
+
+11. 🚨 RÈGLE ANTI-HALLUCINATION (CRITIQUE) :
+   ⛔ TU NE DOIS JAMAIS INVENTER D'INFORMATION
+   
+   INTERDICTIONS ABSOLUES :
+   - ❌ NE JAMAIS inventer de formation (école, diplôme, année)
+   - ❌ NE JAMAIS inventer d'entreprise ou d'employeur
+   - ❌ NE JAMAIS inventer de réalisation ou projet
+   - ❌ NE JAMAIS inventer de client/référence
+   - ❌ NE JAMAIS inventer de certification
+   - ❌ NE JAMAIS modifier les dates des expériences
+   
+   RÈGLE D'OR : Si une information n'est pas dans le profil source,
+   elle NE DOIT PAS apparaître dans le CV généré.
+   
+   En cas de doute, OMETS l'information plutôt que de l'inventer.
 `;
 }
 
@@ -554,8 +573,12 @@ RAPPELS CRITIQUES :
 ✅ Chaque expérience DOIT avoir un pertinence_score calculé
 ✅ 60%+ des réalisations DOIVENT avoir une quantification
 ✅ Les keywords ATS DOIVENT être intégrés naturellement
-✅ Le contenu DOIT être VÉRIDIQUE (pas d'invention)
 ✅ Le JSON DOIT être valide et parsable
+
+🚨 INTERDICTION ABSOLUE D'INVENTER :
+⛔ NE JAMAIS inventer de formation, école ou diplôme
+⛔ NE JAMAIS inventer d'entreprise ou d'expérience
+⛔ Si une info n'est pas dans le profil source → NE PAS L'INCLURE
 
 Génère UNIQUEMENT le JSON, sans markdown, sans commentaire.
 `;
