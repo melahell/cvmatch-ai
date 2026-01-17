@@ -134,12 +134,66 @@ export function adaptCVToThemeUnits(params: {
         });
 
     const maxBullets = theme.adaptive_rules.max_bullet_points_per_exp;
-    const experienceFormats: ExperienceFormat[] = sortedExperiences.map((exp, idx) => {
+
+    // ════════════════════════════════════════════════════════════════
+    // ALLOCATION GOURMANDE DES FORMATS D'EXPÉRIENCES
+    // ════════════════════════════════════════════════════════════════
+    // Stratégie : Maximiser l'information en remplissant au maximum la capacité
+    // 1. Commencer par "detailed" pour toutes les expériences récentes
+    // 2. Dégrader progressivement si on dépasse la capacité
+    // ════════════════════════════════════════════════════════════════
+
+    const experienceCapacity = zones.experiences.capacity_units;
+    const experienceFormats: ExperienceFormat[] = [];
+
+    // Phase 1 : Initialiser avec le format optimal pour chaque expérience
+    // Les expériences récentes commencent en "detailed", les anciennes en "compact"
+    for (const exp of sortedExperiences) {
         const isOld = yearsSince(exp.date_fin) >= theme.adaptive_rules.compact_after_years;
-        if (isOld) return "compact";
-        if (idx < theme.adaptive_rules.min_detailed_experiences) return "detailed";
-        return "standard";
-    });
+        if (isOld) {
+            experienceFormats.push("compact");
+        } else {
+            experienceFormats.push("detailed"); // Gourmand : commencer par detailed
+        }
+    }
+
+    // Phase 2 : Calculer les units utilisées et dégrader si dépassement
+    const calculateExperienceUnits = () => {
+        return experienceFormats.reduce((sum, f) => sum + unitForExperience(f), 0);
+    };
+
+    // Phase 3 : Dégradation itérative - du dernier detailed vers standard, etc.
+    // On dégrade les expériences les moins prioritaires d'abord (fin de la liste)
+    let iterations = 0;
+    const maxIterations = sortedExperiences.length * 4; // Sécurité anti-boucle infinie
+
+    while (calculateExperienceUnits() > experienceCapacity && iterations < maxIterations) {
+        iterations++;
+
+        // Trouver le dernier index avec un format dégradable
+        let degraded = false;
+        for (let i = experienceFormats.length - 1; i >= 0; i--) {
+            const format = experienceFormats[i];
+            if (format === "detailed") {
+                experienceFormats[i] = "standard";
+                degraded = true;
+                break;
+            } else if (format === "standard") {
+                experienceFormats[i] = "compact";
+                degraded = true;
+                break;
+            } else if (format === "compact") {
+                experienceFormats[i] = "minimal";
+                degraded = true;
+                break;
+            }
+            // "minimal" ne peut plus être dégradé, on passe à l'expérience précédente
+        }
+
+        // Si aucune dégradation possible et toujours en dépassement, 
+        // on devra exclure des expériences (géré par fitExperiencesToCapacity)
+        if (!degraded) break;
+    }
 
     const computeZoneUnits = (data: CVData, formats: ExperienceFormat[]) => {
         const zoneUnitsUsed: Record<string, number> = {};

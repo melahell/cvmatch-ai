@@ -36,3 +36,54 @@ export type ContentUnitType = keyof typeof CONTENT_UNITS_REFERENCE;
 export function getUnitHeight(type: ContentUnitType): number {
     return CONTENT_UNITS_REFERENCE[type].height_units;
 }
+
+/**
+ * Détermine le meilleur format d'expérience pour l'espace restant.
+ * Stratégie "gourmande" : toujours choisir le format le plus détaillé possible.
+ * Retourne null si aucun format ne rentre.
+ */
+export function bestExperienceFormat(
+    remainingUnits: number
+): "detailed" | "standard" | "compact" | "minimal" | null {
+    if (remainingUnits >= CONTENT_UNITS_REFERENCE.experience_detailed.height_units) return "detailed";
+    if (remainingUnits >= CONTENT_UNITS_REFERENCE.experience_standard.height_units) return "standard";
+    if (remainingUnits >= CONTENT_UNITS_REFERENCE.experience_compact.height_units) return "compact";
+    if (remainingUnits >= CONTENT_UNITS_REFERENCE.experience_minimal.height_units) return "minimal";
+    return null;
+}
+
+/**
+ * Hauteur en units pour un format d'expérience donné
+ */
+export function experienceFormatHeight(
+    format: "detailed" | "standard" | "compact" | "minimal"
+): number {
+    const mapping = {
+        detailed: CONTENT_UNITS_REFERENCE.experience_detailed.height_units,
+        standard: CONTENT_UNITS_REFERENCE.experience_standard.height_units,
+        compact: CONTENT_UNITS_REFERENCE.experience_compact.height_units,
+        minimal: CONTENT_UNITS_REFERENCE.experience_minimal.height_units,
+    };
+    return mapping[format];
+}
+
+/**
+ * Vérifie si un élément rentre dans l'espace restant
+ */
+export function fitsInRemaining(
+    itemType: ContentUnitType,
+    remainingUnits: number
+): boolean {
+    return CONTENT_UNITS_REFERENCE[itemType].height_units <= remainingUnits;
+}
+
+/**
+ * Calcule le nombre max d'éléments qui rentrent dans une capacité donnée
+ */
+export function maxItemsInCapacity(
+    itemType: ContentUnitType,
+    capacityUnits: number
+): number {
+    const itemHeight = CONTENT_UNITS_REFERENCE[itemType].height_units;
+    return Math.floor(capacityUnits / itemHeight);
+}
