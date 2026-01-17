@@ -43,7 +43,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
             {/* Top Navigation Bar */}
-            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
+            <header role="banner" className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         {/* Logo */}
@@ -57,7 +57,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                         </Link>
 
                         {/* Desktop Nav */}
-                        <nav className="hidden md:flex items-center gap-1">
+                        <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-1">
                             {navItems.map((item) => {
                                 const isActive = pathname === item.href ||
                                     (item.href !== "/dashboard" && pathname?.startsWith(item.href));
@@ -81,6 +81,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                     <div className="relative">
                         <button
                             onClick={() => setMenuOpen(!menuOpen)}
+                            aria-expanded={menuOpen}
+                            aria-haspopup="menu"
+                            aria-label="Menu utilisateur"
                             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
@@ -99,7 +102,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     className="fixed inset-0 z-40"
                                     onClick={() => setMenuOpen(false)}
                                 />
-                                <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
+                                <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
                                     <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
                                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{userName}</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400">Compte gratuit</p>
@@ -173,7 +176,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </header>
 
             {/* Mobile Nav - Enhanced with safe areas and better touch targets */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg pb-safe">
+            <nav aria-label="Navigation principale mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg pb-safe">
                 <div className="flex justify-around px-2 pt-2 pb-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href ||
@@ -199,7 +202,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </nav>
 
             {/* Main Content - Safe area padding */}
-            <main className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8 flex-1">
+            <main role="main" aria-label="Contenu principal" className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8 flex-1">
                 {children}
             </main>
 

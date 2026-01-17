@@ -259,7 +259,7 @@ export default function DashboardPage() {
                                                             const supabase = createSupabaseClient();
                                                             const { data } = await supabase.storage.from('documents').createSignedUrl(doc.storage_path, 60);
                                                             if (data?.signedUrl) window.open(data.signedUrl, '_blank');
-                                                        }} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 sm:p-1 hover:bg-slate-100 rounded transition-opacity" title="Voir">
+                                                        }} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 sm:p-1 hover:bg-slate-100 rounded transition-opacity" title="Voir" aria-label={`Voir le document ${doc.filename}`}>
                                                             <Eye className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                         </button>
                                                         <button onClick={async (e) => {
@@ -272,7 +272,7 @@ export default function DashboardPage() {
                                                                 a.download = doc.filename;
                                                                 a.click();
                                                             }
-                                                        }} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 sm:p-1 hover:bg-slate-100 rounded transition-opacity" title="Télécharger">
+                                                        }} className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 sm:p-1 hover:bg-slate-100 rounded transition-opacity" title="Télécharger" aria-label={`Télécharger le document ${doc.filename}`}>
                                                             <Download className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                                         </button>
                                                     </div>
@@ -333,6 +333,7 @@ export default function DashboardPage() {
                                     disabled={generatingJobs}
                                     className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 disabled:opacity-50"
                                     title="Générer les suggestions de postes"
+                                    aria-label="Actualiser les suggestions de postes"
                                 >
                                     {generatingJobs ? (
                                         <><Loader2 className="w-3 h-3 animate-spin" /> Génération...</>

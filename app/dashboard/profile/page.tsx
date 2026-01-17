@@ -28,6 +28,7 @@ import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
+import { toast } from "sonner";
 
 function ProfileContent() {
     const searchParams = useSearchParams();
@@ -148,18 +149,18 @@ function ProfileContent() {
             if (error) throw error;
 
             logger.success("Profil sauvegardé !");
-            alert("✅ Profil sauvegardé avec succès !");
+            toast.success("Profil sauvegardé avec succès !");
             await refetch();
         } catch (e) {
             logger.error("Error saving profile:", e);
-            alert("❌ Erreur lors de la sauvegarde");
+            toast.error("Erreur lors de la sauvegarde");
         }
     };
 
     // Open mode dialog instead of regenerating directly
     const handleRegenerateClick = () => {
         if (!userId || !documents || documents.length === 0) {
-            alert("⚠️ Aucun document à traiter");
+            toast.warning("Aucun document à traiter");
             return;
         }
         setShowModeDialog(true);
@@ -167,7 +168,7 @@ function ProfileContent() {
 
     const regenerateProfile = async (mode: "completion" | "regeneration") => {
         if (!userId || !documents || documents.length === 0) {
-            alert("⚠️ Aucun document à traiter");
+            toast.warning("Aucun document à traiter");
             return;
         }
 
@@ -205,7 +206,7 @@ function ProfileContent() {
                 if (!res.ok) {
                     const error = await res.json();
                     logger.error(`[INCREMENTAL] Failed for ${doc.filename}:`, error);
-                    alert(`⚠️ Erreur sur ${doc.filename}: ${error.error || "Échec"}\n\nContinuation avec les documents restants...`);
+                    toast.error(`Erreur sur ${doc.filename}: ${error.error || "Échec"}. Continuation avec les documents restants...`);
                     continue; // Continue with next document
                 }
 
@@ -226,11 +227,11 @@ function ProfileContent() {
             await refetch();
             await refetchDocs();
 
-            alert(`✅ Profil régénéré avec succès!\n\n📊 ${processed}/${totalDocs} document(s) traité(s)`);
+            toast.success(`Profil régénéré avec succès! ${processed}/${totalDocs} document(s) traité(s)`);
 
         } catch (e) {
             logger.error("Error in incremental regeneration:", e);
-            alert(`❌ Erreur après traitement de ${processed}/${totalDocs} documents`);
+            toast.error(`Erreur après traitement de ${processed}/${totalDocs} documents`);
         } finally {
             setRegenerating(false);
         }
@@ -253,14 +254,14 @@ function ProfileContent() {
 
             if (res.ok) {
                 await refetchDocs();
-                alert("✅ Document uploadé avec succès ! Régénérez le profil pour l'inclure.");
+                toast.success("Document uploadé avec succès ! Régénérez le profil pour l'inclure.");
             } else {
                 const error = await res.json();
-                alert("⚠️ Erreur: " + (error.error || "Échec de l'upload"));
+                toast.error("Erreur: " + (error.error || "Échec de l'upload"));
             }
         } catch (e) {
             logger.error("Error uploading document:", e);
-            alert("❌ Erreur réseau");
+            toast.error("Erreur réseau");
         } finally {
             setUploading(false);
         }
@@ -280,13 +281,13 @@ function ProfileContent() {
                 setCustomNotes("");
                 await refetch();
                 await refetchDocs();
-                alert("✅ Profil réinitialisé avec succès");
+                toast.success("Profil réinitialisé avec succès");
             } else {
-                alert("❌ Erreur lors de la réinitialisation");
+                toast.error("Erreur lors de la réinitialisation");
             }
         } catch (e) {
             logger.error("Error resetting profile:", e);
-            alert("❌ Erreur réseau");
+            toast.error("Erreur réseau");
         }
     };
 
