@@ -5,11 +5,16 @@ import { useParams } from "next/navigation";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CVRenderer from "@/components/cv/CVRenderer";
+import dynamic from "next/dynamic";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { TEMPLATES } from "@/components/cv/templates";
 import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
+
+const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
+    loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
+    ssr: false
+});
 
 interface CVGeneration {
     id: string;

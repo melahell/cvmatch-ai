@@ -42,6 +42,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+            {/* Skip Link for keyboard navigation */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+            >
+                Aller au contenu principal
+            </a>
+
             {/* Top Navigation Bar */}
             <header role="banner" className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -202,7 +210,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </nav>
 
             {/* Main Content - Safe area padding */}
-            <main role="main" aria-label="Contenu principal" className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8 flex-1">
+            <main id="main-content" role="main" aria-label="Contenu principal" className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8 flex-1">
                 {children}
             </main>
 

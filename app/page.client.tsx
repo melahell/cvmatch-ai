@@ -7,8 +7,34 @@ import { motion } from "framer-motion";
 import packageJson from "@/package.json";
 
 export default function LandingPageClient() {
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "CV Crush",
+        "applicationCategory": "BusinessApplication",
+        "description": "Analysez vos chances de recrutement avec l'IA, générez des CVs sur-mesure optimisés pour chaque offre",
+        "url": "https://cvcrush.fr",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "EUR"
+        },
+        "featureList": [
+            "Analyse des offres d'emploi avec IA",
+            "Génération de CV personnalisés",
+            "Score de matching précis",
+            "Suivi des candidatures"
+        ]
+    };
+
     return (
         <div className="min-h-screen bg-white">
+            {/* JSON-LD Structured Data */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+            />
+
             {/* NAVBAR */}
             <nav className="border-b bg-white/50 backdrop-blur-xl sticky top-0 z-50">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">

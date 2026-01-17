@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ interface CVCardProps {
     onDownload?: (id: string) => void;
 }
 
-export function CVCard({ cv, onRename, onDownload }: CVCardProps) {
+export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: CVCardProps) {
     const jobAnalysis = cv.job_analyses?.[0];
     const title = cv.custom_name || cv.cv_data?.profil?.titre_principal || "CV Personnalisé";
     const company = jobAnalysis?.match_report?.entreprise;
@@ -62,4 +63,4 @@ export function CVCard({ cv, onRename, onDownload }: CVCardProps) {
             </CardContent>
         </Card>
     );
-}
+});

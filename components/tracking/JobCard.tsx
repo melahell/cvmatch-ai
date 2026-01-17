@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Building2, Calendar, ExternalLink, MapPin, Trash2, Check } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ interface JobCardProps {
     onToggleSelect?: (id: string) => void;
 }
 
-export function JobCard({ job, variant, onDelete, onStatusChange, isSelected = false, onToggleSelect }: JobCardProps) {
+export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onStatusChange, isSelected = false, onToggleSelect }: JobCardProps) {
     const status = STATUS_CONFIG[job.application_status || "pending"];
 
     // Score-based background color (subtle)
@@ -216,4 +217,4 @@ export function JobCard({ job, variant, onDelete, onStatusChange, isSelected = f
             </CardContent>
         </Card>
     );
-}
+});
