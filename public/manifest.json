@@ -4,8 +4,8 @@
     "description": "Boostez votre carrière avec l'IA - Analysez les offres d'emploi et générez des CVs personnalisés",
     "start_url": "/dashboard",
     "display": "standalone",
-    "background_color": "#f8fafc",
-    "theme_color": "#2563eb",
+    "background_color": "#1e1b4b",
+    "theme_color": "#a855f7",
     "orientation": "portrait-primary",
     "icons": [
         {

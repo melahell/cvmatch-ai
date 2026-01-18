@@ -98,7 +98,7 @@ export default function DashboardPage() {
                             </Button>
                         </Link>
                         <Link href="/dashboard/analyze" className="flex-1 sm:flex-initial">
-                            <Button className="bg-blue-600 hover:bg-blue-700 w-full" size="sm">
+                            <Button className="bg-gradient-neon hover:opacity-90 text-white shadow-lg hover:shadow-xl w-full transition-all" size="sm">
                                 <Briefcase className="w-4 h-4 mr-2" /> Nouvelle Analyse
                             </Button>
                         </Link>

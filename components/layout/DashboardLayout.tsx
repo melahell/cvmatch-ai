@@ -55,9 +55,9 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             <header role="banner" className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-8">
-                        {/* Logo */}
-                        <Logo size="md" showText className="hidden sm:flex" />
-                        <Logo size="md" showText={false} className="sm:hidden" />
+                        {/* Logo - Agrandi pour plus d'impact */}
+                        <Logo size="lg" showText className="hidden sm:flex" />
+                        <Logo size={64} showText={false} className="sm:hidden" />
 
                         {/* Desktop Nav */}
                         <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-1">
@@ -69,7 +69,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Button
                                             variant={isActive ? "secondary" : "ghost"}
                                             size="sm"
-                                            className={`gap-2 ${isActive ? "bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300" : "dark:text-slate-300"}`}
+                                            className={`gap-2 transition-all ${isActive ? "bg-gradient-to-r from-[#ff4eb3]/10 to-[#a855f7]/10 text-[#a855f7] border-l-2 border-[#a855f7]" : "dark:text-slate-300"}`}
                                         >
                                             <item.icon className="w-4 h-4" />
                                             {item.label}
@@ -89,7 +89,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             aria-label="Menu utilisateur"
                             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                         >
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-br from-[#ff4eb3] to-[#6366f1] rounded-full flex items-center justify-center">
                                 <span className="text-white text-xs font-bold">{initials}</span>
                             </div>
                             <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline max-w-[120px] truncate">

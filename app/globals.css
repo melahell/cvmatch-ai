@@ -30,10 +30,16 @@
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
     
-    /* CVMatch Design Tokens */
-    --cv-primary: 217 91% 60%;       /* blue-500 */
-    --cv-primary-hover: 217 91% 50%; /* blue-600 */
-    --cv-secondary: 270 91% 65%;     /* purple-500 */
+    /* CVMatch Design Tokens - Palette Néon (harmonisée avec le logo) */
+    --cv-neon-pink: 326 100% 65%;        /* #ff4eb3 */
+    --cv-neon-purple: 270 71% 66%;       /* #a855f7 */
+    --cv-neon-indigo: 239 84% 67%;       /* #6366f1 */
+
+    /* Aliases pour compatibilité */
+    --cv-primary: var(--cv-neon-purple);
+    --cv-primary-hover: 270 71% 56%;
+    --cv-secondary: var(--cv-neon-pink);
+    --cv-accent: var(--cv-neon-indigo);
     --cv-success: 142 76% 36%;       /* green-600 */
     --cv-warning: 38 92% 50%;        /* amber-500 */
     --cv-danger: 0 84% 60%;          /* red-500 */
@@ -80,5 +86,51 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Gradients néon harmonisés avec le logo */
+  .bg-gradient-neon {
+    background: linear-gradient(135deg, #ff4eb3 0%, #a855f7 50%, #6366f1 100%);
+  }
+
+  .bg-gradient-neon-subtle {
+    background: linear-gradient(135deg, rgba(255,78,179,0.1) 0%, rgba(168,85,247,0.1) 50%, rgba(99,102,241,0.1) 100%);
+  }
+
+  .text-gradient-neon {
+    background: linear-gradient(135deg, #ff4eb3 0%, #a855f7 50%, #6366f1 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .border-gradient-neon {
+    border-image: linear-gradient(135deg, #ff4eb3 0%, #a855f7 50%, #6366f1 100%) 1;
+  }
+
+  /* Effets glow néon */
+  .glow-neon {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+  }
+
+  .glow-neon-hover:hover {
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
+    transition: box-shadow 0.3s ease;
+  }
+
+  /* Animation pulse néon */
+  .pulse-neon {
+    animation: pulse-neon 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-neon {
+    0%, 100% {
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px rgba(168, 85, 247, 0.6);
+    }
   }
 }
