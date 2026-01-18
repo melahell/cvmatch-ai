@@ -3,6 +3,7 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin } from "lucide-react";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 // Sanitize text by fixing spacing issues (applied at render time)
 function sanitizeText(text: string | undefined | null): string {
@@ -79,7 +80,7 @@ export default function ClassicTemplate({
             <header
                 className="text-center py-6 px-8 text-white relative overflow-hidden"
                 style={{
-                    background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)'
+                    background: `linear-gradient(135deg, ${DESIGN_TOKENS.colors.text.primary} 0%, ${DESIGN_TOKENS.colors.text.secondary} 50%, ${DESIGN_TOKENS.colors.text.tertiary} 100%)`
                 }}
             >
                 {/* Decorative elements */}

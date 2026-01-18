@@ -3,13 +3,16 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Sparkles } from "lucide-react";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
-// Vibrant creative palette
+// Vibrant creative palette using design tokens
+// NOTE: Inline styles in this template (style={{ color, background }}) reference this COLORS object
+// which uses design tokens. Inline styles are necessary for proper PDF/print rendering.
 const COLORS = {
-    primary: '#f97316', // Orange
-    secondary: '#ec4899', // Pink
-    accent: '#8b5cf6', // Violet
-    tertiary: '#06b6d4', // Cyan
+    primary: DESIGN_TOKENS.colors.semantic.warning, // Orange/Warning
+    secondary: DESIGN_TOKENS.colors.neon.pink, // Pink
+    accent: DESIGN_TOKENS.colors.neon.purple, // Violet
+    tertiary: DESIGN_TOKENS.colors.semantic.info, // Cyan/Info
 };
 
 // Sanitize text by fixing spacing issues (applied at render time)
@@ -118,8 +121,7 @@ export default function CreativeTemplate({
                     {/* Avatar */}
                     {includePhoto && (
                         <div
-                            className="w-28 h-28 rounded-full border-4 border-white overflow-hidden flex-shrink-0"
-                            style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}
+                            className="w-28 h-28 rounded-full border-4 border-white overflow-hidden flex-shrink-0 shadow-level-4"
                         >
                             {profil.photo_url ? (
                                 <img
@@ -137,8 +139,7 @@ export default function CreativeTemplate({
 
                     <div className="flex-1">
                         <h1
-                            className="text-2xl font-extrabold tracking-tight"
-                            style={{ textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}
+                            className="text-2xl font-extrabold tracking-tight drop-shadow-lg"
                         >
                             {profil.prenom} {profil.nom}
                         </h1>
@@ -268,7 +269,7 @@ export default function CreativeTemplate({
                 {/* Sidebar */}
                 <aside
                     className="w-64 p-5 flex-shrink-0"
-                    style={{ background: '#fafafa' }}
+                    style={{ background: DESIGN_TOKENS.colors.surface.secondary }}
                 >
                     {/* Skills with colorful tags */}
                     <section className="mb-5">
