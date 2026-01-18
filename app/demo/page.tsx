@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, Download, Clock, ChevronDown } from "lucide-react";
@@ -24,8 +25,26 @@ const item = {
     show: { opacity: 1, y: 0 },
 };
 
+// Catégories disponibles
+const CATEGORIES = [
+    { id: "all", label: "Tous", icon: "🌍" },
+    { id: "science", label: "Sciences", icon: "🔬" },
+    { id: "art", label: "Arts", icon: "🎨" },
+    { id: "tech", label: "Tech", icon: "💻" },
+    { id: "politics", label: "Politique", icon: "👑" },
+] as const;
+
+type CategoryFilter = typeof CATEGORIES[number]['id'];
+
 export default function DemoGalleryPage() {
     const characters = getAllCharacterMetas();
+    const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
+
+    // Filtrage des personnages
+    const filteredCharacters = useMemo(() => {
+        if (activeFilter === "all") return characters;
+        return characters.filter(c => c.categories.includes(activeFilter as any));
+    }, [characters, activeFilter]);
 
     return (
         <>
@@ -110,12 +129,44 @@ export default function DemoGalleryPage() {
             {/* Characters Gallery */}
             <section className="py-16 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
+                    <div className="text-center mb-8">
                         <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-4">
                             Sélectionnez un personnage
                         </h2>
-                        <p className="text-slate-600 dark:text-slate-400">
+                        <p className="text-slate-600 dark:text-slate-400 mb-6">
                             Cliquez sur un personnage pour voir son profil complet
+                        </p>
+
+                        {/* Category Filters */}
+                        <div className="flex flex-wrap justify-center gap-2 mb-8">
+                            {CATEGORIES.map((category) => (
+                                <button
+                                    key={category.id}
+                                    onClick={() => setActiveFilter(category.id)}
+                                    className={`
+                                        inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
+                                        transition-all duration-200
+                                        ${activeFilter === category.id
+                                            ? "bg-purple-600 text-white shadow-lg shadow-purple-500/25"
+                                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700"
+                                        }
+                                    `}
+                                >
+                                    <span>{category.icon}</span>
+                                    <span>{category.label}</span>
+                                    {category.id !== "all" && activeFilter === "all" && (
+                                        <span className="text-xs opacity-60">
+                                            ({characters.filter(c => c.categories.includes(category.id as any)).length})
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Results count */}
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {filteredCharacters.length} personnage{filteredCharacters.length > 1 ? "s" : ""}
+                            {activeFilter !== "all" && ` dans "${CATEGORIES.find(c => c.id === activeFilter)?.label}"`}
                         </p>
                     </div>
 
@@ -123,29 +174,14 @@ export default function DemoGalleryPage() {
                         variants={container}
                         initial="hidden"
                         animate="show"
+                        key={activeFilter} // Re-animate on filter change
                         className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6"
                     >
-                        {characters.map((character) => (
+                        {filteredCharacters.map((character) => (
                             <motion.div key={character.id} variants={item}>
                                 <CharacterCard character={character} />
                             </motion.div>
                         ))}
-
-                        {/* Placeholder cards for upcoming characters */}
-                        {characters.length < 10 && (
-                            <>
-                                {Array.from({ length: 10 - characters.length }).map((_, i) => (
-                                    <motion.div key={`placeholder-${i}`} variants={item}>
-                                        <div className="relative rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-100/50 dark:bg-slate-800/50 p-6 text-center h-[280px] flex flex-col items-center justify-center">
-                                            <span className="text-4xl mb-3 opacity-30">👤</span>
-                                            <span className="text-sm text-slate-400 dark:text-slate-500">
-                                                Bientôt disponible
-                                            </span>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </>
-                        )}
                     </motion.div>
                 </div>
             </section>
