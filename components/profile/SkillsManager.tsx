@@ -105,7 +105,7 @@ export function SkillsManager({
             {/* Skills List */}
             <div className="space-y-2">
                 {skills.length === 0 ? (
-                    <p className="text-sm text-slate-400 text-center py-4">
+                    <p className="text-sm text-slate-600 text-center py-4">
                         Aucune compétence ajoutée
                     </p>
                 ) : (
@@ -114,7 +114,7 @@ export function SkillsManager({
                             <div className="flex items-center gap-2 flex-1">
                                 <Badge variant="secondary">{skill.nom}</Badge>
                                 {skill.niveau && (
-                                    <span className="text-xs text-slate-500">Niveau {skill.niveau}/5</span>
+                                    <span className="text-xs text-slate-600">Niveau {skill.niveau}/5</span>
                                 )}
                             </div>
 
@@ -139,7 +139,7 @@ export function SkillsManager({
 
             {/* Stats */}
             {skills.length > 0 && (
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-slate-600">
                     {skills.length} compétence{skills.length > 1 ? 's' : ''} ·
                     {' '}{skills.filter(s => s.poids === 'important').length} importante{skills.filter(s => s.poids === 'important').length !== 1 ? 's' : ''}
                 </div>

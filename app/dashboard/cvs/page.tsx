@@ -122,13 +122,13 @@ export default function CVListPage() {
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                             <FileText className="w-6 h-6" /> Mes CVs
-                            <span className="text-lg font-normal text-slate-500">({cvs.length})</span>
+                            <span className="text-lg font-normal text-slate-600">({cvs.length})</span>
                         </h1>
                     </div>
                     <div className="flex items-center gap-2">
                         {hasSelection ? (
                             <>
-                                <span className="text-sm text-slate-500">
+                                <span className="text-sm text-slate-600">
                                     {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
                                 </span>
                                 <Button
@@ -164,7 +164,7 @@ export default function CVListPage() {
                 {/* Filters */}
                 <div className="flex flex-col sm:flex-row gap-3 mb-6">
                     <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                         <Input
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -206,7 +206,7 @@ export default function CVListPage() {
                             <h3 className="text-xl font-medium text-slate-600 mb-2">
                                 {search ? "Aucun CV trouvé" : "Aucun CV généré"}
                             </h3>
-                            <p className="text-slate-400 mb-6">
+                            <p className="text-slate-600 mb-6">
                                 {search
                                     ? "Essayez avec d'autres termes"
                                     : "Analysez une offre d'emploi pour générer votre premier CV personnalisé"
@@ -254,7 +254,7 @@ export default function CVListPage() {
                                                 {isSelected ? (
                                                     <CheckSquare className="w-5 h-5 text-blue-600" />
                                                 ) : (
-                                                    <Square className="w-5 h-5 text-slate-300 group-hover:text-slate-400" />
+                                                    <Square className="w-5 h-5 text-slate-300 group-hover:text-slate-600" />
                                                 )}
                                             </button>
 
@@ -275,7 +275,7 @@ export default function CVListPage() {
                                                 <div className="font-semibold text-slate-800 truncate">
                                                     {jobTitle}
                                                 </div>
-                                                <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
+                                                <div className="flex items-center gap-2 text-sm text-slate-600 mt-1">
                                                     {company && (
                                                         <span className="truncate">🏢 {company}</span>
                                                     )}

@@ -113,7 +113,7 @@ export default function MatchResultPage() {
                         {analysis.match_level}
                     </Badge>
                     {analysis.job_title && (
-                        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
+                        <p className="text-slate-600 dark:text-slate-600 mt-2 text-sm">
                             {analysis.job_title} {analysis.company && `chez ${analysis.company}`}
                         </p>
                     )}
@@ -168,7 +168,7 @@ export default function MatchResultPage() {
                     <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
                         Prêt à créer votre CV parfait ?
                     </h3>
-                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 text-center max-w-lg">
+                    <p className="text-sm sm:text-base text-slate-600 dark:text-slate-600 text-center max-w-lg">
                         Choisissez un template et l'IA va optimiser votre CV en mettant en avant vos
                         <span className="text-green-600 font-medium"> points forts</span> et en comblant
                         intelligemment les <span className="text-amber-600 font-medium">écarts</span>.

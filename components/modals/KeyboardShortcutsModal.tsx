@@ -71,7 +71,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                         </h2>
                         <button
                             onClick={onClose}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                            className="text-slate-600 hover:text-slate-600 dark:hover:text-slate-300"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -81,7 +81,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                     <div className="space-y-6">
                         {shortcuts.map((section) => (
                             <div key={section.category}>
-                                <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">
+                                <h3 className="text-sm font-medium text-slate-600 dark:text-slate-600 mb-3">
                                     {section.category}
                                 </h3>
                                 <div className="space-y-2">
@@ -111,7 +111,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                     </div>
 
                     {/* Footer note */}
-                    <p className="mt-6 text-sm text-slate-400 text-center">
+                    <p className="mt-6 text-sm text-slate-600 text-center">
                         Sur Windows/Linux, utilisez Ctrl au lieu de ⌘
                     </p>
                 </div>

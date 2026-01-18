@@ -344,7 +344,7 @@ function ProfileContent() {
                                 <PlusCircle className="w-6 h-6 text-blue-600 mt-0.5" />
                                 <div>
                                     <h4 className="font-semibold text-slate-900">Compléter mon profil</h4>
-                                    <p className="text-sm text-slate-500 mt-1">
+                                    <p className="text-sm text-slate-600 mt-1">
                                         Ajoute les nouvelles informations sans supprimer les données existantes.
                                         Fusion intelligente avec déduplication.
                                     </p>
@@ -364,7 +364,7 @@ function ProfileContent() {
                                 <Trash2 className="w-6 h-6 text-orange-600 mt-0.5" />
                                 <div>
                                     <h4 className="font-semibold text-slate-900">Régénérer depuis zéro</h4>
-                                    <p className="text-sm text-slate-500 mt-1">
+                                    <p className="text-sm text-slate-600 mt-1">
                                         Efface le profil existant et recrée tout à partir des documents.
                                         Les préférences utilisateur sont conservées.
                                     </p>
@@ -391,7 +391,7 @@ function ProfileContent() {
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
                         <div>
                             <h1 className="text-2xl font-bold text-slate-900">Mon Profil RAG</h1>
-                            <p className="text-slate-500 text-sm">
+                            <p className="text-slate-600 text-sm">
                                 Score de complétude : {ragData?.score || 0}/100
                             </p>
                         </div>
@@ -483,7 +483,7 @@ function ProfileContent() {
                                             Aller à l'import de documents
                                         </Button>
                                     </Link>
-                                    <p className="text-sm text-slate-500 mt-4">
+                                    <p className="text-sm text-slate-600 mt-4">
                                         Documents actuels: {documents?.length || 0} fichier(s)
                                     </p>
                                 </CardContent>

@@ -32,7 +32,7 @@ export function CVsSearchAndTags({ onSearch, onFilterByTag, availableTags = [] }
     return (
         <div className="space-y-3">
             <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                 <Input
                     placeholder="Rechercher par titre, entreprise..."
                     value={query}
@@ -43,7 +43,7 @@ export function CVsSearchAndTags({ onSearch, onFilterByTag, availableTags = [] }
 
             {availableTags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                    <TagIcon className="w-4 h-4 text-slate-400 mt-1" />
+                    <TagIcon className="w-4 h-4 text-slate-600 mt-1" />
                     {availableTags.map(tag => (
                         <Badge
                             key={tag}

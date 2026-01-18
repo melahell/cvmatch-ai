@@ -113,7 +113,7 @@ export default function StatsPage() {
                         <BarChart3 className="w-6 h-6" />
                         Mes Statistiques
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400">
+                    <p className="text-slate-600 dark:text-slate-600">
                         Vue d'ensemble de votre activité sur CV Crush
                     </p>
                 </div>
@@ -130,7 +130,7 @@ export default function StatsPage() {
                                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                         {stats?.totalAnalyses || 0}
                                     </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Analyses</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-600">Analyses</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -146,7 +146,7 @@ export default function StatsPage() {
                                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                         {stats?.totalCVsGenerated || 0}
                                     </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">CV générés</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-600">CV générés</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -162,7 +162,7 @@ export default function StatsPage() {
                                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                         {stats?.averageScore || 0}%
                                     </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Score moyen</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-600">Score moyen</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -178,7 +178,7 @@ export default function StatsPage() {
                                     <p className="text-2xl font-bold text-slate-900 dark:text-white">
                                         {stats?.bestScore || 0}%
                                     </p>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Meilleur score</p>
+                                    <p className="text-sm text-slate-600 dark:text-slate-600">Meilleur score</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -204,12 +204,12 @@ export default function StatsPage() {
                                                 className="w-full bg-gradient-to-t from-blue-600 to-purple-600 rounded-t-md transition-all"
                                                 style={{ height: `${(item.score / 100) * 160}px` }}
                                             />
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">{item.date}</span>
+                                            <span className="text-xs text-slate-600 dark:text-slate-600">{item.date}</span>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="h-48 flex items-center justify-center text-slate-400">
+                                <div className="h-48 flex items-center justify-center text-slate-600">
                                     <p>Pas encore de données</p>
                                 </div>
                             )}
@@ -236,7 +236,7 @@ export default function StatsPage() {
                                                 style={{ width: `${(skill.count / 10) * 100}%` }}
                                             />
                                         </div>
-                                        <span className="text-sm text-slate-500 dark:text-slate-400 w-8 text-right">
+                                        <span className="text-sm text-slate-600 dark:text-slate-600 w-8 text-right">
                                             {skill.count}
                                         </span>
                                     </div>
@@ -266,7 +266,7 @@ export default function StatsPage() {
                                             <p className="font-medium text-slate-900 dark:text-white">
                                                 {analysis.job_title || "Poste non spécifié"}
                                             </p>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                            <p className="text-sm text-slate-600 dark:text-slate-600">
                                                 {analysis.company || "Entreprise"} · {new Date(analysis.created_at).toLocaleDateString('fr-FR')}
                                             </p>
                                         </div>
@@ -282,7 +282,7 @@ export default function StatsPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-center py-8 text-slate-400">
+                            <div className="text-center py-8 text-slate-600">
                                 <p>Aucune analyse récente</p>
                                 <a href="/dashboard/analyze" className="text-blue-600 hover:underline">
                                     Faire une analyse →

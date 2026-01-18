@@ -20,7 +20,7 @@ export function FieldTooltip({ content, children }: FieldTooltipProps) {
                 <TooltipTrigger asChild>
                     {children || (
                         <button type="button" className="inline-flex items-center ml-1">
-                            <Info className="w-4 h-4 text-slate-400 hover:text-slate-600" />
+                            <Info className="w-4 h-4 text-slate-600 hover:text-slate-600" />
                         </button>
                     )}
                 </TooltipTrigger>

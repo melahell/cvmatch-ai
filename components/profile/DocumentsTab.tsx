@@ -56,9 +56,9 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
             {/* Upload Zone */}
             <Card className="border-dashed border-2 border-slate-300 bg-slate-50">
                 <CardContent className="p-8 text-center">
-                    <Upload className="w-12 h-12 mx-auto text-slate-400 mb-4" />
+                    <Upload className="w-12 h-12 mx-auto text-slate-600 mb-4" />
                     <h3 className="font-medium mb-2">Uploader un document</h3>
-                    <p className="text-sm text-slate-500 mb-4">
+                    <p className="text-sm text-slate-600 mb-4">
                         CV, lettre de motivation, certificats... (PDF, DOCX, TXT)
                     </p>
                     <input
@@ -84,7 +84,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                             </>
                         )}
                     </Button>
-                    <p className="text-xs text-slate-400 mt-3">
+                    <p className="text-xs text-slate-600 mt-3">
                         💡 Après upload, régénérez le profil dans l'onglet "Vue d'ensemble"
                     </p>
                 </CardContent>
@@ -100,7 +100,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                         <CardContent className="p-12 text-center">
                             <FileText className="w-16 h-16 mx-auto text-slate-300 mb-4" />
                             <h3 className="text-xl font-medium text-slate-600 mb-2">Aucun document</h3>
-                            <p className="text-slate-400">
+                            <p className="text-slate-600">
                                 Uploadez votre CV pour commencer
                             </p>
                         </CardContent>
@@ -115,7 +115,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                                             <FileText className="w-5 h-5 text-blue-600 shrink-0" />
                                             <div className="min-w-0 flex-1">
                                                 <div className="font-medium truncate">{doc.filename}</div>
-                                                <div className="text-xs text-slate-500">
+                                                <div className="text-xs text-slate-600">
                                                     {formatDate(doc.created_at)} • {doc.file_type}
                                                 </div>
                                             </div>

@@ -157,7 +157,7 @@ export default function LoginPage() {
                             <Logo size="lg" showText={false} asStatic />
                         </div>
                         <h2 className="text-3xl font-bold text-slate-900">Bienvenue</h2>
-                        <p className="text-slate-500 mt-2">Connectez-vous pour accéder à votre dashboard</p>
+                        <p className="text-slate-600 mt-2">Connectez-vous pour accéder à votre dashboard</p>
                     </div>
 
                     <Button
@@ -178,7 +178,7 @@ export default function LoginPage() {
                             <span className="w-full border-t border-slate-200" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-white px-2 text-slate-500">Ou par email</span>
+                            <span className="bg-white px-2 text-slate-600">Ou par email</span>
                         </div>
                     </div>
 
@@ -214,7 +214,7 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    <p className="text-center text-xs text-slate-400">
+                    <p className="text-center text-xs text-slate-600">
                         En continuant, vous acceptez nos CGU et notre politique de confidentialité.
                     </p>
                 </div>

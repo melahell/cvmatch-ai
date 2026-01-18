@@ -59,7 +59,7 @@ export function ExperienceItem({
                         )}
                     </div>
 
-                    <div className="flex flex-wrap gap-3 text-sm text-slate-500 mb-2">
+                    <div className="flex flex-wrap gap-3 text-sm text-slate-600 mb-2">
                         <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             <span>

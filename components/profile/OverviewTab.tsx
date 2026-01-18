@@ -307,7 +307,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
 
     if (!ragData) {
         return (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-slate-600">
                 Aucune donnée disponible. Uploadez des documents et régénérez votre profil.
             </div>
         );
@@ -354,7 +354,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <User className="w-5 h-5" /> Profil
-                            <span className="text-xs font-normal text-slate-400 ml-2">
+                            <span className="text-xs font-normal text-slate-600 ml-2">
                                 (Cliquez sur un champ pour modifier)
                             </span>
                         </CardTitle>
@@ -362,7 +362,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                     <CardContent className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Prénom</label>
+                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">Prénom</label>
                                 <EditableField
                                     value={ragData.profil.prenom || ""}
                                     onSave={(v) => handleUpdateProfile("prenom", v)}
@@ -371,7 +371,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Nom</label>
+                                <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">Nom</label>
                                 <EditableField
                                     value={ragData.profil.nom || ""}
                                     onSave={(v) => handleUpdateProfile("nom", v)}
@@ -381,7 +381,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                             </div>
                         </div>
                         <div>
-                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Titre professionnel</label>
+                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">Titre professionnel</label>
                             <EditableField
                                 value={ragData.profil.titre_principal || ""}
                                 onSave={(v) => handleUpdateProfile("titre_principal", v)}
@@ -390,7 +390,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Localisation</label>
+                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">Localisation</label>
                             <EditableField
                                 value={ragData.profil.localisation || ""}
                                 onSave={(v) => handleUpdateProfile("localisation", v)}
@@ -399,7 +399,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">Elevator Pitch</label>
+                            <label className="text-xs font-medium text-slate-600 uppercase tracking-wide">Elevator Pitch</label>
                             <EditableField
                                 value={ragData.profil.elevator_pitch || ""}
                                 onSave={(v) => handleUpdateProfile("elevator_pitch", v)}
@@ -434,7 +434,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                     <div className="flex justify-between items-start mb-2">
                                         <div className="flex-1">
                                             <div className="font-semibold text-lg">{exp.poste}</div>
-                                            <div className="text-sm text-slate-500">
+                                            <div className="text-sm text-slate-600">
                                                 {exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}
                                             </div>
                                         </div>
@@ -452,7 +452,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                                     const isDeleting = deletingItem === itemKey;
                                                     return (
                                                         <li key={j} className="flex items-start gap-2 group py-1 px-2 -mx-2 rounded hover:bg-slate-50">
-                                                            <span className="text-slate-400 mt-0.5">•</span>
+                                                            <span className="text-slate-600 mt-0.5">•</span>
                                                             <span className="flex-1">
                                                                 {r.description}
                                                                 {r.impact && <span className="text-blue-600"> — {r.impact}</span>}
@@ -460,7 +460,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                                             <button
                                                                 onClick={() => requestDelete("realisation", j, r.description?.substring(0, 50) + (r.description?.length > 50 ? '...' : '') || 'Réalisation', { experienceIndex: i })}
                                                                 disabled={isDeleting}
-                                                                className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
+                                                                className="p-1 rounded hover:bg-red-100 text-slate-600 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 shrink-0"
                                                                 title="Supprimer cette réalisation"
                                                             >
                                                                 {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
@@ -669,7 +669,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                     <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0 last:pb-0 group">
                                         <div className="flex-1">
                                             <div className="font-semibold">{f.diplome}</div>
-                                            <div className="text-sm text-slate-500">
+                                            <div className="text-sm text-slate-600">
                                                 {f.ecole} • {f.annee}
                                             </div>
                                         </div>
@@ -681,7 +681,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                             <button
                                                 onClick={() => requestDelete("formation", i, f.diplome || 'Formation')}
                                                 disabled={isDeleting}
-                                                className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                                                className="p-1 rounded hover:bg-red-100 text-slate-600 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                                                 title="Supprimer cette formation"
                                             >
                                                 {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -731,7 +731,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                                 <button
                                                     onClick={() => requestDelete("langue", i, lang, { key: lang })}
                                                     disabled={isDeleting}
-                                                    className="p-1 rounded hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                                                    className="p-1 rounded hover:bg-red-100 text-slate-600 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                                                     title="Supprimer cette langue"
                                                 >
                                                     {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
@@ -776,7 +776,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                     <button
                                         onClick={() => requestDelete("certification", i, typeof cert === 'string' ? cert : (cert?.nom || 'Certification'))}
                                         disabled={isDeleting}
-                                        className="absolute right-1 p-0.5 rounded-full hover:bg-red-100 text-slate-400 hover:text-red-600 transition-colors"
+                                        className="absolute right-1 p-0.5 rounded-full hover:bg-red-100 text-slate-600 hover:text-red-600 transition-colors"
                                         title="Supprimer cette certification"
                                     >
                                         {isDeleting ? (
@@ -789,7 +789,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                             );
                         })}
                         {(!ragData?.certifications || ragData.certifications.length === 0) && (
-                            <p className="text-sm text-slate-400 italic">Aucune certification. Cliquez sur + pour en ajouter.</p>
+                            <p className="text-sm text-slate-600 italic">Aucune certification. Cliquez sur + pour en ajouter.</p>
                         )}
                     </div>
                 </CardContent>
@@ -938,7 +938,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                         <p className="text-slate-600 mb-4">
                             Êtes-vous sûr de vouloir supprimer <strong>"{pendingDelete.label}"</strong> ?
                         </p>
-                        <p className="text-sm text-slate-500 mb-4">
+                        <p className="text-sm text-slate-600 mb-4">
                             Cette action est irréversible.
                         </p>
                         <div className="flex justify-end gap-2">

@@ -95,7 +95,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline max-w-[120px] truncate">
                                 {userName}
                             </span>
-                            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                            <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
                         </button>
 
                         {/* Dropdown */}
@@ -108,7 +108,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                 <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
                                     <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
                                         <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{userName}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Compte gratuit</p>
+                                        <p className="text-xs text-slate-600 dark:text-slate-600">Compte gratuit</p>
                                     </div>
 
                                     {/* Quick Actions */}
@@ -154,13 +154,13 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         >
                                             <Keyboard className="w-4 h-4" />
                                             Raccourcis clavier
-                                            <span className="ml-auto text-xs text-slate-400">⌘/</span>
+                                            <span className="ml-auto text-xs text-slate-600">⌘/</span>
                                         </button>
                                     </div>
 
                                     {/* Footer */}
                                     <div className="border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
-                                        <div className="px-4 py-1 text-xs text-slate-400">
+                                        <div className="px-4 py-1 text-xs text-slate-600">
                                             CV Crush v1.7.0
                                         </div>
                                         <button
@@ -188,7 +188,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             <Link key={item.href} href={item.href} className="flex-1 max-w-[100px]">
                                 <div className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl transition-all ${isActive
                                     ? "text-blue-600 bg-blue-50 dark:bg-blue-950 scale-105"
-                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 active:scale-95"
+                                    : "text-slate-600 dark:text-slate-600 hover:text-slate-700 active:scale-95"
                                     }`}>
                                     <div className={`relative ${isActive ? 'animate-[pulse_2s_ease-in-out]' : ''}`}>
                                         <item.icon className="w-5 h-5" />

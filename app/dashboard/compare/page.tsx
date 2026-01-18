@@ -63,7 +63,7 @@ function CompareContent() {
                     <Card>
                         <CardContent className="p-12 text-center">
                             <h2 className="text-xl font-semibold mb-2">Aucune analyse sélectionnée</h2>
-                            <p className="text-slate-500 mb-4">Sélectionnez deux analyses à comparer</p>
+                            <p className="text-slate-600 mb-4">Sélectionnez deux analyses à comparer</p>
                             <Link href="/dashboard/analyze">
                                 <Button>Retour aux analyses</Button>
                             </Link>
@@ -81,7 +81,7 @@ function CompareContent() {
                     <Card>
                         <CardContent className="p-12 text-center">
                             <h2 className="text-xl font-semibold mb-2 text-red-600">Erreur</h2>
-                            <p className="text-slate-500">Impossible de charger les analyses</p>
+                            <p className="text-slate-600">Impossible de charger les analyses</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -98,7 +98,7 @@ function CompareContent() {
             <div className="container mx-auto py-4 sm:py-6 px-3 sm:px-4 max-w-7xl">
                 {/* Header */}
                 <div className="mb-4 sm:mb-6">
-                    <Link href="/dashboard/analyze" className="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-500 hover:text-blue-600 mb-3 sm:mb-4">
+                    <Link href="/dashboard/analyze" className="inline-flex items-center gap-2 text-xs sm:text-sm text-slate-600 hover:text-blue-600 mb-3 sm:mb-4">
                         <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                         Retour aux analyses
                     </Link>

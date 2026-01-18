@@ -125,10 +125,10 @@ export function EditableField({
             title="Cliquez pour modifier"
         >
             <div className="flex items-start gap-2">
-                <span className={`flex-1 ${!value ? "text-slate-400 italic" : ""}`}>
+                <span className={`flex-1 ${!value ? "text-slate-600 italic" : ""}`}>
                     {value || placeholder}
                 </span>
-                <Pencil className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                <Pencil className="w-4 h-4 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
             </div>
         </div>
     );

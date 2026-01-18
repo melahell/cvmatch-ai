@@ -24,7 +24,7 @@ export function LoadingSpinner({
     const spinner = (
         <div className={`flex flex-col items-center justify-center gap-2 ${className}`}>
             <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-600`} />
-            {text && <span className="text-sm text-slate-500">{text}</span>}
+            {text && <span className="text-sm text-slate-600">{text}</span>}
         </div>
     );
 

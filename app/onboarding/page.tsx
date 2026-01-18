@@ -173,15 +173,15 @@ export default function OnboardingPage() {
                     </div>
                     <div className="w-12 h-0.5 bg-slate-200 mx-2" />
                     <div className="flex items-center gap-2">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${processing ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-500"}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${processing ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"}`}>
                             {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : "2"}
                         </div>
-                        <span className="text-sm font-medium text-slate-500">Analyse IA</span>
+                        <span className="text-sm font-medium text-slate-600">Analyse IA</span>
                     </div>
                     <div className="w-12 h-0.5 bg-slate-200 mx-2" />
                     <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center font-bold">3</div>
-                        <span className="text-sm font-medium text-slate-500">Terminé</span>
+                        <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold">3</div>
+                        <span className="text-sm font-medium text-slate-600">Terminé</span>
                     </div>
                 </div>
 
@@ -302,7 +302,7 @@ export default function OnboardingPage() {
 
                             <div className="flex flex-col items-center gap-4">
                                 <div className="p-4 bg-slate-100 rounded-full">
-                                    <Upload className="w-8 h-8 text-slate-500" />
+                                    <Upload className="w-8 h-8 text-slate-600" />
                                 </div>
                                 <div>
                                     <label
@@ -311,9 +311,9 @@ export default function OnboardingPage() {
                                     >
                                         Clique pour uploader
                                     </label>
-                                    <span className="text-slate-500"> ou glisse tes fichiers ici</span>
+                                    <span className="text-slate-600"> ou glisse tes fichiers ici</span>
                                 </div>
-                                <p className="text-xs text-slate-400">PDF, DOCX acceptés (Max 10MB)</p>
+                                <p className="text-xs text-slate-600">PDF, DOCX acceptés (Max 10MB)</p>
                             </div>
                         </div>
 
@@ -325,10 +325,10 @@ export default function OnboardingPage() {
                                         <div className="flex items-center gap-3">
                                             <FileText className="w-5 h-5 text-blue-500" />
                                             <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-                                            <span className="text-xs text-slate-400">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                            <span className="text-xs text-slate-600">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
                                         </div>
                                         {!uploading && !processing && (
-                                            <button onClick={() => removeFile(i)} className="text-slate-400 hover:text-red-500">
+                                            <button onClick={() => removeFile(i)} className="text-slate-600 hover:text-red-500">
                                                 &times;
                                             </button>
                                         )}

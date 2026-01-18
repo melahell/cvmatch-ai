@@ -212,12 +212,12 @@ export default function CVViewPage() {
             <div className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-10 print:hidden">
                 <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <Link href="/dashboard/tracking" className="text-slate-500 hover:text-slate-900 dark:hover:text-white">
+                        <Link href="/dashboard/tracking" className="text-slate-600 hover:text-slate-900 dark:hover:text-white">
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
                         <div>
                             <h1 className="font-bold text-base sm:text-lg dark:text-white">Aperçu du CV</h1>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                            <p className="text-xs text-slate-600 dark:text-slate-600">
                                 Template: {templateInfo?.name || currentTemplate}
                             </p>
                         </div>

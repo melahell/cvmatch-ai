@@ -61,7 +61,7 @@ interface WeightTabProps {
 export function WeightTab({ ragData, onWeightChange }: WeightTabProps) {
     if (!ragData) {
         return (
-            <div className="text-center py-12 text-slate-500">
+            <div className="text-center py-12 text-slate-600">
                 Aucune donnée disponible. Uploadez des documents et régénérez votre profil.
             </div>
         );
@@ -101,7 +101,7 @@ export function WeightTab({ ragData, onWeightChange }: WeightTabProps) {
                             <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
                                 <div>
                                     <div className="font-medium">{exp.poste}</div>
-                                    <div className="text-sm text-slate-500">
+                                    <div className="text-sm text-slate-600">
                                         {exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}
                                     </div>
                                 </div>
@@ -152,7 +152,7 @@ export function WeightTab({ ragData, onWeightChange }: WeightTabProps) {
                             <div key={i} className="flex items-start justify-between border-b pb-3 last:border-0">
                                 <div>
                                     <div className="font-medium">{f.diplome}</div>
-                                    <div className="text-sm text-slate-500">{f.ecole} • {f.annee}</div>
+                                    <div className="text-sm text-slate-600">{f.ecole} • {f.annee}</div>
                                 </div>
                                 <WeightBadge
                                     weight={f.weight || "inclus"}

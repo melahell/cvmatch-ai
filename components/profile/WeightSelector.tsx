@@ -48,7 +48,7 @@ export function WeightSelector({ value, onChange, disabled = false }: WeightSele
                     <SelectItem key={opt.value} value={opt.value} className={opt.className}>
                         <div className="flex flex-col">
                             <span className="font-medium">{opt.label}</span>
-                            <span className="text-xs text-slate-500">{opt.description}</span>
+                            <span className="text-xs text-slate-600">{opt.description}</span>
                         </div>
                     </SelectItem>
                 ))}

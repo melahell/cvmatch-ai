@@ -31,7 +31,7 @@ export default function TemplatesStorePage() {
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
                         Templates CV
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400">
+                    <p className="text-slate-600 dark:text-slate-600">
                         Choisissez parmi notre collection de templates professionnels,
                         optimisés pour format A4 une page.
                     </p>
@@ -70,7 +70,7 @@ export default function TemplatesStorePage() {
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
                             Bientôt : Templates Premium
                         </h3>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                        <p className="text-sm text-slate-600 dark:text-slate-600 mb-4">
                             Accédez à une collection exclusive de templates créatifs et personnalisables.
                         </p>
                         <Button variant="outline" className="border-purple-300 text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:text-purple-400">
@@ -140,7 +140,7 @@ function TemplateStoreCard({ template }: { template: TemplateInfo }) {
                 {!isAvailable && (
                     <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center">
                         <div className="bg-white dark:bg-slate-800 rounded-full p-3 shadow-lg">
-                            <Lock className="w-6 h-6 text-slate-400" />
+                            <Lock className="w-6 h-6 text-slate-600" />
                         </div>
                     </div>
                 )}
@@ -158,12 +158,12 @@ function TemplateStoreCard({ template }: { template: TemplateInfo }) {
                             Gratuit
                         </Badge>
                     ) : (
-                        <Badge variant="outline" className="text-slate-500 dark:text-slate-400">
+                        <Badge variant="outline" className="text-slate-600 dark:text-slate-600">
                             Bientôt
                         </Badge>
                     )}
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                <p className="text-sm text-slate-600 dark:text-slate-600 mb-3">
                     {template.description}
                 </p>
                 {template.recommended && (
@@ -171,7 +171,7 @@ function TemplateStoreCard({ template }: { template: TemplateInfo }) {
                         {template.recommended.map((rec, i) => (
                             <span
                                 key={i}
-                                className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-400"
+                                className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-600 dark:text-slate-600"
                             >
                                 {rec}
                             </span>

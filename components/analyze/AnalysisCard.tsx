@@ -38,7 +38,7 @@ export function AnalysisCard({ analysis, onCompare, onDelete }: AnalysisCardProp
                     </Badge>
                 </div>
 
-                <div className="flex items-center gap-4 text-xs text-slate-500 mb-3">
+                <div className="flex items-center gap-4 text-xs text-slate-600 mb-3">
                     <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         {date}

@@ -36,7 +36,7 @@ export function GoalTracker({ goals }: GoalTrackerProps) {
                             <div key={goal.id} className="space-y-1">
                                 <div className="flex justify-between text-xs">
                                     <span className="text-slate-600">{goal.label}</span>
-                                    <span className={isComplete ? "text-green-600 font-semibold" : "text-slate-500"}>
+                                    <span className={isComplete ? "text-green-600 font-semibold" : "text-slate-600"}>
                                         {goal.current} / {goal.target}
                                     </span>
                                 </div>

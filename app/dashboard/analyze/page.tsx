@@ -306,7 +306,7 @@ export default function AnalyzePage() {
             <div className="container mx-auto max-w-2xl py-2 sm:py-6 md:py-8 px-2 sm:px-4 pb-20 sm:pb-6">
                 <div className="mb-2 sm:mb-6 text-center">
                     <h1 className="text-base sm:text-xl lg:text-2xl font-bold mb-1 sm:mb-2">Nouvelle Analyse 🎯</h1>
-                    <p className="text-xs text-slate-500 hidden sm:block">
+                    <p className="text-xs text-slate-600 hidden sm:block">
                         {/* Phase 1 Item 5: Simplified message */}
                         Compare ton profil avec cette offre d'emploi
                     </p>
@@ -349,7 +349,7 @@ export default function AnalyzePage() {
                             <button
                                 onClick={() => handleModeChange("url")}
                                 disabled={loading}
-                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "url" ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
                                     }`}
                             >
                                 <Link2 className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">URL</span><span className="sm:hidden">URL</span>
@@ -357,7 +357,7 @@ export default function AnalyzePage() {
                             <button
                                 onClick={() => handleModeChange("text")}
                                 disabled={loading}
-                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "text" ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
                                     }`}
                             >
                                 <FileText className="w-3 h-3 sm:w-4 sm:h-4" /> Texte
@@ -366,7 +366,7 @@ export default function AnalyzePage() {
                             <button
                                 onClick={() => handleModeChange("file")}
                                 disabled={loading}
-                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-500 hover:text-slate-900"
+                                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 ${mode === "file" ? "bg-white shadow text-slate-900" : "text-slate-600 hover:text-slate-900"
                                     }`}
                             >
                                 <Upload className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Fichier</span><span className="sm:hidden">PDF</span>
@@ -412,7 +412,7 @@ export default function AnalyzePage() {
                                 />
                                 {/* Character count + cleanup button */}
                                 <div className="flex justify-between items-center">
-                                    <p className="text-xs text-slate-400">
+                                    <p className="text-xs text-slate-600">
                                         {text.length} caractères {text.length >= 50 ? '✓' : '(minimum 50)'}
                                     </p>
                                     {/* Phase 1 Item 8: Cleanup button */}
@@ -442,13 +442,13 @@ export default function AnalyzePage() {
                                     {file ? (
                                         <div className="space-y-2">
                                             <div className="text-green-600 font-medium">✅ {file.name}</div>
-                                            <div className="text-xs text-slate-400">Cliquez pour changer</div>
+                                            <div className="text-xs text-slate-600">Cliquez pour changer</div>
                                         </div>
                                     ) : (
                                         <div className="space-y-2">
-                                            <Upload className="w-10 h-10 mx-auto text-slate-400" />
+                                            <Upload className="w-10 h-10 mx-auto text-slate-600" />
                                             <div className="text-slate-600">Cliquez pour uploader</div>
-                                            <div className="text-xs text-slate-400">PDF, PNG, JPG acceptés</div>
+                                            <div className="text-xs text-slate-600">PDF, PNG, JPG acceptés</div>
                                         </div>
                                     )}
                                     <input
@@ -491,7 +491,7 @@ export default function AnalyzePage() {
                             )}
                         </Button>
                         {/* Phase 1 Item 9: Keyboard shortcut hint */}
-                        <p className="text-xs text-center text-slate-400 mt-2">
+                        <p className="text-xs text-center text-slate-600 mt-2">
                             Raccourci : Ctrl+Enter (ou Cmd+Enter sur Mac)
                         </p>
 
@@ -506,7 +506,7 @@ export default function AnalyzePage() {
                     </div>
                 )}
 
-                <div className="mt-6 text-center text-sm text-slate-400">
+                <div className="mt-6 text-center text-sm text-slate-600">
                     L'IA compare ton profil RAG avec les critères de cette offre.
                 </div>
             </div>

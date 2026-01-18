@@ -15,7 +15,7 @@ export function ThemeToggle() {
 
     if (!mounted) {
         return (
-            <div className="w-full px-4 py-2 flex items-center gap-2 text-sm text-slate-400">
+            <div className="w-full px-4 py-2 flex items-center gap-2 text-sm text-slate-600">
                 <Sun className="w-4 h-4" />
                 Thème
             </div>
@@ -35,7 +35,7 @@ export function ThemeToggle() {
                 <Sun className="w-4 h-4" />
             )}
             <span>Thème</span>
-            <span className="ml-auto text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+            <span className="ml-auto text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-600">
                 {isDark ? "Sombre" : "Clair"}
             </span>
         </button>

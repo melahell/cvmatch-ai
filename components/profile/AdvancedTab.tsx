@@ -40,7 +40,7 @@ export function AdvancedTab({ customNotes, onNotesChange, onReset }: AdvancedTab
                         rows={6}
                         className="w-full"
                     />
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-slate-600 mt-2">
                         💡 Ces notes ne seront pas affichées dans le CV mais influenceront le contenu généré
                     </p>
                 </CardContent>

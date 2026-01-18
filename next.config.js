@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+    enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
     images: {
         remotePatterns: [
@@ -55,6 +59,11 @@ const nextConfig = {
             },
         ]
     },
+    // Performance optimizations
+    swcMinify: true,
+    compiler: {
+        removeConsole: process.env.NODE_ENV === 'production',
+    },
 }
 
-module.exports = nextConfig
+module.exports = withBundleAnalyzer(nextConfig);

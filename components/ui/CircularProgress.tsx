@@ -76,7 +76,7 @@ export function CircularProgress({
                     <span className="text-2xl font-bold text-slate-800">
                         {Math.round(animatedValue)}
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-600">
                         {label || `/ ${max}`}
                     </span>
                 </div>

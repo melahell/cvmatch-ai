@@ -54,7 +54,7 @@ export function NotificationBell({ notifications = [] }: NotificationBellProps) 
                                 className={`p-2 rounded text-sm ${notif.read ? 'bg-slate-50' : 'bg-blue-50'}`}
                             >
                                 <p className="font-medium">{notif.message}</p>
-                                <p className="text-xs text-slate-400 mt-1">
+                                <p className="text-xs text-slate-600 mt-1">
                                     {formatRelativeDate(notif.created_at)}
                                 </p>
                             </div>

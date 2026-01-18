@@ -31,7 +31,7 @@ export default function Error({
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 text-center">
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-600">
                         {error.message || "Une erreur inconnue s'est produite."}
                     </p>
                     <Button onClick={() => reset()} variant="outline" className="w-full border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800">

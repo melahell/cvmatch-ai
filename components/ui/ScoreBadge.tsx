@@ -65,7 +65,7 @@ export function ScoreIndicator({ score, className }: { score: number; className?
  */
 export function ScoreLegend({ className }: { className?: string }) {
     return (
-        <div className={cn("flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-slate-500", className)}>
+        <div className={cn("flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-slate-600", className)}>
             <span className="font-medium text-slate-600">Légende Score de Match :</span>
             <span className="flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-green-500" />

@@ -75,11 +75,11 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                     <h2 className="font-semibold text-sm text-slate-900 truncate">
                                         {job.job_title || "Poste"}
                                     </h2>
-                                    <p className="text-xs text-slate-500 truncate">
+                                    <p className="text-xs text-slate-600 truncate">
                                         {job.company || "Entreprise"} {job.location && `• ${job.location}`}
                                     </p>
                                     {/* Mobile date - Item 25 */}
-                                    <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+                                    <p className="text-xs text-slate-600 flex items-center gap-1 mt-0.5">
                                         <Calendar className="w-3 h-3" />
                                         {formatRelativeDate(job.submitted_at)}
                                     </p>
@@ -141,7 +141,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                 <h2 className="font-bold text-lg text-slate-900 truncate">
                                     {job.job_title || "Poste à définir"}
                                 </h2>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500 mt-1">
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 mt-1">
                                     <span className="flex items-center gap-1 font-medium text-slate-700">
                                         <Building2 className="w-3 h-3" />
                                         {job.company || "Entreprise"}
@@ -152,7 +152,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                             {job.location}
                                         </span>
                                     )}
-                                    <span className="flex items-center gap-1 text-slate-400">
+                                    <span className="flex items-center gap-1 text-slate-600">
                                         <Calendar className="w-3 h-3" />
                                         {formatRelativeDate(job.submitted_at)}
                                     </span>

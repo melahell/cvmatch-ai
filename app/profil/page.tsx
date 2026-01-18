@@ -93,7 +93,7 @@ export default function ProfilPage() {
     return (
         <div className="container mx-auto py-8 px-4 max-w-4xl">
             <h1 className="text-3xl font-bold mb-2">Mon Profil RAG</h1>
-            <p className="text-slate-500 mb-8">Gérez vos données et paramètres</p>
+            <p className="text-slate-600 mb-8">Gérez vos données et paramètres</p>
 
             {/* ZONE DANGEREUSE */}
             <Card className="border-red-200 bg-red-50/30">
@@ -121,7 +121,7 @@ export default function ProfilPage() {
                             <li>• Toutes les pondérations personnalisées</li>
                             <li>• Toutes vos notes personnelles</li>
                         </ul>
-                        <p className="text-xs text-slate-500 mb-4">
+                        <p className="text-xs text-slate-600 mb-4">
                             ℹ️ Vos analyses de jobs et CVs générés seront conservés. Votre compte reste actif.
                         </p>
                         <Button

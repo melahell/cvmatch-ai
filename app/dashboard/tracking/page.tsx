@@ -222,7 +222,7 @@ export default function TrackingPage() {
                 <Toaster richColors position="top-center" />
                 <div className="container mx-auto py-6 px-4">
                     {/* Breadcrumb */}
-                    <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-slate-600 mb-4">
                         <Link href="/dashboard" className="hover:text-blue-600">Dashboard</Link>
                         <ChevronRight className="w-4 h-4" />
                         <span className="text-slate-900 font-medium">Candidatures</span>
@@ -286,7 +286,7 @@ export default function TrackingPage() {
                     {/* Progress Bar */}
                     {jobs.length > 0 && (
                         <div className="mb-6">
-                            <div className="flex justify-between text-xs text-slate-500 mb-1">
+                            <div className="flex justify-between text-xs text-slate-600 mb-1">
                                 <span>Progression des candidatures</span>
                                 <span>{progressPercent}%</span>
                             </div>
@@ -296,7 +296,7 @@ export default function TrackingPage() {
                                     style={{ width: `${progressPercent}%` }}
                                 />
                             </div>
-                            <div className="flex justify-between text-xs text-slate-400 mt-1">
+                            <div className="flex justify-between text-xs text-slate-600 mt-1">
                                 <span>{stats.pending} à faire</span>
                                 <span>{stats.applied} postulé</span>
                                 <span>{stats.interviewing} entretien</span>
@@ -309,7 +309,7 @@ export default function TrackingPage() {
                     <div className="flex flex-col md:flex-row gap-4 mb-6">
                         {/* Search */}
                         <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                             <Input
                                 placeholder="Rechercher par poste, entreprise..."
                                 value={search}
@@ -460,7 +460,7 @@ export default function TrackingPage() {
                                                 : `Aucune candidature "${STATUS_CONFIG[filter]?.label}"`
                                     }
                                 </h3>
-                                <p className="text-slate-400 mb-4">
+                                <p className="text-slate-600 mb-4">
                                     {search
                                         ? "Essayez une autre recherche ou modifiez les filtres"
                                         : "Analysez une offre d'emploi pour commencer"

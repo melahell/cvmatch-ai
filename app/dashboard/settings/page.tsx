@@ -42,7 +42,7 @@ export default function SettingsPage() {
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                         Paramètres
                     </h1>
-                    <p className="text-slate-500 dark:text-slate-400">
+                    <p className="text-slate-600 dark:text-slate-600">
                         Gérez vos préférences et notifications
                     </p>
                 </div>
@@ -55,11 +55,11 @@ export default function SettingsPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
-                            <span className="text-slate-600 dark:text-slate-400">Nom</span>
+                            <span className="text-slate-600 dark:text-slate-600">Nom</span>
                             <span className="font-medium text-slate-900 dark:text-white">{userName}</span>
                         </div>
                         <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
-                            <span className="text-slate-600 dark:text-slate-400">Plan</span>
+                            <span className="text-slate-600 dark:text-slate-600">Plan</span>
                             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Gratuit
                             </span>
@@ -84,7 +84,7 @@ export default function SettingsPage() {
                                 <p className="font-medium text-slate-900 dark:text-white">
                                     Nouvelles offres matching
                                 </p>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                <p className="text-sm text-slate-600 dark:text-slate-600">
                                     Soyez alerté quand une offre correspond à votre profil (&gt;80%)
                                 </p>
                             </div>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
                                 <p className="font-medium text-slate-900 dark:text-white">
                                     Rappels candidatures
                                 </p>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                <p className="text-sm text-slate-600 dark:text-slate-600">
                                     Rappels pour les candidatures sans réponse depuis 7 jours
                                 </p>
                             </div>
@@ -114,7 +114,7 @@ export default function SettingsPage() {
                                 <p className="font-medium text-slate-900 dark:text-white">
                                     Newsletter
                                 </p>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                <p className="text-sm text-slate-600 dark:text-slate-600">
                                     Conseils CV et actualités du marché (1x/semaine)
                                 </p>
                             </div>
@@ -143,7 +143,7 @@ export default function SettingsPage() {
                                 <p className="font-medium text-slate-900 dark:text-white">
                                     Activer les notifications push
                                 </p>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                <p className="text-sm text-slate-600 dark:text-slate-600">
                                     Nécessite votre autorisation navigateur
                                 </p>
                             </div>
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                         >
                             Supprimer mon compte
                         </Button>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                        <p className="text-xs text-slate-600 dark:text-slate-600 mt-2">
                             Cette action supprimera définitivement toutes vos données
                         </p>
                     </CardContent>

@@ -18,7 +18,7 @@ export function CVPreview({ cvId, open, onOpenChange }: CVPreviewProps) {
                 <div className="relative w-full h-full">
                     {loading && (
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="text-slate-500">Chargement...</div>
+                            <div className="text-slate-600">Chargement...</div>
                         </div>
                     )}
                     <iframe

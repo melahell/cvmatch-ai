@@ -171,7 +171,7 @@ export default function ContactPage() {
                 <div className="mt-8 text-center">
                     <a
                         href="/dashboard"
-                        className="text-slate-500 hover:text-slate-700"
+                        className="text-slate-600 hover:text-slate-700"
                     >
                         ← Retour au Dashboard
                     </a>

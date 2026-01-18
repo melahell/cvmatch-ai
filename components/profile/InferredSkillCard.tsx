@@ -59,7 +59,7 @@ export function InferredSkillCard({
                                             </li>
                                         ))}
                                         {skill.sources.length > 2 && (
-                                            <li className="text-xs text-slate-400 italic">
+                                            <li className="text-xs text-slate-600 italic">
                                                 +{skill.sources.length - 2} autre(s)
                                             </li>
                                         )}

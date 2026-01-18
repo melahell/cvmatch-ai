@@ -153,7 +153,7 @@ export default function ClassicTemplate({
                 {/* Job context */}
                 {jobContext?.job_title && (
                     <div className="text-center mb-6">
-                        <span className="text-[8pt] text-slate-500">
+                        <span className="text-[8pt] text-slate-600">
                             Candidature pour le poste de <strong>{jobContext.job_title}</strong>
                             {jobContext.company && ` chez ${jobContext.company}`}
                         </span>
@@ -181,7 +181,7 @@ export default function ClassicTemplate({
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-[8pt] text-slate-500 italic">
+                                    <span className="text-[8pt] text-slate-600 italic">
                                         {exp.date_debut} - {exp.date_fin || 'Présent'}
                                     </span>
                                 </div>
@@ -217,7 +217,7 @@ export default function ClassicTemplate({
                                     <div className="flex justify-between items-baseline">
                                         <h4 className="text-[9pt] font-bold text-slate-900">{edu.diplome}</h4>
                                         {edu.annee && (
-                                            <span className="text-[8pt] text-slate-500">{edu.annee}</span>
+                                            <span className="text-[8pt] text-slate-600">{edu.annee}</span>
                                         )}
                                     </div>
                                     <p className="text-[8pt] italic text-slate-600">{edu.etablissement}</p>
@@ -260,7 +260,7 @@ export default function ClassicTemplate({
                                 <ul className="text-[8pt] text-slate-600 space-y-1">
                                     {certifications.map((cert, i) => (
                                         <li key={i} className="flex items-center gap-1">
-                                            <span className="text-slate-400">•</span> {cert}
+                                            <span className="text-slate-600">•</span> {cert}
                                         </li>
                                     ))}
                                 </ul>

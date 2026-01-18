@@ -329,7 +329,7 @@ export default function CreativeTemplate({
                         {limitedFormations.map((edu, i) => (
                             <div key={i} className="mb-2">
                                 <div className="text-[8pt] font-bold text-slate-900">{edu.diplome}</div>
-                                <div className="text-[7pt] text-slate-500">
+                                <div className="text-[7pt] text-slate-600">
                                     {edu.etablissement}
                                     {edu.annee && ` (${edu.annee})`}
                                 </div>
@@ -349,7 +349,7 @@ export default function CreativeTemplate({
                             {langues.map((lang, i) => (
                                 <div key={i} className="text-[8pt] mb-1">
                                     <span className="font-bold text-slate-900">{lang.langue}</span>
-                                    <span className="text-slate-500"> – {lang.niveau}</span>
+                                    <span className="text-slate-600"> – {lang.niveau}</span>
                                 </div>
                             ))}
                         </section>

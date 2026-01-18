@@ -18,7 +18,7 @@ export function EmptyState({
     return (
         <div className={`text-center py-12 ${className}`}>
             <div className="flex flex-col items-center gap-3">
-                <div className="text-slate-400 mb-2">
+                <div className="text-slate-600 mb-2">
                     {icon || <FileX className="w-12 h-12" />}
                 </div>
                 <p className="text-sm text-slate-600 font-medium">{message}</p>

@@ -68,7 +68,7 @@ export function BulkToolbar({
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-400 hover:bg-slate-800 hover:text-white"
+                    className="text-slate-600 hover:bg-slate-800 hover:text-white"
                     onClick={onClearSelection}
                 >
                     <X className="w-4 h-4" />

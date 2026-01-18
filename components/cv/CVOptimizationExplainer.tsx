@@ -84,7 +84,7 @@ export function CVOptimizationExplainer({
                                     <p>• <strong>{experiencesSummary.compact}</strong> expérience{experiencesSummary.compact > 1 ? "s" : ""} en format <span className="text-slate-600 font-medium">compact</span> (1 ligne)</p>
                                 )}
                                 {experiencesSummary.minimal > 0 && (
-                                    <p>• <strong>{experiencesSummary.minimal}</strong> expérience{experiencesSummary.minimal > 1 ? "s" : ""} en format <span className="text-slate-500 font-medium">minimal</span></p>
+                                    <p>• <strong>{experiencesSummary.minimal}</strong> expérience{experiencesSummary.minimal > 1 ? "s" : ""} en format <span className="text-slate-600 font-medium">minimal</span></p>
                                 )}
                             </div>
                         </div>

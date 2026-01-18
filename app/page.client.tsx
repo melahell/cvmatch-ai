@@ -90,7 +90,7 @@ export default function LandingPageClient() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="text-xl text-slate-500 mb-10 max-w-2xl mx-auto leading-relaxed"
+                        className="text-xl text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed"
                     >
                         Utilisez l'IA pour analyser vos chances de réussite, optimiser votre CV pour chaque offre et découvrir des opportunités cachées.
                     </motion.p>
@@ -108,7 +108,7 @@ export default function LandingPageClient() {
                         </Link>
                     </motion.div>
 
-                    <div className="mt-16 flex justify-center gap-8 text-sm font-medium text-slate-400 grayscale opacity-70">
+                    <div className="mt-16 flex justify-center gap-8 text-sm font-medium text-slate-600 grayscale opacity-70">
                         <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> Pas de carte bancaire</div>
                         <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> 100% Sécurisé</div>
                         <div className="flex items-center gap-2"><CheckCircle className="w-4 h-4" /> RAG GitHub Privé</div>
@@ -155,7 +155,7 @@ function CardFeature({ icon, title, desc }: { icon: React.ReactNode, title: stri
                 {icon}
             </div>
             <h3 className="text-xl font-bold mb-3">{title}</h3>
-            <p className="text-slate-500 leading-relaxed">
+            <p className="text-slate-600 leading-relaxed">
                 {desc}
             </p>
         </motion.div>

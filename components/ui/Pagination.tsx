@@ -35,7 +35,7 @@ export function Pagination({
 
     return (
         <div className="flex items-center justify-between px-2">
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-slate-600">
                 {totalItems && (
                     <span>
                         {(currentPage - 1) * itemsPerPage + 1}-

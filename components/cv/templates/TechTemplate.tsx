@@ -133,7 +133,7 @@ export default function TechTemplate({
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                    <span className="ml-2 text-[7pt] text-slate-500 font-mono">~/profile.dev</span>
+                    <span className="ml-2 text-[7pt] text-slate-600 font-mono">~/profile.dev</span>
                 </div>
 
                 {/* Avatar */}
@@ -162,7 +162,7 @@ export default function TechTemplate({
                     )}
                     <h1 className="text-base font-bold tracking-tight">{profil.prenom} {profil.nom}</h1>
                     <p className="text-emerald-400 font-mono mt-1 text-[8pt]">
-                        <span className="text-slate-500">{'>'}</span> {profil.titre_principal}
+                        <span className="text-slate-600">{'>'}</span> {profil.titre_principal}
                     </p>
                 </div>
 
@@ -205,7 +205,7 @@ export default function TechTemplate({
 
                     {skillCategories.languages.length > 0 && (
                         <div>
-                            <div className="text-[6pt] text-slate-500 mb-1">languages:</div>
+                            <div className="text-[6pt] text-slate-600 mb-1">languages:</div>
                             <div className="flex flex-wrap gap-1">
                                 {skillCategories.languages.map((skill, i) => (
                                     <span
@@ -222,7 +222,7 @@ export default function TechTemplate({
 
                     {skillCategories.frameworks.length > 0 && (
                         <div>
-                            <div className="text-[6pt] text-slate-500 mb-1">frameworks:</div>
+                            <div className="text-[6pt] text-slate-600 mb-1">frameworks:</div>
                             <div className="flex flex-wrap gap-1">
                                 {skillCategories.frameworks.map((skill, i) => (
                                     <span
@@ -239,7 +239,7 @@ export default function TechTemplate({
 
                     {skillCategories.tools.length > 0 && (
                         <div>
-                            <div className="text-[6pt] text-slate-500 mb-1">devops:</div>
+                            <div className="text-[6pt] text-slate-600 mb-1">devops:</div>
                             <div className="flex flex-wrap gap-1">
                                 {skillCategories.tools.map((skill, i) => (
                                     <span
@@ -256,7 +256,7 @@ export default function TechTemplate({
 
                     {skillCategories.databases.length > 0 && (
                         <div>
-                            <div className="text-[6pt] text-slate-500 mb-1">databases:</div>
+                            <div className="text-[6pt] text-slate-600 mb-1">databases:</div>
                             <div className="flex flex-wrap gap-1">
                                 {skillCategories.databases.map((skill, i) => (
                                     <span

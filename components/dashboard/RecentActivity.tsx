@@ -26,7 +26,7 @@ export function RecentActivity({ activities = [] }: RecentActivityProps) {
     if (activities.length === 0) {
         return (
             <Card>
-                <CardContent className="p-6 text-center text-sm text-slate-400">
+                <CardContent className="p-6 text-center text-sm text-slate-600">
                     Aucune activité récente
                 </CardContent>
             </Card>
@@ -46,7 +46,7 @@ export function RecentActivity({ activities = [] }: RecentActivityProps) {
                                 <p className="text-sm font-medium text-slate-700 truncate">
                                     {activity.title}
                                 </p>
-                                <p className="text-xs text-slate-400">
+                                <p className="text-xs text-slate-600">
                                     {formatRelativeDate(activity.timestamp)}
                                 </p>
                             </div>

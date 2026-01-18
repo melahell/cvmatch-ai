@@ -30,11 +30,11 @@ export function StatsCard({
         <CardContent className="flex flex-col items-center justify-center p-3 sm:p-4 md:p-6 text-center h-full">
             {children || (
                 <>
-                    {Icon && <Icon className="w-6 h-6 mb-2 text-slate-400" />}
+                    {Icon && <Icon className="w-6 h-6 mb-2 text-slate-600" />}
                     <div className={`text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 ${colorClasses[color]}`}>
                         {value}
                     </div>
-                    <div className="text-xs sm:text-sm font-medium text-slate-500">{label}</div>
+                    <div className="text-xs sm:text-sm font-medium text-slate-600">{label}</div>
                 </>
             )}
         </CardContent>

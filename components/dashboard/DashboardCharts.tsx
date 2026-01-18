@@ -42,7 +42,7 @@ export function DashboardCharts({ scoreHistory = [], analysesPerMonth = [] }: Da
                 <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium">Analyses par mois</CardTitle>
                 </CardHeader>
-                <CardContent className="flex items-center justify-center h-[200px] text-sm text-slate-400">
+                <CardContent className="flex items-center justify-center h-[200px] text-sm text-slate-600">
                     {analysesPerMonth.length > 0 ? (
                         <p>Graphique à venir</p>
                     ) : (

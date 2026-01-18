@@ -82,7 +82,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                     <div>
                         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">Bonjour, {ragData?.profil?.prenom || authUserName} 👋</h1>
-                        <p className="text-slate-500 text-xs sm:text-sm md:text-base mt-1">
+                        <p className="text-slate-600 text-xs sm:text-sm md:text-base mt-1">
                             {getWelcomeMessage(ragData?.score || 0)}
                         </p>
                     </div>
@@ -130,13 +130,13 @@ export default function DashboardPage() {
                                             size={80}
                                             label="/ 100"
                                         />
-                                        <div className="text-xs font-medium text-slate-500 mt-2">Score Profil</div>
+                                        <div className="text-xs font-medium text-slate-600 mt-2">Score Profil</div>
                                     </StatsCard>
                                 </div>
                             </TooltipTrigger>
                             <TooltipContent>
                                 <p className="text-sm">{getScoreDescription(ragData?.score || 0)}</p>
-                                <p className="text-xs text-slate-400 mt-1">Basé sur: complétude profil, compétences, documents</p>
+                                <p className="text-xs text-slate-600 mt-1">Basé sur: complétude profil, compétences, documents</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -246,12 +246,12 @@ export default function DashboardPage() {
                                                         ) : doc.file_type?.includes('doc') ? (
                                                             <FileText className="w-4 h-4 text-blue-500 flex-shrink-0" />
                                                         ) : (
-                                                            <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                            <FileText className="w-4 h-4 text-slate-600 flex-shrink-0" />
                                                         )}
                                                         <span className="truncate text-slate-600 text-xs sm:text-sm">{doc.filename}</span>
                                                     </div>
                                                     <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                                                        <span className="text-xs text-slate-400 mr-1 hidden sm:inline">
+                                                        <span className="text-xs text-slate-600 mr-1 hidden sm:inline">
                                                             {new Date(doc.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
                                                         </span>
                                                         <button onClick={async (e) => {
@@ -283,7 +283,7 @@ export default function DashboardPage() {
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="text-sm text-slate-400">Aucun document</div>
+                                        <div className="text-sm text-slate-600">Aucun document</div>
                                     )}
                                 </CardContent>
                             </Card>
@@ -324,7 +324,7 @@ export default function DashboardPage() {
                     {/* TOP JOBS - 1 column, compact */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                            <h3 className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                            <h3 className="text-sm font-medium text-slate-600 flex items-center gap-2">
                                 <TrendingUp className="w-4 h-4" /> Postes suggérés
                             </h3>
                             {ragData && ragData.score > 0 && (
@@ -399,7 +399,7 @@ export default function DashboardPage() {
                                                             {sector}
                                                         </span>
                                                         {(salaryMin || salaryMax) && (
-                                                            <span className="text-xs text-slate-500 font-medium">
+                                                            <span className="text-xs text-slate-600 font-medium">
                                                                 💰 {salaryMin && salaryMax ? `${salaryMin}-${salaryMax}k€` : `${salaryMin || salaryMax}k€`}
                                                             </span>
                                                         )}
@@ -425,7 +425,7 @@ export default function DashboardPage() {
                             </div>
                         ) : ragData && ragData.score > 0 ? (
                             <div className="text-center py-4">
-                                <p className="text-xs text-slate-400 mb-2">Pas encore de suggestions</p>
+                                <p className="text-xs text-slate-600 mb-2">Pas encore de suggestions</p>
                                 <button
                                     onClick={generateJobSuggestions}
                                     disabled={generatingJobs}
@@ -438,7 +438,7 @@ export default function DashboardPage() {
                                 </button>
                             </div>
                         ) : (
-                            <div className="text-xs text-slate-400 p-2">Uploadez un CV pour voir les suggestions</div>
+                            <div className="text-xs text-slate-600 p-2">Uploadez un CV pour voir les suggestions</div>
                         )}
                     </div>
 
@@ -457,7 +457,7 @@ export default function DashboardPage() {
                     >
                         <button
                             onClick={() => setSelectedJob(null)}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
+                            className="absolute top-4 right-4 text-slate-600 hover:text-slate-600"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -506,7 +506,7 @@ export default function DashboardPage() {
                         {/* Reason */}
                         {selectedJob.raison && (
                             <div className="bg-slate-50 rounded-lg p-4">
-                                <div className="text-sm text-slate-500 font-medium mb-1">💡 Pourquoi ce poste ?</div>
+                                <div className="text-sm text-slate-600 font-medium mb-1">💡 Pourquoi ce poste ?</div>
                                 <p className="text-slate-700">{selectedJob.raison}</p>
                             </div>
                         )}

@@ -119,7 +119,7 @@ export function PhotoUpload({
                                 className="object-cover w-full h-full"
                             />
                         ) : (
-                            <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-slate-400" />
+                            <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-slate-600" />
                         )}
                     </div>
                     {preview && (
@@ -140,16 +140,16 @@ export function PhotoUpload({
                         <>
                             <h3 className="font-bold text-base sm:text-lg text-slate-900 truncate">{profileName}</h3>
                             {profileTitle && (
-                                <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">{profileTitle}</p>
+                                <p className="text-xs sm:text-sm text-slate-600 mt-0.5 truncate">{profileTitle}</p>
                             )}
                             {profileLocation && (
-                                <p className="text-xs sm:text-sm text-slate-500 mt-1">📍 {profileLocation}</p>
+                                <p className="text-xs sm:text-sm text-slate-600 mt-1">📍 {profileLocation}</p>
                             )}
                         </>
                     ) : (
                         <>
                             <h3 className="text-sm sm:text-base font-semibold mb-0.5 sm:mb-1">Photo de profil</h3>
-                            <p className="text-xs sm:text-sm text-slate-500 mb-2 sm:mb-3">
+                            <p className="text-xs sm:text-sm text-slate-600 mb-2 sm:mb-3">
                                 JPG, PNG ou GIF. Max 2MB.
                             </p>
                         </>

@@ -28,13 +28,13 @@ export default function GlobalError({
                         <h2 className="text-2xl font-bold text-slate-900">
                             Oups, une erreur inattendue est survenue
                         </h2>
-                        <p className="text-slate-500">
+                        <p className="text-slate-600">
                             Nos ingénieurs ont été notifiés. Essaie de recharger la page.
                         </p>
                     </div>
 
                     <div className="p-4 bg-slate-50 rounded-lg border border-slate-100 text-left">
-                        <p className="text-xs font-mono text-slate-400 break-all">
+                        <p className="text-xs font-mono text-slate-600 break-all">
                             {error.digest && `Digest: ${error.digest}`}
                         </p>
                     </div>

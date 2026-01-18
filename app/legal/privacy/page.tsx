@@ -14,7 +14,7 @@ export default function PrivacyPage() {
                 </h1>
 
                 <div className="prose prose-slate max-w-none">
-                    <p className="text-slate-500 mb-8">
+                    <p className="text-slate-600 mb-8">
                         Dernière mise à jour : Janvier 2024
                     </p>
 

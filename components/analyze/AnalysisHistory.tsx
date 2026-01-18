@@ -77,7 +77,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
     };
 
     if (loading) {
-        return <div className="text-center py-8 text-slate-500">Chargement...</div>;
+        return <div className="text-center py-8 text-slate-600">Chargement...</div>;
     }
 
     return (
@@ -90,7 +90,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
             {/* Search and Filter */}
             <div className="flex gap-2 flex-col sm:flex-row">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
                     <Input
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -113,7 +113,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
             {/* Analysis List */}
             {filteredAnalyses.length === 0 ? (
                 <Card>
-                    <CardContent className="p-8 text-center text-slate-500">
+                    <CardContent className="p-8 text-center text-slate-600">
                         {search || filter !== 'all'
                             ? "Aucune analyse ne correspond aux filtres"
                             : "Aucune analyse pour le moment"}
@@ -133,7 +133,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                                         <h3 className="font-semibold text-sm sm:text-base text-slate-800 truncate">
                                             {analysis.job_title}
                                         </h3>
-                                        <p className="text-xs sm:text-sm text-slate-500 flex items-center gap-2 mt-0.5">
+                                        <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2 mt-0.5">
                                             {analysis.company && (
                                                 <span className="truncate">🏢 {analysis.company}</span>
                                             )}

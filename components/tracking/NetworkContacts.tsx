@@ -79,7 +79,7 @@ export function NetworkContacts({ jobId, contacts, onAddContact, onRemoveContact
                         <div>
                             <div className="font-medium">{contact.name}</div>
                             {contact.role && <div className="text-sm text-slate-600">{contact.role}</div>}
-                            {contact.email && <div className="text-xs text-slate-500">{contact.email}</div>}
+                            {contact.email && <div className="text-xs text-slate-600">{contact.email}</div>}
                         </div>
                         {onRemoveContact && (
                             <Button
@@ -94,7 +94,7 @@ export function NetworkContacts({ jobId, contacts, onAddContact, onRemoveContact
                 ))}
 
                 {contacts.length === 0 && !isAdding && (
-                    <div className="text-center text-sm text-slate-400 py-4">
+                    <div className="text-center text-sm text-slate-600 py-4">
                         Aucun contact enregistré
                     </div>
                 )}

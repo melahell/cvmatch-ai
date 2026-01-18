@@ -121,14 +121,14 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                         </h2>
                         <button
                             onClick={onClose}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                            className="text-slate-600 hover:text-slate-600 dark:hover:text-slate-300"
                         >
                             <X className="w-5 h-5" />
                         </button>
                     </div>
 
                     {/* Content */}
-                    <p className="text-slate-600 dark:text-slate-400 mb-6">
+                    <p className="text-slate-600 dark:text-slate-600 mb-6">
                         Téléchargez une copie de toutes vos données conformément au RGPD.
                     </p>
 
@@ -141,11 +141,11 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
                                 }`}
                         >
-                            <FileJson className={`w-8 h-8 mx-auto mb-2 ${format === "json" ? "text-blue-600" : "text-slate-400"
+                            <FileJson className={`w-8 h-8 mx-auto mb-2 ${format === "json" ? "text-blue-600" : "text-slate-600"
                                 }`} />
                             <p className={`font-medium ${format === "json" ? "text-blue-600" : "text-slate-700 dark:text-slate-300"
                                 }`}>JSON</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Format technique</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-600">Format technique</p>
                         </button>
 
                         <button
@@ -155,11 +155,11 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                                 : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
                                 }`}
                         >
-                            <FileText className={`w-8 h-8 mx-auto mb-2 ${format === "txt" ? "text-blue-600" : "text-slate-400"
+                            <FileText className={`w-8 h-8 mx-auto mb-2 ${format === "txt" ? "text-blue-600" : "text-slate-600"
                                 }`} />
                             <p className={`font-medium ${format === "txt" ? "text-blue-600" : "text-slate-700 dark:text-slate-300"
                                 }`}>Texte</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Lisible</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-600">Lisible</p>
                         </button>
                     </div>
 
@@ -168,7 +168,7 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Inclus dans l'export :
                         </p>
-                        <ul className="text-sm text-slate-500 dark:text-slate-400 space-y-1">
+                        <ul className="text-sm text-slate-600 dark:text-slate-600 space-y-1">
                             <li className="flex items-center gap-2">
                                 <CheckCircle className="w-4 h-4 text-green-500" /> Profil complet
                             </li>

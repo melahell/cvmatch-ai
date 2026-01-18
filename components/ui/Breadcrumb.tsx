@@ -16,7 +16,7 @@ interface BreadcrumbProps {
  */
 export function Breadcrumb({ items, className }: BreadcrumbProps) {
     return (
-        <nav className={cn("flex items-center gap-1 text-sm text-slate-500 mb-4", className)}>
+        <nav className={cn("flex items-center gap-1 text-sm text-slate-600 mb-4", className)}>
             {items.map((item, index) => (
                 <span key={index} className="flex items-center">
                     {index > 0 && <ChevronRight className="w-4 h-4 mx-1" />}

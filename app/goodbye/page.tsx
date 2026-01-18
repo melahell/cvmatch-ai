@@ -27,7 +27,7 @@ export default function GoodbyePage() {
                     </ul>
                 </div>
 
-                <p className="text-sm text-slate-500 mb-6">
+                <p className="text-sm text-slate-600 mb-6">
                     Nous sommes désolés de vous voir partir. Si vous avez des questions
                     ou souhaitez nous faire part de vos commentaires, n'hésitez pas à
                     nous contacter.

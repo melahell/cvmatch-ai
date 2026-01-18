@@ -68,7 +68,7 @@ export default function SavedJobsPage() {
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-2xl font-bold">Offres sauvegardées</h1>
-                        <p className="text-slate-500">Vos offres favorites pour analyse later</p>
+                        <p className="text-slate-600">Vos offres favorites pour analyse later</p>
                     </div>
                     <Link href="/dashboard/analyze">
                         <Button>Nouvelle Analyse</Button>
@@ -97,10 +97,10 @@ export default function SavedJobsPage() {
                                                 <h3 className="font-semibold">{job.job_title || "Offre"}</h3>
                                             </div>
                                             {job.company && (
-                                                <p className="text-sm text-slate-500">{job.company}</p>
+                                                <p className="text-sm text-slate-600">{job.company}</p>
                                             )}
                                             {job.match_score && (
-                                                <p className="text-xs text-slate-400 mt-1">Match: {job.match_score}%</p>
+                                                <p className="text-xs text-slate-600 mt-1">Match: {job.match_score}%</p>
                                             )}
                                         </div>
                                         <div className="flex gap-2">
