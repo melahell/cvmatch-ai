@@ -85,14 +85,28 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     type = "button",
     ...props
   }, ref) => {
-    const Comp = asChild ? Slot : "button"
     const isDisabled = disabled || loading
 
+    // When asChild is true, we pass children directly to Slot
+    // The children should be a single element (like <Link>)
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, fullWidth, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
+
+    // Regular button with full feature support
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, fullWidth, className }))}
         ref={ref}
-        type={asChild ? undefined : type}
+        type={type}
         disabled={isDisabled}
         {...props}
       >
@@ -100,7 +114,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && leftIcon && <span>{leftIcon}</span>}
         {children}
         {!loading && rightIcon && <span>{rightIcon}</span>}
-      </Comp>
+      </button>
     )
   }
 )
