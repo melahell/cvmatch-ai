@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import { DESIGN_TOKENS } from "./lib/design-tokens";
 
 const config: Config = {
     darkMode: ["class"],
@@ -10,6 +11,37 @@ const config: Config = {
     theme: {
     	extend: {
     		colors: {
+    			// Design System Tokens (CV Crush)
+    			neon: {
+    				pink: DESIGN_TOKENS.colors.neon.pink,
+    				purple: DESIGN_TOKENS.colors.neon.purple,
+    				indigo: DESIGN_TOKENS.colors.neon.indigo,
+    			},
+    			semantic: {
+    				success: DESIGN_TOKENS.colors.semantic.success,
+    				warning: DESIGN_TOKENS.colors.semantic.warning,
+    				error: DESIGN_TOKENS.colors.semantic.error,
+    				info: DESIGN_TOKENS.colors.semantic.info,
+    			},
+    			surface: {
+    				primary: DESIGN_TOKENS.colors.surface.primary,
+    				secondary: DESIGN_TOKENS.colors.surface.secondary,
+    				tertiary: DESIGN_TOKENS.colors.surface.tertiary,
+    			},
+    			cvText: { // Préfixe pour éviter conflit avec "text" Tailwind
+    				primary: DESIGN_TOKENS.colors.text.primary,
+    				secondary: DESIGN_TOKENS.colors.text.secondary,
+    				tertiary: DESIGN_TOKENS.colors.text.tertiary,
+    				inverse: DESIGN_TOKENS.colors.text.inverse,
+    			},
+    			cvBorder: { // Préfixe pour éviter conflit
+    				light: DESIGN_TOKENS.colors.border.light,
+    				medium: DESIGN_TOKENS.colors.border.medium,
+    				dark: DESIGN_TOKENS.colors.border.dark,
+    				focus: DESIGN_TOKENS.colors.border.focus,
+    			},
+
+    			// Shadcn/ui tokens (compatibilité existante)
     			primary: {
     				'50': '#eff6ff',
     				'500': '#3b82f6',
@@ -55,10 +87,67 @@ const config: Config = {
     				'5': 'hsl(var(--chart-5))'
     			}
     		},
+
+    		// Ombres avec design tokens
+    		boxShadow: {
+    			'level-1': DESIGN_TOKENS.shadows.level1,
+    			'level-2': DESIGN_TOKENS.shadows.level2,
+    			'level-3': DESIGN_TOKENS.shadows.level3,
+    			'level-4': DESIGN_TOKENS.shadows.level4,
+    			'level-5': DESIGN_TOKENS.shadows.level5,
+    		},
+
+    		// Border radius avec design tokens
     		borderRadius: {
-    			lg: 'var(--radius)',
-    			md: 'calc(var(--radius) - 2px)',
-    			sm: 'calc(var(--radius) - 4px)'
+    			'none': DESIGN_TOKENS.radius.none,
+    			'sm': DESIGN_TOKENS.radius.sm,
+    			'md': DESIGN_TOKENS.radius.md,
+    			'lg': DESIGN_TOKENS.radius.lg,
+    			'xl': DESIGN_TOKENS.radius.xl,
+    			'2xl': DESIGN_TOKENS.radius['2xl'],
+    			'full': DESIGN_TOKENS.radius.full,
+    			// Shadcn compatibility
+    			DEFAULT: 'var(--radius)',
+    		},
+
+    		// Blur avec design tokens
+    		backdropBlur: {
+    			'sm': DESIGN_TOKENS.blur.sm,
+    			'md': DESIGN_TOKENS.blur.md,
+    			'lg': DESIGN_TOKENS.blur.lg,
+    			'xl': DESIGN_TOKENS.blur.xl,
+    			'2xl': DESIGN_TOKENS.blur['2xl'],
+    			'3xl': DESIGN_TOKENS.blur['3xl'],
+    		},
+
+    		// Font family avec design tokens
+    		fontFamily: {
+    			display: DESIGN_TOKENS.typography.fontFamily.display.split(','),
+    			heading: DESIGN_TOKENS.typography.fontFamily.heading.split(','),
+    			body: DESIGN_TOKENS.typography.fontFamily.body.split(','),
+    			mono: DESIGN_TOKENS.typography.fontFamily.mono.split(','),
+    		},
+
+    		// Z-index avec design tokens
+    		zIndex: {
+    			dropdown: DESIGN_TOKENS.zIndex.dropdown.toString(),
+    			sticky: DESIGN_TOKENS.zIndex.sticky.toString(),
+    			fixed: DESIGN_TOKENS.zIndex.fixed.toString(),
+    			'modal-backdrop': DESIGN_TOKENS.zIndex.modalBackdrop.toString(),
+    			modal: DESIGN_TOKENS.zIndex.modal.toString(),
+    			popover: DESIGN_TOKENS.zIndex.popover.toString(),
+    			tooltip: DESIGN_TOKENS.zIndex.tooltip.toString(),
+    			toast: DESIGN_TOKENS.zIndex.toast.toString(),
+    		},
+
+    		// Breakpoints custom
+    		screens: {
+    			'xs': DESIGN_TOKENS.breakpoints.xs,
+    			'sm': DESIGN_TOKENS.breakpoints.sm,
+    			'md': DESIGN_TOKENS.breakpoints.md,
+    			'lg': DESIGN_TOKENS.breakpoints.lg,
+    			'xl': DESIGN_TOKENS.breakpoints.xl,
+    			'2xl': DESIGN_TOKENS.breakpoints['2xl'],
     		},
     		spacing: {
     			'safe': 'env(safe-area-inset-bottom)',
