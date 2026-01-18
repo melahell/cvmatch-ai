@@ -6,6 +6,15 @@
 
 import { DemoProfile, DemoCharacterMeta, DemoRegistry, isValidCharacterId } from "./types";
 import michelangeloProfile from "./profiles/michelangelo";
+import curieProfile from "./profiles/curie";
+import lovelaceProfile from "./profiles/lovelace";
+import davinciProfile from "./profiles/davinci";
+import bakerProfile from "./profiles/baker";
+import einsteinProfile from "./profiles/einstein";
+import cleopatraProfile from "./profiles/cleopatra";
+import teslaProfile from "./profiles/tesla";
+import kahloProfile from "./profiles/kahlo";
+import turingProfile from "./profiles/turing";
 
 // =============================================================================
 // TOUS LES PROFILS
@@ -16,16 +25,15 @@ import michelangeloProfile from "./profiles/michelangelo";
  */
 export const DEMO_PROFILES: DemoProfile[] = [
     michelangeloProfile,
-    // TODO: Ajouter les 9 autres personnages
-    // curieProfile,
-    // lovelaceProfile,
-    // davinciProfile,
-    // bakerProfile,
-    // einsteinProfile,
-    // cleopatraProfile,
-    // teslaProfile,
-    // kahloProfile,
-    // turingProfile,
+    curieProfile,
+    lovelaceProfile,
+    davinciProfile,
+    bakerProfile,
+    einsteinProfile,
+    cleopatraProfile,
+    teslaProfile,
+    kahloProfile,
+    turingProfile,
 ];
 
 // =============================================================================
@@ -79,4 +87,15 @@ export const demoRegistry: DemoRegistry = {
 
 export * from "./types";
 export * from "./converters";
-export { michelangeloProfile };
+export {
+    michelangeloProfile,
+    curieProfile,
+    lovelaceProfile,
+    davinciProfile,
+    bakerProfile,
+    einsteinProfile,
+    cleopatraProfile,
+    teslaProfile,
+    kahloProfile,
+    turingProfile,
+};
