@@ -122,7 +122,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Badge
-                                                variant={doc.extraction_status === "completed" ? "default" : "secondary"}
+                                                variant={doc.extraction_status === "completed" ? "success" : "neutral"}
                                                 className="shrink-0"
                                             >
                                                 {doc.extraction_status === "completed" ? "Extrait" : "En cours"}

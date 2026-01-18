@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 interface BadgeListProps {
     items: any[];
     maxItems?: number;
-    variant?: "default" | "secondary" | "outline" | "destructive";
+    // Aligned with Badge component variants
+    variant?: "primary" | "success" | "warning" | "error" | "info" | "neutral" | "outline";
     className?: string;
     extractLabel?: (item: any) => string;
 }
@@ -11,7 +12,7 @@ interface BadgeListProps {
 export function BadgeList({
     items,
     maxItems = 5,
-    variant = "secondary",
+    variant = "neutral", // Changed from "secondary" to valid Badge variant
     className = "",
     extractLabel = (item) => typeof item === "string" ? item : item.nom || item.name || String(item)
 }: BadgeListProps) {

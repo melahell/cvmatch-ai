@@ -1,7 +1,6 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
-import { motion } from "framer-motion"
 import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -14,14 +13,13 @@ import { cn } from "@/lib/utils"
  * Sizes: sm, md, lg, icon
  *
  * Features:
- * - Micro-interactions (scale on tap/hover)
  * - Loading state avec spinner
  * - Full width option
  * - Design tokens uniquement (zéro hardcode)
  */
 const buttonVariants = cva(
   // Base styles (communs à tous les variants)
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-purple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-purple focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 active:scale-[0.97] hover:scale-[1.02]",
   {
     variants: {
       variant: {
@@ -65,7 +63,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean
   loading?: boolean
   leftIcon?: React.ReactNode
@@ -87,7 +85,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     type = "button",
     ...props
   }, ref) => {
-    const Comp = asChild ? Slot : motion.button
+    const Comp = asChild ? Slot : "button"
     const isDisabled = disabled || loading
 
     return (
@@ -96,12 +94,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={asChild ? undefined : type}
         disabled={isDisabled}
-        // Micro-interactions (seulement si pas asChild)
-        {...(!asChild && {
-          whileTap: { scale: 0.97 },
-          whileHover: { scale: 1.02 },
-          transition: { type: "spring", stiffness: 400, damping: 17 },
-        })}
         {...props}
       >
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}

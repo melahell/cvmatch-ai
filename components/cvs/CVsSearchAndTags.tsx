@@ -47,7 +47,7 @@ export function CVsSearchAndTags({ onSearch, onFilterByTag, availableTags = [] }
                     {availableTags.map(tag => (
                         <Badge
                             key={tag}
-                            variant={selectedTag === tag ? "default" : "outline"}
+                            variant={selectedTag === tag ? "primary" : "outline"}
                             className="cursor-pointer"
                             onClick={() => handleTagClick(tag)}
                         >

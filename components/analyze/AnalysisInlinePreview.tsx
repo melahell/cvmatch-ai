@@ -25,7 +25,7 @@ export function AnalysisInlinePreview({ analysis }: AnalysisInlinePreviewProps) 
                         <h4 className="font-semibold">{report.poste_cible || "Analyse"}</h4>
                         <p className="text-sm text-slate-600">{report.entreprise}</p>
                     </div>
-                    <Badge variant={analysis.match_score >= 70 ? "default" : "secondary"}>
+                    <Badge variant={analysis.match_score >= 70 ? "success" : "neutral"}>
                         {analysis.match_score}%
                     </Badge>
                 </div>

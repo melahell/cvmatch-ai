@@ -33,7 +33,7 @@ export function AnalysisCard({ analysis, onCompare, onDelete }: AnalysisCardProp
                         </Link>
                         {company && <p className="text-sm text-slate-600">{company}</p>}
                     </div>
-                    <Badge variant={analysis.match_score >= 70 ? "default" : "secondary"}>
+                    <Badge variant={analysis.match_score >= 70 ? "success" : "neutral"}>
                         {analysis.match_score}% match
                     </Badge>
                 </div>

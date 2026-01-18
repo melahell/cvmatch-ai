@@ -39,7 +39,7 @@ export function ErrorDisplay({
                     {message}
                 </p>
                 {retry && (
-                    <Button onClick={retry} variant="default">
+                    <Button onClick={retry} variant="primary">
                         Réessayer
                     </Button>
                 )}

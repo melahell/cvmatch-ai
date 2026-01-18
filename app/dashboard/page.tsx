@@ -312,7 +312,6 @@ export default function DashboardPage() {
                                         <BadgeList
                                             items={allSkills}
                                             maxItems={10}
-                                            variant="neutral"
                                         />
                                     </CardContent>
                                 </Card>

@@ -42,7 +42,7 @@ export default function TemplatesStorePage() {
                     {categories.map((cat) => (
                         <Button
                             key={cat.id}
-                            variant={selectedCategory === cat.id ? "default" : "outline"}
+                            variant={selectedCategory === cat.id ? "primary" : "outline"}
                             size="sm"
                             onClick={() => setSelectedCategory(cat.id)}
                             className={selectedCategory === cat.id

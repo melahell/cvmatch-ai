@@ -66,7 +66,7 @@ export function Pagination({
                 {pages.map(page => (
                     <Button
                         key={page}
-                        variant={page === currentPage ? "default" : "outline"}
+                        variant={page === currentPage ? "primary" : "outline"}
                         size="sm"
                         onClick={() => onPageChange(page)}
                     >

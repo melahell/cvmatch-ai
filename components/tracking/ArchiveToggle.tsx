@@ -14,7 +14,7 @@ interface ArchiveToggleProps {
 export function ArchiveToggle({ showArchived, onToggle, archivedCount }: ArchiveToggleProps) {
     return (
         <Button
-            variant={showArchived ? "default" : "outline"}
+            variant={showArchived ? "primary" : "outline"}
             size="sm"
             onClick={onToggle}
             className="gap-2"
