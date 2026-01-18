@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="logoGradientStatic" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff4eb3" />
+            <stop offset="50%" stop-color="#a855f7" />
+            <stop offset="100%" stop-color="#6366f1" />
+        </linearGradient>
+        <filter id="glow-static" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+            <feMerge>
+                <feMergeNode in="coloredBlur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect x="30" y="30" width="140" height="140" rx="35" fill="#1e1b4b" fill-opacity="0.8" />
+
+    <!-- Neon border with glow -->
+    <rect
+        x="30" y="30" width="140" height="140" rx="35"
+        stroke="url(#logoGradientStatic)" stroke-width="8" fill="none"
+        filter="url(#glow-static)"
+    />
+
+    <!-- Glass reflection -->
+    <path
+        d="M35 45 Q 100 65 165 45 L 165 100 Q 100 120 35 100 Z"
+        fill="url(#logoGradientStatic)"
+        fill-opacity="0.1"
+    />
+
+    <!-- Inner border reflection -->
+    <rect
+        x="40" y="40" width="120" height="120" rx="28"
+        stroke="white" stroke-width="2" stroke-opacity="0.1" fill="none"
+    />
+
+    <!-- Speaker bar -->
+    <rect x="85" y="42" width="30" height="4" rx="2" fill="#e2e8f0" fill-opacity="0.5" />
+
+    <!-- Text: CV -->
+    <text
+        x="100" y="110"
+        text-anchor="middle"
+        fill="white"
+        font-size="58"
+        font-weight="900"
+        letter-spacing="-3"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+    >
+        CV
+    </text>
+
+    <!-- Text: CRUSH -->
+    <text
+        x="100" y="140"
+        text-anchor="middle"
+        fill="#a5b4fc"
+        font-size="18"
+        font-weight="700"
+        letter-spacing="2"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+    >
+        CRUSH
+    </text>
+</svg>
