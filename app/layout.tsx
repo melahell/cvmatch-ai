@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import VersionOverlay from "@/components/VersionOverlay";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Toaster } from "sonner";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-    themeColor: "#2563eb",
+    themeColor: DESIGN_TOKENS.colors.neon.purple,
     width: "device-width",
     initialScale: 1,
     viewportFit: "cover",

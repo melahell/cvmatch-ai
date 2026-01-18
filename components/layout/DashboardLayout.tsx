@@ -42,17 +42,17 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         : "??";
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+        <div className="min-h-screen bg-surface-secondary dark:bg-slate-950 flex flex-col">
             {/* Skip Link for keyboard navigation */}
             <a
                 href="#main-content"
-                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-md focus:shadow-lg"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-neon-purple focus:text-white focus:rounded-md focus:shadow-lg"
             >
                 Aller au contenu principal
             </a>
 
             {/* Top Navigation Bar */}
-            <header role="banner" className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-50 shadow-sm">
+            <header role="banner" className="bg-surface-primary dark:bg-slate-900 border-b border-cvBorder-light dark:border-slate-800 sticky top-0 z-50 shadow-level-1">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         {/* Logo - Agrandi pour plus d'impact */}
@@ -69,7 +69,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Button
                                             variant={isActive ? "secondary" : "ghost"}
                                             size="sm"
-                                            className={`gap-2 transition-all ${isActive ? "bg-gradient-to-r from-[#ff4eb3]/10 to-[#a855f7]/10 text-[#a855f7] border-l-2 border-[#a855f7]" : "dark:text-slate-300"}`}
+                                            className={`gap-2 transition-all ${isActive ? "bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 text-neon-purple border-l-2 border-neon-purple" : "dark:text-slate-300"}`}
                                         >
                                             <item.icon className="w-4 h-4" />
                                             {item.label}
@@ -87,15 +87,15 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             aria-expanded={menuOpen}
                             aria-haspopup="menu"
                             aria-label="Menu utilisateur"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-secondary dark:hover:bg-slate-800 transition-colors"
                         >
-                            <div className="w-8 h-8 bg-gradient-to-br from-[#ff4eb3] to-[#6366f1] rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gradient-to-br from-neon-pink to-neon-indigo rounded-full flex items-center justify-center">
                                 <span className="text-white text-xs font-bold">{initials}</span>
                             </div>
-                            <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:inline max-w-[120px] truncate">
+                            <span className="text-sm font-medium text-cvText-primary dark:text-slate-300 hidden sm:inline max-w-[120px] truncate">
                                 {userName}
                             </span>
-                            <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+                            <ChevronDown className={`w-4 h-4 text-cvText-secondary transition-transform ${menuOpen ? "rotate-180" : ""}`} />
                         </button>
 
                         {/* Dropdown */}
@@ -105,10 +105,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     className="fixed inset-0 z-40"
                                     onClick={() => setMenuOpen(false)}
                                 />
-                                <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-900 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700">
-                                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{userName}</p>
-                                        <p className="text-xs text-slate-600 dark:text-slate-600">Compte gratuit</p>
+                                <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-surface-primary dark:bg-slate-900 rounded-lg shadow-lg border border-cvBorder-light dark:border-slate-700 py-2 z-50">
+                                    <div className="px-4 py-2 border-b border-cvBorder-light dark:border-slate-700">
+                                        <p className="text-sm font-medium text-cvText-primary dark:text-slate-100">{userName}</p>
+                                        <p className="text-xs text-cvText-secondary dark:text-slate-600">Compte gratuit</p>
                                     </div>
 
                                     {/* Quick Actions */}
@@ -117,7 +117,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/templates">
                                             <button
                                                 onClick={() => setMenuOpen(false)}
-                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <LayoutTemplate className="w-4 h-4" />
                                                 Templates CV
@@ -126,7 +126,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/stats">
                                             <button
                                                 onClick={() => setMenuOpen(false)}
-                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <BarChart3 className="w-4 h-4" />
                                                 Mes statistiques
@@ -135,7 +135,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/settings">
                                             <button
                                                 onClick={() => setMenuOpen(false)}
-                                                className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <Bell className="w-4 h-4" />
                                                 Paramètres
@@ -143,29 +143,29 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         </Link>
                                         <button
                                             onClick={() => { setMenuOpen(false); setExportModalOpen(true); }}
-                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                            className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                         >
                                             <Download className="w-4 h-4" />
                                             Exporter mes données
                                         </button>
                                         <button
                                             onClick={() => { setMenuOpen(false); setShortcutsModalOpen(true); }}
-                                            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                            className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                         >
                                             <Keyboard className="w-4 h-4" />
                                             Raccourcis clavier
-                                            <span className="ml-auto text-xs text-slate-600">⌘/</span>
+                                            <span className="ml-auto text-xs text-cvText-secondary">⌘/</span>
                                         </button>
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
-                                        <div className="px-4 py-1 text-xs text-slate-600">
+                                    <div className="border-t border-cvBorder-light dark:border-slate-700 mt-1 pt-1">
+                                        <div className="px-4 py-1 text-xs text-cvText-secondary">
                                             CV Crush v1.7.0
                                         </div>
                                         <button
                                             onClick={() => { setMenuOpen(false); logout(); }}
-                                            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950 flex items-center gap-2"
+                                            className="w-full px-4 py-2 text-left text-sm text-semantic-error hover:bg-semantic-error/10 dark:hover:bg-red-950 flex items-center gap-2"
                                         >
                                             <LogOut className="w-4 h-4" />
                                             Se déconnecter
@@ -179,7 +179,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </header>
 
             {/* Mobile Nav - Enhanced with safe areas and better touch targets */}
-            <nav aria-label="Navigation principale mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-50 shadow-lg pb-safe">
+            <nav aria-label="Navigation principale mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-primary dark:bg-slate-900 border-t border-cvBorder-light dark:border-slate-800 z-50 shadow-lg pb-safe">
                 <div className="flex justify-around px-2 pt-2 pb-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href ||
@@ -187,13 +187,13 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                         return (
                             <Link key={item.href} href={item.href} className="flex-1 max-w-[100px]">
                                 <div className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl transition-all ${isActive
-                                    ? "text-blue-600 bg-blue-50 dark:bg-blue-950 scale-105"
-                                    : "text-slate-600 dark:text-slate-600 hover:text-slate-700 active:scale-95"
+                                    ? "text-neon-purple bg-neon-purple/5 dark:bg-neon-purple/10 scale-105"
+                                    : "text-cvText-secondary dark:text-slate-600 hover:text-cvText-primary active:scale-95"
                                     }`}>
                                     <div className={`relative ${isActive ? 'animate-[pulse_2s_ease-in-out]' : ''}`}>
                                         <item.icon className="w-5 h-5" />
                                         {isActive && (
-                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full"></div>
+                                            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-neon-purple rounded-full"></div>
                                         )}
                                     </div>
                                     <span className="text-[10px] font-medium leading-tight">{item.label}</span>
