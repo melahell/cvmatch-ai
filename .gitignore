@@ -40,3 +40,4 @@ next-env.d.ts
 
 # User Keys (Specific)
 client_secret_*.json
+debug-storybook.log
