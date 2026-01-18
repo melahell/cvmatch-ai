@@ -91,21 +91,21 @@ function TemplateStoreCard({ template }: { template: TemplateInfo }) {
             } dark:bg-slate-900 dark:border-slate-800`}>
             {/* Preview */}
             <div className={`aspect-[210/297] relative ${template.id === 'modern'
-                    ? 'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50'
-                    : template.id === 'tech'
-                        ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50'
-                        : template.id === 'classic'
-                            ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50'
-                            : 'bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/50 dark:to-rose-950/50'
+                ? 'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50'
+                : template.id === 'tech'
+                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50'
+                    : template.id === 'classic'
+                        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50'
+                        : 'bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/50 dark:to-rose-950/50'
                 }`}>
                 {/* Mini preview mockup */}
                 <div className="p-4 h-full flex flex-col">
                     <div className="flex gap-2 mb-3">
                         <div className="flex-1">
                             <div className={`h-3 w-20 rounded ${template.id === 'modern' ? 'bg-blue-200'
-                                    : template.id === 'tech' ? 'bg-green-200'
-                                        : template.id === 'classic' ? 'bg-amber-200'
-                                            : 'bg-pink-200'
+                                : template.id === 'tech' ? 'bg-green-200'
+                                    : template.id === 'classic' ? 'bg-amber-200'
+                                        : 'bg-pink-200'
                                 }`} />
                             <div className="h-2 w-14 bg-slate-200 rounded mt-1.5" />
                         </div>
@@ -153,7 +153,7 @@ function TemplateStoreCard({ template }: { template: TemplateInfo }) {
                         {template.name}
                     </h3>
                     {isAvailable ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                        <Badge variant="success" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
                             <Check className="w-3 h-3 mr-1" />
                             Gratuit
                         </Badge>

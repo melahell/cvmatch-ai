@@ -434,7 +434,7 @@ export default function CVEditorPage() {
                                     {competences?.techniques?.map((skill: any, i: number) => {
                                         const skillName = typeof skill === "string" ? skill : skill?.nom || skill;
                                         return (
-                                            <Badge key={i} variant="secondary" className="gap-1">
+                                            <Badge key={i} variant="neutral" className="gap-1">
                                                 {skillName}
                                                 <button
                                                     onClick={() => removeArrayItem(["competences", "techniques"], i)}

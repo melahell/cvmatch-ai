@@ -112,7 +112,7 @@ export function SkillsManager({
                     skills.map((skill, index) => (
                         <div key={index} className="flex items-center justify-between gap-2 p-2 border rounded">
                             <div className="flex items-center gap-2 flex-1">
-                                <Badge variant="secondary">{skill.nom}</Badge>
+                                <Badge variant="neutral">{skill.nom}</Badge>
                                 {skill.niveau && (
                                     <span className="text-xs text-slate-600">Niveau {skill.niveau}/5</span>
                                 )}

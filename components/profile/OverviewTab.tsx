@@ -564,7 +564,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                             <CardTitle className="flex items-center gap-2">
                                 <Sparkles className="w-5 h-5 text-purple-600" />
                                 Compétences Suggérées par l'IA
-                                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                <Badge variant="primary" className="bg-purple-100 text-purple-700">
                                     {totalFiltered}
                                 </Badge>
                             </CardTitle>

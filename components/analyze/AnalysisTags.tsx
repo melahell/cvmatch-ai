@@ -18,7 +18,7 @@ export function AnalysisTags({ tags, onAddTag, onRemoveTag, editable = false }: 
         <div className="flex flex-wrap gap-2 items-center">
             <TagIcon className="w-4 h-4 text-slate-600" />
             {tags.map(tag => (
-                <Badge key={tag} variant="secondary" className="gap-1">
+                <Badge key={tag} variant="neutral" className="gap-1">
                     {tag}
                     {editable && onRemoveTag && (
                         <button

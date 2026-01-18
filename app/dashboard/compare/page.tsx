@@ -132,7 +132,7 @@ function CompareContent() {
                                 <div className="text-xs text-slate-600 mt-0.5">Analyse A</div>
                             </div>
                             <div className="flex-shrink-0 px-2">
-                                <Badge variant="secondary" className="text-xs px-2 py-1">
+                                <Badge variant="neutral" className="text-xs px-2 py-1">
                                     ±{scoreDiff}%
                                 </Badge>
                             </div>
@@ -149,7 +149,7 @@ function CompareContent() {
                                 <div className="text-sm text-slate-600 mt-1">Analyse A</div>
                             </div>
                             <div className="flex items-center justify-center">
-                                <Badge variant="secondary" className="text-lg px-4 py-2">
+                                <Badge variant="neutral" className="text-lg px-4 py-2">
                                     Différence: {scoreDiff}%
                                 </Badge>
                             </div>

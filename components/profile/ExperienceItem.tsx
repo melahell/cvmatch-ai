@@ -53,7 +53,7 @@ export function ExperienceItem({
                             <p className="text-slate-600">{experience.entreprise}</p>
                         </div>
                         {isCurrentPosition && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="neutral" className="text-xs">
                                 En cours
                             </Badge>
                         )}

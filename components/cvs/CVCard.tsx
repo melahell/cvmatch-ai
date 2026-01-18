@@ -39,7 +39,7 @@ export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: C
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs text-slate-600">{date}</span>
                                 {score && (
-                                    <Badge variant="secondary" className="text-xs">
+                                    <Badge variant="neutral" className="text-xs">
                                         {score}% match
                                     </Badge>
                                 )}
