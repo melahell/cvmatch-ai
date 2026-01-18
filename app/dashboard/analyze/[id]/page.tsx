@@ -109,7 +109,7 @@ export default function MatchResultPage() {
                     <div className={`text-5xl sm:text-6xl font-black my-3 sm:my-4 ${matchColor}`}>
                         {score}%
                     </div>
-                    <Badge variant={score >= 70 ? "default" : "outline"} className="text-sm sm:text-base md:text-lg px-3 sm:px-4 py-1">
+                    <Badge variant={score >= 70 ? "success" : "outline"} className="text-sm sm:text-base md:text-lg px-3 sm:px-4 py-1">
                         {analysis.match_level}
                     </Badge>
                     {analysis.job_title && (
@@ -133,7 +133,7 @@ export default function MatchResultPage() {
                                 {analysis.strengths?.map((s: any, i: number) => (
                                     <li key={i} className="flex justify-between items-start gap-2">
                                         <span className="text-xs sm:text-sm font-medium text-green-900 dark:text-green-300 flex-1">{s.point}</span>
-                                        <Badge variant="secondary" className="bg-white dark:bg-green-900 text-green-700 dark:text-green-300 text-xs sm:text-sm flex-shrink-0">{s.match_percent}%</Badge>
+                                        <Badge variant="success" className="text-xs sm:text-sm flex-shrink-0">{s.match_percent}%</Badge>
                                     </li>
                                 ))}
                             </ul>
