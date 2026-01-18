@@ -3,6 +3,7 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Globe } from "lucide-react";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 // Sanitize text by fixing spacing issues (applied at render time)
 function sanitizeText(text: string | undefined | null): string {
@@ -100,14 +101,13 @@ export default function ModernTemplate({
                 className="flex-shrink-0 text-white p-5 flex flex-col"
                 style={{
                     width: '75mm',
-                    background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)'
+                    background: `linear-gradient(180deg, ${DESIGN_TOKENS.colors.text.primary} 0%, ${DESIGN_TOKENS.colors.text.secondary} 100%)`
                 }}
             >
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center mb-5">
                     <div
-                        className="w-24 h-24 rounded-full border-4 border-indigo-500 p-0.5 mb-3 overflow-hidden bg-slate-800 flex items-center justify-center"
-                        style={{ boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' }}
+                        className="w-24 h-24 rounded-full border-4 border-neon-indigo p-0.5 mb-3 overflow-hidden bg-slate-800 flex items-center justify-center shadow-level-4"
                     >
                         {includePhoto && profil.photo_url ? (
                             <img
@@ -176,10 +176,9 @@ export default function ModernTemplate({
                                     </div>
                                     <div className="w-full bg-slate-700 rounded-full h-1.5">
                                         <div
-                                            className="bg-gradient-to-r from-indigo-500 to-indigo-400 h-1.5 rounded-full"
+                                            className="bg-gradient-to-r from-neon-indigo to-neon-purple h-1.5 rounded-full shadow-level-1"
                                             style={{
-                                                width: `${percent}%`,
-                                                boxShadow: '0 1px 3px rgba(99, 102, 241, 0.3)'
+                                                width: `${percent}%`
                                             }}
                                         />
                                     </div>
@@ -294,16 +293,11 @@ export default function ModernTemplate({
                         {limitedExperiences.map((exp, i) => (
                             <div
                                 key={i}
-                                className="relative pl-5 pr-3 py-3 border-l-[3px] group rounded-r-lg"
-                                style={{
-                                    borderImage: 'linear-gradient(180deg, #a78bfa 0%, #c4b5fd 50%, #ddd6fe 100%) 1',
-                                    background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.05) 0%, transparent 100%)'
-                                }}
+                                className="relative pl-5 pr-3 py-3 border-l-[3px] border-l-neon-purple group rounded-r-lg bg-gradient-to-r from-neon-purple/5 to-transparent"
                             >
                                 {/* Timeline dot */}
                                 <div
-                                    className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-[3px] border-purple-500"
-                                    style={{ boxShadow: '0 0 8px rgba(139, 92, 246, 0.5)' }}
+                                    className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-[3px] border-neon-purple shadow-level-2"
                                 />
 
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">

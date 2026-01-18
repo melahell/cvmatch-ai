@@ -3,14 +3,16 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Github, Linkedin, Globe } from "lucide-react";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
-// Tech-specific color palette
+// Tech-specific color palette using design tokens
+// NOTE: Inline styles in this template reference this COLORS object which uses design tokens
 const COLORS = {
-    primary: '#10b981', // Emerald
-    secondary: '#06b6d4', // Cyan
-    accent: '#8b5cf6', // Violet
-    bg: '#0f172a', // Slate 900
-    bgLight: '#1e293b', // Slate 800
+    primary: DESIGN_TOKENS.colors.semantic.success, // Emerald/Success
+    secondary: DESIGN_TOKENS.colors.semantic.info, // Cyan/Info
+    accent: DESIGN_TOKENS.colors.neon.purple, // Violet
+    bg: DESIGN_TOKENS.colors.text.primary, // Slate 900
+    bgLight: DESIGN_TOKENS.colors.text.secondary, // Slate 800
 };
 
 // Sanitize text by fixing spacing issues (applied at render time)
@@ -140,8 +142,7 @@ export default function TechTemplate({
                 <div className="flex flex-col items-center text-center mb-4">
                     {includePhoto && profil.photo_url ? (
                         <div
-                            className="w-20 h-20 rounded-lg border-2 border-emerald-500 p-0.5 mb-3 overflow-hidden"
-                            style={{ boxShadow: `0 0 15px ${COLORS.primary}40` }}
+                            className="w-20 h-20 rounded-lg border-2 border-semantic-success p-0.5 mb-3 overflow-hidden shadow-level-3"
                         >
                             <img
                                 src={profil.photo_url}
