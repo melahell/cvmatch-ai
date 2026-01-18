@@ -10,12 +10,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { StatusDropdown } from "./StatusDropdown";
 import { JobAnalysis } from "@/types";
 
+// Design System: Couleurs sémantiques pour les statuts
 const STATUS_CONFIG: Record<string, { dot: string }> = {
-    pending: { dot: "bg-slate-400" },
-    applied: { dot: "bg-blue-500" },
-    interviewing: { dot: "bg-purple-500" },
-    rejected: { dot: "bg-red-500" },
-    offer: { dot: "bg-green-500" },
+    pending: { dot: "bg-cvText-tertiary" },
+    applied: { dot: "bg-semantic-info" },
+    interviewing: { dot: "bg-neon-purple" },
+    rejected: { dot: "bg-semantic-error" },
+    offer: { dot: "bg-semantic-success" },
 };
 
 function formatRelativeDate(dateString: string): string {
@@ -43,12 +44,12 @@ interface JobCardProps {
 export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onStatusChange, isSelected = false, onToggleSelect }: JobCardProps) {
     const status = STATUS_CONFIG[job.application_status || "pending"];
 
-    // Score-based background color (subtle)
+    // Design System: Score-based background color (subtle)
     const scoreBgColor = job.match_score >= 80
-        ? "bg-green-50/50"
+        ? "bg-semantic-success/5"
         : job.match_score >= 60
-            ? "bg-yellow-50/50"
-            : "bg-red-50/50";
+            ? "bg-semantic-warning/5"
+            : "bg-semantic-error/5";
 
     if (variant === "mobile") {
         return (
@@ -60,8 +61,8 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                             <button
                                 onClick={() => onToggleSelect(job.id)}
                                 className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${isSelected
-                                    ? "bg-blue-600 border-blue-600"
-                                    : "border-slate-300 hover:border-blue-400"
+                                    ? "bg-neon-purple border-neon-purple"
+                                    : "border-cvBorder-medium hover:border-neon-purple"
                                     }`}
                             >
                                 {isSelected && <Check className="w-3 h-3 text-white" />}
@@ -90,10 +91,10 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                     <TooltipTrigger asChild>
                                         <span
                                             className={`text-xs font-bold px-2 py-0.5 rounded cursor-help ${job.match_score >= 80
-                                                ? "bg-green-100 text-green-700"
+                                                ? "bg-semantic-success/10 text-semantic-success"
                                                 : job.match_score >= 60
-                                                    ? "bg-yellow-100 text-yellow-700"
-                                                    : "bg-red-100 text-red-700"
+                                                    ? "bg-semantic-warning/10 text-semantic-warning"
+                                                    : "bg-semantic-error/10 text-semantic-error"
                                                 }`}
                                         >
                                             {job.match_score}%
@@ -126,8 +127,8 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                         <button
                             onClick={() => onToggleSelect(job.id)}
                             className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${isSelected
-                                ? "bg-blue-600 border-blue-600"
-                                : "border-slate-300 hover:border-blue-400"
+                                ? "bg-neon-purple border-neon-purple"
+                                : "border-cvBorder-medium hover:border-neon-purple"
                                 }`}
                         >
                             {isSelected && <Check className="w-3 h-3 text-white" />}
@@ -167,10 +168,10 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                 <TooltipTrigger asChild>
                                     <div
                                         className={`px-3 py-1 rounded-full text-sm font-bold cursor-help ${job.match_score >= 80
-                                            ? "bg-green-100 text-green-700"
+                                            ? "bg-semantic-success/10 text-semantic-success"
                                             : job.match_score >= 60
-                                                ? "bg-yellow-100 text-yellow-700"
-                                                : "bg-red-100 text-red-700"
+                                                ? "bg-semantic-warning/10 text-semantic-warning"
+                                                : "bg-semantic-error/10 text-semantic-error"
                                             }`}
                                     >
                                         {job.match_score}%

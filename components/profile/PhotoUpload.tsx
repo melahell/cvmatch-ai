@@ -109,7 +109,7 @@ export function PhotoUpload({
             <div className="flex items-start gap-3 sm:gap-4 md:gap-6">
                 {/* Avatar Preview */}
                 <div className="relative flex-shrink-0">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden border-2 border-slate-200">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-surface-secondary flex items-center justify-center overflow-hidden border-2 border-cvBorder-light">
                         {preview ? (
                             <Image
                                 src={preview}
@@ -119,13 +119,13 @@ export function PhotoUpload({
                                 className="object-cover w-full h-full"
                             />
                         ) : (
-                            <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-slate-600" />
+                            <User className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-cvText-secondary" />
                         )}
                     </div>
                     {preview && (
                         <button
                             onClick={handleRemove}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            className="absolute -top-1 -right-1 bg-semantic-error text-white rounded-full p-1 hover:opacity-90 shadow-level-2"
                             disabled={uploading}
                         >
                             <X className="w-3 h-3" />
@@ -138,18 +138,18 @@ export function PhotoUpload({
                     {/* Profile Name & Title */}
                     {profileName ? (
                         <>
-                            <h3 className="font-bold text-base sm:text-lg text-slate-900 truncate">{profileName}</h3>
+                            <h3 className="font-bold text-base sm:text-lg text-cvText-primary truncate">{profileName}</h3>
                             {profileTitle && (
-                                <p className="text-xs sm:text-sm text-slate-600 mt-0.5 truncate">{profileTitle}</p>
+                                <p className="text-xs sm:text-sm text-cvText-secondary mt-0.5 truncate">{profileTitle}</p>
                             )}
                             {profileLocation && (
-                                <p className="text-xs sm:text-sm text-slate-600 mt-1">📍 {profileLocation}</p>
+                                <p className="text-xs sm:text-sm text-cvText-secondary mt-1">📍 {profileLocation}</p>
                             )}
                         </>
                     ) : (
                         <>
                             <h3 className="text-sm sm:text-base font-semibold mb-0.5 sm:mb-1">Photo de profil</h3>
-                            <p className="text-xs sm:text-sm text-slate-600 mb-2 sm:mb-3">
+                            <p className="text-xs sm:text-sm text-cvText-secondary mb-2 sm:mb-3">
                                 JPG, PNG ou GIF. Max 2MB.
                             </p>
                         </>
