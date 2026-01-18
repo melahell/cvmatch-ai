@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle, Zap, Shield, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
+import { Footer } from "@/components/layout/Footer";
 import { motion } from "framer-motion";
 import packageJson from "@/package.json";
 
@@ -40,15 +41,23 @@ export default function LandingPageClient() {
             <nav className="border-b bg-white/50 backdrop-blur-xl sticky top-0 z-50">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <Logo size="md" showText href="/" />
-                    <div className="flex gap-4">
-                        <Link href="/login">
-                            <Button variant="ghost">Connexion</Button>
+                    <div className="flex items-center gap-6">
+                        <Link
+                            href="/demo"
+                            className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors hidden sm:block"
+                        >
+                            🏛️ Démo
                         </Link>
-                        <Link href="/login">
-                            <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6">
-                                Commencer
-                            </Button>
-                        </Link>
+                        <div className="flex gap-3">
+                            <Link href="/login">
+                                <Button variant="ghost">Connexion</Button>
+                            </Link>
+                            <Link href="/login">
+                                <Button className="bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6">
+                                    Commencer
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -141,6 +150,7 @@ export default function LandingPageClient() {
                 </div>
             </div>
 
+            <Footer />
         </div>
     );
 }
