@@ -23,7 +23,7 @@ const bakerRAG: RAGComplete = {
             id: "exp_folies",
             poste: "Vedette Principale",
             entreprise: "Folies Bergère",
-            type_entreprise: "prive",
+            type_entreprise: "client_final",
             secteur: "Spectacle",
             lieu: "Paris, France",
             type_contrat: "cdi",

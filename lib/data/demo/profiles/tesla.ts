@@ -23,7 +23,7 @@ const teslaRAG: RAGComplete = {
             id: "exp_westinghouse",
             poste: "Consultant Ingénieur Principal",
             entreprise: "Westinghouse Electric",
-            type_entreprise: "prive",
+            type_entreprise: "client_final",
             secteur: "Énergie / Électricité",
             lieu: "Pittsburgh, USA",
             type_contrat: "freelance",
