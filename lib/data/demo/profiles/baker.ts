@@ -92,7 +92,7 @@ const bakerRAG: RAGComplete = {
     ],
     references: {
         clients: [
-            { nom: "Folies Bergère", secteur: "Spectacle", type: "prive", annees: ["1926", "1975"], confidentiel: false },
+            { nom: "Folies Bergère", secteur: "Spectacle", type: "grand_compte", annees: ["1926", "1975"], confidentiel: false },
             { nom: "Gouvernement Français", secteur: "État", type: "public", annees: ["1940", "1944"], confidentiel: false }
         ],
         projets_marquants: [{ id: "proj_march", nom: "Marche sur Washington 1963", description: "Seule femme à prendre la parole lors de la Marche sur Washington avec MLK", annee: "1963", technologies: [], resultats: "Discours historique devant 250 000 personnes", sources: ["archives_mlk"] }]
