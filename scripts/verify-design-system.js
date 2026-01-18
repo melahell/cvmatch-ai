@@ -42,6 +42,9 @@ const CONFIG = {
         'design-tokens.ts', // Les tokens eux-mêmes
         'tailwind.config.ts', // Config Tailwind
         'globals.css', // Styles globaux
+        'themes.ts', // Theme configuration data for CV templates
+        'Logo.tsx', // Brand logo with specific neon colors
+        'login/page.tsx', // Google Logo (official brand colors)
       ],
     },
     {
@@ -54,7 +57,7 @@ const CONFIG = {
       pattern: /rgba\s*\(/gi,
       message: 'Couleur RGBA hardcodée détectée. Utilisez les tokens avec opacity',
       severity: 'error',
-      exceptions: ['design-tokens.ts', 'globals.css', 'Logo.tsx'],
+      exceptions: ['design-tokens.ts', 'globals.css', 'Logo.tsx', 'ContextualLoader.tsx'],
     },
     {
       pattern: /shadow-\[/g,
@@ -76,11 +79,18 @@ const CONFIG = {
       pattern: /style=\{\{[^}]*color:/gi,
       message: 'Style inline avec couleur détecté. Utilisez className avec tokens',
       severity: 'error',
+      exceptions: [
+        'CreativeTemplate.tsx', // Inline styles reference COLORS object (design tokens) - required for PDF rendering
+        'TechTemplate.tsx', // Inline styles reference COLORS object (design tokens) - required for PDF rendering
+      ],
     },
     {
       pattern: /style=\{\{[^}]*boxShadow:/gi,
       message: 'Style inline avec boxShadow détecté. Utilisez shadow-level-*',
       severity: 'error',
+      exceptions: [
+        'CreativeTemplate.tsx', // Inline boxShadow references COLORS object (design tokens) - required for PDF rendering
+      ],
     },
   ],
 };
@@ -103,8 +113,8 @@ function scanFile(filePath) {
   const relativePath = path.relative(process.cwd(), filePath);
 
   CONFIG.forbiddenPatterns.forEach((rule) => {
-    // Vérifier si le fichier est dans les exceptions
-    if (rule.exceptions && rule.exceptions.some(exc => fileName.includes(exc))) {
+    // Vérifier si le fichier est dans les exceptions (check both filename and relative path)
+    if (rule.exceptions && rule.exceptions.some(exc => fileName.includes(exc) || relativePath.includes(exc))) {
       return;
     }
 

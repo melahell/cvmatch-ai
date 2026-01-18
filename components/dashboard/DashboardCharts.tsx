@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 interface DashboardChartsProps {
     scoreHistory?: Array<{ date: string; score: number }>;
@@ -32,7 +33,7 @@ export function DashboardCharts({ scoreHistory = [], analysesPerMonth = [] }: Da
                             <XAxis dataKey="date" />
                             <YAxis />
                             <Tooltip />
-                            <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2} />
+                            <Line type="monotone" dataKey="score" stroke={DESIGN_TOKENS.colors.neon.indigo} strokeWidth={2} />
                         </LineChart>
                     </ResponsiveContainer>
                 </CardContent>

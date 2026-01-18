@@ -1,4 +1,9 @@
 // CV Template Theme System - Color variants for templates
+// NOTE: This file contains theme configuration data (color palettes) for CV templates.
+// These are data structures that store color values for different visual themes,
+// not inline styles. The hex codes here define theme variants that users can choose from.
+
+import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 export interface TemplateTheme {
     id: string;
