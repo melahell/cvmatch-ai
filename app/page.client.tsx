@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle, Sparkles, Zap, Shield, Target } from "lucide-react";
+import { ArrowRight, CheckCircle, Zap, Shield, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/Logo";
 import { motion } from "framer-motion";
 import packageJson from "@/package.json";
 
@@ -38,12 +39,7 @@ export default function LandingPageClient() {
             {/* NAVBAR */}
             <nav className="border-b bg-white/50 backdrop-blur-xl sticky top-0 z-50">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-xl tracking-tight">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-                            <Sparkles className="w-5 h-5" />
-                        </div>
-                        CV Crush
-                    </div>
+                    <Logo size="md" showText href="/" />
                     <div className="flex gap-4">
                         <Link href="/login">
                             <Button variant="ghost">Connexion</Button>

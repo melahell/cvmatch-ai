@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 
 export function Footer() {
     const currentYear = new Date().getFullYear();
@@ -11,9 +12,7 @@ export function Footer() {
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     {/* Logo & Copyright */}
                     <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-gradient-to-br from-blue-600 to-purple-600 rounded-md flex items-center justify-center">
-                            <span className="text-white font-bold text-xs">CV</span>
-                        </div>
+                        <Logo size="xs" showText={false} href="/" asStatic />
                         <span className="text-sm text-slate-500">
                             CV Crush © {currentYear}
                         </span>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 import { usePathname } from "next/navigation";
 import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -55,14 +56,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         {/* Logo */}
-                        <Link href="/dashboard" className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">CV</span>
-                            </div>
-                            <span className="font-bold text-xl text-slate-900 dark:text-white hidden sm:inline">
-                                CV Crush
-                            </span>
-                        </Link>
+                        <Logo size="md" showText className="hidden sm:flex" />
+                        <Logo size="md" showText={false} className="sm:hidden" />
 
                         {/* Desktop Nav */}
                         <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-1">

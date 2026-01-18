@@ -5,10 +5,11 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
 import Cookies from "js-cookie";
-import { Loader2, ArrowRight, Sparkles, Mail } from "lucide-react";
+import { Loader2, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Logo } from "@/components/ui/Logo";
 import { Separator } from "@/components/ui/separator"; // Assuming you have or will mock this
 import { motion } from "framer-motion";
 
@@ -152,8 +153,8 @@ export default function LoginPage() {
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
                 <div className="w-full max-w-md space-y-6">
                     <div className="text-center">
-                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 text-blue-600 mb-4">
-                            <Sparkles className="w-6 h-6" />
+                        <div className="flex justify-center mb-4">
+                            <Logo size="lg" showText={false} asStatic />
                         </div>
                         <h2 className="text-3xl font-bold text-slate-900">Bienvenue</h2>
                         <p className="text-slate-500 mt-2">Connectez-vous pour accéder à votre dashboard</p>
