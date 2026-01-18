@@ -110,13 +110,13 @@ export default function DashboardPage() {
                     <StatsCard
                         value={stats.analyses}
                         label="Offres Analysées"
-                        color="blue"
+                        color="primary"
                         href="/dashboard/analyze"
                     />
                     <StatsCard
                         value={stats.cvs}
                         label="CVs Générés"
-                        color="purple"
+                        color="primary"
                         href="/dashboard/tracking"
                     />
                     <TooltipProvider>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                                         <BadgeList
                                             items={allSkills}
                                             maxItems={10}
-                                            variant="secondary"
+                                            variant="neutral"
                                         />
                                     </CardContent>
                                 </Card>
