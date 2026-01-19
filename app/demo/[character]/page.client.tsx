@@ -26,6 +26,7 @@ export default function CharacterProfileClient({ profile }: CharacterProfileClie
                 <CVGallery
                     cvs={profile.cvs}
                     characterName={profile.meta.shortName}
+                    ragData={profile.rag}
                 />
 
                 {/* Jobs Section */}
