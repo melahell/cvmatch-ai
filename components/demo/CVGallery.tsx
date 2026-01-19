@@ -129,7 +129,7 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                                         style={{
                                             width: '210mm',
                                             minHeight: '297mm',
-                                            transform: 'scale(0.16)',
+                                            transform: 'scale(0.35)', // Scaled up for better visibility
                                         }}
                                     >
                                         <TemplateComponent data={cvData} includePhoto={true} />

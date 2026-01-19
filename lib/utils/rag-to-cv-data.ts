@@ -13,10 +13,6 @@ import { CVData } from "@/components/cv/templates";
 export function ragToCVData(rag: RAGComplete): CVData {
     const profil = rag.profil || {} as any;
 
-    // Debug log pour voir ce qu'on reçoit
-    console.log('[ragToCVData] Input profil:', profil);
-    console.log('[ragToCVData] Experiences:', rag.experiences?.length);
-
     return {
         profil: {
             prenom: profil.prenom || "",
@@ -31,7 +27,6 @@ export function ragToCVData(rag: RAGComplete): CVData {
         },
         experiences: (rag.experiences || []).map(exp => {
             const realisations = extractRealisations(exp.realisations);
-            console.log('[ragToCVData] Experience:', exp.poste, '- Realisations:', realisations.length);
 
             return {
                 poste: exp.poste || "",
@@ -41,7 +36,9 @@ export function ragToCVData(rag: RAGComplete): CVData {
                 date_fin: (exp as any).date_fin || (exp as any).fin || undefined,
                 lieu: exp.lieu || undefined,
                 realisations,
-            };
+                // Add relevance score for badges if present
+                _relevance_score: (exp as any)._relevance_score,
+            } as any;
         }),
         competences: {
             techniques: extractTechnicalSkills(rag.competences),
@@ -74,8 +71,16 @@ function extractRealisations(realisations: any): string[] {
 
         // Objet avec description (format démo)
         if (r && typeof r === "object") {
-            if (r.description) return r.description;
-            if (r.impact) return r.impact;
+            const parts = [];
+            if (r.description) parts.push(r.description);
+            // Enrichissement : ajout de la quantification si présente
+            if (r.quantification && r.quantification.display) {
+                parts.push(r.quantification.display);
+            }
+            if (r.impact) parts.push(r.impact);
+
+            if (parts.length > 0) return parts.join(" — ");
+
             if (r.display) return r.display;
             if (r.text) return r.text;
         }
