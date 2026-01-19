@@ -118,61 +118,56 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                                 onMouseEnter={() => setHoveredTemplate(cv.templateId)}
                                 onMouseLeave={() => setHoveredTemplate(null)}
                             >
-                                {/* Mini CV Preview */}
+                                {/* Mini CV Preview - Container with fixed aspect ratio */}
                                 <div
-                                    className="aspect-[210/297] bg-slate-50 dark:bg-slate-700 relative overflow-hidden cursor-pointer"
+                                    className="aspect-[210/297] bg-white relative overflow-hidden cursor-pointer"
                                     onClick={() => setPreviewCV(cv)}
                                 >
-                                    {/* Skeleton while rendering */}
-                                    <div className="absolute inset-0 bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-800 animate-pulse" />
-
-                                    {/* Actual mini CV render */}
+                                    {/* CV render at scaled size */}
                                     <div
-                                        className="absolute inset-0 z-10"
+                                        className="absolute top-0 left-0 z-10 origin-top-left"
                                         style={{
-                                            transform: 'scale(0.18)',
-                                            transformOrigin: 'top left',
-                                            width: '555%',
-                                            height: '555%',
-                                            pointerEvents: 'none'
+                                            width: '210mm',
+                                            minHeight: '297mm',
+                                            transform: 'scale(0.16)',
                                         }}
                                     >
                                         <TemplateComponent data={cvData} includePhoto={true} />
                                     </div>
 
                                     {/* ATS Score badge */}
-                                    <div className="absolute top-3 left-3 z-20">
-                                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold shadow-lg ${getATSColor(atsScore)}`}>
-                                            <Zap className="h-3 w-3" />
+                                    <div className="absolute top-2 left-2 z-20">
+                                        <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold shadow-lg ${getATSColor(atsScore)}`}>
+                                            <Zap className="h-2.5 w-2.5" />
                                             ATS {atsScore}%
                                         </div>
                                     </div>
 
                                     {/* Recommended badge */}
                                     {cv.recommended && (
-                                        <div className="absolute top-3 right-3 z-20">
-                                            <Badge variant="primary" className="flex items-center gap-1 shadow-lg">
-                                                <Star className="h-3 w-3" />
-                                                Recommandé
+                                        <div className="absolute top-2 right-2 z-20">
+                                            <Badge variant="primary" className="flex items-center gap-1 shadow-lg text-[10px] px-2 py-0.5">
+                                                <Star className="h-2.5 w-2.5" />
+                                                Top
                                             </Badge>
                                         </div>
                                     )}
 
                                     {/* Hover overlay with quick info */}
-                                    <div className={`absolute inset-0 z-30 bg-gradient-to-t from-black/90 via-black/50 to-black/20 transition-opacity duration-300 flex flex-col justify-end p-4 ${isHovered ? 'opacity-100' : 'opacity-0'
+                                    <div className={`absolute inset-0 z-30 bg-gradient-to-t from-black/90 via-black/50 to-black/20 transition-opacity duration-300 flex flex-col justify-end p-3 ${isHovered ? 'opacity-100' : 'opacity-0'
                                         }`}>
                                         {/* Quick template info */}
                                         {templateDetails && (
-                                            <div className="mb-4 text-white">
+                                            <div className="mb-3 text-white">
                                                 <div className="flex flex-wrap gap-1 mb-2">
-                                                    {templateDetails.pros.map((pro, i) => (
-                                                        <span key={i} className="text-[10px] bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                                                    {templateDetails.pros.slice(0, 2).map((pro, i) => (
+                                                        <span key={i} className="text-[9px] bg-white/20 backdrop-blur-sm px-1.5 py-0.5 rounded-full">
                                                             ✓ {pro}
                                                         </span>
                                                     ))}
                                                 </div>
-                                                <p className="text-[11px] text-white/80">
-                                                    <span className="font-semibold">Idéal pour :</span> {templateDetails.ideal}
+                                                <p className="text-[10px] text-white/80 line-clamp-2">
+                                                    <span className="font-semibold">Idéal :</span> {templateDetails.ideal}
                                                 </p>
                                             </div>
                                         )}
@@ -184,33 +179,33 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                                                 e.stopPropagation();
                                                 setPreviewCV(cv);
                                             }}
-                                            className="shadow-lg w-full"
+                                            className="shadow-lg w-full text-xs h-8"
                                         >
-                                            <Eye className="mr-2 h-4 w-4" />
+                                            <Eye className="mr-1.5 h-3.5 w-3.5" />
                                             Voir en grand
                                         </Button>
                                     </div>
                                 </div>
 
-                                {/* Info */}
-                                <div className="p-4">
+                                {/* Info section */}
+                                <div className="p-3">
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-indigo-500">{TemplateIcon}</span>
-                                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
                                             {cv.templateName}
                                         </h3>
                                     </div>
-                                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">
+                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 line-clamp-2">
                                         {cv.templateDescription}
                                     </p>
 
                                     {/* Opens modal for PDF generation */}
                                     <Button
                                         size="sm"
-                                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white"
+                                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white h-8 text-xs"
                                         onClick={() => setPreviewCV(cv)}
                                     >
-                                        <Download className="mr-2 h-4 w-4" />
+                                        <Download className="mr-1.5 h-3.5 w-3.5" />
                                         Télécharger PDF
                                     </Button>
                                 </div>
@@ -230,21 +225,10 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                                 Comprendre les scores ATS
                             </h4>
                             <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                                Le score ATS (Applicant Tracking System) mesure la compatibilité avec les logiciels de recrutement automatisés.
-                                Un score élevé augmente vos chances de passer le premier filtre automatique.
+                                Le score ATS mesure la compatibilité avec les logiciels de recrutement.
+                                Un score élevé augmente vos chances de passer le filtre automatique.
                             </p>
-                            <div className="flex flex-wrap gap-2 text-xs">
-                                <span className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded">
-                                    <Zap className="h-3 w-3" /> 90%+ Excellent
-                                </span>
-                                <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded">
-                                    <Zap className="h-3 w-3" /> 80-89% Bon
-                                </span>
-                                <span className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded">
-                                    <Zap className="h-3 w-3" /> &lt;80% Design prioritaire
-                                </span>
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                                 Templates recommandés pour {characterName} : <strong>{getRecommendedTemplates()}</strong>
                             </p>
                         </div>
@@ -253,7 +237,7 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
 
                 {/* Keyboard hint */}
                 <p className="text-xs text-slate-400 text-center mt-4">
-                    💡 Astuce : Dans la prévisualisation, utilisez <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">←</kbd> <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">→</kbd> pour naviguer et <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">F</kbd> pour le plein écran
+                    💡 Dans la prévisualisation : <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">←</kbd> <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">→</kbd> naviguer • <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">F</kbd> plein écran
                 </p>
             </section>
 
