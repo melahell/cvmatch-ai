@@ -1,7 +1,8 @@
 "use client";
 
-import { X, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Download, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useRef, useState, useCallback } from "react";
 import { DemoCV } from "@/lib/data/demo/types";
 import { RAGComplete } from "@/types/rag-complete";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,9 @@ export function CVPreviewModal({
     allCVs,
     onNavigate
 }: CVPreviewModalProps) {
+    const cvRef = useRef<HTMLDivElement>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
+
     // Convert RAG data to CV template format
     const cvData = ragToCVData(ragData);
 
@@ -52,6 +56,70 @@ export function CVPreviewModal({
             onNavigate(allCVs[currentIndex + 1]);
         }
     };
+
+    // PDF Generation
+    const handleDownloadPDF = useCallback(async () => {
+        if (isGenerating) return;
+
+        setIsGenerating(true);
+
+        try {
+            const html2pdf = (await import('html2pdf.js')).default;
+
+            // Find the CV element inside our ref
+            const element = cvRef.current?.querySelector('.cv-page') as HTMLElement;
+            if (!element) {
+                throw new Error('CV element not found');
+            }
+
+            // Clone element to avoid scaling issues
+            const clone = element.cloneNode(true) as HTMLElement;
+            clone.style.transform = 'none';
+            clone.style.width = '210mm';
+            clone.style.height = '297mm';
+
+            // Create temporary container
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.appendChild(clone);
+            document.body.appendChild(container);
+
+            const sanitizedName = characterName.replace(/[^a-zA-Z0-9]/g, '_');
+            const filename = `CV_${sanitizedName}_${cv.templateName}.pdf`;
+
+            const options = {
+                margin: 0,
+                filename,
+                image: { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: {
+                    unit: 'mm' as const,
+                    format: 'a4' as const,
+                    orientation: 'portrait' as const
+                }
+            };
+
+            await html2pdf().set(options).from(clone).save();
+
+            // Cleanup
+            document.body.removeChild(container);
+
+        } catch (err) {
+            console.error('PDF Generation Error:', err);
+            // Fallback to print
+            window.print();
+        } finally {
+            setIsGenerating(false);
+        }
+    }, [characterName, cv.templateName, isGenerating]);
 
     return (
         <AnimatePresence>
@@ -114,6 +182,7 @@ export function CVPreviewModal({
                     {/* Preview - CV Rendu en temps réel */}
                     <div className="flex-1 overflow-auto p-6 bg-slate-100 dark:bg-slate-900">
                         <div
+                            ref={cvRef}
                             className="mx-auto shadow-2xl"
                             style={{
                                 transform: 'scale(0.7)',
@@ -135,11 +204,22 @@ export function CVPreviewModal({
                             <Button variant="outline" onClick={onClose}>
                                 Fermer
                             </Button>
-                            <Button asChild>
-                                <a href={cv.pdfUrl} download>
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Télécharger PDF
-                                </a>
+                            <Button
+                                onClick={handleDownloadPDF}
+                                disabled={isGenerating}
+                                className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                            >
+                                {isGenerating ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Génération...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Télécharger PDF
+                                    </>
+                                )}
                             </Button>
                         </div>
                     </div>

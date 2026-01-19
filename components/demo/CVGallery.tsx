@@ -27,6 +27,12 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
     // Convert RAG data for thumbnail previews
     const cvData = ragToCVData(ragData);
 
+    // Helper to get recommended template based on character
+    const getRecommendedTemplates = () => {
+        const templates = cvs.filter(cv => cv.recommended);
+        return templates.length > 0 ? templates.map(t => t.templateName).join(' et ') : 'Standard';
+    };
+
     return (
         <>
             <section className="py-12">
@@ -102,16 +108,15 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                                         {cv.templateDescription}
                                     </p>
 
+                                    {/* Opens modal for PDF generation */}
                                     <Button
-                                        asChild
                                         size="sm"
                                         variant="outline"
                                         className="w-full"
+                                        onClick={() => setPreviewCV(cv)}
                                     >
-                                        <a href={cv.pdfUrl} download>
-                                            <Download className="mr-2 h-4 w-4" />
-                                            Télécharger PDF
-                                        </a>
+                                        <Download className="mr-2 h-4 w-4" />
+                                        Télécharger PDF
                                     </Button>
                                 </div>
                             </div>
@@ -120,12 +125,12 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                 </div>
 
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-6 text-center">
-                    💡 Cliquez sur un CV pour l'afficher en grand. Les templates <strong>Standard</strong> et <strong>Créatif</strong> sont
-                    les plus adaptés à ce profil.
+                    💡 Cliquez sur un CV pour l'afficher en grand et télécharger le PDF.
+                    Les templates <strong>{getRecommendedTemplates()}</strong> sont les plus adaptés à ce profil.
                 </p>
             </section>
 
-            {/* Modal */}
+            {/* Modal with real PDF generation */}
             {previewCV && (
                 <CVPreviewModal
                     cv={previewCV}
