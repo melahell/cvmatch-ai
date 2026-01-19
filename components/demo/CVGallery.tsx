@@ -1,11 +1,11 @@
 "use client";
 
-import { Download, Star, Eye, Zap, FileText, Sparkles, Target } from "lucide-react";
+import { Download, Star, Eye, Zap, FileText, Sparkles, Target, Info } from "lucide-react";
 import { DemoCV } from "@/lib/data/demo/types";
 import { RAGComplete } from "@/types/rag-complete";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CVPreviewModal } from "./CVPreviewModal";
 import { ragToCVData } from "@/lib/utils/rag-to-cv-data";
 
@@ -37,9 +37,30 @@ const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
     'tech': <Target className="h-4 w-4" />,
 };
 
+// Template descriptions for tooltip
+const TEMPLATE_DETAILS: Record<string, { pros: string[], ideal: string }> = {
+    'modern': {
+        pros: ["Design épuré", "Bonne lisibilité", "ATS compatible"],
+        ideal: "Postes corporate, consulting, management"
+    },
+    'classic': {
+        pros: ["Format traditionnel", "Sobre et formel", "Universel"],
+        ideal: "Finance, droit, administration publique"
+    },
+    'creative': {
+        pros: ["Design original", "Mise en page unique", "Mémorable"],
+        ideal: "Design, marketing, communication, arts"
+    },
+    'tech': {
+        pros: ["Focus compétences", "Score ATS max", "Sections techniques"],
+        ideal: "Développeur, data scientist, DevOps"
+    },
+};
+
 export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
     const [previewCV, setPreviewCV] = useState<DemoCV | null>(null);
     const [loaded, setLoaded] = useState(false);
+    const [hoveredTemplate, setHoveredTemplate] = useState<string | null>(null);
 
     // Convert RAG data for thumbnail previews
     const cvData = ragToCVData(ragData);
@@ -51,10 +72,10 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
     }, []);
 
     // Helper to get recommended template based on character
-    const getRecommendedTemplates = () => {
+    const getRecommendedTemplates = useCallback(() => {
         const templates = cvs.filter(cv => cv.recommended);
         return templates.length > 0 ? templates.map(t => t.templateName).join(' et ') : 'Standard';
-    };
+    }, [cvs]);
 
     // Get ATS badge color
     const getATSColor = (score: number) => {
@@ -82,13 +103,20 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                         const TemplateComponent = getTemplateComponent(cv.templateId);
                         const atsScore = TEMPLATE_ATS_SCORES[cv.templateId] || 85;
                         const TemplateIcon = TEMPLATE_ICONS[cv.templateId];
+                        const templateDetails = TEMPLATE_DETAILS[cv.templateId];
+                        const isHovered = hoveredTemplate === cv.templateId;
 
                         return (
                             <div
                                 key={cv.templateId}
-                                className={`group relative rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden hover:shadow-xl hover:border-indigo-300 dark:hover:border-indigo-600 transition-all duration-500 transform ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                                className={`group relative rounded-2xl border bg-white dark:bg-slate-800 overflow-hidden transition-all duration-500 transform ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                                    } ${isHovered
+                                        ? 'shadow-2xl border-indigo-400 dark:border-indigo-500 scale-[1.02] z-10'
+                                        : 'shadow-md border-slate-200 dark:border-slate-700 hover:shadow-xl'
                                     }`}
                                 style={{ transitionDelay: `${index * 100}ms` }}
+                                onMouseEnter={() => setHoveredTemplate(cv.templateId)}
+                                onMouseLeave={() => setHoveredTemplate(null)}
                             >
                                 {/* Mini CV Preview */}
                                 <div
@@ -130,8 +158,25 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                                         </div>
                                     )}
 
-                                    {/* Hover overlay */}
-                                    <div className="absolute inset-0 z-30 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end pb-8">
+                                    {/* Hover overlay with quick info */}
+                                    <div className={`absolute inset-0 z-30 bg-gradient-to-t from-black/90 via-black/50 to-black/20 transition-opacity duration-300 flex flex-col justify-end p-4 ${isHovered ? 'opacity-100' : 'opacity-0'
+                                        }`}>
+                                        {/* Quick template info */}
+                                        {templateDetails && (
+                                            <div className="mb-4 text-white">
+                                                <div className="flex flex-wrap gap-1 mb-2">
+                                                    {templateDetails.pros.map((pro, i) => (
+                                                        <span key={i} className="text-[10px] bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                                                            ✓ {pro}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <p className="text-[11px] text-white/80">
+                                                    <span className="font-semibold">Idéal pour :</span> {templateDetails.ideal}
+                                                </p>
+                                            </div>
+                                        )}
+
                                         <Button
                                             variant="secondary"
                                             size="sm"
@@ -139,7 +184,7 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                                                 e.stopPropagation();
                                                 setPreviewCV(cv);
                                             }}
-                                            className="shadow-lg transform group-hover:scale-105 transition-transform"
+                                            className="shadow-lg w-full"
                                         >
                                             <Eye className="mr-2 h-4 w-4" />
                                             Voir en grand
@@ -174,23 +219,42 @@ export function CVGallery({ cvs, characterName, ragData }: CVGalleryProps) {
                     })}
                 </div>
 
+                {/* ATS Explanation */}
                 <div className="mt-8 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-slate-800 dark:to-slate-800/50 rounded-xl border border-indigo-100 dark:border-slate-700">
                     <div className="flex items-start gap-3">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
-                            <Zap className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg flex-shrink-0">
+                            <Info className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                         </div>
                         <div>
                             <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">
-                                Score ATS (Applicant Tracking System)
+                                Comprendre les scores ATS
                             </h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400">
-                                Le score ATS indique la compatibilité du template avec les logiciels de recrutement.
-                                Le template <strong>Tech</strong> (95%) est optimisé pour les ATS, tandis que le <strong>Créatif</strong> (75%)
-                                privilégie le design. Les templates <strong>{getRecommendedTemplates()}</strong> sont recommandés pour ce profil.
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
+                                Le score ATS (Applicant Tracking System) mesure la compatibilité avec les logiciels de recrutement automatisés.
+                                Un score élevé augmente vos chances de passer le premier filtre automatique.
+                            </p>
+                            <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded">
+                                    <Zap className="h-3 w-3" /> 90%+ Excellent
+                                </span>
+                                <span className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded">
+                                    <Zap className="h-3 w-3" /> 80-89% Bon
+                                </span>
+                                <span className="flex items-center gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-1 rounded">
+                                    <Zap className="h-3 w-3" /> &lt;80% Design prioritaire
+                                </span>
+                            </div>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                Templates recommandés pour {characterName} : <strong>{getRecommendedTemplates()}</strong>
                             </p>
                         </div>
                     </div>
                 </div>
+
+                {/* Keyboard hint */}
+                <p className="text-xs text-slate-400 text-center mt-4">
+                    💡 Astuce : Dans la prévisualisation, utilisez <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">←</kbd> <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">→</kbd> pour naviguer et <kbd className="px-1.5 py-0.5 bg-slate-200 dark:bg-slate-700 rounded text-[10px]">F</kbd> pour le plein écran
+                </p>
             </section>
 
             {/* Modal with real PDF generation */}

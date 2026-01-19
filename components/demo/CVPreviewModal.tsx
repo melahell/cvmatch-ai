@@ -1,8 +1,8 @@
 "use client";
 
-import { X, Download, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { X, Download, ChevronLeft, ChevronRight, Loader2, Maximize2, Minimize2, Printer } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { DemoCV } from "@/lib/data/demo/types";
 import { RAGComplete } from "@/types/rag-complete";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ export function CVPreviewModal({
 }: CVPreviewModalProps) {
     const cvRef = useRef<HTMLDivElement>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Convert RAG data to CV template format
     const cvData = ragToCVData(ragData);
@@ -44,6 +45,31 @@ export function CVPreviewModal({
     const currentIndex = allCVs?.findIndex(c => c.templateId === cv.templateId) ?? -1;
     const canGoPrev = currentIndex > 0;
     const canGoNext = allCVs && currentIndex < allCVs.length - 1;
+
+    // Keyboard navigation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (isFullscreen) {
+                    setIsFullscreen(false);
+                } else {
+                    onClose();
+                }
+            }
+            if (e.key === 'ArrowLeft' && canGoPrev && allCVs && onNavigate) {
+                onNavigate(allCVs[currentIndex - 1]);
+            }
+            if (e.key === 'ArrowRight' && canGoNext && allCVs && onNavigate) {
+                onNavigate(allCVs[currentIndex + 1]);
+            }
+            if (e.key === 'f' || e.key === 'F') {
+                setIsFullscreen(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [canGoPrev, canGoNext, allCVs, onNavigate, currentIndex, isFullscreen, onClose]);
 
     const handlePrev = () => {
         if (canGoPrev && allCVs && onNavigate) {
@@ -121,24 +147,39 @@ export function CVPreviewModal({
         }
     }, [characterName, cv.templateName, isGenerating]);
 
+    // Print handler
+    const handlePrint = useCallback(() => {
+        window.print();
+    }, []);
+
+    // Calculate scale based on fullscreen mode
+    const getScale = () => {
+        if (isFullscreen) return 0.9;
+        return 0.65;
+    };
+
     return (
         <AnimatePresence>
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
-                onClick={onClose}
+                className={`fixed inset-0 z-50 flex items-center justify-center bg-black/85 ${isFullscreen ? 'p-0' : 'p-4'}`}
+                onClick={() => !isFullscreen && onClose()}
             >
                 <motion.div
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.9, opacity: 0 }}
-                    className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col"
+                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    className={`relative bg-white dark:bg-slate-800 shadow-2xl overflow-hidden flex flex-col ${isFullscreen
+                            ? 'w-full h-full rounded-none'
+                            : 'w-full max-w-6xl max-h-[95vh] rounded-2xl'
+                        }`}
                     onClick={(e) => e.stopPropagation()}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+                    <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0 print:hidden">
                         <div className="flex items-center gap-4">
                             {/* Navigation arrows */}
                             {allCVs && allCVs.length > 1 && (
@@ -147,16 +188,18 @@ export function CVPreviewModal({
                                         onClick={handlePrev}
                                         disabled={!canGoPrev}
                                         className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title="Template précédent (←)"
                                     >
                                         <ChevronLeft className="h-5 w-5 text-slate-500" />
                                     </button>
-                                    <span className="text-sm text-slate-400">
+                                    <span className="text-sm text-slate-400 font-medium">
                                         {currentIndex + 1} / {allCVs.length}
                                     </span>
                                     <button
                                         onClick={handleNext}
                                         disabled={!canGoNext}
                                         className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title="Template suivant (→)"
                                     >
                                         <ChevronRight className="h-5 w-5 text-slate-500" />
                                     </button>
@@ -171,24 +214,39 @@ export function CVPreviewModal({
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                        >
-                            <X className="h-5 w-5 text-slate-500" />
-                        </button>
+                        <div className="flex items-center gap-2">
+                            {/* Fullscreen toggle */}
+                            <button
+                                onClick={() => setIsFullscreen(prev => !prev)}
+                                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                title={isFullscreen ? "Quitter le plein écran (F)" : "Plein écran (F)"}
+                            >
+                                {isFullscreen ? (
+                                    <Minimize2 className="h-5 w-5 text-slate-500" />
+                                ) : (
+                                    <Maximize2 className="h-5 w-5 text-slate-500" />
+                                )}
+                            </button>
+                            <button
+                                onClick={onClose}
+                                className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                                title="Fermer (Échap)"
+                            >
+                                <X className="h-5 w-5 text-slate-500" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Preview - CV Rendu en temps réel */}
-                    <div className="flex-1 overflow-auto p-6 bg-slate-100 dark:bg-slate-900">
+                    <div className={`flex-1 overflow-auto bg-slate-100 dark:bg-slate-900 print:bg-white ${isFullscreen ? 'p-4' : 'p-6'}`}>
                         <div
                             ref={cvRef}
-                            className="mx-auto shadow-2xl"
+                            className="mx-auto shadow-2xl transition-transform duration-300"
                             style={{
-                                transform: 'scale(0.7)',
+                                transform: `scale(${getScale()})`,
                                 transformOrigin: 'top center',
                                 width: '210mm',
-                                marginBottom: '-200px' // Compensate for scale
+                                marginBottom: isFullscreen ? '-50px' : '-180px'
                             }}
                         >
                             <TemplateComponent data={cvData} includePhoto={true} />
@@ -196,15 +254,27 @@ export function CVPreviewModal({
                     </div>
 
                     {/* Footer */}
-                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0">
-                        <p className="text-xs text-slate-400">
-                            💡 CV généré en temps réel depuis le profil de {characterName}
-                        </p>
-                        <div className="flex gap-3">
-                            <Button variant="outline" onClick={onClose}>
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center flex-shrink-0 print:hidden">
+                        <div className="flex items-center gap-4">
+                            <p className="text-xs text-slate-400">
+                                💡 Utilisez les flèches ← → pour naviguer, F pour plein écran
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handlePrint}
+                                className="hidden sm:flex"
+                            >
+                                <Printer className="mr-2 h-4 w-4" />
+                                Imprimer
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={onClose}>
                                 Fermer
                             </Button>
                             <Button
+                                size="sm"
                                 onClick={handleDownloadPDF}
                                 disabled={isGenerating}
                                 className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
