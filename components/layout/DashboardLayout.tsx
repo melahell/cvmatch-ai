@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare, BookmarkCheck, Museum } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare, BookmarkCheck, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "./Footer";
@@ -20,11 +20,8 @@ interface DashboardLayoutProps {
 
 const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
-    { href: "/demo", icon: Museum, label: "Démo" },
     { href: "/dashboard/analyze", icon: FileText, label: "Analyser" },
-    { href: "/dashboard/saved-jobs", icon: BookmarkCheck, label: "Offres" },
     { href: "/dashboard/cvs", icon: Files, label: "Mes CVs" },
-    { href: "/dashboard/compare", icon: GitCompare, label: "Comparer" },
     { href: "/dashboard/tracking", icon: Briefcase, label: "Candidatures" },
     { href: "/dashboard/profile", icon: User, label: "Mon Profil" },
 ];
@@ -117,6 +114,33 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     {/* Quick Actions */}
                                     <div className="py-1">
                                         <ThemeToggle />
+                                        <Link href="/demo">
+                                            <button
+                                                onClick={() => setMenuOpen(false)}
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                            >
+                                                <Landmark className="w-4 h-4" />
+                                                Démo Museum
+                                            </button>
+                                        </Link>
+                                        <Link href="/dashboard/saved-jobs">
+                                            <button
+                                                onClick={() => setMenuOpen(false)}
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                            >
+                                                <BookmarkCheck className="w-4 h-4" />
+                                                Offres sauvegardées
+                                            </button>
+                                        </Link>
+                                        <Link href="/dashboard/compare">
+                                            <button
+                                                onClick={() => setMenuOpen(false)}
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                            >
+                                                <GitCompare className="w-4 h-4" />
+                                                Comparer CVs
+                                            </button>
+                                        </Link>
                                         <Link href="/dashboard/templates">
                                             <button
                                                 onClick={() => setMenuOpen(false)}
