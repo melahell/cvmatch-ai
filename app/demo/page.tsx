@@ -3,12 +3,13 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Download, Clock, ChevronDown } from "lucide-react";
+import { ArrowRight, Sparkles, Download, Clock, ChevronDown, LayoutDashboard } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { CharacterCard } from "@/components/demo/CharacterCard";
 import { getAllCharacterMetas } from "@/lib/data/demo";
 import { Footer } from "@/components/layout/Footer";
+import { useAuth } from "@/hooks/useAuth";
 
 const container = {
     hidden: { opacity: 0 },
@@ -39,6 +40,7 @@ type CategoryFilter = typeof CATEGORIES[number]['id'];
 export default function DemoGalleryPage() {
     const characters = getAllCharacterMetas();
     const [activeFilter, setActiveFilter] = useState<CategoryFilter>("all");
+    const { userId } = useAuth({ required: false });
 
     // Filtrage des personnages
     const filteredCharacters = useMemo(() => {
@@ -59,12 +61,21 @@ export default function DemoGalleryPage() {
                         >
                             Accueil
                         </Link>
-                        <Button asChild size="sm">
-                            <Link href="/login">
-                                Essayer gratuitement
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                        </Button>
+                        {userId ? (
+                            <Button asChild size="sm">
+                                <Link href="/dashboard">
+                                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                                    Dashboard
+                                </Link>
+                            </Button>
+                        ) : (
+                            <Button asChild size="sm">
+                                <Link href="/login">
+                                    Essayer gratuitement
+                                    <ArrowRight className="ml-2 h-4 w-4" />
+                                </Link>
+                            </Button>
+                        )}
                     </nav>
                 </div>
             </header>

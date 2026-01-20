@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Clock, Award } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, Award, LayoutDashboard } from "lucide-react";
 import { DemoCharacterMeta } from "@/lib/data/demo/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 interface CharacterHeaderProps {
     meta: DemoCharacterMeta;
@@ -13,6 +14,7 @@ interface CharacterHeaderProps {
 }
 
 export function CharacterHeader({ meta, completenessScore, generationTimeMs }: CharacterHeaderProps) {
+    const { userId } = useAuth({ required: false });
     const scoreColor = completenessScore >= 90
         ? "text-green-600 dark:text-green-400"
         : completenessScore >= 70
@@ -31,11 +33,20 @@ export function CharacterHeader({ meta, completenessScore, generationTimeMs }: C
                         <ArrowLeft className="h-4 w-4" />
                         Retour à la galerie
                     </Link>
-                    <Button asChild size="sm">
-                        <Link href="/login">
-                            Créer mon profil
-                        </Link>
-                    </Button>
+                    {userId ? (
+                        <Button asChild size="sm">
+                            <Link href="/dashboard">
+                                <LayoutDashboard className="mr-2 h-4 w-4" />
+                                Dashboard
+                            </Link>
+                        </Button>
+                    ) : (
+                        <Button asChild size="sm">
+                            <Link href="/login">
+                                Créer mon profil
+                            </Link>
+                        </Button>
+                    )}
                 </div>
             </div>
 

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare, BookmarkCheck, Museum } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Footer } from "./Footer";
@@ -20,8 +20,11 @@ interface DashboardLayoutProps {
 
 const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
+    { href: "/demo", icon: Museum, label: "Démo" },
     { href: "/dashboard/analyze", icon: FileText, label: "Analyser" },
+    { href: "/dashboard/saved-jobs", icon: BookmarkCheck, label: "Offres" },
     { href: "/dashboard/cvs", icon: Files, label: "Mes CVs" },
+    { href: "/dashboard/compare", icon: GitCompare, label: "Comparer" },
     { href: "/dashboard/tracking", icon: Briefcase, label: "Candidatures" },
     { href: "/dashboard/profile", icon: User, label: "Mon Profil" },
 ];
