@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cvcrush-v5.0.23';
+const CACHE_NAME = 'cvcrush-v5.0.24-fix-chunks';
 const STATIC_ASSETS = [
     '/',
     '/login',
@@ -30,6 +30,7 @@ self.addEventListener('activate', (event) => {
 });
 
 // Fetch event - Cache uniquement les assets explicitement listés
+// Fetch event - Network First strategy for documents to avoid chunk mismatch
 self.addEventListener('fetch', (event) => {
     // Skip non-GET requests
     if (event.request.method !== 'GET') return;
@@ -39,31 +40,37 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // Ignore API and Next.js internals (handled by browser cache usually)
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/_next/')) {
         return;
     }
 
+    // Ignore RSC requests
     if (url.searchParams.has('_rsc')) {
         return;
     }
 
+    // Only handle specific static assets
     if (!STATIC_ASSETS.includes(url.pathname)) {
         return;
     }
 
+    // Network First Strategy
     event.respondWith(
-        caches.match(event.request).then((cached) => {
-            if (cached) return cached;
-
-            return fetch(event.request).then((response) => {
-                if (response.status === 200) {
-                    const responseClone = response.clone();
+        fetch(event.request)
+            .then((response) => {
+                // If we get a valid response, clone it to cache and return it
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const responseToCache = response.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseClone);
+                        cache.put(event.request, responseToCache);
                     });
                 }
                 return response;
-            });
-        })
+            })
+            .catch(() => {
+                // If network fails, try cache
+                return caches.match(event.request);
+            })
     );
 });
