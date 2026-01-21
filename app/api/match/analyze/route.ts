@@ -185,9 +185,10 @@ export async function POST(req: Request) {
 
         if (!validation.success) {
             // 📊 Log validation failure avec détails structurés
+            const validationError = validation.error || 'Unknown validation error';
             logMatchAnalysisValidationFailed(
                 userId,
-                validation.error,
+                validationError,
                 JSON.stringify(matchData).substring(0, 500),
                 modelUsed
             );
@@ -205,7 +206,7 @@ export async function POST(req: Request) {
             if (!matchData.match_score || !matchData.strengths || !matchData.job_title) {
                 logMatchAnalysisError(
                     userId,
-                    new Error(validation.error),
+                    new Error(validationError),
                     'validation',
                     { modelUsed }
                 );
@@ -214,7 +215,7 @@ export async function POST(req: Request) {
                 if (span) {
                     recordMatchAnalysisError(
                         span,
-                        new Error(validation.error),
+                        new Error(validationError),
                         'validation',
                         { userId, source, modelUsed }
                     );
@@ -222,7 +223,7 @@ export async function POST(req: Request) {
 
                 return NextResponse.json({
                     error: "L'IA n'a pas pu analyser correctement cette offre. Réessayez.",
-                    debug: process.env.NODE_ENV === 'development' ? validation.error : undefined
+                    debug: process.env.NODE_ENV === 'development' ? validationError : undefined
                 }, { status: 500 });
             }
 
