@@ -5,7 +5,7 @@ import { Building2, Calendar, ExternalLink, MapPin, Trash2, Check } from "lucide
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { DataListCard, DataListContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusDropdown } from "./StatusDropdown";
 import { JobAnalysis } from "@/types";
@@ -53,75 +53,74 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
 
     if (variant === "mobile") {
         return (
-            <Card className={`hover:shadow-lg transition-all group rounded-none border-0 shadow-none ${scoreBgColor}`}>
-                <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                        {/* Checkbox */}
-                        {onToggleSelect && (
-                            <button
-                                onClick={() => onToggleSelect(job.id)}
-                                className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${isSelected
-                                    ? "bg-neon-purple border-neon-purple"
-                                    : "border-cvBorder-medium hover:border-neon-purple"
-                                    }`}
-                            >
-                                {isSelected && <Check className="w-3 h-3 text-white" />}
-                            </button>
-                        )}
+            <DataListCard className={`hover:shadow-none rounded-none border-0 shadow-none ${scoreBgColor}`}>
+                <DataListContent className="p-4">
+                    <div className="flex flex-col gap-3">
+                        <div className="flex items-start gap-3">
+                            {onToggleSelect && (
+                                <button
+                                    onClick={() => onToggleSelect(job.id)}
+                                    className={`w-5 h-5 mt-0.5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${isSelected
+                                        ? "bg-neon-purple border-neon-purple"
+                                        : "border-cvBorder-medium hover:border-neon-purple"
+                                        }`}
+                                >
+                                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                                </button>
+                            )}
 
-                        <div className="flex items-center justify-between gap-3 flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${status.dot}`} />
+                            <div className="flex items-start gap-2 flex-1 min-w-0">
+                                <div className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${status.dot}`} />
                                 <div className="min-w-0 flex-1">
-                                    <h2 className="font-semibold text-sm text-slate-900 truncate">
+                                    <h2 className="font-semibold text-sm text-slate-900 line-clamp-2">
                                         {job.job_title || "Poste"}
                                     </h2>
-                                    <p className="text-xs text-slate-600 truncate">
+                                    <p className="text-xs text-slate-600 line-clamp-1">
                                         {job.company || "Entreprise"} {job.location && `• ${job.location}`}
                                     </p>
-                                    {/* Mobile date - Item 25 */}
                                     <p className="text-xs text-slate-600 flex items-center gap-1 mt-0.5">
                                         <Calendar className="w-3 h-3" />
                                         {formatRelativeDate(job.submitted_at)}
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span
-                                            className={`text-xs font-bold px-2 py-0.5 rounded cursor-help ${job.match_score >= 80
-                                                ? "bg-semantic-success/10 text-semantic-success"
-                                                : job.match_score >= 60
-                                                    ? "bg-semantic-warning/10 text-semantic-warning"
-                                                    : "bg-semantic-error/10 text-semantic-error"
-                                                }`}
-                                        >
-                                            {job.match_score}%
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>Match entre votre profil et cette offre</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                                <StatusDropdown
-                                    currentStatus={job.application_status || "pending"}
-                                    onStatusChange={(status) => onStatusChange(job.id, status)}
-                                    size="sm"
-                                />
-                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span
+                                        className={`text-xs font-bold px-2.5 py-1 rounded cursor-help ${job.match_score >= 80
+                                            ? "bg-semantic-success/10 text-semantic-success"
+                                            : job.match_score >= 60
+                                                ? "bg-semantic-warning/10 text-semantic-warning"
+                                                : "bg-semantic-error/10 text-semantic-error"
+                                            }`}
+                                    >
+                                        {job.match_score}%
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Match entre votre profil et cette offre</p>
+                                </TooltipContent>
+                            </Tooltip>
+                            <StatusDropdown
+                                currentStatus={job.application_status || "pending"}
+                                onStatusChange={(status) => onStatusChange(job.id, status)}
+                                size="sm"
+                            />
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </DataListContent>
+            </DataListCard>
         );
     }
 
     // Desktop variant
     return (
-        <Card className={`hover:shadow-lg transition-all group ${scoreBgColor}`}>
-            <CardContent className="p-4 md:p-5">
-                <div className="flex items-center gap-4">
+        <DataListCard className={`hover:shadow-lg ${scoreBgColor}`}>
+            <DataListContent className="p-4 md:p-5">
+                <div className="flex items-start md:items-center gap-4">
                     {/* Checkbox */}
                     {onToggleSelect && (
                         <button
@@ -162,7 +161,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                         </div>
 
                         {/* Score + Status + Actions */}
-                        <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap md:flex-nowrap">
+                        <div className="flex items-center gap-2 md:gap-3 shrink-0 flex-wrap">
                             {/* Match Score with Tooltip */}
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -215,7 +214,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                         </div>
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+            </DataListContent>
+        </DataListCard>
     );
 });

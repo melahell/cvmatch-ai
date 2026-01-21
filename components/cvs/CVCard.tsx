@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { DataListCard, DataListContent, DataListRow, DataListMain, DataListActions } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Edit } from "lucide-react";
@@ -26,17 +26,17 @@ export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: C
     const date = new Date(cv.created_at).toLocaleDateString("fr-FR");
 
     return (
-        <Card className="hover:shadow-md transition-shadow group">
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex gap-3 flex-1">
-                        <div className="p-2 bg-blue-50 rounded-lg">
+        <DataListCard>
+            <DataListContent>
+                <DataListRow>
+                    <DataListMain className="flex gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg shrink-0">
                             <FileText className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold truncate">{title}</h3>
-                            {company && <p className="text-sm text-slate-600">{company}</p>}
-                            <div className="flex items-center gap-2 mt-1">
+                            <h3 className="font-semibold text-sm sm:text-base line-clamp-2">{title}</h3>
+                            {company && <p className="text-sm text-slate-600 line-clamp-1">{company}</p>}
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <span className="text-xs text-slate-600">{date}</span>
                                 {score && (
                                     <Badge variant="neutral" className="text-xs">
@@ -45,9 +45,9 @@ export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: C
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </DataListMain>
 
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DataListActions className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {onRename && (
                             <Button variant="ghost" size="sm" onClick={() => onRename(cv.id)}>
                                 <Edit className="w-4 h-4" />
@@ -58,9 +58,9 @@ export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: C
                                 <Download className="w-4 h-4" />
                             </Button>
                         )}
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
+                    </DataListActions>
+                </DataListRow>
+            </DataListContent>
+        </DataListCard>
     );
 });

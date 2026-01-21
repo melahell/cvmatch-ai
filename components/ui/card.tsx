@@ -113,6 +113,54 @@ const CardContent = React.forwardRef<
 ))
 CardContent.displayName = "CardContent"
 
+const DataListCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <Card
+    ref={ref}
+    className={cn("group hover:shadow-md transition-all", className)}
+    {...props}
+  />
+))
+DataListCard.displayName = "DataListCard"
+
+const DataListContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <CardContent ref={ref} className={cn("p-4", className)} {...props} />
+))
+DataListContent.displayName = "DataListContent"
+
+const DataListRow = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn("flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3", className)}
+    {...props}
+  />
+))
+DataListRow.displayName = "DataListRow"
+
+const DataListMain = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("flex-1 min-w-0", className)} {...props} />
+))
+DataListMain.displayName = "DataListMain"
+
+const DataListActions = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div ref={ref} className={cn("flex items-center gap-1", className)} {...props} />
+))
+DataListActions.displayName = "DataListActions"
+
 const CardFooter = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -125,4 +173,4 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, cardVariants }
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, DataListCard, DataListContent, DataListRow, DataListMain, DataListActions, cardVariants }

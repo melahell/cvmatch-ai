@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCVGenerations } from "@/hooks/useCVGenerations";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, DataListCard, DataListContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScoreBadge, ScoreIndicator, ScoreLegend } from "@/components/ui/ScoreBadge";
@@ -240,12 +240,11 @@ export default function CVListPage() {
                             const isSelected = selectedIds.has(cv.id);
 
                             return (
-                                <Card
+                                <DataListCard
                                     key={cv.id}
-                                    className={`hover:shadow-md transition-all cursor-pointer group ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-                                        }`}
+                                    className={`cursor-pointer ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
                                 >
-                                    <CardContent className="p-4">
+                                    <DataListContent>
                                         <div className="flex items-center gap-4">
                                             {/* Checkbox */}
                                             <button
@@ -318,8 +317,8 @@ export default function CVListPage() {
                                                 </div>
                                             )}
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </DataListContent>
+                                </DataListCard>
                             );
                         })}
                     </div>
