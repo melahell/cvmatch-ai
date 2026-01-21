@@ -381,8 +381,19 @@ export default function MatchResultPage() {
                     </Card>
                 )}
 
+                {/* INFO MESSAGE IF NO ENRICHED DATA */}
+                {!salaryEstimate && !coachingTips && (
+                    <Alert className="mb-6 border-slate-200 bg-slate-50 dark:bg-slate-950/30 dark:border-slate-800">
+                        <AlertCircle className="h-4 w-4 text-slate-600" />
+                        <AlertDescription className="ml-2 text-slate-700 dark:text-slate-400 text-sm">
+                            Les informations complémentaires (estimation salariale et conseils de prospection) ne sont pas disponibles pour cette analyse.
+                            Ces données sont générées automatiquement pour les nouvelles analyses.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {/* SALARY ESTIMATE */}
-                {salaryEstimate && (
+                {salaryEstimate?.market_range && salaryEstimate?.personalized_range && (
                     <Card className="border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800 mb-6">
                         <CardHeader className="pb-3 sm:pb-6">
                             <CardTitle className="flex items-center gap-2 text-emerald-800 dark:text-emerald-400 text-base sm:text-lg">
@@ -391,60 +402,66 @@ export default function MatchResultPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Market Range */}
-                            <div className="p-4 bg-white dark:bg-slate-800/50 rounded-lg border border-emerald-200 dark:border-emerald-900">
-                                <div className="flex items-start justify-between gap-4 mb-2">
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                                            Fourchette marché
-                                        </p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-500">
-                                            {salaryEstimate.market_range.context}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
-                                            {formatSalary(salaryEstimate.market_range.min)} - {formatSalary(salaryEstimate.market_range.max)}
-                                        </p>
-                                        <p className="text-xs text-slate-500">par an</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Personalized Range */}
-                            <div className="p-4 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-lg border-2 border-emerald-300 dark:border-emerald-700">
-                                <div className="flex items-start justify-between gap-4 mb-2">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Target className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                                            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">
-                                                Pour votre profil
+                            {salaryEstimate.market_range.min && salaryEstimate.market_range.max && (
+                                <div className="p-4 bg-white dark:bg-slate-800/50 rounded-lg border border-emerald-200 dark:border-emerald-900">
+                                    <div className="flex items-start justify-between gap-4 mb-2">
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                                Fourchette marché
+                                            </p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-500">
+                                                {salaryEstimate.market_range.context || "Estimation basée sur le marché actuel"}
                                             </p>
                                         </div>
-                                        <p className="text-xs text-emerald-800 dark:text-emerald-400">
-                                            {salaryEstimate.personalized_range.justification}
-                                        </p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-2xl font-black text-emerald-800 dark:text-emerald-300">
-                                            {formatSalary(salaryEstimate.personalized_range.min)} - {formatSalary(salaryEstimate.personalized_range.max)}
-                                        </p>
-                                        <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">par an</p>
+                                        <div className="text-right">
+                                            <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
+                                                {formatSalary(salaryEstimate.market_range.min)} - {formatSalary(salaryEstimate.market_range.max)}
+                                            </p>
+                                            <p className="text-xs text-slate-500">par an</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
+
+                            {/* Personalized Range */}
+                            {salaryEstimate.personalized_range.min && salaryEstimate.personalized_range.max && (
+                                <div className="p-4 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-lg border-2 border-emerald-300 dark:border-emerald-700">
+                                    <div className="flex items-start justify-between gap-4 mb-2">
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Target className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                                                <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">
+                                                    Pour votre profil
+                                                </p>
+                                            </div>
+                                            <p className="text-xs text-emerald-800 dark:text-emerald-400">
+                                                {salaryEstimate.personalized_range.justification || "Estimation personnalisée selon votre expérience"}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-2xl font-black text-emerald-800 dark:text-emerald-300">
+                                                {formatSalary(salaryEstimate.personalized_range.min)} - {formatSalary(salaryEstimate.personalized_range.max)}
+                                            </p>
+                                            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">par an</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Negotiation Tip */}
-                            <div className="flex items-start gap-2 p-3 bg-white dark:bg-slate-800/50 rounded border border-emerald-200 dark:border-emerald-900">
-                                <TrendingUp className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-300 mb-1">
-                                        Conseil de négociation
-                                    </p>
-                                    <p className="text-xs text-slate-700 dark:text-slate-400">
-                                        {salaryEstimate.negotiation_tip}
-                                    </p>
+                            {salaryEstimate.negotiation_tip && (
+                                <div className="flex items-start gap-2 p-3 bg-white dark:bg-slate-800/50 rounded border border-emerald-200 dark:border-emerald-900">
+                                    <TrendingUp className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-xs font-semibold text-emerald-900 dark:text-emerald-300 mb-1">
+                                            Conseil de négociation
+                                        </p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-400">
+                                            {salaryEstimate.negotiation_tip}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -462,58 +479,66 @@ export default function MatchResultPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Approach Strategy */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
-                                    <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">1</span>
-                                    Comment aborder cette candidature
-                                </h4>
-                                <p className="text-sm text-slate-700 dark:text-slate-300 pl-6">
-                                    {coachingTips.approach_strategy}
-                                </p>
-                            </div>
+                            {coachingTips.approach_strategy && (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
+                                        <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">1</span>
+                                        Comment aborder cette candidature
+                                    </h4>
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 pl-6">
+                                        {coachingTips.approach_strategy}
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Key Selling Points */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
-                                    <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">2</span>
-                                    Vos arguments clés
-                                </h4>
-                                <ul className="space-y-1.5 pl-6">
-                                    {coachingTips.key_selling_points.map((point, i) => (
-                                        <li key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                                            <CheckCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-                                            <span>{point}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                            {coachingTips.key_selling_points && coachingTips.key_selling_points.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
+                                        <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">2</span>
+                                        Vos arguments clés
+                                    </h4>
+                                    <ul className="space-y-1.5 pl-6">
+                                        {coachingTips.key_selling_points.map((point, i) => (
+                                            <li key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
+                                                <CheckCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                                                <span>{point}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             {/* Preparation Checklist */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
-                                    <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">3</span>
-                                    Préparation avant candidature
-                                </h4>
-                                <ul className="space-y-1.5 pl-6">
-                                    {coachingTips.preparation_checklist.map((item, i) => (
-                                        <li key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
-                                            <span className="w-4 h-4 border-2 border-purple-400 rounded flex-shrink-0 mt-0.5" />
-                                            <span>{item}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                            {coachingTips.preparation_checklist && coachingTips.preparation_checklist.length > 0 && (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
+                                        <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">3</span>
+                                        Préparation avant candidature
+                                    </h4>
+                                    <ul className="space-y-1.5 pl-6">
+                                        {coachingTips.preparation_checklist.map((item, i) => (
+                                            <li key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2">
+                                                <span className="w-4 h-4 border-2 border-purple-400 rounded flex-shrink-0 mt-0.5" />
+                                                <span>{item}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
 
                             {/* Interview Focus */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
-                                    <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">4</span>
-                                    Focus pour l'entretien
-                                </h4>
-                                <p className="text-sm text-slate-700 dark:text-slate-300 pl-6">
-                                    {coachingTips.interview_focus}
-                                </p>
-                            </div>
+                            {coachingTips.interview_focus && (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-purple-900 dark:text-purple-300 mb-2 flex items-center gap-1">
+                                        <span className="w-5 h-5 bg-purple-200 dark:bg-purple-900 rounded-full flex items-center justify-center text-xs font-bold text-purple-800 dark:text-purple-200">4</span>
+                                        Focus pour l'entretien
+                                    </h4>
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 pl-6">
+                                        {coachingTips.interview_focus}
+                                    </p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 )}
