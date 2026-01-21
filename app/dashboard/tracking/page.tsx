@@ -319,7 +319,7 @@ export default function TrackingPage() {
                         </div>
 
                         {/* Sort Buttons */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                             <Button
                                 variant={sortBy === "date" ? "secondary" : "outline"}
                                 size="sm"
@@ -360,10 +360,10 @@ export default function TrackingPage() {
                     </div>
 
                     {/* Filter Pills */}
-                    <div className="flex flex-wrap gap-2 mb-6">
+                    <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-2 px-2">
                         <button
                             onClick={() => setFilter("all")}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${filter === "all"
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filter === "all"
                                 ? "bg-slate-900 text-white"
                                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                                 }`}
@@ -372,7 +372,7 @@ export default function TrackingPage() {
                         </button>
                         <button
                             onClick={() => setFilter("pending")}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${filter === "pending"
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${filter === "pending"
                                 ? "bg-slate-700 text-white"
                                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                                 }`}
@@ -382,7 +382,7 @@ export default function TrackingPage() {
                         </button>
                         <button
                             onClick={() => setFilter("applied")}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${filter === "applied"
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${filter === "applied"
                                 ? "bg-blue-600 text-white"
                                 : "bg-blue-50 text-blue-700 hover:bg-blue-100"
                                 }`}
@@ -392,7 +392,7 @@ export default function TrackingPage() {
                         </button>
                         <button
                             onClick={() => setFilter("interviewing")}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${filter === "interviewing"
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${filter === "interviewing"
                                 ? "bg-purple-600 text-white"
                                 : "bg-purple-50 text-purple-700 hover:bg-purple-100"
                                 }`}
@@ -402,7 +402,7 @@ export default function TrackingPage() {
                         </button>
                         <button
                             onClick={() => setFilter("offer")}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${filter === "offer"
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${filter === "offer"
                                 ? "bg-green-600 text-white"
                                 : "bg-green-50 text-green-700 hover:bg-green-100"
                                 }`}

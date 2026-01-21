@@ -13,10 +13,17 @@ CREATE TABLE users (
   whatsapp VARCHAR(50),
   user_id VARCHAR(100) UNIQUE NOT NULL, -- ex: "gilles-gozlan"
   github_rag_path VARCHAR(500), -- ex: "gilles-gozlan/"
+  role VARCHAR(20) DEFAULT 'user',
   onboarding_completed BOOLEAN DEFAULT false,
   completeness_score INTEGER DEFAULT 0,
   subscription_tier VARCHAR(20) DEFAULT 'free', -- 'free', 'pro', 'team'
+  subscription_status VARCHAR(30) DEFAULT 'inactive',
+  subscription_provider VARCHAR(30),
+  subscription_started_at TIMESTAMP,
+  subscription_current_period_end TIMESTAMP,
   subscription_expires_at TIMESTAMP,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -24,6 +31,7 @@ CREATE TABLE users (
 -- Index pour recherche rapide
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_user_id ON users(user_id);
+CREATE INDEX idx_users_stripe_customer_id ON users(stripe_customer_id);
 
 -- =============================================
 -- TABLE: rag_metadata

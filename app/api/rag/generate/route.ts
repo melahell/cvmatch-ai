@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { getRAGExtractionPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
 import { validateRAGData, formatValidationReport } from "@/lib/rag/validation";
@@ -8,7 +8,7 @@ import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quali
 import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
 
 import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
-import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
+import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
@@ -33,7 +33,21 @@ export async function POST(req: Request) {
         }
 
         const supabase = createSupabaseUserClient(auth.token);
+        const admin = createSupabaseAdminClient();
         const userId = auth.user.id;
+
+        const { data: userRow } = await admin
+            .from("users")
+            .select("subscription_tier, subscription_expires_at, subscription_status")
+            .eq("id", userId)
+            .maybeSingle();
+
+        const isExpired = userRow?.subscription_expires_at
+            ? new Date(userRow.subscription_expires_at) < new Date()
+            : false;
+        const tier = !userRow || userRow.subscription_status !== "active" || isExpired
+            ? "free"
+            : (userRow.subscription_tier || "free");
 
         const { mode } = await req.json();
         // mode: "creation" | "completion" | "regeneration" | undefined
@@ -44,7 +58,7 @@ export async function POST(req: Request) {
         logger.info("RAG generation start", { mode: mode || "auto" });
 
         // Rate limiting: 5 RAG generations per hour
-        const rateLimitResult = checkRateLimit(`rag:${userId}`, RATE_LIMITS.RAG_GENERATION);
+        const rateLimitResult = checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }

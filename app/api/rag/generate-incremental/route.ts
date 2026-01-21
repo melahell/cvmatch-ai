@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { getRAGExtractionPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
@@ -9,6 +9,7 @@ import { validateRAGData } from "@/lib/rag/validation";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
+import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -39,7 +40,26 @@ export async function POST(req: Request) {
         }
 
         const supabase = createSupabaseUserClient(auth.token);
+        const admin = createSupabaseAdminClient();
         const userId = auth.user.id;
+
+        const { data: userRow } = await admin
+            .from("users")
+            .select("subscription_tier, subscription_expires_at, subscription_status")
+            .eq("id", userId)
+            .maybeSingle();
+
+        const isExpired = userRow?.subscription_expires_at
+            ? new Date(userRow.subscription_expires_at) < new Date()
+            : false;
+        const tier = !userRow || userRow.subscription_status !== "active" || isExpired
+            ? "free"
+            : (userRow.subscription_tier || "free");
+
+        const rateLimitResult = checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
+        if (!rateLimitResult.success) {
+            return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
+        }
 
         const { documentId, mode, isFirstDocument } = await req.json();
         // mode: "completion" | "regeneration" (default: completion)

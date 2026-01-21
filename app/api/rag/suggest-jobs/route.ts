@@ -6,10 +6,10 @@
  */
 
 import { NextResponse } from "next/server";
-import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { getTopJobsPrompt } from "@/lib/ai/prompts";
-import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
+import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
@@ -23,10 +23,23 @@ export async function POST(req: Request) {
         }
 
         const supabase = createSupabaseUserClient(auth.token);
+        const admin = createSupabaseAdminClient();
         const userId = auth.user.id;
 
-        // Rate limiting: 10 job suggestions per hour
-        const rateLimitResult = checkRateLimit(`jobs:${userId}`, RATE_LIMITS.JOB_SUGGESTIONS);
+        const { data: userRow } = await admin
+            .from("users")
+            .select("subscription_tier, subscription_expires_at, subscription_status")
+            .eq("id", userId)
+            .maybeSingle();
+
+        const isExpired = userRow?.subscription_expires_at
+            ? new Date(userRow.subscription_expires_at) < new Date()
+            : false;
+        const tier = !userRow || userRow.subscription_status !== "active" || isExpired
+            ? "free"
+            : (userRow.subscription_tier || "free");
+
+        const rateLimitResult = checkRateLimit(`jobs:${userId}`, getRateLimitConfig(tier, "JOB_SUGGESTIONS"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }

@@ -1,8 +1,9 @@
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
 import { validateMatchAnalysis } from "@/lib/validations/match-analysis";
+import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import {
     logMatchAnalysisStart,
     logMatchAnalysisSuccess,
@@ -23,7 +24,6 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
     const startTime = Date.now(); // Pour tracking performance
 
     // 🔭 Start OpenTelemetry trace
@@ -35,16 +35,39 @@ export async function POST(req: Request) {
     let fileData: string | undefined;
 
     try {
-        body = await req.json();
-        ({ userId, jobUrl, jobText, fileData } = body);
-        const { fileName, fileType } = body;
-
-        if (!userId) {
-            return NextResponse.json({ error: "Utilisateur non identifié." }, { status: 400 });
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
         }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const admin = createSupabaseAdminClient();
+
+        body = await req.json();
+        ({ jobUrl, jobText, fileData } = body);
+        const { fileName, fileType } = body;
+        userId = auth.user.id;
 
         if (!jobUrl && !jobText && !fileData) {
             return NextResponse.json({ error: "Fournissez une URL, un texte ou un fichier." }, { status: 400 });
+        }
+
+        const { data: userRow } = await admin
+            .from("users")
+            .select("subscription_tier, subscription_expires_at, subscription_status")
+            .eq("id", userId)
+            .maybeSingle();
+
+        const isExpired = userRow?.subscription_expires_at
+            ? new Date(userRow.subscription_expires_at) < new Date()
+            : false;
+        const tier = !userRow || userRow.subscription_status !== "active" || isExpired
+            ? "free"
+            : (userRow.subscription_tier || "free");
+
+        const rateLimitResult = checkRateLimit(userId, getRateLimitConfig(tier, "MATCH_ANALYSIS"));
+        if (!rateLimitResult.success) {
+            return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
 
         // 1. Get User RAG Profile

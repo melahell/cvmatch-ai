@@ -65,8 +65,17 @@ export default function AuthCallbackPage() {
             }
         };
 
-        const finalizeLogin = (session: any) => {
+        const finalizeLogin = async (session: any) => {
             setStatus("Succès ! Connexion en cours...");
+            try {
+                await fetch("/api/admin/auto-role", {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${session?.access_token}`,
+                    },
+                });
+            } catch {
+            }
             router.replace("/dashboard");
         };
 

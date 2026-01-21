@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,9 @@ interface NotificationPrefs {
 export default function SettingsPage() {
     const { userName } = useAuth();
     const [saving, setSaving] = useState(false);
+    const [planLabel, setPlanLabel] = useState("Gratuit");
+    const [subscriptionStatus, setSubscriptionStatus] = useState("inactive");
+    const [billingLoading, setBillingLoading] = useState(false);
     const [prefs, setPrefs] = useState<NotificationPrefs>({
         emailNewMatch: true,
         emailReminder: true,
@@ -32,6 +35,56 @@ export default function SettingsPage() {
         await new Promise(resolve => setTimeout(resolve, 1000));
         setSaving(false);
         toast.success("Paramètres sauvegardés !");
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            try {
+                const res = await fetch("/api/admin/me");
+                if (!res.ok) return;
+                const data = await res.json();
+                const tier = data.subscriptionTier || "free";
+                setPlanLabel(tier === "pro" ? "Pro" : tier === "team" ? "Team" : "Gratuit");
+                setSubscriptionStatus(data.subscriptionStatus || "inactive");
+            } catch {
+                setPlanLabel("Gratuit");
+            }
+        };
+        run();
+    }, []);
+
+    const handleUpgrade = async () => {
+        setBillingLoading(true);
+        try {
+            const res = await fetch("/api/billing/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan: "pro" })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.url) {
+                toast.error(data.error || "Impossible de démarrer le paiement");
+                return;
+            }
+            window.location.href = data.url;
+        } finally {
+            setBillingLoading(false);
+        }
+    };
+
+    const handleManageBilling = async () => {
+        setBillingLoading(true);
+        try {
+            const res = await fetch("/api/billing/portal", { method: "POST" });
+            const data = await res.json();
+            if (!res.ok || !data.url) {
+                toast.error(data.error || "Impossible d'ouvrir le portail");
+                return;
+            }
+            window.location.href = data.url;
+        } finally {
+            setBillingLoading(false);
+        }
     };
 
     return (
@@ -61,8 +114,19 @@ export default function SettingsPage() {
                         <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-slate-800">
                             <span className="text-slate-600 dark:text-slate-600">Plan</span>
                             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-sm font-medium text-slate-700 dark:text-slate-300">
-                                Gratuit
+                                {planLabel}
                             </span>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            {subscriptionStatus === "active" ? (
+                                <Button onClick={handleManageBilling} disabled={billingLoading}>
+                                    {billingLoading ? "Ouverture..." : "Gérer mon abonnement"}
+                                </Button>
+                            ) : (
+                                <Button onClick={handleUpgrade} disabled={billingLoading}>
+                                    {billingLoading ? "Redirection..." : "Passer Pro"}
+                                </Button>
+                            )}
                         </div>
                     </CardContent>
                 </Card>

@@ -1,8 +1,8 @@
-import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
-import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
+import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { normalizeRAGToCV } from "@/components/cv/normalizeData";
 import { fitCVToTemplate } from "@/lib/cv/validator";
@@ -26,9 +26,22 @@ export async function POST(req: Request) {
         }
 
         const supabase = createSupabaseUserClient(auth.token);
+        const admin = createSupabaseAdminClient();
 
-        // Rate limiting: 20 CV generations per hour
-        const rateLimitResult = checkRateLimit(`cv:${userId}`, RATE_LIMITS.CV_GENERATION);
+        const { data: userRow } = await admin
+            .from("users")
+            .select("subscription_tier, subscription_expires_at, subscription_status")
+            .eq("id", userId)
+            .maybeSingle();
+
+        const isExpired = userRow?.subscription_expires_at
+            ? new Date(userRow.subscription_expires_at) < new Date()
+            : false;
+        const tier = !userRow || userRow.subscription_status !== "active" || isExpired
+            ? "free"
+            : (userRow.subscription_tier || "free");
+
+        const rateLimitResult = checkRateLimit(`cv:${userId}`, getRateLimitConfig(tier, "CV_GENERATION"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }

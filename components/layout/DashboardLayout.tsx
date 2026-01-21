@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare, BookmarkCheck, Landmark } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare, BookmarkCheck, Landmark, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { Footer } from "./Footer";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { ExportDataModal } from "@/components/modals/ExportDataModal";
@@ -32,9 +33,36 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const [exportModalOpen, setExportModalOpen] = useState(false);
     const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [planLabel, setPlanLabel] = useState("Gratuit");
 
     // Enable keyboard shortcuts
     useKeyboardShortcuts();
+
+    useEffect(() => {
+        const run = async () => {
+            try {
+                const authHeader = await getSupabaseAuthHeader();
+                if (authHeader.Authorization) {
+                    await fetch("/api/admin/auto-role", {
+                        method: "POST",
+                        headers: authHeader,
+                    });
+                }
+                const res = await fetch("/api/admin/me", {
+                    headers: authHeader,
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                setIsAdmin(!!data.isAdmin);
+                const tier = data.subscriptionTier || "free";
+                setPlanLabel(tier === "pro" ? "Pro" : tier === "team" ? "Team" : "Gratuit");
+            } catch {
+                setIsAdmin(false);
+            }
+        };
+        run();
+    }, []);
 
     // Get initials for avatar
     const initials = userName
@@ -108,7 +136,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                 <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-surface-primary dark:bg-slate-900 rounded-lg shadow-lg border border-cvBorder-light dark:border-slate-700 py-2 z-50">
                                     <div className="px-4 py-2 border-b border-cvBorder-light dark:border-slate-700">
                                         <p className="text-sm font-medium text-cvText-primary dark:text-slate-100">{userName}</p>
-                                        <p className="text-xs text-cvText-secondary dark:text-slate-600">Compte gratuit</p>
+                                        <p className="text-xs text-cvText-secondary dark:text-slate-600">Compte {planLabel}</p>
                                     </div>
 
                                     {/* Quick Actions */}
@@ -168,6 +196,17 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                                 Paramètres
                                             </button>
                                         </Link>
+                                        {isAdmin && (
+                                            <Link href="/admin">
+                                                <button
+                                                    onClick={() => setMenuOpen(false)}
+                                                    className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                >
+                                                    <Shield className="w-4 h-4" />
+                                                    Backoffice Admin
+                                                </button>
+                                            </Link>
+                                        )}
                                         <button
                                             onClick={() => { setMenuOpen(false); setExportModalOpen(true); }}
                                             className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"

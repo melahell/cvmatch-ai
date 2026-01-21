@@ -34,6 +34,8 @@ export interface RateLimitResult {
     retryAfter?: number;
 }
 
+export type SubscriptionTier = "free" | "pro" | "team";
+
 /**
  * Check if request is rate limited
  */
@@ -100,6 +102,31 @@ export const RATE_LIMITS = {
         windowMs: 60 * 60 * 1000 // 1 hour
     }
 };
+
+export const RATE_LIMITS_BY_TIER: Record<SubscriptionTier, typeof RATE_LIMITS> = {
+    free: {
+        RAG_GENERATION: { maxRequests: 2, windowMs: 24 * 60 * 60 * 1000 },
+        CV_GENERATION: { maxRequests: 3, windowMs: 24 * 60 * 60 * 1000 },
+        JOB_SUGGESTIONS: { maxRequests: 5, windowMs: 24 * 60 * 60 * 1000 },
+        MATCH_ANALYSIS: { maxRequests: 10, windowMs: 24 * 60 * 60 * 1000 }
+    },
+    pro: {
+        RAG_GENERATION: { maxRequests: 10, windowMs: 24 * 60 * 60 * 1000 },
+        CV_GENERATION: { maxRequests: 30, windowMs: 24 * 60 * 60 * 1000 },
+        JOB_SUGGESTIONS: { maxRequests: 50, windowMs: 24 * 60 * 60 * 1000 },
+        MATCH_ANALYSIS: { maxRequests: 100, windowMs: 24 * 60 * 60 * 1000 }
+    },
+    team: {
+        RAG_GENERATION: { maxRequests: 50, windowMs: 24 * 60 * 60 * 1000 },
+        CV_GENERATION: { maxRequests: 200, windowMs: 24 * 60 * 60 * 1000 },
+        JOB_SUGGESTIONS: { maxRequests: 200, windowMs: 24 * 60 * 60 * 1000 },
+        MATCH_ANALYSIS: { maxRequests: 1000, windowMs: 24 * 60 * 60 * 1000 }
+    }
+};
+
+export function getRateLimitConfig(tier: SubscriptionTier, key: keyof typeof RATE_LIMITS) {
+    return RATE_LIMITS_BY_TIER[tier]?.[key] ?? RATE_LIMITS_BY_TIER.free[key];
+}
 
 /**
  * Create rate limit error response
