@@ -77,6 +77,7 @@ export default function CVListPage() {
     // Delete selected CVs
     const handleDelete = async () => {
         if (selectedIds.size === 0) return;
+        if (!userId) return;
 
         setDeleting(true);
         try {
@@ -84,9 +85,10 @@ export default function CVListPage() {
             const idsToDelete = Array.from(selectedIds);
 
             const { error } = await supabase
-                .from('generated_cvs')
+                .from('cv_generations')
                 .delete()
-                .in('id', idsToDelete);
+                .in('id', idsToDelete)
+                .eq('user_id', userId);
 
             if (error) throw error;
 

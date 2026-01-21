@@ -7,6 +7,7 @@
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rag_metadata ENABLE ROW LEVEL SECURITY;
 ALTER TABLE job_analyses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE saved_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cv_generations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lm_generations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE uploaded_documents ENABLE ROW LEVEL SECURITY;
@@ -63,6 +64,25 @@ CREATE POLICY "Users can update own job analyses"
 
 CREATE POLICY "Users can delete own job analyses"
   ON job_analyses FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- =============================================
+-- POLICIES: saved_jobs
+-- =============================================
+CREATE POLICY "Users can view own saved jobs"
+  ON saved_jobs FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own saved jobs"
+  ON saved_jobs FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own saved jobs"
+  ON saved_jobs FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own saved jobs"
+  ON saved_jobs FOR DELETE
   USING (auth.uid() = user_id);
 
 -- =============================================

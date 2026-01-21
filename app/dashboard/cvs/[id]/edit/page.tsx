@@ -37,11 +37,13 @@ export default function CVEditorPage() {
     useEffect(() => {
         async function fetchCV() {
             if (!id) return;
+            if (!userId) return;
 
             const { data, error } = await supabase
                 .from("cv_generations")
                 .select("cv_data")
                 .eq("id", id)
+                .eq("user_id", userId)
                 .single();
 
             if (data) {
@@ -52,25 +54,27 @@ export default function CVEditorPage() {
             setLoading(false);
         }
         fetchCV();
-    }, [id]);
+    }, [id, supabase]);
 
     // Debounced auto-save
     const saveCV = useCallback(async (data: any) => {
         if (!id) return;
+        if (!userId) return;
         setSaving(true);
         setSaved(false);
 
         const { error } = await supabase
             .from("cv_generations")
             .update({ cv_data: data })
-            .eq("id", id);
+            .eq("id", id)
+            .eq("user_id", userId);
 
         setSaving(false);
         if (!error) {
             setSaved(true);
             setTimeout(() => setSaved(false), 2000);
         }
-    }, [id]);
+    }, [id, supabase, userId]);
 
     // Auto-save on change with debounce
     useEffect(() => {

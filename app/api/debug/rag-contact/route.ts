@@ -1,16 +1,19 @@
 // TEMPORARY DEBUG ENDPOINT - DELETE AFTER USE
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-
-    if (!userId) {
-        return NextResponse.json({ error: "userId required" }, { status: 400 });
+    if (process.env.NODE_ENV !== "development") {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const supabase = createSupabaseClient();
+    const auth = await requireSupabaseUser(request);
+    if (auth.error || !auth.user || !auth.token) {
+        return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+    }
+
+    const supabase = createSupabaseUserClient(auth.token);
+    const userId = auth.user.id;
 
     // Get RAG metadata
     const { data: ragData, error: ragError } = await supabase

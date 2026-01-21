@@ -1,54 +1,88 @@
--- =============================================
--- STORAGE: Configuration pour les photos de profil
--- À exécuter dans Supabase SQL Editor
--- =============================================
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
--- Créer le bucket pour les photos de profil (si pas déjà créé via UI)
--- Note: Normalement, on crée les buckets via l'interface Supabase Storage
--- Mais on peut aussi le faire en SQL si nécessaire
+DO $do$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Users can upload their own profile photos'
+  ) THEN
+    EXECUTE 'DROP POLICY "Users can upload their own profile photos" ON storage.objects';
+  END IF;
 
--- Vérifier si le bucket existe
-SELECT * FROM storage.buckets WHERE name = 'profile-photos';
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Users can view their own profile photos'
+  ) THEN
+    EXECUTE 'DROP POLICY "Users can view their own profile photos" ON storage.objects';
+  END IF;
 
--- Si le bucket n'existe pas, le créer via l'interface Supabase Storage:
--- 1. Aller dans Storage > Create a new bucket
--- 2. Nom: 'profile-photos'
--- 3. Public: OUI (pour que les photos soient accessibles publiquement)
--- 4. File size limit: 5MB
--- 5. Allowed MIME types: image/jpeg, image/jpg, image/png, image/webp
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Users can update their own profile photos'
+  ) THEN
+    EXECUTE 'DROP POLICY "Users can update their own profile photos" ON storage.objects';
+  END IF;
 
--- Policies RLS pour profile-photos bucket
--- Permettre aux utilisateurs authentifiés d'uploader leurs photos
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Users can delete their own profile photos'
+  ) THEN
+    EXECUTE 'DROP POLICY "Users can delete their own profile photos" ON storage.objects';
+  END IF;
 
--- Policy: Permettre l'upload (INSERT)
-CREATE POLICY "Users can upload their own profile photos"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'profile-photos' AND
-  (storage.foldername(name))[1] = 'avatars'
-);
+  IF EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects' AND policyname = 'Profile photos are publicly accessible'
+  ) THEN
+    EXECUTE 'DROP POLICY "Profile photos are publicly accessible" ON storage.objects';
+  END IF;
 
--- Policy: Permettre la lecture publique (SELECT)
-CREATE POLICY "Profile photos are publicly accessible"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'profile-photos');
+  EXECUTE $p_insert_photos$
+    CREATE POLICY "Users can upload their own profile photos"
+    ON storage.objects FOR INSERT
+    TO authenticated
+    WITH CHECK (
+      bucket_id = 'profile-photos'
+      AND (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+  $p_insert_photos$;
 
--- Policy: Permettre la mise à jour (UPDATE)
-CREATE POLICY "Users can update their own profile photos"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (
-  bucket_id = 'profile-photos' AND
-  (storage.foldername(name))[1] = 'avatars'
-);
+  EXECUTE $p_select_photos$
+    CREATE POLICY "Users can view their own profile photos"
+    ON storage.objects FOR SELECT
+    TO authenticated
+    USING (
+      bucket_id = 'profile-photos'
+      AND (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+  $p_select_photos$;
 
--- Policy: Permettre la suppression (DELETE)
-CREATE POLICY "Users can delete their own profile photos"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (
-  bucket_id = 'profile-photos' AND
-  (storage.foldername(name))[1] = 'avatars'
-);
+  EXECUTE $p_update_photos$
+    CREATE POLICY "Users can update their own profile photos"
+    ON storage.objects FOR UPDATE
+    TO authenticated
+    USING (
+      bucket_id = 'profile-photos'
+      AND (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+    WITH CHECK (
+      bucket_id = 'profile-photos'
+      AND (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+  $p_update_photos$;
+
+  EXECUTE $p_delete_photos$
+    CREATE POLICY "Users can delete their own profile photos"
+    ON storage.objects FOR DELETE
+    TO authenticated
+    USING (
+      bucket_id = 'profile-photos'
+      AND (storage.foldername(name))[1] = 'avatars'
+      AND (storage.foldername(name))[2] = auth.uid()::text
+    )
+  $p_delete_photos$;
+END $do$;

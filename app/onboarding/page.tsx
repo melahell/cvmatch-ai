@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Upload, CheckCircle, FileText, ArrowRight, Camera, Info, ExternalLink, X } from "lucide-react";
-import Cookies from "js-cookie";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
 
@@ -21,19 +21,19 @@ export default function OnboardingPage() {
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [showLinkedInGuide, setShowLinkedInGuide] = useState(false);
 
-    const [userId, setUserId] = useState<string | null>(null);
-
     // Initialisation Supabase
     const supabase = createSupabaseClient();
 
     useEffect(() => {
-        const storedId = Cookies.get("userId");
-        if (!storedId) {
-            router.push("/login"); // Redirect if no auth
-        } else {
-            setUserId(storedId);
-        }
-    }, [router]);
+        const run = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) {
+                router.push("/login");
+            }
+        };
+
+        void run();
+    }, [router, supabase]);
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -93,11 +93,13 @@ export default function OnboardingPage() {
         try {
             // 1. Upload
             const formData = new FormData();
-            formData.append("userId", userId || "");
             files.forEach((file) => formData.append("files", file));
 
             const uploadRes = await fetch("/api/rag/upload", {
                 method: "POST",
+                headers: {
+                    ...(await getSupabaseAuthHeader()),
+                },
                 body: formData,
             });
 
@@ -110,8 +112,11 @@ export default function OnboardingPage() {
             // 2. Generate RAG
             const generateRes = await fetch("/api/rag/generate", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId }),
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(await getSupabaseAuthHeader()),
+                },
+                body: JSON.stringify({}),
             });
 
             if (!generateRes.ok) throw new Error("Generation failed");
@@ -125,8 +130,11 @@ export default function OnboardingPage() {
             try {
                 const jobsRes = await fetch("/api/rag/suggest-jobs", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ userId }),
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(await getSupabaseAuthHeader()),
+                    },
+                    body: JSON.stringify({}),
                 });
                 if (jobsRes.ok) {
                     console.log("Job suggestions generated");
@@ -256,7 +264,14 @@ export default function OnboardingPage() {
                             <div className="flex items-center gap-4">
                                 {photoPreview ? (
                                     <div className="relative">
-                                        <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-full object-cover border-2 border-blue-500" />
+                                        <Image
+                                            src={photoPreview}
+                                            alt="Preview"
+                                            width={80}
+                                            height={80}
+                                            unoptimized
+                                            className="w-20 h-20 rounded-full object-cover border-2 border-blue-500"
+                                        />
                                         <button
                                             onClick={removePhoto}
                                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"

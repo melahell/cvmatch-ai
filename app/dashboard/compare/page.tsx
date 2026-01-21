@@ -35,8 +35,8 @@ function CompareContent() {
             const supabase = createSupabaseClient();
 
             const [resA, resB] = await Promise.all([
-                supabase.from('job_analyses').select('*').eq('id', idA).single(),
-                supabase.from('job_analyses').select('*').eq('id', idB).single()
+                supabase.from('job_analyses').select('*').eq('id', idA).eq('user_id', userId).single(),
+                supabase.from('job_analyses').select('*').eq('id', idB).eq('user_id', userId).single()
             ]);
 
             if (resA.data) setAnalysisA(resA.data);

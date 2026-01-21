@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createSupabaseClient } from "@/lib/supabase";
-import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { getRAGExtractionPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
 import { validateRAGData, formatValidationReport } from "@/lib/rag/validation";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
@@ -12,58 +11,37 @@ import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
 import { checkRateLimit, RATE_LIMITS, createRateLimitError } from "@/lib/utils/rate-limit";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
+import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
+import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
 export const maxDuration = 300; // Allow up to 5 minutes for processing (Vercel Pro+)
 
-// Retry wrapper with exponential backoff for rate limits
-async function callWithRetry<T>(
-    fn: () => Promise<T>,
-    maxRetries: number = 2,
-    baseDelay: number = 5000
-): Promise<T> {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-            return await fn();
-        } catch (error: any) {
-            const isRateLimit = error.message?.includes("429") || error.message?.includes("quota");
-            if (isRateLimit && attempt < maxRetries - 1) {
-                const delay = baseDelay * Math.pow(2, attempt); // 30s, 60s, 120s
-                console.log(`Rate limited, waiting ${delay / 1000}s before retry ${attempt + 2}/${maxRetries}`);
-                await new Promise(r => setTimeout(r, delay));
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw new Error("Max retries exceeded");
-}
-
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
-
     // Check API key first
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        console.error("GEMINI_API_KEY not found in environment");
+        logger.error("GEMINI_API_KEY not found in environment");
         return NextResponse.json({ error: "Server configuration error: Missing AI API key" }, { status: 500 });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-
     try {
-        const { userId, mode } = await req.json();
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
+
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
+
+        const { mode } = await req.json();
         // mode: "creation" | "completion" | "regeneration" | undefined
         // - creation: First time RAG generation (no existing RAG)
         // - completion: Add to existing RAG (smart merge - default)
         // - regeneration: Overwrite existing RAG completely
 
-        if (!userId) {
-            return NextResponse.json({ error: "Missing userId" }, { status: 400 });
-        }
-
-        console.log(`[RAG GENERATE] Mode: ${mode || "auto"}, User: ${userId}`);
+        logger.info("RAG generation start", { mode: mode || "auto" });
 
         // Rate limiting: 5 RAG generations per hour
         const rateLimitResult = checkRateLimit(`rag:${userId}`, RATE_LIMITS.RAG_GENERATION);
@@ -76,10 +54,10 @@ export async function POST(req: Request) {
             .from("uploaded_documents")
             .select("*")
             .eq("user_id", userId)
-            .in("extraction_status", ["pending", "processed", "failed"]);
+            ;
 
         if (dbError) {
-            console.error("DB Error:", dbError);
+            logger.error("DB Error", { error: dbError.message });
             return NextResponse.json({ error: "Database error: " + dbError.message }, { status: 500 });
         }
 
@@ -89,25 +67,7 @@ export async function POST(req: Request) {
 
         let allExtractedText = "";
 
-        // Tiered model strategy: Pro for critical tasks, Flash as fallback
-        const proModel = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
-        const flashModel = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
-        let useProModel = true; // Start with Pro, fallback to Flash if quota exceeded
-
-        // Smart generation with automatic fallback
-        const generateWithFallback = async (prompt: string | any[]): Promise<any> => {
-            try {
-                if (useProModel) {
-                    return await proModel.generateContent(prompt);
-                }
-            } catch (error: any) {
-                if (error.message?.includes("429") || error.message?.includes("quota")) {
-                    console.log("Pro model quota exceeded, switching to Flash");
-                    useProModel = false;
-                }
-            }
-            return await flashModel.generateContent(prompt);
-        };
+        const generateGemini = (prompt: string | any[]) => callWithRetry(() => generateWithCascade(prompt), 4);
 
         let processedCount = 0;
         const processingResults: any[] = [];
@@ -129,7 +89,7 @@ export async function POST(req: Request) {
                     .download(doc.storage_path);
 
                 if (downloadError) {
-                    console.error(`Error downloading ${doc.filename}:`, downloadError);
+                    logger.error("Error downloading document", { filename: doc.filename, error: downloadError.message });
                     processingResults.push({ filename: doc.filename, status: "download_failed", error: downloadError.message });
                     continue;
                 }
@@ -145,9 +105,13 @@ export async function POST(req: Request) {
                         const { text: pdfText } = await extractText(pdf, { mergePages: true });
                         text = pdfText;
                     } catch (pdfError: any) {
-                        console.error(`PDF extraction failed for ${doc.filename}:`, pdfError.message);
+                        logger.error("PDF extraction failed", { filename: doc.filename, error: pdfError.message });
                         processingResults.push({ filename: doc.filename, status: "extraction_failed", error: pdfError.message });
-                        await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
+                        await supabase
+                            .from("uploaded_documents")
+                            .update({ extraction_status: "failed" })
+                            .eq("id", doc.id)
+                            .eq("user_id", userId);
                         continue;
                     }
                 } else if (doc.file_type === "docx") {
@@ -158,9 +122,13 @@ export async function POST(req: Request) {
                         const result = await mammoth.extractRawText({ buffer });
                         text = result.value;
                     } catch (docxError: any) {
-                        console.error(`DOCX extraction failed for ${doc.filename}:`, docxError.message);
+                        logger.error("DOCX extraction failed", { filename: doc.filename, error: docxError.message });
                         processingResults.push({ filename: doc.filename, status: "extraction_failed", error: docxError.message });
-                        await supabase.from("uploaded_documents").update({ extraction_status: "failed" }).eq("id", doc.id);
+                        await supabase
+                            .from("uploaded_documents")
+                            .update({ extraction_status: "failed" })
+                            .eq("id", doc.id)
+                            .eq("user_id", userId);
                         continue;
                     }
                 } else {
@@ -176,14 +144,15 @@ export async function POST(req: Request) {
 
                     await supabase
                         .from("uploaded_documents")
-                        .update({ extraction_status: "processed", extracted_text: text })
-                        .eq("id", doc.id);
+                        .update({ extraction_status: "completed", extracted_text: text })
+                        .eq("id", doc.id)
+                        .eq("user_id", userId);
                 } else {
                     processingResults.push({ filename: doc.filename, status: "empty_content" });
                 }
 
             } catch (docError: any) {
-                console.error(`Error processing ${doc.filename}:`, docError.message);
+                logger.error("Error processing document", { filename: doc.filename, error: docError.message });
                 processingResults.push({ filename: doc.filename, status: "error", error: docError.message });
             }
         }
@@ -214,34 +183,17 @@ export async function POST(req: Request) {
 
         // 3. Process with Gemini to structure the RAG
         const prompt = getRAGExtractionPrompt(finalExtractedText);
-        const result = await callWithRetry(() => generateWithFallback(prompt));
+        const { result, modelUsed } = await generateGemini(prompt);
         const responseText = result.response.text();
-
-        // Track which model was used
-        const modelUsed = useProModel ? "pro" : "flash";
-
-        // DEBUG: Log what Gemini actually returns
-        console.log('=== GEMINI RAG RESPONSE ===');
-        console.log('Model used:', modelUsed);
-        console.log('Response length:', responseText.length);
-        console.log('First 2000 chars:', responseText.slice(0, 2000));
 
         const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
         let ragData;
 
         try {
-            ragData = JSON.parse(jsonString);
+            ragData = normalizeRAGData(JSON.parse(jsonString));
 
-            // DEBUG: Log the parsed structure
-            console.log('=== PARSED RAG DATA ===');
-            console.log('Keys:', Object.keys(ragData));
-            console.log('Has profil?', !!ragData.profil);
-            console.log('Has experiences?', !!ragData.experiences, 'Count:', ragData.experiences?.length || 0);
-            console.log('Has competences?', !!ragData.competences);
-            console.log('Has formations?', !!ragData.formations, 'Count:', ragData.formations?.length || 0);
-            console.log('Full structure sample:', JSON.stringify(ragData, null, 2).slice(0, 1000));
         } catch (e) {
-            console.error("Failed to parse RAG JSON:", responseText.slice(0, 1000));
+            logger.error("Failed to parse RAG JSON", { responseLength: responseText.length });
             return NextResponse.json({ error: "AI returned invalid format, please try again" }, { status: 500 });
         }
 
@@ -251,31 +203,37 @@ export async function POST(req: Request) {
 
         // Step 1: Validate extracted data (lightweight logging)
         const validationResult = validateRAGData(ragData);
-        console.log('[VALIDATION] Warnings:', validationResult.warnings.length);
+        logger.info("RAG validation", { warnings: validationResult.warnings.length });
 
         // Step 2: Consolidate client references
         ragData = consolidateClients(ragData);
-        console.log('[CONSOLIDATION] Clients:', ragData?.references?.clients?.length || 0);
+        logger.info("RAG consolidation", { clients: ragData?.references?.clients?.length || 0 });
 
         // Step 3: Contextual Enrichment - Deduce implicit responsibilities & tacit skills
         try {
-            console.log('[ENRICHMENT] Generating contextual enrichment...');
-            const contexteEnrichi = await generateContexteEnrichi(ragData, generateWithFallback);
+            logger.info("RAG enrichment start");
+            const contexteEnrichi = await generateContexteEnrichi(
+                ragData,
+                async (p: string) => {
+                    const { result: r } = await generateGemini(p);
+                    return r;
+                }
+            );
             if (contexteEnrichi) {
                 ragData.contexte_enrichi = contexteEnrichi;
-                console.log('[ENRICHMENT] Success:', {
+                logger.info("RAG enrichment success", {
                     responsabilites: contexteEnrichi.responsabilites_implicites?.length || 0,
-                    competences: contexteEnrichi.competences_tacites?.length || 0
+                    competences: contexteEnrichi.competences_tacites?.length || 0,
                 });
             }
         } catch (e: any) {
-            console.warn('[ENRICHMENT] Failed (non-blocking):', e.message);
+            logger.warn("RAG enrichment failed (non-blocking)", { error: e?.message });
             // Non-blocking - continue without enrichment
         }
 
         // Step 4: Calculate quality score (multi-dimensional)
         const qualityScoreResult = calculateQualityScore(ragData);
-        console.log('[SCORING] Overall:', qualityScoreResult.overall_score);
+        logger.info("RAG scoring", { overall: qualityScoreResult.overall_score });
 
         // Step 5: Add extraction metadata
         ragData.extraction_metadata = {
@@ -299,7 +257,7 @@ export async function POST(req: Request) {
         if (validationResult.metrics.clients_count < 3) {
             suggestions.push(`Ajouter des références clients (${validationResult.metrics.clients_count} trouvés)`);
         }
-        console.log('[SUGGESTIONS]:', suggestions.length);
+        logger.info("RAG suggestions", { count: suggestions.length });
         // 4. Generate Top 10 Jobs - DISABLED to prevent timeout
         // TODO: Move to separate endpoint for async generation
         let top10Jobs: any[] = [];
@@ -309,7 +267,7 @@ export async function POST(req: Request) {
         //     const jobJsonString = jobResult.response.text().replace(/```json/g, "").replace(/```/g, "").trim();
         //     top10Jobs = JSON.parse(jobJsonString);
         // } catch (e) {
-        //     console.warn("Failed to generate Top 10 Jobs, continuing without");
+        //     logger.warn("Failed to generate Top 10 Jobs, continuing without");
         // }
 
         // 6. Handle merge based on mode:
@@ -321,33 +279,37 @@ export async function POST(req: Request) {
             .eq("user_id", userId)
             .single();
 
+        const existingNormalized = existingRag?.completeness_details
+            ? normalizeRAGData(existingRag.completeness_details)
+            : null;
+
         let finalRAGData = ragData;
         let mergeStats: any = null;
         let actualMode = mode || "auto";
 
         if (mode === "regeneration") {
             // REGENERATION: Overwrite completely, but preserve user rejections
-            console.log('[MODE] Regeneration - overwriting existing RAG');
+            logger.info("RAG mode", { mode: "regeneration" });
             finalRAGData = ragData;
 
             // Preserve rejected_inferred from existing (user preference must be respected)
-            if (existingRag?.completeness_details?.rejected_inferred) {
-                finalRAGData.rejected_inferred = existingRag.completeness_details.rejected_inferred;
+            if (existingNormalized?.rejected_inferred) {
+                finalRAGData.rejected_inferred = existingNormalized.rejected_inferred;
             }
 
             actualMode = "regeneration";
-        } else if (existingRag?.completeness_details) {
+        } else if (existingNormalized) {
             // COMPLETION: Smart merge with existing
-            console.log('[MODE] Completion - merging with existing RAG data');
-            const mergeResult = mergeRAGData(existingRag.completeness_details, ragData);
+            logger.info("RAG mode", { mode: "completion" });
+            const mergeResult = mergeRAGData(existingNormalized, ragData);
             finalRAGData = mergeResult.merged;
             mergeStats = mergeResult.stats;
-            console.log('[MERGE] Stats:', mergeStats);
+            logger.info("RAG merge", { stats: mergeStats });
 
             actualMode = "completion";
         } else {
             // CREATION: First time
-            console.log('[MODE] Creation - no existing RAG');
+            logger.info("RAG mode", { mode: "creation" });
             actualMode = "creation";
         }
 
@@ -356,7 +318,7 @@ export async function POST(req: Request) {
             ...finalRAGData.metadata,
             update_mode: actualMode,
             last_update: new Date().toISOString(),
-            gemini_model_used: useProModel ? "pro" : "flash"
+            gemini_model_used: modelUsed
         };
 
         // Use new multi-dimensional quality score (overall_score is the main score)
@@ -376,7 +338,7 @@ export async function POST(req: Request) {
                 .eq("user_id", userId);
 
             if (updateError) {
-                console.error('Error updating rag_metadata:', updateError);
+                logger.error("Error updating rag_metadata", { error: updateError.message });
                 return NextResponse.json({
                     error: 'Database error: Failed to save profile data',
                     errorCode: 'DB_UPDATE_FAILED',
@@ -394,7 +356,7 @@ export async function POST(req: Request) {
                 });
 
             if (insertError) {
-                console.error('Error inserting rag_metadata:', insertError);
+                logger.error("Error inserting rag_metadata", { error: insertError.message });
                 return NextResponse.json({
                     error: 'Database error: Failed to create profile data',
                     errorCode: 'DB_INSERT_FAILED',
@@ -409,6 +371,7 @@ export async function POST(req: Request) {
             success: true,
             processedDocuments: processedCount,
             completenessScore,
+            model_used: modelUsed,
             processingResults,
             data: finalRAGData,
             // Merge stats (if merged)
@@ -440,7 +403,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("RAG Generation error:", error);
+        logger.error("RAG Generation error", { error: error?.message });
 
         // Granular error handling
         if (error.message?.includes("GEMINI") || error.message?.includes("API")) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
@@ -15,13 +16,19 @@ export const runtime = "nodejs";
  * }
  */
 export async function POST(req: Request) {
-    const supabase = createSupabaseClient();
-
     try {
-        const { userId, type, index, experienceIndex, key } = await req.json();
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+        }
 
-        if (!userId || !type) {
-            return NextResponse.json({ error: "Missing userId or type" }, { status: 400 });
+        const supabase = createSupabaseUserClient(auth.token);
+        const userId = auth.user.id;
+
+        const { type, index, experienceIndex, key } = await req.json();
+
+        if (!type) {
+            return NextResponse.json({ error: "Missing type" }, { status: 400 });
         }
 
         // Fetch current RAG data
@@ -100,7 +107,7 @@ export async function POST(req: Request) {
             .eq("user_id", userId);
 
         if (updateError) {
-            console.error("Failed to update RAG:", updateError);
+            logger.error("Failed to update RAG", { error: updateError.message, type });
             return NextResponse.json({ error: "Failed to update profile" }, { status: 500 });
         }
 
@@ -112,7 +119,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("Delete item error:", error);
+        logger.error("Delete item error", { error: error?.message });
         return NextResponse.json({ error: error.message || "Internal error" }, { status: 500 });
     }
 }

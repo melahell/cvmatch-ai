@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
+import { createSupabaseClient } from "@/lib/supabase";
 
 interface UseAuthOptions {
     redirectTo?: string;
@@ -17,22 +17,48 @@ export function useAuth(options: UseAuthOptions = {}) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const storedUserId = Cookies.get("userId");
-        const storedUserName = Cookies.get("userName");
+        const run = async () => {
+            try {
+                const supabase = createSupabaseClient();
+                const { data: { session } } = await supabase.auth.getSession();
+                const sessionUser = session?.user;
 
-        if (required && !storedUserId) {
-            router.push(redirectTo);
-            return;
-        }
+                if (sessionUser) {
+                    const nameFromMetadata =
+                        (sessionUser.user_metadata?.full_name as string | undefined) ??
+                        (sessionUser.user_metadata?.name as string | undefined);
 
-        setUserId(storedUserId || null);
-        setUserName(storedUserName || "Candidat");
-        setIsLoading(false);
+                    setUserId(sessionUser.id);
+                    setUserName(nameFromMetadata || "Candidat");
+                    setIsLoading(false);
+                    return;
+                }
+
+                if (required) {
+                    router.push(redirectTo);
+                    return;
+                }
+
+                setUserId(null);
+                setUserName("Candidat");
+                setIsLoading(false);
+            } catch {
+                if (required) {
+                    router.push(redirectTo);
+                    return;
+                }
+                setUserId(null);
+                setUserName("Candidat");
+                setIsLoading(false);
+            }
+        };
+
+        void run();
     }, [router, redirectTo, required]);
 
     const logout = () => {
-        Cookies.remove("userId");
-        Cookies.remove("userName");
+        const supabase = createSupabaseClient();
+        void supabase.auth.signOut();
         router.push("/login");
     };
 

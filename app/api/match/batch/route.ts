@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
-import { createSupabaseClient } from '@/lib/supabase';
+import { getBearerToken, requireSupabaseUser } from '@/lib/supabase';
+import { logger } from '@/lib/utils/logger';
 
 // Phase 3 Item 6: Batch analysis of multiple URLs
 export async function POST(request: Request) {
     try {
-        const supabase = createSupabaseClient();
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-        if (authError || !user) {
+        const auth = await requireSupabaseUser(request);
+        if (auth.error || !auth.user || !auth.token) {
             return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
         }
+
+        const bearer = getBearerToken(request);
 
         const { urls } = await request.json();
 
@@ -25,14 +26,14 @@ export async function POST(request: Request) {
         const results = await Promise.all(
             urls.map(async (url: string) => {
                 try {
-                    // Call existing analyze API for each URL
                     const response = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/match/analyze`, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+                        },
                         body: JSON.stringify({
-                            user_id: user.id,
-                            mode: 'url',
-                            url
+                            jobUrl: url
                         })
                     });
 
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
             results
         });
     } catch (error: any) {
-        console.error('Batch analysis error:', error);
+        logger.error('Batch analysis error', { error: error?.message });
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
