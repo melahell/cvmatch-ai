@@ -355,4 +355,3 @@ export default function CVListPage() {
         </DashboardLayout>
     );
 }
-// Force rebuild Wed Jan 21 01:47:38 CET 2026
