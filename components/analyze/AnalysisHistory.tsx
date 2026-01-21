@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, DataListCard, DataListContent, DataListRow, DataListMain, DataListActions } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScoreBadge, ScoreIndicator, ScoreLegend } from "@/components/ui/ScoreBadge";
@@ -122,33 +122,28 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
             ) : (
                 <div className="space-y-2">
                     {filteredAnalyses.map(analysis => (
-                        <Card key={analysis.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-3 sm:p-4">
-                                <div className="flex items-center gap-3 sm:gap-4">
-                                    {/* Score Indicator */}
-                                    <ScoreIndicator score={analysis.match_score} />
-
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-sm sm:text-base text-slate-800 truncate">
-                                            {analysis.job_title}
-                                        </h3>
-                                        <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2 mt-0.5">
-                                            {analysis.company && (
-                                                <span className="truncate">🏢 {analysis.company}</span>
-                                            )}
-                                            <span className="flex items-center gap-1">
-                                                <Calendar className="w-3 h-3" />
-                                                {formatDate(analysis.submitted_at)}
-                                            </span>
-                                        </p>
-                                    </div>
-
-                                    {/* Score Badge */}
-                                    <ScoreBadge score={analysis.match_score} />
-
-                                    {/* Actions */}
-                                    <div className="flex items-center gap-1">
+                        <DataListCard key={analysis.id}>
+                            <DataListContent className="p-3 sm:p-4">
+                                <DataListRow>
+                                    <DataListMain className="flex items-center gap-3 sm:gap-4">
+                                        <ScoreIndicator score={analysis.match_score} />
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-semibold text-sm sm:text-base text-slate-800 truncate">
+                                                {analysis.job_title}
+                                            </h3>
+                                            <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2 mt-0.5">
+                                                {analysis.company && (
+                                                    <span className="truncate">🏢 {analysis.company}</span>
+                                                )}
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3" />
+                                                    {formatDate(analysis.submitted_at)}
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <ScoreBadge score={analysis.match_score} />
+                                    </DataListMain>
+                                    <DataListActions>
                                         <Button
                                             size="sm"
                                             variant="outline"
@@ -167,10 +162,10 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
                                                 </Button>
                                             </a>
                                         )}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                    </DataListActions>
+                                </DataListRow>
+                            </DataListContent>
+                        </DataListCard>
                     ))}
                 </div>
             )}
