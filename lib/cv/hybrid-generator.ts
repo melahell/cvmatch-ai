@@ -93,24 +93,26 @@ async function generateRapidCV(
   options?: { fallback?: boolean; fallback_reason?: string }
 ): Promise<HybridGeneratorResult> {
   // Générer CV adapté directement
-  const adaptedContent = generateAdaptiveCV(ragData, jobOffer || null, themeId, userPrefs);
+  const adaptedContent = generateAdaptiveCV(ragData, jobOffer || null, themeId, {
+    include_photo: userPrefs.include_photo ?? true
+  });
 
   const generationTime = Date.now() - startTime;
 
   // Calculer quality indicators
   const detailedCount = adaptedContent.sections.experiences.filter(
-    (e) => e.format === "detailed"
+    (e: any) => e.format === "detailed"
   ).length;
 
   const totalAchievements = adaptedContent.sections.experiences.reduce(
-    (sum, e) => sum + e.content.achievements.length,
+    (sum: number, e: any) => sum + e.content.achievements.length,
     0
   );
 
   const avgRelevanceScore =
     adaptedContent.sections.experiences.length > 0
-      ? adaptedContent.sections.experiences.reduce((sum, e) => sum + e.relevance_score, 0) /
-        adaptedContent.sections.experiences.length
+      ? adaptedContent.sections.experiences.reduce((sum: number, e: any) => sum + e.relevance_score, 0) /
+      adaptedContent.sections.experiences.length
       : 0;
 
   const warnings = [...adaptedContent.warnings];
@@ -184,25 +186,27 @@ async function generateOptimizedCV(
       optimizedRAGData,
       jobOffer || null,
       themeId,
-      userPrefs
+      {
+        include_photo: userPrefs.include_photo ?? true
+      }
     );
 
     const totalTime = Date.now() - startTime;
 
     // Calculer quality indicators
     const detailedCount = adaptedContent.sections.experiences.filter(
-      (e) => e.format === "detailed"
+      (e: any) => e.format === "detailed"
     ).length;
 
     const totalAchievements = adaptedContent.sections.experiences.reduce(
-      (sum, e) => sum + e.content.achievements.length,
+      (sum: number, e: any) => sum + e.content.achievements.length,
       0
     );
 
     const avgRelevanceScore =
       adaptedContent.sections.experiences.length > 0
-        ? adaptedContent.sections.experiences.reduce((sum, e) => sum + e.relevance_score, 0) /
-          adaptedContent.sections.experiences.length
+        ? adaptedContent.sections.experiences.reduce((sum: number, e: any) => sum + e.relevance_score, 0) /
+        adaptedContent.sections.experiences.length
         : 0;
 
     return {

@@ -128,20 +128,20 @@ export async function GET(req: NextRequest) {
     const generationTime = Date.now() - startTime;
 
     const detailedCount = adaptedContent.sections.experiences.filter(
-      (e) => e.format === "detailed"
+      (e: any) => e.format === "detailed"
     ).length;
 
     const totalAchievements = adaptedContent.sections.experiences.reduce(
-      (sum, e) => sum + e.content.achievements.length,
+      (sum: number, e: any) => sum + e.content.achievements.length,
       0
     );
 
     const avgRelevanceScore =
       adaptedContent.sections.experiences.length > 0
         ? adaptedContent.sections.experiences.reduce(
-            (sum, e) => sum + e.relevance_score,
-            0
-          ) / adaptedContent.sections.experiences.length
+          (sum: number, e: any) => sum + e.relevance_score,
+          0
+        ) / adaptedContent.sections.experiences.length
         : 0;
 
     const utilizationRate =
