@@ -98,7 +98,7 @@ async function launchBrowser(): Promise<Browser> {
     return await puppeteer.launch({
       args: chromium.args,
       executablePath: await chromium.executablePath(),
-      headless: chromium.headless
+      headless: (chromium as any).headless
     });
   } else {
     // Environnement local (development)

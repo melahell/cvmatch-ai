@@ -9,7 +9,7 @@ import Handlebars from "handlebars";
 import fs from "fs";
 import path from "path";
 import { AdaptedContent, ThemeId } from "./types";
-import { getTheme } from "./theme-configs";
+import { getThemeConfig } from "./theme-configs";
 
 // Register Handlebars helpers
 Handlebars.registerHelper("eq", function (a, b) {
@@ -46,7 +46,7 @@ export async function generateHTML(
   adaptedContent: AdaptedContent,
   themeId: ThemeId
 ): Promise<string> {
-  const theme = getTheme(themeId);
+  const theme = getThemeConfig(themeId);
 
   // Préparer les données pour le template
   const templateData = prepareTemplateData(adaptedContent, theme);
@@ -119,9 +119,9 @@ function prepareTemplateData(adaptedContent: AdaptedContent, theme: any) {
     // Summary
     summary: sections.summary.content
       ? {
-          format: sections.summary.content.format,
-          text: sections.summary.content.text
-        }
+        format: sections.summary.content.format,
+        text: sections.summary.content.text
+      }
       : null,
 
     // Experiences

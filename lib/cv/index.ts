@@ -6,16 +6,21 @@
 export * from "./types";
 
 // Configuration
-export * from "./content-units-reference";
-export * from "./theme-configs";
+export {
+  CONTENT_UNITS_REFERENCE,
+  getUnitHeight,
+  bestExperienceFormat,
+  experienceFormatHeight,
+  fitsInRemaining,
+  maxItemsInCapacity
+} from "./content-units-reference";
+export { CV_THEMES, getThemeConfig } from "./theme-configs";
 
 // Algorithme principal
 export {
   generateAdaptiveCV,
-  generateMultiThemeVariants,
-  getThemeCapacitySummary,
-  recommendTheme,
-  type ThemeCapacitySummary
+  adaptCVToThemeUnits,
+  type CVAdaptationResult
 } from "./adaptive-algorithm";
 
 // Utilitaires
