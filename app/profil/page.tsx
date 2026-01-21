@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertTriangle } from "lucide-react";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 
 export default function ProfilPage() {
     const router = useRouter();
@@ -33,10 +34,14 @@ export default function ProfilPage() {
         setLoading(true);
 
         try {
+            // ✅ SECURITY FIX: Send Bearer token instead of userId in body
+            const authHeader = await getSupabaseAuthHeader();
             const response = await fetch("/api/rag/reset", {
                 method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId })
+                headers: {
+                    "Content-Type": "application/json",
+                    ...authHeader
+                }
             });
 
             if (response.ok) {
@@ -64,10 +69,14 @@ export default function ProfilPage() {
         setLoading(true);
 
         try {
+            // ✅ SECURITY FIX: Send Bearer token instead of userId in body
+            const authHeader = await getSupabaseAuthHeader();
             const response = await fetch("/api/user/delete", {
                 method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId })
+                headers: {
+                    "Content-Type": "application/json",
+                    ...authHeader
+                }
             });
 
             if (response.ok) {

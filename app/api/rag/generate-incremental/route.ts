@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, requireSupabaseUser } from "@/lib/supabase";
 import { getRAGExtractionPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
@@ -30,16 +30,23 @@ async function callWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promi
  * Compatible with Vercel Free plan (10s max)
  */
 export async function POST(req: Request) {
+    // ✅ SECURITY FIX: Authenticate user via Bearer token
+    const { user, error: authError } = await requireSupabaseUser(req);
+    if (authError || !user) {
+        return NextResponse.json({ error: "Non autorisé. Reconnectez-vous." }, { status: 401 });
+    }
+
+    const userId = user.id; // Use authenticated user ID
     const supabase = createSupabaseClient();
     const startTime = Date.now();
 
     try {
-        const { userId, documentId, mode, isFirstDocument } = await req.json();
+        const { documentId, mode, isFirstDocument } = await req.json();
         // mode: "completion" | "regeneration" (default: completion)
         // isFirstDocument: true if this is the first document being processed
 
-        if (!userId || !documentId) {
-            return NextResponse.json({ error: "Missing userId or documentId" }, { status: 400 });
+        if (!documentId) {
+            return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
         }
 
         logger.info(`Incremental RAG generation`, {

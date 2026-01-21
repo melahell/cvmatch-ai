@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { AnalysisHistory } from "@/components/analyze/AnalysisHistory";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 
 type Mode = "url" | "text" | "file";
 
@@ -211,12 +212,15 @@ export default function AnalyzePage() {
                     reader.readAsDataURL(file);
                 });
 
-                // Send to API with file data
+                // ✅ SECURITY FIX: Send Bearer token instead of userId in body
+                const authHeader = await getSupabaseAuthHeader();
                 const res = await fetch("/api/match/analyze", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...authHeader
+                    },
                     body: JSON.stringify({
-                        userId,
                         fileData: base64,
                         fileName: file.name,
                         fileType: file.type
@@ -232,11 +236,15 @@ export default function AnalyzePage() {
                 return;
             }
 
+            // ✅ SECURITY FIX: Send Bearer token instead of userId in body
+            const authHeader = await getSupabaseAuthHeader();
             const res = await fetch("/api/match/analyze", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...authHeader
+                },
                 body: JSON.stringify({
-                    userId,
                     jobUrl: mode === "url" ? url : undefined,
                     jobText: mode === "text" ? text : undefined,
                 }),

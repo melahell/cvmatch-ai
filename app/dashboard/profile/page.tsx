@@ -25,7 +25,7 @@ import { WeightTab } from "@/components/profile/WeightTab";
 import { AdvancedTab } from "@/components/profile/AdvancedTab";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
 import { toast } from "sonner";
@@ -192,11 +192,15 @@ function ProfileContent() {
                 setRegenProgress(Math.round((processed / totalDocs) * 100));
                 logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`, { mode, isFirstDocument });
 
+                // ✅ SECURITY FIX: Send Bearer token instead of userId in body
+                const authHeader = await getSupabaseAuthHeader();
                 const res = await fetch("/api/rag/generate-incremental", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...authHeader
+                    },
                     body: JSON.stringify({
-                        userId,
                         documentId: doc.id,
                         mode, // "completion" or "regeneration"
                         isFirstDocument // true only for first doc when regenerating

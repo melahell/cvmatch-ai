@@ -6,7 +6,7 @@ import { Loader2, Upload, CheckCircle, FileText, ArrowRight, Camera, Info, Exter
 import Cookies from "js-cookie";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
 
@@ -108,10 +108,15 @@ export default function OnboardingPage() {
             setProcessing(true);
 
             // 2. Generate RAG
+            // ✅ SECURITY FIX: Send Bearer token instead of userId in body
+            const authHeader = await getSupabaseAuthHeader();
             const generateRes = await fetch("/api/rag/generate", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId }),
+                headers: {
+                    "Content-Type": "application/json",
+                    ...authHeader
+                },
+                body: JSON.stringify({ mode: "creation" }),
             });
 
             if (!generateRes.ok) throw new Error("Generation failed");

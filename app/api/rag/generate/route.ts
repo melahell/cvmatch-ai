@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, requireSupabaseUser } from "@/lib/supabase";
 import { getRAGExtractionPrompt, getTopJobsPrompt } from "@/lib/ai/prompts";
 import { getDocumentProxy, extractText } from "unpdf";
 import { validateRAGData, formatValidationReport } from "@/lib/rag/validation";
@@ -41,6 +41,13 @@ async function callWithRetry<T>(
 }
 
 export async function POST(req: Request) {
+    // ✅ SECURITY FIX: Authenticate user via Bearer token
+    const { user, error: authError } = await requireSupabaseUser(req);
+    if (authError || !user) {
+        return NextResponse.json({ error: "Non autorisé. Reconnectez-vous." }, { status: 401 });
+    }
+
+    const userId = user.id; // Use authenticated user ID
     const supabase = createSupabaseClient();
 
     // Check API key first
@@ -53,15 +60,11 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     try {
-        const { userId, mode } = await req.json();
+        const { mode } = await req.json();
         // mode: "creation" | "completion" | "regeneration" | undefined
         // - creation: First time RAG generation (no existing RAG)
         // - completion: Add to existing RAG (smart merge - default)
         // - regeneration: Overwrite existing RAG completely
-
-        if (!userId) {
-            return NextResponse.json({ error: "Missing userId" }, { status: 400 });
-        }
 
         console.log(`[RAG GENERATE] Mode: ${mode || "auto"}, User: ${userId}`);
 
