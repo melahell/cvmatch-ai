@@ -10,6 +10,151 @@ import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scori
 
 export const runtime = "nodejs";
 
+type MatchContextSelection = {
+    selectedStrengthIndexes?: number[];
+    selectedMissingKeywords?: string[];
+    selectedPreparationChecklistIndexes?: number[];
+    selectedSellingPointsIndexes?: number[];
+    extraInstructions?: string;
+};
+
+const MAX_SELECTED_ITEMS = 25;
+const MAX_EXTRA_INSTRUCTIONS_CHARS = 800;
+
+const toIntArray = (value: unknown): number[] => {
+    if (!Array.isArray(value)) return [];
+    const unique = new Set<number>();
+    for (const raw of value) {
+        const n = typeof raw === "number" ? raw : Number(raw);
+        if (!Number.isFinite(n) || n < 0) continue;
+        unique.add(Math.floor(n));
+        if (unique.size >= MAX_SELECTED_ITEMS) break;
+    }
+    return Array.from(unique);
+};
+
+const toStringArray = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+    const unique = new Set<string>();
+    for (const raw of value) {
+        const s = (typeof raw === "string" ? raw : String(raw)).trim();
+        if (!s) continue;
+        unique.add(s);
+        if (unique.size >= MAX_SELECTED_ITEMS) break;
+    }
+    return Array.from(unique);
+};
+
+const normalizeMatchSelection = (value: unknown): Required<MatchContextSelection> => {
+    const raw = (value && typeof value === "object") ? (value as MatchContextSelection) : {};
+    const extra = typeof raw.extraInstructions === "string" ? raw.extraInstructions.trim() : "";
+    return {
+        selectedStrengthIndexes: toIntArray(raw.selectedStrengthIndexes),
+        selectedMissingKeywords: toStringArray(raw.selectedMissingKeywords),
+        selectedPreparationChecklistIndexes: toIntArray(raw.selectedPreparationChecklistIndexes),
+        selectedSellingPointsIndexes: toIntArray(raw.selectedSellingPointsIndexes),
+        extraInstructions: extra.length > MAX_EXTRA_INSTRUCTIONS_CHARS ? extra.slice(0, MAX_EXTRA_INSTRUCTIONS_CHARS) : extra,
+    };
+};
+
+const buildSelectedMatchReportForCV = (
+    analysisData: any,
+    selection: Required<MatchContextSelection>
+): {
+    match_score?: number;
+    strengths?: Array<{ point: string; match_percent?: number }>;
+    missing_keywords?: string[];
+    coaching_tips?: { preparation_checklist?: string[]; key_selling_points?: string[] };
+} | null => {
+    const matchReport = analysisData?.match_report || {};
+    const strengths = Array.isArray(matchReport?.strengths) ? matchReport.strengths : [];
+    const missingKeywords = Array.isArray(matchReport?.missing_keywords) ? matchReport.missing_keywords : [];
+    const coachingTips = matchReport?.coaching_tips || {};
+    const prep = Array.isArray(coachingTips?.preparation_checklist) ? coachingTips.preparation_checklist : [];
+    const selling = Array.isArray(coachingTips?.key_selling_points) ? coachingTips.key_selling_points : [];
+
+    const selectedStrengths = selection.selectedStrengthIndexes
+        .map((idx) => strengths[idx])
+        .filter(Boolean)
+        .map((s: any) => ({ point: String(s.point || "").trim(), match_percent: s.match_percent }))
+        .filter((s: any) => s.point);
+
+    const allowedKeywords = new Set(missingKeywords.map((k: any) => String(k).trim()).filter(Boolean));
+    const selectedKeywords = selection.selectedMissingKeywords
+        .map((k) => k.trim())
+        .filter((k) => allowedKeywords.has(k));
+
+    const selectedPrep = selection.selectedPreparationChecklistIndexes
+        .map((idx) => prep[idx])
+        .filter(Boolean)
+        .map((v: any) => String(v).trim())
+        .filter(Boolean);
+
+    const selectedSelling = selection.selectedSellingPointsIndexes
+        .map((idx) => selling[idx])
+        .filter(Boolean)
+        .map((v: any) => String(v).trim())
+        .filter(Boolean);
+
+    const hasAny = selectedStrengths.length > 0 || selectedKeywords.length > 0 || selectedPrep.length > 0 || selectedSelling.length > 0;
+    if (!hasAny) return null;
+
+    const payload: any = {
+        match_score: typeof analysisData?.match_score === "number" ? analysisData.match_score : undefined,
+        strengths: selectedStrengths.length > 0 ? selectedStrengths : undefined,
+        missing_keywords: selectedKeywords.length > 0 ? selectedKeywords : undefined,
+    };
+
+    if (selectedPrep.length > 0 || selectedSelling.length > 0) {
+        payload.coaching_tips = {
+            preparation_checklist: selectedPrep.length > 0 ? selectedPrep : undefined,
+            key_selling_points: selectedSelling.length > 0 ? selectedSelling : undefined,
+        };
+    }
+
+    return payload;
+};
+
+const buildBoosterTrace = (analysisData: any, selection: Required<MatchContextSelection>) => {
+    const matchReport = analysisData?.match_report || {};
+    const strengths = Array.isArray(matchReport?.strengths) ? matchReport.strengths : [];
+    const missingKeywords = Array.isArray(matchReport?.missing_keywords) ? matchReport.missing_keywords : [];
+    const coachingTips = matchReport?.coaching_tips || {};
+    const prep = Array.isArray(coachingTips?.preparation_checklist) ? coachingTips.preparation_checklist : [];
+    const selling = Array.isArray(coachingTips?.key_selling_points) ? coachingTips.key_selling_points : [];
+
+    const selectedStrengths = selection.selectedStrengthIndexes
+        .map((idx) => strengths[idx])
+        .filter(Boolean)
+        .map((s: any) => String(s.point || "").trim())
+        .filter(Boolean);
+
+    const allowedKeywords = new Set(missingKeywords.map((k: any) => String(k).trim()).filter(Boolean));
+    const selectedKeywords = selection.selectedMissingKeywords
+        .map((k) => k.trim())
+        .filter((k) => allowedKeywords.has(k));
+
+    const selectedPrep = selection.selectedPreparationChecklistIndexes
+        .map((idx) => prep[idx])
+        .filter(Boolean)
+        .map((v: any) => String(v).trim())
+        .filter(Boolean);
+
+    const selectedSelling = selection.selectedSellingPointsIndexes
+        .map((idx) => selling[idx])
+        .filter(Boolean)
+        .map((v: any) => String(v).trim())
+        .filter(Boolean);
+
+    return {
+        selected_strengths: selectedStrengths,
+        selected_missing_keywords: selectedKeywords,
+        selected_preparation_checklist: selectedPrep,
+        selected_selling_points: selectedSelling,
+        extra_instructions: selection.extraInstructions || null,
+    };
+};
+
 export async function POST(req: Request) {
     try {
         const generationStartMs = Date.now();
@@ -18,8 +163,15 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
         }
 
-        const { analysisId, template, includePhoto = true } = await req.json();
+        const { analysisId, template, includePhoto = true, matchContextSelection } = await req.json();
         const userId = auth.user.id;
+        const selection = normalizeMatchSelection(matchContextSelection);
+        const hasSelectionOrExtra =
+            selection.selectedStrengthIndexes.length > 0 ||
+            selection.selectedMissingKeywords.length > 0 ||
+            selection.selectedPreparationChecklistIndexes.length > 0 ||
+            selection.selectedSellingPointsIndexes.length > 0 ||
+            !!selection.extraInstructions;
 
         if (!analysisId) {
             return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -47,15 +199,17 @@ export async function POST(req: Request) {
         }
 
         // Check cache: if CV already generated for this analysis + template, return it
-        const { data: cachedCV, error: cacheError } = await supabase
-            .from("cv_generations")
-            .select("id, cv_data, template_name, created_at")
-            .eq("user_id", userId)
-            .eq("job_analysis_id", analysisId)
-            .eq("template_name", template || "modern")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        const { data: cachedCV, error: cacheError } = hasSelectionOrExtra
+            ? { data: null as any, error: null as any }
+            : await supabase
+                .from("cv_generations")
+                .select("id, cv_data, template_name, created_at")
+                .eq("user_id", userId)
+                .eq("job_analysis_id", analysisId)
+                .eq("template_name", template || "modern")
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle();
 
         if (cachedCV && !cacheError) {
             const cacheAge = Date.now() - new Date(cachedCV.created_at).getTime();
@@ -122,6 +276,8 @@ export async function POST(req: Request) {
         const ragProfile = normalizeRAGData(ragData.completeness_details);
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
+        const selectedMatchReport = buildSelectedMatchReportForCV(analysisData, selection);
+        const boosterTrace = hasSelectionOrExtra ? buildBoosterTrace(analysisData, selection) : null;
 
         const ragProfil = (ragProfile as any)?.profil || {};
         const ragContact = ragProfil?.contact || {};
@@ -130,7 +286,9 @@ export async function POST(req: Request) {
         const photoValue = includePhoto && photoRef ? photoRef : null;
 
         // 2. Generate CV with AI (with retry logic)
-        const prompt = getCVOptimizationPrompt(ragProfile, jobDescription, customNotes);
+        const extraNotes = selection.extraInstructions ? `Instructions utilisateur pour ce CV:\n${selection.extraInstructions}` : "";
+        const mergedNotes = [customNotes, extraNotes].filter(Boolean).join("\n\n");
+        const prompt = getCVOptimizationPrompt(ragProfile, jobDescription, mergedNotes, selectedMatchReport || undefined);
 
         console.log("=== CV GENERATION START ===");
 
@@ -233,6 +391,7 @@ export async function POST(req: Request) {
             formats_used: formatsUsed,
             relevance_scoring_applied: !!jobOfferContext,
             job_title: analysisData.job_title || null,
+            match_booster: boosterTrace || undefined,
         };
 
         // 4. Save Generated CV

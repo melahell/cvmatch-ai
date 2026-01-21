@@ -396,6 +396,7 @@ ANALYSE DE MATCH AVEC L'OFFRE :
 - Score de correspondance : ${context.matchReport.match_score || 'N/A'}%
 - Forces identifiées : ${JSON.stringify(context.matchReport.strengths?.map((s: any) => s.point) || [])}
 - Keywords manquants : ${JSON.stringify(context.matchReport.missing_keywords || [])}
+${context.matchReport.coaching_tips ? `- Boosters sélectionnés : ${JSON.stringify(context.matchReport.coaching_tips)}` : ''}
 ` : ''}
 
 OFFRE D'EMPLOI CIBLÉE :
@@ -638,7 +639,7 @@ export const getCVOptimizationPromptV2 = (context: CVPromptContext): string => {
  * WRAPPER pour compatibilité avec l'ancienne API
  * TODO: Migrer progressivement vers getCVOptimizationPromptV2
  */
-export const getCVOptimizationPrompt = (profile: any, jobDescription: string, customNotes?: string) => {
+export const getCVOptimizationPrompt = (profile: any, jobDescription: string, customNotes?: string, matchReport?: any) => {
   // Détecter la séniorité depuis les expériences
   const experiences = profile.experiences || [];
   let totalMonths = 0;
@@ -670,6 +671,7 @@ export const getCVOptimizationPrompt = (profile: any, jobDescription: string, cu
     profile,
     jobDescription,
     customNotes,
+    matchReport,
     seniorityLevel,
     sectorProfile,
     totalYearsExperience: totalYears
@@ -677,4 +679,3 @@ export const getCVOptimizationPrompt = (profile: any, jobDescription: string, cu
 
   return getCVOptimizationPromptV2(context);
 };
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import {
@@ -9,15 +9,25 @@ import {
     Lightbulb, TrendingUp, Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { useRAGData } from "@/hooks/useRAGData";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
 import Cookies from "js-cookie";
 import { JobAnalysis } from "@/types";
+
+type BoosterSelectionState = {
+    selectedStrengthIndexes: number[];
+    selectedMissingKeywords: string[];
+    selectedPreparationChecklistIndexes: number[];
+    selectedSellingPointsIndexes: number[];
+    extraInstructions: string;
+};
 
 export default function MatchResultPage() {
     const { id } = useParams();
@@ -27,6 +37,16 @@ export default function MatchResultPage() {
     const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
     const [generatingCV, setGeneratingCV] = useState(false);
     const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
+    const [booster, setBooster] = useState<BoosterSelectionState>({
+        selectedStrengthIndexes: [],
+        selectedMissingKeywords: [],
+        selectedPreparationChecklistIndexes: [],
+        selectedSellingPointsIndexes: [],
+        extraInstructions: "",
+    });
+    const handleBoosterSelectionReady = useCallback((s: BoosterSelectionState) => {
+        setBooster(s);
+    }, []);
 
     // Get user's photo for template selector
     const userId = Cookies.get("userId") || null;
@@ -72,7 +92,7 @@ export default function MatchResultPage() {
         fetchAnalysis();
     }, [id]);
 
-    const handleGenerateCV = async (templateId: string, includePhoto: boolean) => {
+    const handleGenerateCVWithSelection = async (templateId: string, includePhoto: boolean) => {
         setTemplateSelectorOpen(false);
         setGeneratingCV(true);
 
@@ -84,7 +104,8 @@ export default function MatchResultPage() {
                 body: JSON.stringify({
                     analysisId: id,
                     template: templateId,
-                    includePhoto: includePhoto
+                    includePhoto: includePhoto,
+                    matchContextSelection: booster,
                 }),
             });
 
@@ -543,6 +564,9 @@ export default function MatchResultPage() {
                     </Card>
                 )}
 
+                {/* OPTIONAL BOOSTER - USER SELECTION */}
+                <BoosterSelection analysis={analysis} onSelectionReady={handleBoosterSelectionReady} />
+
                 {/* ACTION AREA */}
                 <div className="flex flex-col items-center gap-3 sm:gap-4 p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl border border-blue-100 dark:border-blue-800">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
@@ -584,9 +608,128 @@ export default function MatchResultPage() {
             <TemplateSelector
                 isOpen={templateSelectorOpen}
                 onClose={() => setTemplateSelectorOpen(false)}
-                onSelect={handleGenerateCV}
+                onSelect={(tpl, incPhoto) => handleGenerateCVWithSelection(tpl, incPhoto)}
                 currentPhoto={ragData?.photo_url}
             />
         </DashboardLayout>
+    );
+}
+
+function BoosterSelection({ analysis, onSelectionReady }: { analysis: any, onSelectionReady: (s: BoosterSelectionState) => void }) {
+    const matchReport = analysis?.match_report || {};
+    const strengths = matchReport.strengths || [];
+    const missingKeywords = matchReport.missing_keywords || [];
+    const coachingTips = matchReport.coaching_tips || {};
+    const preparationChecklist = coachingTips.preparation_checklist || [];
+    const sellingPoints = coachingTips.key_selling_points || [];
+
+    const [strengthsSel, setStrengthsSel] = useState<number[]>([]);
+    const [keywordsSel, setKeywordsSel] = useState<string[]>([]);
+    const [prepSel, setPrepSel] = useState<number[]>([]);
+    const [sellSel, setSellSel] = useState<number[]>([]);
+    const [extra, setExtra] = useState<string>("");
+
+    useEffect(() => {
+        onSelectionReady({
+            selectedStrengthIndexes: strengthsSel,
+            selectedMissingKeywords: keywordsSel,
+            selectedPreparationChecklistIndexes: prepSel,
+            selectedSellingPointsIndexes: sellSel,
+            extraInstructions: extra.trim(),
+        });
+    }, [strengthsSel, keywordsSel, prepSel, sellSel, extra, onSelectionReady]);
+
+    return (
+        <div className="mb-6">
+            <Card className="border-blue-200 bg-white dark:bg-slate-900 dark:border-slate-800">
+                <CardHeader>
+                    <CardTitle className="text-blue-900 dark:text-blue-200">Booster le CV (optionnel)</CardTitle>
+                    <CardDescription>Sélectionne exactement ce que tu veux injecter. Par défaut, rien n’est coché.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {/* Keywords */}
+                    <div>
+                        <h4 className="font-semibold text-sm mb-2 text-slate-800 dark:text-slate-200">Mots-clés ATS</h4>
+                        <div className="flex flex-wrap gap-2">
+                            {missingKeywords.map((kw: string, i: number) => {
+                                const checked = keywordsSel.includes(kw);
+                                return (
+                                    <label key={i} className="flex items-center gap-2 px-2 py-1 border rounded">
+                                        <Checkbox checked={checked} onCheckedChange={(c) => {
+                                            setKeywordsSel((prev) => c === true ? [...prev, kw] : prev.filter(k => k !== kw));
+                                        }} />
+                                        <span className="text-sm">{kw}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Strengths */}
+                    <div>
+                        <h4 className="font-semibold text-sm mb-2 text-slate-800 dark:text-slate-200">Points Forts</h4>
+                        <div className="space-y-2">
+                            {strengths.map((s: any, idx: number) => {
+                                const checked = strengthsSel.includes(idx);
+                                return (
+                                    <label key={idx} className="flex items-center gap-2">
+                                        <Checkbox checked={checked} onCheckedChange={(c) => {
+                                            setStrengthsSel((prev) => c === true ? [...prev, idx] : prev.filter(id => id !== idx));
+                                        }} />
+                                        <span className="text-sm">{s.point}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Preparation Checklist (ex: traduire vocabulaire) */}
+                    <div>
+                        <h4 className="font-semibold text-sm mb-2 text-slate-800 dark:text-slate-200">Préparation – Checklist</h4>
+                        <div className="space-y-2">
+                            {preparationChecklist.map((item: string, idx: number) => {
+                                const checked = prepSel.includes(idx);
+                                return (
+                                    <label key={idx} className="flex items-center gap-2">
+                                        <Checkbox checked={checked} onCheckedChange={(c) => {
+                                            setPrepSel((prev) => c === true ? [...prev, idx] : prev.filter(id => id !== idx));
+                                        }} />
+                                        <span className="text-sm">{item}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Selling points */}
+                    <div>
+                        <h4 className="font-semibold text-sm mb-2 text-slate-800 dark:text-slate-200">Arguments clés</h4>
+                        <div className="space-y-2">
+                            {sellingPoints.map((item: string, idx: number) => {
+                                const checked = sellSel.includes(idx);
+                                return (
+                                    <label key={idx} className="flex items-center gap-2">
+                                        <Checkbox checked={checked} onCheckedChange={(c) => {
+                                            setSellSel((prev) => c === true ? [...prev, idx] : prev.filter(id => id !== idx));
+                                        }} />
+                                        <span className="text-sm">{item}</span>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Extra instructions */}
+                    <div>
+                        <h4 className="font-semibold text-sm mb-2 text-slate-800 dark:text-slate-200">Instruction libre (optionnel)</h4>
+                        <Textarea
+                            value={extra}
+                            onChange={(e) => setExtra(e.target.value)}
+                            placeholder="Ex: adapter le vocabulaire au secteur (banque), intégrer 'leasing' et 'factoring' en termes usuels."
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
