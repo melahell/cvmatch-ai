@@ -17,6 +17,8 @@ import { fr } from "date-fns/locale";
 import { createSupabaseClient } from "@/lib/supabase";
 import { toast } from "sonner";
 
+export const dynamic = "force-dynamic";
+
 export default function CVListPage() {
     const { userId, isLoading: authLoading } = useAuth();
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
