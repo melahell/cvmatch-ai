@@ -10,6 +10,14 @@ import {
     logMatchAnalysisError,
     logEnrichmentMissing
 } from "@/lib/logging/match-analysis-logger";
+import {
+    startMatchAnalysisTrace,
+    recordMatchAnalysisSuccess,
+    recordMatchAnalysisError,
+    recordValidationFailure,
+    traceAIModelCall,
+    calculateAnalysisCost
+} from "@/lib/telemetry/match-analysis";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -18,9 +26,18 @@ export async function POST(req: Request) {
     const supabase = createSupabaseClient();
     const startTime = Date.now(); // Pour tracking performance
 
+    // 🔭 Start OpenTelemetry trace
+    let span: any = null;
+    let body: any = null;
+    let userId: string | undefined;
+    let jobUrl: string | undefined;
+    let jobText: string | undefined;
+    let fileData: string | undefined;
+
     try {
-        const body = await req.json();
-        const { userId, jobUrl, jobText, fileData, fileName, fileType } = body;
+        body = await req.json();
+        ({ userId, jobUrl, jobText, fileData } = body);
+        const { fileName, fileType } = body;
 
         if (!userId) {
             return NextResponse.json({ error: "Utilisateur non identifié." }, { status: 400 });
@@ -114,18 +131,36 @@ export async function POST(req: Request) {
         const jobTitleHint = fullJobText.substring(0, 100); // First 100 chars as hint
         logMatchAnalysisStart(userId, jobTitleHint, source);
 
+        // 🔭 Initialize OpenTelemetry span
+        span = startMatchAnalysisTrace({
+            userId,
+            source,
+            jobTitle: jobTitleHint
+        });
+
         // 3. Analyze Match with Gemini cascade
         const prompt = getMatchAnalysisPrompt(ragData.completeness_details, fullJobText);
 
         let result;
         let modelUsed;
         try {
-            const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
+            // 🔭 Trace AI model call with OpenTelemetry
+            const cascadeResult = await traceAIModelCall(
+                'gemini-cascade',
+                'analysis',
+                () => callWithRetry(() => generateWithCascade(prompt))
+            );
             result = cascadeResult.result;
             modelUsed = cascadeResult.modelUsed;
             console.log(`Match analysis with: ${modelUsed}`);
         } catch (err: any) {
             logMatchAnalysisError(userId, err, 'analysis', { modelUsed });
+
+            // 🔭 Record telemetry error
+            if (span) {
+                recordMatchAnalysisError(span, err, 'analysis', { userId, source, modelUsed });
+            }
+
             console.error("All models failed:", err.message);
             return NextResponse.json({
                 error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
@@ -157,6 +192,14 @@ export async function POST(req: Request) {
                 modelUsed
             );
 
+            // 🔭 Record validation failure in telemetry
+            const missingFieldsForTelemetry: string[] = [];
+            if (!matchData.salary_estimate) missingFieldsForTelemetry.push('salary_estimate');
+            if (!matchData.coaching_tips) missingFieldsForTelemetry.push('coaching_tips');
+            if (missingFieldsForTelemetry.length > 0) {
+                recordValidationFailure(modelUsed, missingFieldsForTelemetry);
+            }
+
             // Si validation échoue mais données basiques présentes, continuer quand même
             // L'enrichissement (salary/coaching) est optionnel
             if (!matchData.match_score || !matchData.strengths || !matchData.job_title) {
@@ -166,6 +209,16 @@ export async function POST(req: Request) {
                     'validation',
                     { modelUsed }
                 );
+
+                // 🔭 Record telemetry error
+                if (span) {
+                    recordMatchAnalysisError(
+                        span,
+                        new Error(validation.error),
+                        'validation',
+                        { userId, source, modelUsed }
+                    );
+                }
 
                 return NextResponse.json({
                     error: "L'IA n'a pas pu analyser correctement cette offre. Réessayez.",
@@ -231,6 +284,20 @@ export async function POST(req: Request) {
 
         // 📊 Log success avec métriques
         const durationMs = Date.now() - startTime;
+
+        // 💰 Calculate estimated cost (approximate token counts)
+        const estimatedInputTokens = Math.ceil(
+            (JSON.stringify(ragData.completeness_details).length + fullJobText.length) / 4
+        );
+        const estimatedOutputTokens = Math.ceil(
+            JSON.stringify(validatedData).length / 4
+        );
+        const costUsd = calculateAnalysisCost(
+            estimatedInputTokens,
+            estimatedOutputTokens,
+            modelUsed
+        );
+
         logMatchAnalysisSuccess(userId, insertData.id, {
             score: validatedData.match_score,
             jobTitle: extractedJobTitle || 'Unknown',
@@ -239,6 +306,20 @@ export async function POST(req: Request) {
             durationMs,
             modelUsed
         });
+
+        // 🔭 Record telemetry success with complete metrics
+        if (span) {
+            recordMatchAnalysisSuccess(span, {
+                userId,
+                source,
+                score: validatedData.match_score,
+                modelUsed,
+                hasEnrichment,
+                validationPassed: validation.success,
+                durationMs,
+                costUsd
+            });
+        }
 
         // Track missing enrichment if validation succeeded but fields absent
         if (validation.success && !hasEnrichment) {
@@ -262,6 +343,21 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error("Analyze Error:", error);
+
+        // 🔭 Record telemetry error if span exists
+        if (span) {
+            recordMatchAnalysisError(
+                span,
+                error,
+                'save',
+                {
+                    userId: body?.userId || 'unknown',
+                    source: (jobUrl ? 'url' : fileData ? 'file' : 'text') as 'url' | 'text' | 'file',
+                    modelUsed: undefined
+                }
+            );
+        }
+
         return NextResponse.json({ error: "Erreur inattendue. Réessayez." }, { status: 500 });
     }
 }

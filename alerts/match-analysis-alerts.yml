@@ -1,0 +1,154 @@
+# Prometheus Alert Rules for Match Analysis
+# Place this file in your Prometheus configuration directory
+
+groups:
+  - name: match_analysis_alerts
+    interval: 30s
+    rules:
+      # CRITICAL: High Error Rate
+      - alert: MatchAnalysisHighErrorRate
+        expr: |
+          (
+            sum(rate(match_analysis_error_total[5m]))
+            /
+            sum(rate(match_analysis_total[5m]))
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+          component: match-analysis
+        annotations:
+          summary: "Match analysis error rate above 10%"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 10%). Check logs and AI model availability."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#match-analysis-high-error-rate"
+
+      # WARNING: Validation Failures Increasing
+      - alert: MatchAnalysisValidationFailures
+        expr: |
+          sum(rate(match_analysis_validation_failed_total[10m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: match-analysis
+        annotations:
+          summary: "Frequent validation failures detected"
+          description: "{{ $value | printf \"%.2f\" }} validation failures per second. AI may be returning incomplete data."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#validation-failures"
+
+      # CRITICAL: Analysis Duration Too High
+      - alert: MatchAnalysisHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(match_analysis_duration_ms_bucket[5m])) by (le)) > 30000
+        for: 5m
+        labels:
+          severity: critical
+          component: match-analysis
+        annotations:
+          summary: "Match analysis p95 latency above 30s"
+          description: "p95 latency is {{ $value | printf \"%.0f\" }}ms (threshold: 30000ms). Check AI model performance."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#high-latency"
+
+      # WARNING: Low Enrichment Success Rate
+      - alert: MatchAnalysisLowEnrichmentRate
+        expr: |
+          (
+            sum(rate(match_analysis_total{has_enrichment="true"}[10m]))
+            /
+            sum(rate(match_analysis_total[10m]))
+          ) < 0.70
+        for: 10m
+        labels:
+          severity: warning
+          component: match-analysis
+        annotations:
+          summary: "Enrichment success rate below 70%"
+          description: "Only {{ $value | humanizePercentage }} of analyses include enrichment data (salary/coaching). Target: >70%."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#low-enrichment"
+
+      # CRITICAL: Cost Spike Detected
+      - alert: MatchAnalysisCostSpike
+        expr: |
+          (
+            sum(rate(match_analysis_cost_usd_sum[5m]))
+            /
+            sum(rate(match_analysis_cost_usd_count[5m]))
+          ) > 0.005
+        for: 5m
+        labels:
+          severity: warning
+          component: match-analysis
+        annotations:
+          summary: "Average analysis cost above $0.005"
+          description: "Average cost per analysis: ${{ $value | printf \"%.4f\" }} (threshold: $0.005). Check token usage."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#cost-spike"
+
+      # WARNING: No Analyses Processed
+      - alert: MatchAnalysisNoTraffic
+        expr: |
+          sum(rate(match_analysis_total[5m])) == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: match-analysis
+        annotations:
+          summary: "No match analyses processed in 10 minutes"
+          description: "Zero analyses detected. Check if API is receiving requests."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#no-traffic"
+
+      # WARNING: AI Model Cascade Fallback
+      - alert: MatchAnalysisModelFallback
+        expr: |
+          sum(rate(match_analysis_total{model!="gemini-2.0-flash-exp"}[5m]))
+          /
+          sum(rate(match_analysis_total[5m]))
+          > 0.30
+        for: 10m
+        labels:
+          severity: warning
+          component: match-analysis
+        annotations:
+          summary: "Primary AI model unavailable, using fallback"
+          description: "{{ $value | humanizePercentage }} of requests using fallback models. Check primary model availability."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#model-fallback"
+
+      # CRITICAL: Extraction Phase Failures
+      - alert: MatchAnalysisExtractionFailures
+        expr: |
+          sum(rate(match_analysis_error_total{phase="extraction"}[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          component: match-analysis
+        annotations:
+          summary: "High rate of extraction failures"
+          description: "{{ $value | printf \"%.2f\" }} extraction failures per second. Check scraping logic and AI model."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#extraction-failures"
+
+      # WARNING: Database Save Failures
+      - alert: MatchAnalysisSaveFailures
+        expr: |
+          sum(rate(match_analysis_error_total{phase="save"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: match-analysis
+        annotations:
+          summary: "Database save failures detected"
+          description: "{{ $value | printf \"%.2f\" }} save failures per second. Check Supabase connection."
+          runbook_url: "https://github.com/your-org/cvmatch/wiki/Runbooks#save-failures"
+
+# Slack notification configuration (add to Alertmanager config)
+# route:
+#   receiver: 'slack-prod-alerts'
+#   group_by: ['alertname', 'severity']
+#   group_wait: 30s
+#   group_interval: 5m
+#   repeat_interval: 12h
+#
+# receivers:
+#   - name: 'slack-prod-alerts'
+#     slack_configs:
+#       - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+#         channel: '#prod-alerts'
+#         title: '{{ .GroupLabels.alertname }}'
+#         text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
