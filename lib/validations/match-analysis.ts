@@ -5,25 +5,35 @@ import { z } from 'zod';
  * Used to validate AI-generated analysis before saving to DB
  */
 
-export const salaryRangeSchema = z.object({
+// Base schema without refine (for extending)
+const salaryRangeBaseSchema = z.object({
     min: z.number().positive('Salaire minimum doit être positif'),
     max: z.number().positive('Salaire maximum doit être positif'),
     currency: z.string().default('EUR'),
     periode: z.string().default('annuel'),
     context: z.string().optional(),
     justification: z.string().optional()
-}).refine(
+});
+
+// Add refine validation
+export const salaryRangeSchema = salaryRangeBaseSchema.refine(
     (data) => data.max >= data.min,
     { message: 'Max salary must be >= min salary', path: ['max'] }
 );
 
 export const salaryEstimateSchema = z.object({
-    market_range: salaryRangeSchema.extend({
+    market_range: salaryRangeBaseSchema.extend({
         context: z.string().min(10, 'Context requis')
-    }),
-    personalized_range: salaryRangeSchema.extend({
+    }).refine(
+        (data) => data.max >= data.min,
+        { message: 'Max salary must be >= min salary', path: ['max'] }
+    ),
+    personalized_range: salaryRangeBaseSchema.extend({
         justification: z.string().min(20, 'Justification requise')
-    }),
+    }).refine(
+        (data) => data.max >= data.min,
+        { message: 'Max salary must be >= min salary', path: ['max'] }
+    ),
     negotiation_tip: z.string().min(20, 'Conseil trop court')
 }).optional();
 
