@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AnalysisHistory } from "@/components/analyze/AnalysisHistory";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
@@ -260,11 +261,12 @@ export default function AnalyzePage() {
                     reader.readAsDataURL(file);
                 });
 
+                const authHeader = await getSupabaseAuthHeader();
+
                 const res = await fetch("/api/match/analyze", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", ...authHeader },
                     body: JSON.stringify({
-                        userId,
                         fileData: base64,
                         fileName: file.name,
                         fileType: file.type
@@ -273,6 +275,15 @@ export default function AnalyzePage() {
 
                 const data = await res.json();
                 if (!res.ok) {
+                    if (res.status === 401) {
+                        toast.error('Session expirée. Reconnectez-vous.');
+                        router.push('/login');
+                        return;
+                    }
+                    if (res.status === 429) {
+                        toast.error('Trop de requêtes. Réessayez dans 1 minute.');
+                        return;
+                    }
                     toast.error(data.error || 'Erreur lors de l\'analyse');
                     return;
                 }
@@ -280,11 +291,11 @@ export default function AnalyzePage() {
                 return;
             }
 
+            const authHeader = await getSupabaseAuthHeader();
             const res = await fetch("/api/match/analyze", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeader },
                 body: JSON.stringify({
-                    userId,
                     jobUrl: activeInput === 'url' ? url : undefined,
                     jobText: activeInput === 'text' ? text : undefined,
                 }),

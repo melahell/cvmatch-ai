@@ -269,7 +269,6 @@ export default function OnboardingPage() {
                                             alt="Preview"
                                             width={80}
                                             height={80}
-                                            unoptimized
                                             className="w-20 h-20 rounded-full object-cover border-2 border-blue-500"
                                         />
                                         <button

@@ -85,7 +85,14 @@ export const createSupabaseClient = (): SupabaseClient => {
     }
 
     const { supabaseUrl, supabaseKey } = getSupabasePublicEnv();
-    supabaseInstance = createClient(supabaseUrl, supabaseKey);
+    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true,
+            flowType: "pkce",
+        },
+    });
     return supabaseInstance;
 };
 
