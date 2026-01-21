@@ -48,6 +48,29 @@ export interface JobAnalysis {
         gaps: Array<{ point: string; severity: string; suggestion: string }>;
         missing_keywords: string[];
         key_insight: string;
+        salary_estimate?: {
+            market_range: {
+                min: number;
+                max: number;
+                currency: string;
+                periode: string;
+                context: string;
+            };
+            personalized_range: {
+                min: number;
+                max: number;
+                currency: string;
+                periode: string;
+                justification: string;
+            };
+            negotiation_tip: string;
+        };
+        coaching_tips?: {
+            approach_strategy: string;
+            key_selling_points: string[];
+            preparation_checklist: string[];
+            interview_focus: string;
+        };
     };
     submitted_at: string;
     application_status: "pending" | "applied" | "interviewing" | "rejected" | "offer";
@@ -56,6 +79,7 @@ export interface JobAnalysis {
     job_title?: string;
     cv_generated?: boolean;
     cv_url?: string;
+    created_at?: string;
 }
 
 export interface CVData {

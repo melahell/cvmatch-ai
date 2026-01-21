@@ -270,7 +270,7 @@ OUTPUT (JSON Array) :
 `;
 
 export const getMatchAnalysisPrompt = (userProfile: any, jobText: string) => `
-Tu es un expert RH / Career Coach.
+Tu es un expert RH / Career Coach avec une expertise en négociation salariale et stratégie de candidature.
 
 PROFIL DU CANDIDAT :
 ${JSON.stringify(userProfile)}
@@ -279,7 +279,7 @@ OFFRE D'EMPLOI :
 ${jobText}
 
 MISSION:
-Analyse le match entre ce profil et cette offre.
+Analyse le match entre ce profil et cette offre, en incluant une estimation salariale et des conseils de prospection personnalisés.
 
 OUTPUT (JSON uniquement) :
 {
@@ -293,11 +293,49 @@ OUTPUT (JSON uniquement) :
     { "point": "string", "match_percent": 0-100 }
   ],
   "gaps": [
-    { "point": "string", "severity": "Bloquant|Important", "suggestion": "string" }
+    { "point": "string", "severity": "Bloquant|Important|Mineur", "suggestion": "string" }
   ],
   "missing_keywords": ["string"],
-  "key_insight": "string (1 phrase synthèse)"
+  "key_insight": "string (1 phrase synthèse)",
+
+  "salary_estimate": {
+    "market_range": {
+      "min": number,
+      "max": number,
+      "currency": "EUR",
+      "periode": "annuel",
+      "context": "string (ex: Fourchette marché France 2025 pour ce poste)"
+    },
+    "personalized_range": {
+      "min": number,
+      "max": number,
+      "currency": "EUR",
+      "periode": "annuel",
+      "justification": "string (ex: Basé sur vos 8 ans d'expérience et votre expertise en...)"
+    },
+    "negotiation_tip": "string (1 conseil court pour négocier)"
+  },
+
+  "coaching_tips": {
+    "approach_strategy": "string (2-3 phrases : comment aborder cette candidature)",
+    "key_selling_points": ["string (3-5 arguments clés à mettre en avant)"],
+    "preparation_checklist": ["string (3-4 actions concrètes avant de postuler)"],
+    "interview_focus": "string (1-2 phrases : sur quoi insister en entretien)"
+  }
 }
+
+RÈGLES POUR L'ESTIMATION SALARIALE :
+- Basé sur : poste, localisation, secteur, taille entreprise (si mentionnée)
+- market_range : fourchette globale du marché pour ce poste en France/Europe 2025
+- personalized_range : ajustée selon l'expérience du candidat (années, expertise, niveau de match)
+- Si junior (<3 ans) : -15% vs market, si senior (>10 ans) : +20% vs market
+- Être réaliste et cohérent avec le marché actuel
+
+RÈGLES POUR LE COACHING :
+- approach_strategy : ton personnel (confiant si score >70%, stratégique si 50-70%, préparation intensive si <50%)
+- key_selling_points : extraire du profil les 3-5 atouts les plus pertinents pour CETTE offre
+- preparation_checklist : actions concrètes (ex: "Préparer un portfolio de 3 projets similaires", "Rechercher l'équipe sur LinkedIn")
+- interview_focus : anticiper les questions probables du recruteur selon les gaps identifiés
 `;
 
 /**
