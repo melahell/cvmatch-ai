@@ -17,7 +17,7 @@ import {
     recordValidationFailure,
     traceAIModelCall,
     calculateAnalysisCost
-} from "@/lib/telemetry/match-analysis";
+} from "@/lib/telemetry/safe-telemetry";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;

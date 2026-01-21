@@ -10,6 +10,12 @@
 export async function register() {
     if (process.env.NEXT_RUNTIME === 'nodejs') {
         // Only initialize in Node.js runtime (not Edge)
-        await import('./lib/telemetry/instrumentation');
+        // Only load if OpenTelemetry packages are installed
+        try {
+            await import('./lib/telemetry/instrumentation');
+        } catch (error) {
+            console.log('⚠️  OpenTelemetry instrumentation not loaded (packages not installed)');
+            console.log('   To enable: see OBSERVABILITY_SETUP.md');
+        }
     }
 }

@@ -1,4 +1,8 @@
-# 🔭 Observability Setup Guide
+# 🔭 Observability Setup Guide (Phase 2 - Optional)
+
+⚠️ **IMPORTANT:** This is OPTIONAL setup for Phase 2 observability features.
+
+**Phase 1 (validation + logging) works without this setup.**
 
 Complete guide to set up monitoring, metrics, and alerting for CVMatch Match Analysis.
 
