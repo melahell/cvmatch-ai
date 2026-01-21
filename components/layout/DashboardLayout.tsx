@@ -19,7 +19,7 @@ interface DashboardLayoutProps {
     title?: string;
 }
 
-const navItems = [
+const baseNavItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
     { href: "/dashboard/analyze", icon: FileText, label: "Analyser" },
     { href: "/dashboard/cvs", icon: Files, label: "Mes CVs" },
@@ -68,6 +68,10 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     const initials = userName
         ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
         : "??";
+
+    const navItems = isAdmin
+        ? [...baseNavItems, { href: "/admin", icon: Shield, label: "Admin" }]
+        : baseNavItems;
 
     return (
         <div className="min-h-screen bg-surface-secondary dark:bg-slate-950 flex flex-col">
