@@ -2,12 +2,21 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getMatchAnalysisPrompt } from "@/lib/ai/prompts";
+import { validateMatchAnalysis } from "@/lib/validations/match-analysis";
+import {
+    logMatchAnalysisStart,
+    logMatchAnalysisSuccess,
+    logMatchAnalysisValidationFailed,
+    logMatchAnalysisError,
+    logEnrichmentMissing
+} from "@/lib/logging/match-analysis-logger";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
     const supabase = createSupabaseClient();
+    const startTime = Date.now(); // Pour tracking performance
 
     try {
         const body = await req.json();
@@ -100,6 +109,11 @@ export async function POST(req: Request) {
             }
         }
 
+        // 📊 Log start of analysis
+        const source = jobUrl ? 'url' : fileData ? 'file' : 'text';
+        const jobTitleHint = fullJobText.substring(0, 100); // First 100 chars as hint
+        logMatchAnalysisStart(userId, jobTitleHint, source);
+
         // 3. Analyze Match with Gemini cascade
         const prompt = getMatchAnalysisPrompt(ragData.completeness_details, fullJobText);
 
@@ -111,6 +125,7 @@ export async function POST(req: Request) {
             modelUsed = cascadeResult.modelUsed;
             console.log(`Match analysis with: ${modelUsed}`);
         } catch (err: any) {
+            logMatchAnalysisError(userId, err, 'analysis', { modelUsed });
             console.error("All models failed:", err.message);
             return NextResponse.json({
                 error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
@@ -123,54 +138,126 @@ export async function POST(req: Request) {
         let matchData;
         try {
             matchData = JSON.parse(jsonString);
-        } catch {
-            return NextResponse.json({ error: "Erreur d'analyse. Réessayez avec moins de texte." }, { status: 500 });
+        } catch (parseError) {
+            console.error("❌ JSON parsing failed:", parseError);
+            return NextResponse.json({
+                error: "Erreur d'analyse. Réessayez avec moins de texte."
+            }, { status: 500 });
         }
 
-        // Extract job_title and company with fallbacks (Gemini sometimes uses different field names)
+        // 🛡️ VALIDATION ZOD - CRITIQUE
+        const validation = validateMatchAnalysis(matchData);
+
+        if (!validation.success) {
+            // 📊 Log validation failure avec détails structurés
+            logMatchAnalysisValidationFailed(
+                userId,
+                validation.error,
+                JSON.stringify(matchData).substring(0, 500),
+                modelUsed
+            );
+
+            // Si validation échoue mais données basiques présentes, continuer quand même
+            // L'enrichissement (salary/coaching) est optionnel
+            if (!matchData.match_score || !matchData.strengths || !matchData.job_title) {
+                logMatchAnalysisError(
+                    userId,
+                    new Error(validation.error),
+                    'validation',
+                    { modelUsed }
+                );
+
+                return NextResponse.json({
+                    error: "L'IA n'a pas pu analyser correctement cette offre. Réessayez.",
+                    debug: process.env.NODE_ENV === 'development' ? validation.error : undefined
+                }, { status: 500 });
+            }
+
+            // 📊 Log enrichment missing
+            const missingFields: string[] = [];
+            if (!matchData.salary_estimate) missingFields.push('salary_estimate');
+            if (!matchData.coaching_tips) missingFields.push('coaching_tips');
+
+            console.warn("⚠️ Continuing with partial data (enrichment may be missing)");
+        }
+
+        // Utiliser données validées si disponibles, sinon fallback sur données brutes
+        const validatedData = validation.success ? validation.data : matchData;
+
+        // Extract job_title and company with fallbacks
         const extractedJobTitle =
-            matchData.job_title ||
+            validatedData.job_title ||
             matchData.jobTitle ||
             matchData.poste ||
             matchData.titre ||
-            matchData.match_report?.job_title ||
             null;
 
         const extractedCompany =
+            validatedData.company ||
             matchData.company ||
             matchData.entreprise ||
             matchData.societe ||
-            matchData.match_report?.company ||
             null;
 
-        console.log(`📊 Match Analysis - job_title: "${extractedJobTitle}", company: "${extractedCompany}", score: ${matchData.match_score}`);
+        const hasEnrichment = !!(validatedData.salary_estimate || validatedData.coaching_tips);
+
+        console.log(`📊 Match Analysis - job_title: "${extractedJobTitle}", company: "${extractedCompany}", score: ${validatedData.match_score}, enrichment: ${hasEnrichment}`);
 
         // 4. Save to DB
-        const { data: insertData } = await supabase
+        const { data: insertData, error: insertError } = await supabase
             .from("job_analyses")
             .insert({
                 user_id: userId,
                 job_url: jobUrl,
                 job_title: extractedJobTitle,
                 company: extractedCompany,
-                location: matchData.location || null,
+                location: validatedData.location || null,
                 job_description: fullJobText.substring(0, 10000),
-                match_score: matchData.match_score,
-                match_level: matchData.match_level,
-                match_report: matchData,
-                strengths: matchData.strengths,
-                gaps: matchData.gaps,
-                missing_keywords: matchData.missing_keywords,
+                match_score: validatedData.match_score,
+                match_level: validatedData.match_level,
+                match_report: validatedData, // ← Utilise données validées
+                strengths: validatedData.strengths,
+                gaps: validatedData.gaps,
+                missing_keywords: validatedData.missing_keywords || [],
                 decision: "pending"
             })
             .select("id")
             .single();
 
+        if (insertError || !insertData) {
+            logMatchAnalysisError(userId, insertError || new Error("No data returned"), 'save');
+            throw new Error("Failed to save analysis");
+        }
+
+        // 📊 Log success avec métriques
+        const durationMs = Date.now() - startTime;
+        logMatchAnalysisSuccess(userId, insertData.id, {
+            score: validatedData.match_score,
+            jobTitle: extractedJobTitle || 'Unknown',
+            hasEnrichment,
+            validationPassed: validation.success,
+            durationMs,
+            modelUsed
+        });
+
+        // Track missing enrichment if validation succeeded but fields absent
+        if (validation.success && !hasEnrichment) {
+            const missingFields: string[] = [];
+            if (!validatedData.salary_estimate) missingFields.push('salary_estimate');
+            if (!validatedData.coaching_tips) missingFields.push('coaching_tips');
+            if (missingFields.length > 0) {
+                logEnrichmentMissing(userId, insertData.id, missingFields);
+            }
+        }
+
         return NextResponse.json({
             success: true,
-            analysis_id: insertData?.id,
-            match: matchData,
-            model_used: modelUsed
+            analysis_id: insertData.id,
+            match: validatedData, // ← Retourne données validées
+            model_used: modelUsed,
+            validation_passed: validation.success,
+            has_enrichment: hasEnrichment,
+            duration_ms: durationMs
         });
 
     } catch (error: any) {
