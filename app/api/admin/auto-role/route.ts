@@ -11,31 +11,49 @@ const getAllowList = () => {
 };
 
 const ensureUserRow = async (admin: ReturnType<typeof createSupabaseAdminClient>, userId: string, email: string) => {
-    const { data: existing } = await admin
+    const { data: existing, error: selectError } = await admin
         .from("users")
         .select("id, email, role")
         .eq("id", userId)
         .maybeSingle();
+
+    if (selectError) {
+        throw new Error(selectError.message);
+    }
 
     if (existing) return existing;
 
     const usernameSource = email.split("@")[0] || userId.slice(0, 8);
     const userIdSlug = usernameSource.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 100);
 
-    const { error } = await admin
+    const { data: upserted, error: upsertError } = await admin
         .from("users")
-        .insert({
+        .upsert({
             id: userId,
             email,
             user_id: userIdSlug,
             onboarding_completed: false,
-        });
+        }, { onConflict: "id" })
+        .select("id, email, role")
+        .maybeSingle();
 
-    if (error) {
-        throw new Error(error.message);
+    if (!upsertError && upserted) {
+        return upserted;
     }
 
-    return { id: userId, email, role: "user" };
+    const { data: created, error: createdError } = await admin
+        .from("users")
+        .select("id, email, role")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (createdError) {
+        throw new Error(upsertError?.message || createdError.message);
+    }
+
+    if (created) return created;
+
+    throw new Error(upsertError?.message || "Impossible de créer l'utilisateur");
 };
 
 export async function POST(req: Request) {
@@ -51,7 +69,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ isAdmin: false });
         }
 
-        const admin = createSupabaseAdminClient();
+        let admin: ReturnType<typeof createSupabaseAdminClient>;
+        try {
+            admin = createSupabaseAdminClient();
+        } catch {
+            return NextResponse.json({ isAdmin: false });
+        }
         const userRow = await ensureUserRow(admin, auth.user.id, email);
 
         if (userRow.role === "admin") {
