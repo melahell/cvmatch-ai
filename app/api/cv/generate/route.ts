@@ -244,13 +244,27 @@ const buildSourceSkillSet = (profile: any) => {
 const extractSkillStrings = (value: unknown): string[] => {
     if (!value) return [];
     if (Array.isArray(value)) {
-        return value.map((v) => (typeof v === "string" ? v : String((v as any)?.nom ?? (v as any)?.name ?? v))).filter(Boolean);
+        return value
+            .map((v) => {
+                if (typeof v === "string") return v;
+                if (v && typeof v === "object") {
+                    return String((v as any)?.nom ?? (v as any)?.name ?? (v as any)?.skill ?? (v as any)?.value ?? (v as any)?.label ?? "");
+                }
+                return String(v ?? "");
+            })
+            .map((s) => s.trim())
+            .filter(Boolean);
     }
     if (typeof value === "object") {
-        const v = (value as any).nom ?? (value as any).name ?? (value as any).skill;
-        return v ? [String(v)] : [];
+        const v =
+            (value as any).nom ??
+            (value as any).name ??
+            (value as any).skill ??
+            (value as any).value ??
+            (value as any).label;
+        return v ? [String(v).trim()].filter(Boolean) : [];
     }
-    return [String(value)];
+    return [String(value).trim()].filter(Boolean);
 };
 
 const mergeAIOptimizationsIntoProfile = (params: {
@@ -294,10 +308,23 @@ const mergeAIOptimizationsIntoProfile = (params: {
         const filteredRealisations: string[] = [];
 
         for (const r of aiRealisations) {
-            const text = typeof r === "string" ? r.trim() : String(r ?? "").trim();
+            let text = "";
+            if (typeof r === "string") {
+                text = r.trim();
+            } else if (r && typeof r === "object") {
+                const parts: string[] = [];
+                const desc = (r as any).description ?? (r as any).text ?? (r as any).value;
+                const impact = (r as any).impact;
+                if (typeof desc === "string" && desc.trim()) parts.push(desc.trim());
+                if (typeof impact === "string" && impact.trim() && impact.trim() !== desc?.trim?.()) parts.push(impact.trim());
+                text = parts.join(" - ").trim();
+            } else {
+                text = String(r ?? "").trim();
+            }
             if (!text) continue;
             if (text.length < 12) continue;
             if (text.length > 260) continue;
+            if (text.includes("[object Object]")) continue;
             if (!isNumbersGroundedInText(text, sourceText)) continue;
             filteredRealisations.push(text);
             if (filteredRealisations.length >= 8) break;

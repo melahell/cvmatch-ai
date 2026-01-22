@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cvcrush-v5.2.3';
+const CACHE_NAME = 'cvcrush-v5.2.4';
 const STATIC_ASSETS = [
     '/',
     '/login',

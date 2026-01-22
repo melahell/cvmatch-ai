@@ -132,9 +132,33 @@ interface RAGData {
 /**
  * Sanitize text by fixing spacing issues - AGGRESSIVE version
  */
+function coerceToDisplayString(value: unknown): string {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number" || typeof value === "boolean") return String(value);
+    if (typeof value === "object") {
+        const v: any = value;
+        const candidate =
+            v.nom ??
+            v.name ??
+            v.skill ??
+            v.value ??
+            v.label ??
+            v.title ??
+            v.titre ??
+            v.poste ??
+            v.entreprise ??
+            v.description ??
+            v.impact;
+        if (typeof candidate === "string") return candidate;
+        if (typeof candidate === "number" || typeof candidate === "boolean") return String(candidate);
+        return "";
+    }
+    return "";
+}
+
 function sanitizeText(text: unknown): string {
-    if (text === null || text === undefined) return '';
-    const input = typeof text === "string" ? text : String(text);
+    const input = coerceToDisplayString(text);
     if (!input) return '';
 
     let result = input
@@ -258,11 +282,14 @@ export function normalizeRAGToCV(raw: any): CVData {
                     const parts = [];
                     if (r.description) parts.push(r.description);
                     if (r.impact && r.impact !== r.description) parts.push(r.impact);
-                    text = parts.join(' - ') || JSON.stringify(r);
+                    text = parts.join(' - ') || "";
                 } else {
                     text = String(r);
                 }
-                return sanitizeText(text);
+                const cleaned = sanitizeText(text);
+                if (!cleaned) return "";
+                if (cleaned.includes("[object Object]")) return "";
+                return cleaned;
             }),
         // PRESERVE adaptive algorithm metadata for templates
         _format: exp._format,
@@ -293,7 +320,8 @@ export function normalizeRAGToCV(raw: any): CVData {
                 const rawItems = cat.items || cat.skills || [];
                 const items = (rawItems || [])
                     .filter((item: any) => item.display !== false)
-                    .map((item: any) => typeof item === 'string' ? item : item.nom || item.name || item.skill || item.value || String(item));
+                    .map((item: any) => sanitizeText(item))
+                    .filter(Boolean);
 
                 // Determine if technical or soft skill based on category name
                 const catName = (cat.nom || cat.name || '').toLowerCase();
@@ -350,10 +378,10 @@ export function normalizeRAGToCV(raw: any): CVData {
 
         // Fallback to direct arrays (simplest format)
         if (techniques.length === 0 && Array.isArray(comp.techniques)) {
-            techniques = comp.techniques.map((t: any) => typeof t === 'string' ? t : t.name || String(t));
+            techniques = comp.techniques.map((t: any) => sanitizeText(t)).filter(Boolean);
         }
         if (softSkills.length === 0 && Array.isArray(comp.soft_skills)) {
-            softSkills = comp.soft_skills.map((s: any) => typeof s === 'string' ? s : s.name || String(s));
+            softSkills = comp.soft_skills.map((s: any) => sanitizeText(s)).filter(Boolean);
         }
     }
 
@@ -380,14 +408,14 @@ export function normalizeRAGToCV(raw: any): CVData {
             langues = rawLangues
                 .filter((l: any) => l.display !== false)
                 .map((l: any) => ({
-                    langue: l.langue || l.name || '',
-                    niveau: l.niveau || l.level || ''
+                    langue: sanitizeText(l.langue || l.name || ''),
+                    niveau: sanitizeText(l.niveau || l.level || '')
                 }));
         } else if (typeof rawLangues === 'object') {
             // Object format: { 'Français': 'Natif' }
             langues = Object.entries(rawLangues).map(([langue, niveau]) => ({
-                langue,
-                niveau: String(niveau)
+                langue: sanitizeText(langue),
+                niveau: sanitizeText(niveau)
             }));
         }
     }

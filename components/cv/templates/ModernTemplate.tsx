@@ -8,7 +8,8 @@ import { DESIGN_TOKENS } from "@/lib/design-tokens";
 // Sanitize text by fixing spacing issues (applied at render time)
 function sanitizeText(text: unknown): string {
     if (text === null || text === undefined) return "";
-    const input = typeof text === "string" ? text : String(text);
+    if (typeof text !== "string") return "";
+    const input = text;
     if (!input) return "";
 
     return input
