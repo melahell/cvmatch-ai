@@ -1,14 +1,15 @@
 "use client";
 
-import React from "react";
-import { Building2, Calendar, ExternalLink, MapPin, Trash2, Check } from "lucide-react";
+import React, { useState } from "react";
+import { Building2, Calendar, ExternalLink, MapPin, Trash2, Check, FileText, Eye, Download, Plus, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataListCard, DataListContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { StatusDropdown } from "./StatusDropdown";
-import { JobAnalysis } from "@/types";
+import { JobAnalysisWithCVs, CVGeneration } from "@/hooks/useJobAnalyses";
+import { toast } from "sonner";
 
 // Design System: Couleurs sémantiques pour les statuts
 const STATUS_CONFIG: Record<string, { dot: string }> = {
@@ -33,16 +34,19 @@ function formatRelativeDate(dateString: string): string {
 }
 
 interface JobCardProps {
-    job: JobAnalysis;
+    job: JobAnalysisWithCVs;
     variant: "mobile" | "desktop";
     onDelete: (id: string) => void;
     onStatusChange: (id: string, status: string) => void;
     isSelected?: boolean;
     onToggleSelect?: (id: string) => void;
+    onCVGenerated?: () => void;
 }
 
-export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onStatusChange, isSelected = false, onToggleSelect }: JobCardProps) {
+export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onStatusChange, isSelected = false, onToggleSelect, onCVGenerated }: JobCardProps) {
     const status = STATUS_CONFIG[job.application_status || "pending"];
+    const [showCVs, setShowCVs] = useState(false);
+    const [generatingCV, setGeneratingCV] = useState(false);
 
     // Design System: Score-based background color (subtle)
     const scoreBgColor = job.match_score >= 80
@@ -50,6 +54,56 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
         : job.match_score >= 60
             ? "bg-semantic-warning/5"
             : "bg-semantic-error/5";
+
+    const cvs = job.cvs || [];
+    const hasCVs = cvs.length > 0;
+
+    const handleGenerateCV = async () => {
+        setGeneratingCV(true);
+        try {
+            const response = await fetch('/api/cv/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    analysisId: job.id,
+                    template: 'classic', // Default template
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Erreur lors de la génération');
+            }
+
+            const result = await response.json();
+            toast.success('CV généré avec succès !');
+            if (onCVGenerated) {
+                onCVGenerated();
+            }
+            // Open the CV page
+            if (result.cvId) {
+                window.open(`/dashboard/cv/${result.cvId}`, '_blank');
+            }
+        } catch (error: any) {
+            toast.error(error.message || 'Erreur lors de la génération du CV');
+        } finally {
+            setGeneratingCV(false);
+        }
+    };
+
+    const handleViewCV = (cvId: string) => {
+        window.open(`/dashboard/cv/${cvId}`, '_blank');
+    };
+
+    const handleDownloadCV = async (cv: CVGeneration) => {
+        if (cv.cv_url) {
+            window.open(cv.cv_url, '_blank');
+            return;
+        }
+        // If no URL, redirect to view page where download is available
+        window.open(`/dashboard/cv/${cv.id}`, '_blank');
+    };
 
     if (variant === "mobile") {
         return (
@@ -214,6 +268,91 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                         </div>
                     </div>
                 </div>
+
+                {/* CVs Section - Expandable */}
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                    <button
+                        onClick={() => setShowCVs(!showCVs)}
+                        className="flex items-center justify-between w-full text-left hover:bg-slate-50 rounded-lg p-2 -m-2 transition-colors"
+                    >
+                        <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-slate-600" />
+                            <span className="text-sm font-medium text-slate-700">
+                                {hasCVs ? `${cvs.length} CV${cvs.length > 1 ? 's' : ''} généré${cvs.length > 1 ? 's' : ''}` : 'Aucun CV généré'}
+                            </span>
+                        </div>
+                        {hasCVs && (
+                            showCVs ? <ChevronUp className="w-4 h-4 text-slate-600" /> : <ChevronDown className="w-4 h-4 text-slate-600" />
+                        )}
+                    </button>
+
+                        {showCVs && hasCVs && (
+                            <div className="mt-3 space-y-2">
+                                {cvs.map((cv) => (
+                                    <div
+                                        key={cv.id}
+                                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200"
+                                    >
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <FileText className="w-4 h-4 text-slate-600 shrink-0" />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-slate-900 truncate">
+                                                    CV {cv.template_name || 'Classic'}
+                                                </p>
+                                                <p className="text-xs text-slate-600">
+                                                    {formatRelativeDate(cv.created_at)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleViewCV(cv.id)}
+                                                className="h-8"
+                                            >
+                                                <Eye className="w-4 h-4 mr-1" />
+                                                Voir
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDownloadCV(cv)}
+                                                className="h-8"
+                                            >
+                                                <Download className="w-4 h-4 mr-1" />
+                                                Télécharger
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {showCVs && !hasCVs && (
+                            <div className="mt-3">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleGenerateCV}
+                                    disabled={generatingCV}
+                                    className="w-full"
+                                >
+                                    {generatingCV ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Génération...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus className="w-4 h-4 mr-2" />
+                                            Générer un CV
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
             </DataListContent>
         </DataListCard>
     );

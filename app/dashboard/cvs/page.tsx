@@ -1,25 +1,22 @@
 "use client";
 
-import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useCVGenerations } from "@/hooks/useCVGenerations";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, DataListCard, DataListContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScoreBadge, ScoreIndicator, ScoreLegend } from "@/components/ui/ScoreBadge";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { FileText, Plus, Calendar, ExternalLink, Eye, Search, Trash2, X, CheckSquare, Square } from "lucide-react";
-import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
-import { fr } from "date-fns/locale";
-import { createSupabaseClient } from "@/lib/supabase";
-import { toast } from "sonner";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
+/**
+ * Migration: Cette page redirige vers /dashboard/tracking avec le filtre CVs
+ * Les CVs sont maintenant intégrés dans la page Candidatures pour une vue unifiée
+ */
 export default function CVListPage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        // Rediriger vers tracking avec filtre "Avec CV"
+        router.replace('/dashboard/tracking?cvFilter=with_cv');
+    }, [router]);
+
+    return null;
+}
     const { userId, isLoading: authLoading } = useAuth();
     const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
     const [search, setSearch] = useState("");

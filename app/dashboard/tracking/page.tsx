@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
-import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUp, ArrowDown, Trash2, ChevronRight, LayoutGrid, LayoutList, Download, Clock, Send, Users, Trophy } from "lucide-react";
+import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUp, ArrowDown, Trash2, ChevronRight, LayoutGrid, LayoutList, Download, Clock, Send, Users, Trophy, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BulkToolbar } from "@/components/tracking/BulkToolbar";
 import { JobCard } from "@/components/tracking/JobCard";
 import { useAuth } from "@/hooks/useAuth";
-import { useJobAnalyses } from "@/hooks/useJobAnalyses";
+import { useJobAnalyses, JobAnalysisWithCVs } from "@/hooks/useJobAnalyses";
 import Link from "next/link";
 import { JobAnalysis } from "@/types";
 import React from "react";
@@ -47,6 +48,7 @@ type SortOption = "date" | "score" | "status";
 
 export default function TrackingPage() {
     const { userId, isLoading: authLoading } = useAuth();
+    const searchParams = useSearchParams();
 
     // Use centralized job analyses hook
     const {
@@ -54,10 +56,19 @@ export default function TrackingPage() {
         loading,
         error,
         updateStatus,
-        deleteJob: deleteJobFn
+        deleteJob: deleteJobFn,
+        refetch
     } = useJobAnalyses(userId);
 
+    // Initialize filters from URL params (for migration from /dashboard/cvs)
+    const initialCvFilter = searchParams?.get('cvFilter') as "all" | "with_cv" | "without_cv" | null;
+
     const [filter, setFilter] = useState<string>("all");
+    const [cvFilter, setCvFilter] = useState<"all" | "with_cv" | "without_cv">(
+        initialCvFilter && ["all", "with_cv", "without_cv"].includes(initialCvFilter) 
+            ? initialCvFilter 
+            : "all"
+    );
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -156,6 +167,8 @@ export default function TrackingPage() {
         applied: jobs.filter(j => j.application_status === "applied").length,
         interviewing: jobs.filter(j => j.application_status === "interviewing").length,
         offer: jobs.filter(j => j.application_status === "offer").length,
+        withCV: jobs.filter(j => j.has_cv).length,
+        withoutCV: jobs.filter(j => !j.has_cv).length,
     };
 
     // Progress calculation
@@ -170,6 +183,13 @@ export default function TrackingPage() {
         // Filter by status
         if (filter !== "all") {
             result = result.filter(j => j.application_status === filter);
+        }
+
+        // Filter by CV presence
+        if (cvFilter === "with_cv") {
+            result = result.filter(j => j.has_cv);
+        } else if (cvFilter === "without_cv") {
+            result = result.filter(j => !j.has_cv);
         }
 
         // Filter by search (debounced)
@@ -197,7 +217,7 @@ export default function TrackingPage() {
         });
 
         return result;
-    }, [jobs, filter, debouncedSearch, sortBy, sortAsc]);
+    }, [jobs, filter, cvFilter, debouncedSearch, sortBy, sortAsc]);
 
     const toggleSort = (option: SortOption) => {
         if (sortBy === option) {
@@ -360,16 +380,18 @@ export default function TrackingPage() {
                     </div>
 
                     {/* Filter Pills */}
-                    <div className="flex gap-2 mb-6 overflow-x-auto pb-1 -mx-2 px-2">
-                        <button
-                            onClick={() => setFilter("all")}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filter === "all"
-                                ? "bg-slate-900 text-white"
-                                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                }`}
-                        >
-                            Toutes ({stats.total})
-                        </button>
+                    <div className="flex flex-col gap-3 mb-6">
+                        {/* Status Filters */}
+                        <div className="flex gap-2 overflow-x-auto pb-1 -mx-2 px-2">
+                            <button
+                                onClick={() => setFilter("all")}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filter === "all"
+                                    ? "bg-slate-900 text-white"
+                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                    }`}
+                            >
+                                Toutes ({stats.total})
+                            </button>
                         <button
                             onClick={() => setFilter("pending")}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap ${filter === "pending"
@@ -410,6 +432,41 @@ export default function TrackingPage() {
                             <Trophy className="w-3.5 h-3.5" />
                             Offre ({stats.offer})
                         </button>
+                        </div>
+
+                        {/* CV Filters */}
+                        <div className="flex gap-2 overflow-x-auto pb-1 -mx-2 px-2">
+                            <button
+                                onClick={() => setCvFilter("all")}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${cvFilter === "all"
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                                    }`}
+                            >
+                                <FileText className="w-3.5 h-3.5" />
+                                Tous les CVs
+                            </button>
+                            <button
+                                onClick={() => setCvFilter("with_cv")}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${cvFilter === "with_cv"
+                                    ? "bg-green-600 text-white"
+                                    : "bg-green-50 text-green-700 hover:bg-green-100"
+                                    }`}
+                            >
+                                <FileText className="w-3.5 h-3.5" />
+                                Avec CV ({stats.withCV})
+                            </button>
+                            <button
+                                onClick={() => setCvFilter("without_cv")}
+                                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap flex items-center gap-1.5 ${cvFilter === "without_cv"
+                                    ? "bg-orange-600 text-white"
+                                    : "bg-orange-50 text-orange-700 hover:bg-orange-100"
+                                    }`}
+                            >
+                                <FileText className="w-3.5 h-3.5" />
+                                Sans CV ({stats.withoutCV})
+                            </button>
+                        </div>
                     </div>
 
                     {/* Jobs List */}
@@ -428,6 +485,7 @@ export default function TrackingPage() {
                                         onStatusChange={(id, status) => updateStatus(id, status as JobAnalysis["application_status"])}
                                         isSelected={selectedIds.includes(job.id)}
                                         onToggleSelect={toggleSelect}
+                                        onCVGenerated={refetch}
                                     />
                                 </SwipeableCard>
 
@@ -440,6 +498,7 @@ export default function TrackingPage() {
                                         onStatusChange={(id, status) => updateStatus(id, status as JobAnalysis["application_status"])}
                                         isSelected={selectedIds.includes(job.id)}
                                         onToggleSelect={toggleSelect}
+                                        onCVGenerated={refetch}
                                     />
                                 </div>
                             </React.Fragment>

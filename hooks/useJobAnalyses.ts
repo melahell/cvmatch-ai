@@ -3,8 +3,22 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { JobAnalysis } from "@/types";
 import { logger } from "@/lib/utils/logger";
 
+export interface CVGeneration {
+    id: string;
+    created_at: string;
+    template_name: string;
+    cv_data?: any;
+    cv_url?: string;
+}
+
+export interface JobAnalysisWithCVs extends JobAnalysis {
+    cvs?: CVGeneration[];
+    cv_count?: number;
+    has_cv?: boolean;
+}
+
 interface UseJobAnalysesReturn {
-    data: JobAnalysis[];
+    data: JobAnalysisWithCVs[];
     loading: boolean;
     error: Error | null;
     refetch: () => Promise<void>;
@@ -31,7 +45,7 @@ interface UseJobAnalysesReturn {
  * ```
  */
 export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
-    const [data, setData] = useState<JobAnalysis[]>([]);
+    const [data, setData] = useState<JobAnalysisWithCVs[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
@@ -46,9 +60,20 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
             setError(null);
 
             const supabase = createSupabaseClient();
+            
+            // Fetch job analyses with associated CVs (LEFT JOIN)
             const { data: jobs, error: fetchError } = await supabase
                 .from("job_analyses")
-                .select("*")
+                .select(`
+                    *,
+                    cv_generations (
+                        id,
+                        created_at,
+                        template_name,
+                        cv_data,
+                        cv_url
+                    )
+                `)
                 .eq("user_id", userId)
                 .order("submitted_at", { ascending: false });
 
@@ -56,8 +81,31 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
                 throw fetchError;
             }
 
-            setData(jobs || []);
-            logger.debug('Job analyses fetched successfully', { count: jobs?.length || 0 });
+            // Transform data to include CVs array and metadata
+            const enrichedJobs: JobAnalysisWithCVs[] = (jobs || []).map((job: any) => {
+                const cvs: CVGeneration[] = (job.cv_generations || []).map((cv: any) => ({
+                    id: cv.id,
+                    created_at: cv.created_at,
+                    template_name: cv.template_name || 'unknown',
+                    cv_data: cv.cv_data,
+                    cv_url: cv.cv_url,
+                })).sort((a: CVGeneration, b: CVGeneration) => 
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                );
+
+                return {
+                    ...job,
+                    cvs,
+                    cv_count: cvs.length,
+                    has_cv: cvs.length > 0,
+                };
+            });
+
+            setData(enrichedJobs);
+            logger.debug('Job analyses with CVs fetched successfully', { 
+                count: enrichedJobs.length,
+                totalCVs: enrichedJobs.reduce((sum, j) => sum + (j.cv_count || 0), 0)
+            });
         } catch (e) {
             const errorObj = e as Error;
             logger.error('Error fetching job analyses:', errorObj);
@@ -78,7 +126,7 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
                 throw new Error("User not authenticated");
             }
 
-            // Optimistic update
+            // Optimistic update (preserve CVs data)
             setData(prev => prev.map(j => j.id === id ? { ...j, application_status: newStatus } : j));
 
             const supabase = createSupabaseClient();
