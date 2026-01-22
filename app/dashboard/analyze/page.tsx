@@ -111,11 +111,11 @@ export default function AnalyzePage() {
     const isUrlValid = url ? validateUrl(url) : false;
     const isFileValid = !!file;
 
-    // Auto-detect active input (priority: text > url > file)
+    // Auto-detect active input (priority: url > file > text)
     const activeInput = useMemo(() => {
-        if (isTextValid) return 'text';
         if (isUrlValid) return 'url';
         if (isFileValid) return 'file';
+        if (isTextValid) return 'text';
         return null;
     }, [isTextValid, isUrlValid, isFileValid]);
 
@@ -253,7 +253,7 @@ export default function AnalyzePage() {
 
         setLoading(true);
         try {
-            // Priority: text > url > file
+            // Priority: url > file > text
             if (activeInput === 'file' && file) {
                 const reader = new FileReader();
                 const base64 = await new Promise<string>((resolve) => {
@@ -384,66 +384,7 @@ export default function AnalyzePage() {
                 <Card className="overflow-hidden">
                     <CardContent className="space-y-6 p-4 sm:p-6">
 
-                        {/* SECTION 1: TEXTE (Recommandé - Plus grand) */}
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="text" className="flex items-center gap-2 text-base font-semibold">
-                                    <FileText className="w-5 h-5 text-purple-600" />
-                                    Texte de l'offre
-                                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full">
-                                        Recommandé
-                                    </span>
-                                </Label>
-                                {isTextValid && (
-                                    <span className="flex items-center gap-1 text-green-600 text-sm">
-                                        <Check className="w-4 h-4" /> Prêt
-                                    </span>
-                                )}
-                            </div>
-                            <Textarea
-                                id="text"
-                                rows={8}
-                                className={`min-h-[200px] sm:min-h-[250px] resize-y text-sm transition-all ${isTextValid
-                                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
-                                        : 'border-slate-200'
-                                    }`}
-                                placeholder="Collez la description du poste ici...
-
-💡 Astuce : Copiez l'intégralité de l'offre pour une meilleure analyse"
-                                value={text}
-                                onChange={(e) => setText(e.target.value)}
-                                disabled={loading}
-                            />
-                            <div className="flex justify-between items-center">
-                                <p className={`text-xs ${isTextValid ? 'text-green-600' : 'text-slate-500'}`}>
-                                    {text.length} caractères {isTextValid ? '✓' : `(minimum 50)`}
-                                </p>
-                                {text && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-xs"
-                                        onClick={() => setText(cleanText(text))}
-                                        disabled={loading}
-                                    >
-                                        ✨ Nettoyer
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Separator */}
-                        <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-slate-200"></div>
-                            </div>
-                            <div className="relative flex justify-center text-xs">
-                                <span className="bg-white px-3 text-slate-400 font-medium">OU</span>
-                            </div>
-                        </div>
-
-                        {/* SECTION 2: URL (Compact) */}
+                        {/* SECTION 1: URL (Premier) */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label htmlFor="url" className="flex items-center gap-2 text-sm">
@@ -498,7 +439,7 @@ export default function AnalyzePage() {
                             </div>
                         </div>
 
-                        {/* SECTION 3: FICHIER (Compact avec drop zone) */}
+                        {/* SECTION 2: FICHIER (Deuxième) */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label className="flex items-center gap-2 text-sm">
@@ -553,16 +494,64 @@ export default function AnalyzePage() {
                             />
                         </div>
 
-                        {/* Active input indicator */}
-                        {activeInput && (
-                            <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 rounded-lg">
-                                <p className="text-sm text-purple-700 text-center">
-                                    ✨ Analyse prête via <strong>
-                                        {activeInput === 'text' ? 'le texte' : activeInput === 'url' ? "l'URL" : 'le fichier'}
-                                    </strong>
-                                </p>
+                        {/* Separator */}
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-200"></div>
                             </div>
-                        )}
+                            <div className="relative flex justify-center text-xs">
+                                <span className="bg-white px-3 text-slate-400 font-medium">OU</span>
+                            </div>
+                        </div>
+
+                        {/* SECTION 3: TEXTE (Troisième) */}
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="text" className="flex items-center gap-2 text-base font-semibold">
+                                    <FileText className="w-5 h-5 text-purple-600" />
+                                    Texte de l'offre
+                                    <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs rounded-full">
+                                        Recommandé
+                                    </span>
+                                </Label>
+                                {isTextValid && (
+                                    <span className="flex items-center gap-1 text-green-600 text-sm">
+                                        <Check className="w-4 h-4" /> Prêt
+                                    </span>
+                                )}
+                            </div>
+                            <Textarea
+                                id="text"
+                                rows={8}
+                                className={`min-h-[200px] sm:min-h-[250px] resize-y text-sm transition-all ${isTextValid
+                                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/20'
+                                        : 'border-slate-200'
+                                    }`}
+                                placeholder="Collez la description du poste ici...
+
+💡 Astuce : Copiez l'intégralité de l'offre pour une meilleure analyse"
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
+                                disabled={loading}
+                            />
+                            <div className="flex justify-between items-center">
+                                <p className={`text-xs ${isTextValid ? 'text-green-600' : 'text-slate-500'}`}>
+                                    {text.length} caractères {isTextValid ? '✓' : `(minimum 50)`}
+                                </p>
+                                {text && (
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-xs"
+                                        onClick={() => setText(cleanText(text))}
+                                        disabled={loading}
+                                    >
+                                        ✨ Nettoyer
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
 
                         {/* Submit button */}
                         <Button
