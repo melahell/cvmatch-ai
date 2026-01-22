@@ -7,6 +7,7 @@ import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { normalizeRAGToCV } from "@/components/cv/normalizeData";
 import { fitCVToTemplate } from "@/lib/cv/validator";
 import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scoring";
+import packageJson from "@/package.json";
 
 export const runtime = "nodejs";
 
@@ -171,6 +172,222 @@ const stripInferredRAGForCV = (profile: any) => {
     return cloned;
 };
 
+const normalizeForMatch = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    const s = typeof value === "string" ? value : String(value);
+    return s
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+};
+
+const extractNumbers = (text: string) => {
+    return text.match(/\d[\d\s.,]*\d|\d/g) || [];
+};
+
+const isNumbersGroundedInText = (candidate: string, source: string) => {
+    const sourceLower = source.toLowerCase();
+    const numbers = extractNumbers(candidate);
+    for (const n of numbers) {
+        const token = n.replace(/\s+/g, "");
+        if (!token) continue;
+        if (!sourceLower.includes(token.toLowerCase())) return false;
+    }
+    return true;
+};
+
+const buildSourceSkillSet = (profile: any) => {
+    const skills = new Set<string>();
+    const add = (value: unknown) => {
+        const key = normalizeForMatch(value);
+        if (key) skills.add(key);
+    };
+
+    const competences = profile?.competences || {};
+    const collectArray = (arr: unknown) => {
+        if (!Array.isArray(arr)) return;
+        for (const item of arr) {
+            if (typeof item === "string") add(item);
+            else if (item && typeof item === "object") {
+                add((item as any).nom ?? (item as any).name ?? (item as any).skill);
+            } else add(item);
+        }
+    };
+
+    collectArray(competences.techniques);
+    collectArray(competences.soft_skills);
+    collectArray(competences.langages_programmation);
+    collectArray(competences.frameworks);
+    collectArray(competences.outils);
+    collectArray(competences.cloud_devops);
+    if (competences.explicit) {
+        collectArray(competences.explicit.techniques);
+        collectArray(competences.explicit.soft_skills);
+        collectArray(competences.explicit.langages_programmation);
+        collectArray(competences.explicit.frameworks);
+        collectArray(competences.explicit.outils);
+        collectArray(competences.explicit.cloud_devops);
+    }
+
+    const experiences = Array.isArray(profile?.experiences) ? profile.experiences : [];
+    for (const exp of experiences) {
+        collectArray((exp as any).technologies);
+        collectArray((exp as any).outils);
+        collectArray((exp as any).methodologies);
+    }
+
+    return skills;
+};
+
+const extractSkillStrings = (value: unknown): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) {
+        return value.map((v) => (typeof v === "string" ? v : String((v as any)?.nom ?? (v as any)?.name ?? v))).filter(Boolean);
+    }
+    if (typeof value === "object") {
+        const v = (value as any).nom ?? (value as any).name ?? (value as any).skill;
+        return v ? [String(v)] : [];
+    }
+    return [String(value)];
+};
+
+const mergeAIOptimizationsIntoProfile = (params: {
+    ragProfile: any;
+    ragProfileForPrompt: any;
+    aiOptimizedCV: any;
+    guardWarnings: string[];
+}) => {
+    const { ragProfile, ragProfileForPrompt, aiOptimizedCV, guardWarnings } = params;
+    const merged = JSON.parse(JSON.stringify(ragProfile || {}));
+
+    const sourceExperiences = Array.isArray(ragProfileForPrompt?.experiences) ? ragProfileForPrompt.experiences : [];
+    const sourceSkillSet = buildSourceSkillSet(ragProfileForPrompt);
+
+    const aiExperiences = Array.isArray(aiOptimizedCV?.experiences) ? aiOptimizedCV.experiences : [];
+    const aiKey = (exp: any) => `${normalizeForMatch(exp?.entreprise)}|${normalizeForMatch(exp?.poste)}`;
+
+    const aiByKey = new Map<string, any[]>();
+    for (const exp of aiExperiences) {
+        const key = aiKey(exp);
+        if (!key || key === "|") continue;
+        const list = aiByKey.get(key) ?? [];
+        list.push(exp);
+        aiByKey.set(key, list);
+    }
+
+    const mergedExperiences = Array.isArray(merged.experiences) ? merged.experiences : [];
+    for (const exp of mergedExperiences) {
+        const key = `${normalizeForMatch((exp as any).entreprise)}|${normalizeForMatch((exp as any).poste)}`;
+        const candidates = aiByKey.get(key) ?? [];
+        if (candidates.length === 0) continue;
+
+        const sourceExp = sourceExperiences.find((s: any) => {
+            return normalizeForMatch(s?.entreprise) === normalizeForMatch((exp as any).entreprise) &&
+                normalizeForMatch(s?.poste) === normalizeForMatch((exp as any).poste);
+        });
+
+        const sourceText = JSON.stringify(sourceExp ?? exp ?? "").toLowerCase();
+        const aiExp = candidates[0];
+        const aiRealisations = Array.isArray(aiExp?.realisations) ? aiExp.realisations : [];
+        const filteredRealisations: string[] = [];
+
+        for (const r of aiRealisations) {
+            const text = typeof r === "string" ? r.trim() : String(r ?? "").trim();
+            if (!text) continue;
+            if (text.length < 12) continue;
+            if (text.length > 260) continue;
+            if (!isNumbersGroundedInText(text, sourceText)) continue;
+            filteredRealisations.push(text);
+            if (filteredRealisations.length >= 8) break;
+        }
+
+        if (filteredRealisations.length > 0) {
+            (exp as any).realisations = filteredRealisations;
+        } else if (aiRealisations.length > 0) {
+            guardWarnings.push(`Réalisations IA ignorées pour ${String((exp as any).poste || "").slice(0, 40)} (grounding)`);
+        }
+
+        const mergedTech: string[] = [];
+        const addSkillIfSource = (val: unknown) => {
+            const s = typeof val === "string" ? val : String(val ?? "");
+            const key = normalizeForMatch(s);
+            if (!key) return;
+            if (!sourceSkillSet.has(key)) return;
+            mergedTech.push(s);
+        };
+
+        for (const s of extractSkillStrings(aiExp?.technologies)) addSkillIfSource(s);
+        for (const s of extractSkillStrings(aiExp?.outils)) addSkillIfSource(s);
+        for (const s of extractSkillStrings(aiExp?.methodologies)) addSkillIfSource(s);
+
+        if (mergedTech.length > 0) {
+            const unique = Array.from(new Set(mergedTech));
+            (exp as any).technologies = unique;
+        }
+    }
+
+    const aiCompetences = aiOptimizedCV?.competences || {};
+    const sourceTechniques = (merged?.competences?.techniques && Array.isArray(merged.competences.techniques))
+        ? merged.competences.techniques
+        : [];
+    const sourceSoft = (merged?.competences?.soft_skills && Array.isArray(merged.competences.soft_skills))
+        ? merged.competences.soft_skills
+        : [];
+
+    const desiredTechniques: string[] = [];
+    const desiredSoft: string[] = [];
+
+    for (const s of extractSkillStrings(aiCompetences?.techniques ?? aiCompetences?.langages_programmation ?? [])) {
+        const key = normalizeForMatch(s);
+        if (!key || !sourceSkillSet.has(key)) continue;
+        desiredTechniques.push(String(s));
+    }
+    for (const s of extractSkillStrings(aiCompetences?.frameworks ?? [])) {
+        const key = normalizeForMatch(s);
+        if (!key || !sourceSkillSet.has(key)) continue;
+        desiredTechniques.push(String(s));
+    }
+    for (const s of extractSkillStrings(aiCompetences?.outils ?? [])) {
+        const key = normalizeForMatch(s);
+        if (!key || !sourceSkillSet.has(key)) continue;
+        desiredTechniques.push(String(s));
+    }
+    for (const s of extractSkillStrings(aiCompetences?.soft_skills ?? [])) {
+        const key = normalizeForMatch(s);
+        if (!key || !sourceSkillSet.has(key)) continue;
+        desiredSoft.push(String(s));
+    }
+
+    const uniqueDesiredTechniques = Array.from(new Set(desiredTechniques));
+    const uniqueDesiredSoft = Array.from(new Set(desiredSoft));
+
+    if (uniqueDesiredTechniques.length > 0) {
+        const sourceNormalized = new Map<string, string>();
+        for (const s of sourceTechniques) sourceNormalized.set(normalizeForMatch(s), s);
+        const ordered = uniqueDesiredTechniques
+            .map((s) => sourceNormalized.get(normalizeForMatch(s)) ?? s)
+            .filter(Boolean);
+        const remainder = sourceTechniques.filter((s: any) => !new Set(ordered.map(normalizeForMatch)).has(normalizeForMatch(s)));
+        merged.competences = merged.competences || {};
+        merged.competences.techniques = [...ordered, ...remainder];
+    }
+
+    if (uniqueDesiredSoft.length > 0) {
+        const sourceNormalized = new Map<string, string>();
+        for (const s of sourceSoft) sourceNormalized.set(normalizeForMatch(s), s);
+        const ordered = uniqueDesiredSoft
+            .map((s) => sourceNormalized.get(normalizeForMatch(s)) ?? s)
+            .filter(Boolean);
+        const remainder = sourceSoft.filter((s: any) => !new Set(ordered.map(normalizeForMatch)).has(normalizeForMatch(s)));
+        merged.competences = merged.competences || {};
+        merged.competences.soft_skills = [...ordered, ...remainder];
+    }
+
+    return merged;
+};
+
 export async function POST(req: Request) {
     try {
         const generationStartMs = Date.now();
@@ -232,6 +449,10 @@ export async function POST(req: Request) {
             const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
             if (cacheAge < CACHE_TTL) {
+                const cachedGeneratorVersion = (cachedCV as any)?.cv_data?.cv_metadata?.generator_version;
+                if (cachedGeneratorVersion && cachedGeneratorVersion !== packageJson.version) {
+                    console.log(`[CV CACHE SKIP] generator_version mismatch (${cachedGeneratorVersion} != ${packageJson.version})`);
+                } else {
                 const cachedHasPhoto = !!(cachedCV as any)?.cv_data?.profil?.photo_url;
                 if (!includePhoto) {
                     const cvWithoutPhoto = JSON.parse(JSON.stringify(cachedCV.cv_data));
@@ -261,6 +482,7 @@ export async function POST(req: Request) {
                         cached: true,
                         cacheAge: Math.round(cacheAge / 1000)
                     });
+                }
                 }
             } else {
                 console.log(`[CV CACHE EXPIRED] Cache too old (${Math.round(cacheAge / 1000)}s), regenerating...`);
@@ -310,9 +532,11 @@ export async function POST(req: Request) {
         console.log("=== CV GENERATION START ===");
 
         let responseText: string;
+        let modelUsed: string | undefined;
         try {
             const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
             responseText = cascadeResult.result.response.text();
+            modelUsed = cascadeResult.modelUsed;
             console.log("Using model:", cascadeResult.modelUsed);
             console.log("Gemini response length:", responseText.length);
         } catch (geminiError: any) {
@@ -366,8 +590,15 @@ export async function POST(req: Request) {
                 ? identity.titre_vise.trim()
                 : undefined;
 
+        const aiMergedProfile = mergeAIOptimizationsIntoProfile({
+            ragProfile,
+            ragProfileForPrompt,
+            aiOptimizedCV,
+            guardWarnings,
+        });
+
         const mergedRaw = {
-            ...ragProfile,
+            ...aiMergedProfile,
             profil: {
                 prenom: ragProfil?.prenom || identity?.prenom || "",
                 nom: ragProfil?.nom || identity?.nom || "",
@@ -423,6 +654,8 @@ export async function POST(req: Request) {
             generated_for_job_id: analysisId,
             match_score: typeof baseMeta.match_score === "number" ? baseMeta.match_score : analysisData.match_score,
             generated_at: generatedAt,
+            generator_version: packageJson.version,
+            generator_model: modelUsed || null,
             compression_level_applied: compressionLevelApplied,
             page_count: 1,
             optimizations_applied: optimizationsApplied,

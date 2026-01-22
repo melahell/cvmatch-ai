@@ -187,14 +187,14 @@ function truncateText(text: string, maxLength: number = 300): string {
  * Text is NOT cut - these are just max counts for sections
  */
 const CV_LIMITS = {
-    maxExperiences: 5,             // Allow more experiences
-    maxRealisationsPerExp: 5,      // Allow more bullets  
+    maxExperiences: 10,
+    maxRealisationsPerExp: 8,
     maxRealisationLength: 999,     // No truncation
-    maxSkills: 15,                 // Show all skills
-    maxSoftSkills: 10,
-    maxFormations: 3,
-    maxLangues: 5,
-    maxCertifications: 5,
+    maxSkills: 28,
+    maxSoftSkills: 14,
+    maxFormations: 5,
+    maxLangues: 6,
+    maxCertifications: 8,
     maxElevatorPitchLength: 999    // No truncation
 };
 
