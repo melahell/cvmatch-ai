@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Logo } from "@/components/ui/Logo";
 import { usePathname } from "next/navigation";
 import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, GitCompare, BookmarkCheck, Landmark, Shield, Upload, FileSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useRAGData } from "@/hooks/useRAGData";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { Footer } from "./Footer";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -31,7 +33,8 @@ const baseNavItems = [
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     const pathname = usePathname();
-    const { userName, logout } = useAuth();
+    const { userId, userName, logout } = useAuth();
+    const { data: ragData } = useRAGData(userId); // Récupérer la photo de profil
     const [menuOpen, setMenuOpen] = useState(false);
     const [exportModalOpen, setExportModalOpen] = useState(false);
     const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
@@ -126,8 +129,20 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             aria-label="Menu utilisateur"
                             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-secondary dark:hover:bg-slate-800 transition-colors"
                         >
-                            <div className="w-8 h-8 bg-gradient-to-br from-neon-pink to-neon-indigo rounded-full flex items-center justify-center">
-                                <span className="text-white text-xs font-bold">{initials}</span>
+                            {/* Photo de profil ou initiales */}
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-neon-pink to-neon-indigo shrink-0">
+                                {ragData?.photo_url ? (
+                                    <Image
+                                        src={ragData.photo_url}
+                                        alt={userName || "Photo de profil"}
+                                        width={32}
+                                        height={32}
+                                        className="w-full h-full object-cover"
+                                        unoptimized // Signed URL from Supabase
+                                    />
+                                ) : (
+                                    <span className="text-white text-xs font-bold">{initials}</span>
+                                )}
                             </div>
                             <span className="text-sm font-medium text-cvText-primary dark:text-slate-300 hidden sm:inline max-w-[120px] truncate">
                                 {userName}
