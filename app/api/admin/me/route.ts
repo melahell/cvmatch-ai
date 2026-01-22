@@ -10,6 +10,19 @@ const getAllowList = () => {
         .filter(Boolean);
 };
 
+const asSupabaseSafeError = (error: unknown) => {
+    const message = typeof (error as any)?.message === "string" ? (error as any).message : "";
+    const code = typeof (error as any)?.code === "string" ? (error as any).code : "";
+    return { message, code };
+};
+
+const isMissingUsersTableError = (error: unknown) => {
+    const { message, code } = asSupabaseSafeError(error);
+    if (code === "42P01") return true;
+    if (!message) return false;
+    return message.toLowerCase().includes('relation "users" does not exist');
+};
+
 const ensureUserRow = async (admin: ReturnType<typeof createSupabaseAdminClient>, userId: string, email: string) => {
     const { data: existing, error: selectError } = await admin
         .from("users")
@@ -18,6 +31,15 @@ const ensureUserRow = async (admin: ReturnType<typeof createSupabaseAdminClient>
         .maybeSingle();
 
     if (selectError) {
+        if (isMissingUsersTableError(selectError)) {
+            return {
+                id: userId,
+                email,
+                role: "user",
+                subscription_tier: "free",
+                subscription_status: "inactive",
+            };
+        }
         throw new Error(selectError.message);
     }
 
@@ -40,6 +62,15 @@ const ensureUserRow = async (admin: ReturnType<typeof createSupabaseAdminClient>
     if (!upsertError && upserted) {
         return upserted;
     }
+    if (upsertError && isMissingUsersTableError(upsertError)) {
+        return {
+            id: userId,
+            email,
+            role: "user",
+            subscription_tier: "free",
+            subscription_status: "inactive",
+        };
+    }
 
     const { data: created, error: createdError } = await admin
         .from("users")
@@ -48,10 +79,29 @@ const ensureUserRow = async (admin: ReturnType<typeof createSupabaseAdminClient>
         .maybeSingle();
 
     if (createdError) {
+        if (isMissingUsersTableError(createdError)) {
+            return {
+                id: userId,
+                email,
+                role: "user",
+                subscription_tier: "free",
+                subscription_status: "inactive",
+            };
+        }
         throw new Error(upsertError?.message || createdError.message);
     }
 
     if (created) return created;
+
+    if (upsertError && isMissingUsersTableError(upsertError)) {
+        return {
+            id: userId,
+            email,
+            role: "user",
+            subscription_tier: "free",
+            subscription_status: "inactive",
+        };
+    }
 
     throw new Error(upsertError?.message || "Impossible de créer l'utilisateur");
 };
@@ -84,7 +134,7 @@ export async function GET(req: Request) {
             subscription_tier?: string;
             subscription_status?: string;
         } | null = email
-            ? await ensureUserRow(admin, auth.user.id, email)
+            ? await ensureUserRow(admin, auth.user.id, email).catch(() => null)
             : null;
 
         if (!userRow) {
@@ -95,7 +145,22 @@ export async function GET(req: Request) {
                 .maybeSingle();
 
             if (error) {
-                return NextResponse.json({ error: error.message }, { status: 500 });
+                if (isMissingUsersTableError(error)) {
+                    return NextResponse.json({
+                        isAdmin: false,
+                        role: "user",
+                        subscriptionTier: "free",
+                        subscriptionStatus: "inactive",
+                        adminErrorCode: "USERS_TABLE_MISSING",
+                    });
+                }
+                return NextResponse.json({
+                    isAdmin: false,
+                    role: "user",
+                    subscriptionTier: "free",
+                    subscriptionStatus: "inactive",
+                    adminErrorCode: "USERS_TABLE_ERROR",
+                });
             }
 
             userRow = data;
@@ -108,7 +173,13 @@ export async function GET(req: Request) {
                 .eq("id", auth.user.id);
 
             if (error) {
-                return NextResponse.json({ error: error.message }, { status: 500 });
+                return NextResponse.json({
+                    isAdmin: false,
+                    role: userRow?.role || "user",
+                    subscriptionTier: userRow?.subscription_tier || "free",
+                    subscriptionStatus: userRow?.subscription_status || "inactive",
+                    adminErrorCode: isMissingUsersTableError(error) ? "USERS_TABLE_MISSING" : "ROLE_UPDATE_FAILED",
+                });
             }
 
             userRow = {
@@ -124,6 +195,12 @@ export async function GET(req: Request) {
             subscriptionStatus: userRow?.subscription_status || "inactive"
         });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({
+            isAdmin: false,
+            role: "user",
+            subscriptionTier: "free",
+            subscriptionStatus: "inactive",
+            adminErrorCode: isMissingUsersTableError(error) ? "USERS_TABLE_MISSING" : "ADMIN_ME_ERROR",
+        });
     }
 }

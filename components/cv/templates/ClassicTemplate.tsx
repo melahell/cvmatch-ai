@@ -6,10 +6,12 @@ import { Mail, Phone, MapPin, Linkedin } from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 // Sanitize text by fixing spacing issues (applied at render time)
-function sanitizeText(text: string | undefined | null): string {
-    if (!text) return '';
+function sanitizeText(text: unknown): string {
+    if (text === null || text === undefined) return "";
+    const input = typeof text === "string" ? text : String(text);
+    if (!input) return "";
 
-    return text
+    return input
         // Fix common French word concatenations
         .replace(/([a-zàâäéèêëïîôùûüçœæ])(de|des|du|pour|avec|sans|dans|sur|sous|entre|chez|vers|par|et|ou|à|au|aux|un|une|le|la|les)([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆA-zàâäéèêëïîôùûüçœæ])/g, '$1 $2 $3')
         // Fix lowercase + uppercase (camelCase)
