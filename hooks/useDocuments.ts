@@ -8,6 +8,7 @@ interface Document {
     file_type: string;
     created_at: string;
     extraction_status: string;
+    storage_path?: string;
 }
 
 interface UseDocumentsReturn {
@@ -55,7 +56,7 @@ export function useDocuments(userId: string | null, limit?: number): UseDocument
             const supabase = createSupabaseClient();
             let query = supabase
                 .from("uploaded_documents")
-                .select("id, filename, file_type, created_at, extraction_status")
+                .select("id, filename, file_type, created_at, extraction_status, storage_path")
                 .eq("user_id", userId)
                 .order("created_at", { ascending: false });
 

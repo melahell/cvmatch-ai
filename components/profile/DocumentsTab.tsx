@@ -3,8 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Trash2, Upload, Loader2 } from "lucide-react";
+import { FileText, Trash2, Upload, Loader2, Eye, Download } from "lucide-react";
 import { useState, useRef } from "react";
+import { createSupabaseClient } from "@/lib/supabase";
+import { toast } from "sonner";
 
 interface Document {
     id: string;
@@ -12,6 +14,7 @@ interface Document {
     file_type: string;
     created_at: string;
     extraction_status: string;
+    storage_path?: string;
 }
 
 interface DocumentsTabProps {
@@ -23,6 +26,8 @@ interface DocumentsTabProps {
 
 export function DocumentsTab({ documents, onDelete, onUpload, uploading }: DocumentsTabProps) {
     const [deleting, setDeleting] = useState<string | null>(null);
+    const [viewing, setViewing] = useState<string | null>(null);
+    const [downloading, setDownloading] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleDelete = async (docId: string) => {
@@ -30,6 +35,62 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
         setDeleting(docId);
         await onDelete(docId);
         setDeleting(null);
+    };
+
+    const handleView = async (doc: Document) => {
+        if (!doc.storage_path) {
+            toast.error("Chemin de stockage non disponible");
+            return;
+        }
+
+        setViewing(doc.id);
+        try {
+            const supabase = createSupabaseClient();
+            const { data, error } = await supabase.storage
+                .from('documents')
+                .createSignedUrl(doc.storage_path, 3600); // 1 heure
+
+            if (error || !data?.signedUrl) {
+                toast.error("Impossible d'ouvrir le document");
+                return;
+            }
+
+            window.open(data.signedUrl, '_blank');
+        } catch (e) {
+            toast.error("Erreur lors de l'ouverture du document");
+        } finally {
+            setViewing(null);
+        }
+    };
+
+    const handleDownload = async (doc: Document) => {
+        if (!doc.storage_path) {
+            toast.error("Chemin de stockage non disponible");
+            return;
+        }
+
+        setDownloading(doc.id);
+        try {
+            const supabase = createSupabaseClient();
+            const { data, error } = await supabase.storage
+                .from('documents')
+                .createSignedUrl(doc.storage_path, 3600); // 1 heure
+
+            if (error || !data?.signedUrl) {
+                toast.error("Impossible de télécharger le document");
+                return;
+            }
+
+            const a = document.createElement('a');
+            a.href = data.signedUrl;
+            a.download = doc.filename;
+            a.click();
+            toast.success("Téléchargement démarré");
+        } catch (e) {
+            toast.error("Erreur lors du téléchargement");
+        } finally {
+            setDownloading(null);
+        }
     };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,33 +167,68 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-w-4xl">
                         {documents.map((doc) => (
                             <Card key={doc.id} className="hover:shadow-md transition-shadow">
                                 <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3 flex-1">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
                                             <FileText className="w-5 h-5 text-blue-600 shrink-0" />
                                             <div className="min-w-0 flex-1">
-                                                <div className="font-medium truncate">{doc.filename}</div>
+                                                <div className="font-medium truncate" title={doc.filename}>
+                                                    {doc.filename}
+                                                </div>
                                                 <div className="text-xs text-slate-600">
                                                     {formatDate(doc.created_at)} • {doc.file_type}
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 shrink-0">
                                             <Badge
                                                 variant={doc.extraction_status === "completed" ? "success" : "neutral"}
                                                 className="shrink-0"
                                             >
                                                 {doc.extraction_status === "completed" ? "Extrait" : "En cours"}
                                             </Badge>
+                                            {doc.storage_path && (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleView(doc)}
+                                                        disabled={viewing === doc.id}
+                                                        className="text-blue-600 hover:text-blue-800"
+                                                        title="Voir le document"
+                                                    >
+                                                        {viewing === doc.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <Eye className="w-4 h-4" />
+                                                        )}
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleDownload(doc)}
+                                                        disabled={downloading === doc.id}
+                                                        className="text-slate-600 hover:text-slate-800"
+                                                        title="Télécharger le document"
+                                                    >
+                                                        {downloading === doc.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <Download className="w-4 h-4" />
+                                                        )}
+                                                    </Button>
+                                                </>
+                                            )}
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDelete(doc.id)}
                                                 disabled={deleting === doc.id}
                                                 className="text-red-500 hover:text-red-700"
+                                                title="Supprimer le document"
                                             >
                                                 {deleting === doc.id ? (
                                                     <Loader2 className="w-4 h-4 animate-spin" />
