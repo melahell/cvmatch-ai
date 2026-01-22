@@ -450,7 +450,7 @@ export async function POST(req: Request) {
 
             if (cacheAge < CACHE_TTL) {
                 const cachedGeneratorVersion = (cachedCV as any)?.cv_data?.cv_metadata?.generator_version;
-                if (cachedGeneratorVersion && cachedGeneratorVersion !== packageJson.version) {
+                if (cachedGeneratorVersion !== packageJson.version) {
                     console.log(`[CV CACHE SKIP] generator_version mismatch (${cachedGeneratorVersion} != ${packageJson.version})`);
                 } else {
                 const cachedHasPhoto = !!(cachedCV as any)?.cv_data?.profil?.photo_url;
