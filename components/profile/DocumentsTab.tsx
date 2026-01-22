@@ -16,7 +16,7 @@ interface Document {
 
 interface DocumentsTabProps {
     documents: Document[];
-    onDelete: (id: string) => Promise<void>;
+    onDelete: (id: string) => Promise<void | boolean>;
     onUpload: (file: File) => Promise<void>;
     uploading?: boolean;
 }

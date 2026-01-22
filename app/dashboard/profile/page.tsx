@@ -23,6 +23,7 @@ import { ValidationWarnings } from "@/components/profile/ValidationWarnings";
 import { OverviewTab } from "@/components/profile/OverviewTab";
 import { WeightTab } from "@/components/profile/WeightTab";
 import { AdvancedTab } from "@/components/profile/AdvancedTab";
+import { DocumentsTab } from "@/components/profile/DocumentsTab";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
@@ -474,28 +475,12 @@ function ProfileContent() {
                         </TabsContent>
 
                         <TabsContent value="docs">
-                            <Card className="border-dashed border-2">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Upload className="w-5 h-5" />
-                                        Ajouter des documents
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Pour importer de nouveaux documents (CV, LinkedIn PDF, etc.), utilisez la page d'onboarding.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Link href="/onboarding">
-                                        <Button className="gap-2">
-                                            <ExternalLink className="w-4 h-4" />
-                                            Aller à l'import de documents
-                                        </Button>
-                                    </Link>
-                                    <p className="text-sm text-slate-600 mt-4">
-                                        Documents actuels: {documents?.length || 0} fichier(s)
-                                    </p>
-                                </CardContent>
-                            </Card>
+                            <DocumentsTab
+                                documents={documents || []}
+                                onDelete={deleteDocument}
+                                onUpload={handleUpload}
+                                uploading={uploading}
+                            />
                         </TabsContent>
 
                         <TabsContent value="avance">
