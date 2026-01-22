@@ -55,6 +55,9 @@ export default function TechTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications } = data;
+    const hasHttpPhoto =
+        typeof profil?.photo_url === "string" &&
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
 
     // Helper to safely render a string from potentially object value
     const safeString = (val: any): string => {
@@ -143,7 +146,7 @@ export default function TechTemplate({
 
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center mb-4">
-                    {includePhoto && profil.photo_url ? (
+                    {includePhoto && hasHttpPhoto ? (
                         <div
                             className="w-20 h-20 rounded-lg border-2 border-semantic-success p-0.5 mb-3 overflow-hidden shadow-level-3"
                         >

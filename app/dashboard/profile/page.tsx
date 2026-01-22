@@ -26,6 +26,7 @@ import { AdvancedTab } from "@/components/profile/AdvancedTab";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
 import { toast } from "sonner";
@@ -244,12 +245,14 @@ function ProfileContent() {
         setUploading(true);
         try {
             const formData = new FormData();
-            formData.append("file", file);
-            formData.append("userId", userId);
+            formData.append("files", file);
+            const authHeaders = await getSupabaseAuthHeader();
 
             const res = await fetch("/api/rag/upload", {
                 method: "POST",
-                body: formData
+                headers: authHeaders,
+                credentials: "include",
+                body: formData,
             });
 
             if (res.ok) {
@@ -271,10 +274,11 @@ function ProfileContent() {
         if (!userId) return;
 
         try {
+            const authHeaders = await getSupabaseAuthHeader();
             const res = await fetch("/api/profile/reset", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ userId })
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                credentials: "include",
             });
 
             if (res.ok) {

@@ -45,6 +45,9 @@ export default function ClassicTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications } = data;
+    const hasHttpPhoto =
+        typeof profil?.photo_url === "string" &&
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
 
     // Helper to safely render a string from potentially object value
     const safeString = (val: any): string => {
@@ -96,7 +99,7 @@ export default function ClassicTemplate({
                     {/* Photo */}
                     {includePhoto && (
                         <div className="w-24 h-24 rounded-lg border-4 border-white/30 overflow-hidden shadow-lg flex-shrink-0">
-                            {profil.photo_url ? (
+                            {hasHttpPhoto ? (
                                 <img
                                     src={profil.photo_url}
                                     alt={`${profil.prenom} ${profil.nom}`}

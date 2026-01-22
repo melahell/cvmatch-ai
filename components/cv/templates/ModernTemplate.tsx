@@ -46,6 +46,9 @@ export default function ModernTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
+    const hasHttpPhoto =
+        typeof profil?.photo_url === "string" &&
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
 
     const renderRealisation = (r: string): string => sanitizeText(r);
     const renderSkill = (s: string): string => sanitizeText(s);
@@ -90,7 +93,7 @@ export default function ModernTemplate({
                     <div
                         className="w-24 h-24 rounded-full border-4 border-neon-indigo p-0.5 mb-3 overflow-hidden bg-slate-800 flex items-center justify-center shadow-level-4"
                     >
-                        {includePhoto && profil.photo_url ? (
+                        {includePhoto && hasHttpPhoto ? (
                             <img
                                 src={profil.photo_url}
                                 alt={`${profil.prenom} ${profil.nom}`}

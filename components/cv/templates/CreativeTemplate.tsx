@@ -55,6 +55,9 @@ export default function CreativeTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues } = data;
+    const hasHttpPhoto =
+        typeof profil?.photo_url === "string" &&
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
 
     // Helper to safely render a string from potentially object value
     const safeString = (val: any): string => {
@@ -126,7 +129,7 @@ export default function CreativeTemplate({
                         <div
                             className="w-28 h-28 rounded-full border-4 border-white overflow-hidden flex-shrink-0 shadow-level-4"
                         >
-                            {profil.photo_url ? (
+                            {hasHttpPhoto ? (
                                 <img
                                     src={profil.photo_url}
                                     alt={`${profil.prenom} ${profil.nom}`}

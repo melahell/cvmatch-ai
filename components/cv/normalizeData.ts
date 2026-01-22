@@ -299,7 +299,13 @@ export function normalizeRAGToCV(raw: any): CVData {
         contactAny.mobile,
         identity?.contact?.telephone
     );
-    const localisation = profil.localisation || contact.ville || identity.contact?.ville || '';
+    const localisation = pickFirstString(
+        profil.localisation,
+        contactAny.ville,
+        contactAny.city,
+        contactAny.localisation,
+        identity?.contact?.ville
+    );
     const linkedin = pickFirstString(
         profil.linkedin,
         contactAny.linkedin,

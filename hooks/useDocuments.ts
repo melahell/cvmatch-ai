@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 
 interface Document {
@@ -87,9 +87,11 @@ export function useDocuments(userId: string | null, limit?: number): UseDocument
 
     const deleteDocument = async (docId: string): Promise<boolean> => {
         try {
+            const authHeaders = await getSupabaseAuthHeader();
             const res = await fetch("/api/documents/delete", {
                 method: "DELETE",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                credentials: "include",
                 body: JSON.stringify({ documentId: docId }),
             });
 
