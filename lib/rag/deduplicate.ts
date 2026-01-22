@@ -15,6 +15,13 @@ interface Experience {
     [key: string]: any;
 }
 
+interface RealisationObject {
+    description: string;
+    impact?: string;
+    sources?: string[];
+    [key: string]: any;
+}
+
 /**
  * Calculate similarity between two strings (0-1)
  * Uses Jaccard similarity on word sets
@@ -50,8 +57,6 @@ function areExperiencesDuplicates(exp1: Experience, exp2: Experience): boolean {
     // Check date overlap
     const start1 = exp1.date_debut || exp1.debut;
     const start2 = exp2.date_debut || exp2.debut;
-    const end1 = exp1.date_fin || exp1.fin;
-    const end2 = exp2.date_fin || exp2.fin;
 
     // If both have dates, check if they overlap
     if (start1 && start2) {
@@ -62,10 +67,21 @@ function areExperiencesDuplicates(exp1: Experience, exp2: Experience): boolean {
         const date1 = new Date(start1);
         const date2 = new Date(start2);
         const diffMonths = Math.abs((date1.getTime() - date2.getTime()) / (1000 * 60 * 60 * 24 * 30));
-        if (diffMonths < 3) return true;
+        return diffMonths < 3;
     }
 
-    return true; // If all checks pass, it's a duplicate
+    if (!start1 && !start2) {
+        const isCurrent1 = !!exp1.actuel || !exp1.fin || !exp1.date_fin;
+        const isCurrent2 = !!exp2.actuel || !exp2.fin || !exp2.date_fin;
+        if (isCurrent1 && isCurrent2) return true;
+        return true;
+    }
+
+    const isCurrent1 = !!exp1.actuel || !exp1.fin || !exp1.date_fin;
+    const isCurrent2 = !!exp2.actuel || !exp2.fin || !exp2.date_fin;
+    if (isCurrent1 && isCurrent2) return true;
+
+    return false;
 }
 
 /**
@@ -82,32 +98,60 @@ function mergeExperiences(exps: Experience[]): Experience {
     const base = { ...sorted[0] };
 
     // Merge all unique realisations from all experiences
-    const allRealisations = new Set<string>();
+    const merged: RealisationObject[] = [];
+
+    const normalizeReal = (real: any): RealisationObject | null => {
+        if (!real) return null;
+        if (typeof real === "string") {
+            const description = real.trim();
+            if (!description) return null;
+            return { description };
+        }
+        if (typeof real === "object") {
+            const description = (real.description || "").toString().trim();
+            if (!description) return null;
+            const impact = real.impact ? real.impact.toString().trim() : undefined;
+            const sources = Array.isArray(real.sources) ? real.sources.filter(Boolean) : undefined;
+            return { ...real, description, impact, sources };
+        }
+        const description = String(real).trim();
+        if (!description) return null;
+        return { description };
+    };
 
     for (const exp of exps) {
         if (!exp.realisations) continue;
 
         for (const real of exp.realisations) {
-            const text = typeof real === 'string' ? real : real.description || JSON.stringify(real);
-            const normalized = text.toLowerCase().replace(/[^\w\s]/g, '').trim();
+            const normalizedReal = normalizeReal(real);
+            if (!normalizedReal) continue;
+            const normalized = normalizedReal.description.toLowerCase().replace(/[^\w\s]/g, "").trim();
 
             // Only add if not too similar to existing ones
-            let isDuplicate = false;
-            for (const existing of allRealisations) {
-                const similarity = calculateSimilarity(normalized, existing.toLowerCase().replace(/[^\w\s]/g, '').trim());
+            let mergedIntoExisting = false;
+            for (const existing of merged) {
+                const existingNorm = existing.description.toLowerCase().replace(/[^\w\s]/g, "").trim();
+                const similarity = calculateSimilarity(normalized, existingNorm);
                 if (similarity > 0.85) {
-                    isDuplicate = true;
+                    const keepDescription = normalizedReal.description.length > existing.description.length ? normalizedReal.description : existing.description;
+                    const keepImpact =
+                        (normalizedReal.impact || "").length > (existing.impact || "").length
+                            ? normalizedReal.impact
+                            : existing.impact;
+                    const sources = Array.from(new Set([...(existing.sources || []), ...(normalizedReal.sources || [])]));
+                    existing.description = keepDescription;
+                    if (keepImpact) existing.impact = keepImpact;
+                    if (sources.length > 0) existing.sources = sources;
+                    mergedIntoExisting = true;
                     break;
                 }
             }
 
-            if (!isDuplicate) {
-                allRealisations.add(text);
-            }
+            if (!mergedIntoExisting) merged.push(normalizedReal);
         }
     }
 
-    base.realisations = Array.from(allRealisations);
+    base.realisations = merged;
 
     return base;
 }

@@ -193,14 +193,16 @@ function ProfileContent() {
                 setRegenProgress(Math.round((processed / totalDocs) * 100));
                 logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`, { mode, isFirstDocument });
 
+                const authHeaders = await getSupabaseAuthHeader();
                 const res = await fetch("/api/rag/generate-incremental", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "application/json", ...authHeaders },
+                    credentials: "include",
                     body: JSON.stringify({
-                        userId,
                         documentId: doc.id,
                         mode, // "completion" or "regeneration"
-                        isFirstDocument // true only for first doc when regenerating
+                        isFirstDocument, // true only for first doc when regenerating
+                        isLastDocument: i === documents.length - 1
                     })
                 });
 

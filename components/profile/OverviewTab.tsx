@@ -98,9 +98,11 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
         setDeletingItem(itemKey);
 
         try {
+            const authHeaders = await getSupabaseAuthHeader();
             const response = await fetch("/api/profile/delete-item", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                credentials: "include",
                 body: JSON.stringify({
                     userId,
                     type,
@@ -859,6 +861,121 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                         </CardContent>
                     </Card>
                 )}
+
+            {/* Contexte enrichi */}
+            {ragData?.contexte_enrichi && (
+                <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50/50 to-white">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Info className="w-5 h-5 text-indigo-600" />
+                            Contexte enrichi (déductions)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {Array.isArray(ragData.contexte_enrichi.responsabilites_implicites) &&
+                            ragData.contexte_enrichi.responsabilites_implicites.length > 0 && (
+                                <div>
+                                    <h4 className="font-medium mb-2 text-indigo-800">Responsabilités implicites :</h4>
+                                    <div className="space-y-2">
+                                        {ragData.contexte_enrichi.responsabilites_implicites.map((r: any, i: number) => (
+                                            <div key={i} className="p-3 rounded-lg border bg-white">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="font-semibold text-sm">{r.categorie}</div>
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {r.niveau_certitude}
+                                                    </Badge>
+                                                </div>
+                                                {Array.isArray(r.actions) && r.actions.length > 0 && (
+                                                    <ul className="text-sm text-slate-700 mt-2 space-y-1">
+                                                        {r.actions.map((a: string, j: number) => (
+                                                            <li key={j} className="flex gap-2">
+                                                                <span className="text-slate-500">•</span>
+                                                                <span className="flex-1">{a}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                )}
+                                                {r.justification && (
+                                                    <p className="text-xs text-slate-500 mt-2">
+                                                        Justification : {r.justification}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                        {Array.isArray(ragData.contexte_enrichi.competences_tacites) &&
+                            ragData.contexte_enrichi.competences_tacites.length > 0 && (
+                                <div>
+                                    <h4 className="font-medium mb-2 text-indigo-800">Compétences tacites :</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {ragData.contexte_enrichi.competences_tacites.map((c: any, i: number) => (
+                                            <div key={i} className="p-3 rounded-lg border bg-white">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <div className="font-semibold text-sm">{c.competence}</div>
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {c.niveau_deduit}
+                                                    </Badge>
+                                                </div>
+                                                {c.contexte && <p className="text-xs text-slate-500 mt-2">{c.contexte}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                        {Array.isArray(ragData.contexte_enrichi.soft_skills_deduites) &&
+                            ragData.contexte_enrichi.soft_skills_deduites.length > 0 && (
+                                <div>
+                                    <h4 className="font-medium mb-2 text-indigo-800">Soft skills déduites :</h4>
+                                    <div className="flex flex-wrap gap-2">
+                                        {ragData.contexte_enrichi.soft_skills_deduites.map((s: string, i: number) => (
+                                            <Badge key={i} variant="outline" className="bg-indigo-50 border-indigo-200">
+                                                {s}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                        {ragData.contexte_enrichi.environnement_travail && (
+                            <div>
+                                <h4 className="font-medium mb-2 text-indigo-800">Environnement de travail :</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                    <div className="p-3 rounded-lg border bg-white">
+                                        <div className="text-xs text-slate-500">Complexité organisationnelle</div>
+                                        <div className="font-semibold">{ragData.contexte_enrichi.environnement_travail.complexite_organisationnelle}</div>
+                                    </div>
+                                    <div className="p-3 rounded-lg border bg-white">
+                                        <div className="text-xs text-slate-500">Niveau d’autonomie</div>
+                                        <div className="font-semibold">{ragData.contexte_enrichi.environnement_travail.niveau_autonomie}</div>
+                                    </div>
+                                    <div className="p-3 rounded-lg border bg-white">
+                                        <div className="text-xs text-slate-500">Exposition direction</div>
+                                        <div className="font-semibold">{ragData.contexte_enrichi.environnement_travail.exposition_direction}</div>
+                                    </div>
+                                    <div className="p-3 rounded-lg border bg-white">
+                                        <div className="text-xs text-slate-500">Criticité missions</div>
+                                        <div className="font-semibold">{ragData.contexte_enrichi.environnement_travail.criticite_missions}</div>
+                                    </div>
+                                </div>
+                                {Array.isArray(ragData.contexte_enrichi.environnement_travail.langues_travail) &&
+                                    ragData.contexte_enrichi.environnement_travail.langues_travail.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {ragData.contexte_enrichi.environnement_travail.langues_travail.map((l: string, i: number) => (
+                                                <Badge key={i} variant="outline">
+                                                    {l}
+                                                </Badge>
+                                            ))}
+                                        </div>
+                                    )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             {/* Add Item Modal */}
             {showAddModal && (

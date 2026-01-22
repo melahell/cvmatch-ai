@@ -10,6 +10,7 @@ import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
+import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
 
-        const { documentId, mode, isFirstDocument } = await req.json();
+        const { documentId, mode, isFirstDocument, isLastDocument } = await req.json();
         // mode: "completion" | "regeneration" (default: completion)
         // isFirstDocument: true if this is the first document being processed
 
@@ -72,7 +73,8 @@ export async function POST(req: Request) {
         logger.info(`Incremental RAG generation`, {
             documentId,
             mode: mode || "completion",
-            isFirstDocument: isFirstDocument || false
+            isFirstDocument: isFirstDocument || false,
+            isLastDocument: isLastDocument || false,
         });
 
         // Check API key
@@ -287,8 +289,26 @@ export async function POST(req: Request) {
         const postProcessStart = Date.now();
         mergedRAG = consolidateClients(mergedRAG);
 
-        // Skip heavy enrichment operations to stay under 10s
-        // mergedRAG = enrichRAGData(mergedRAG); // DISABLED for speed
+        if (isLastDocument) {
+            const elapsedBefore = Date.now() - startTime;
+            const remainingBudgetMs = 52000 - elapsedBefore;
+            if (remainingBudgetMs > 8000) {
+                try {
+                    const contexteEnrichi = await generateContexteEnrichi(mergedRAG, async (prompt: string) => {
+                        const cascade = await callWithTimeout(
+                            callWithRetry(() => generateWithCascade(prompt)),
+                            Math.min(15000, Math.max(9000, remainingBudgetMs - 1000))
+                        );
+                        return cascade.result;
+                    });
+                    if (contexteEnrichi) {
+                        mergedRAG.contexte_enrichi = contexteEnrichi;
+                    }
+                } catch (e: any) {
+                    logger.warn("Incremental enrichment failed (non-blocking)", { error: e?.message });
+                }
+            }
+        }
 
         const qualityScore = calculateQualityScore(mergedRAG);
         const postProcessDuration = Date.now() - postProcessStart;
