@@ -178,65 +178,73 @@ function ProfileContent() {
         setRegenerating(true);
         const totalDocs = documents.length;
         setTotalDocsCount(totalDocs);
-        let processed = 0;
+        setCurrentDocName("Traitement de tous les documents ensemble...");
+        setRegenProgress(0);
 
         try {
-            logger.info(`[INCREMENTAL] Starting regeneration for ${totalDocs} document(s)`);
+            logger.info(`[BATCH] Starting batch regeneration for ${totalDocs} document(s)`, { mode });
 
-            // Process each document sequentially
-            for (let i = 0; i < documents.length; i++) {
-                const doc = documents[i];
-                const isFirstDocument = i === 0;
-                processed++;
-                setCurrentDocIndex(processed);
-                setCurrentDocName(doc.filename);
-                setRegenProgress(Math.round((processed / totalDocs) * 100));
-                logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`, { mode, isFirstDocument });
+            // Use BATCH mode instead of incremental - Gemini sees ALL documents together
+            // This allows it to make connections between sources (CV + LinkedIn + GitHub)
+            const authHeaders = await getSupabaseAuthHeader();
+            
+            setRegenProgress(25);
+            setCurrentDocName("Extraction du texte de tous les documents...");
+            
+            const res = await fetch("/api/rag/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                credentials: "include",
+                body: JSON.stringify({
+                    mode // "completion" or "regeneration"
+                })
+            });
 
-                const authHeaders = await getSupabaseAuthHeader();
-                const res = await fetch("/api/rag/generate-incremental", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", ...authHeaders },
-                    credentials: "include",
-                    body: JSON.stringify({
-                        documentId: doc.id,
-                        mode, // "completion" or "regeneration"
-                        isFirstDocument, // true only for first doc when regenerating
-                        isLastDocument: i === documents.length - 1
-                    })
-                });
+            setRegenProgress(75);
+            setCurrentDocName("Génération du profil RAG avec Gemini...");
 
-                if (!res.ok) {
-                    const error = await res.json();
-                    logger.error(`[INCREMENTAL] Failed for ${doc.filename}:`, error);
-                    toast.error(`Erreur sur ${doc.filename}: ${error.error || "Échec"}. Continuation avec les documents restants...`);
-                    continue; // Continue with next document
-                }
-
-                const result = await res.json();
-                logger.success(`[INCREMENTAL] ${doc.filename} processed - Score: ${result.qualityScore}`);
-
-                // Store validation data from last document (will have merged all previous)
-                if (processed === totalDocs && result.validation) {
-                    setValidationData({
-                        warnings: result.validation?.warnings,
-                        suggestions: result.suggestions,
-                        quality_breakdown: result.quality_breakdown
-                    });
-                }
+            if (!res.ok) {
+                const error = await res.json();
+                logger.error(`[BATCH] Failed:`, error);
+                toast.error(`Erreur lors de la régénération: ${error.error || "Échec"}`);
+                setRegenerating(false);
+                return;
             }
 
-            // Refetch the final merged RAG
+            const result = await res.json();
+            logger.success(`[BATCH] RAG generated - Score: ${result.completenessScore}`, {
+                processedDocuments: result.processedDocuments,
+                modelUsed: result.model_used
+            });
+
+            setRegenProgress(100);
+            setCurrentDocName("Finalisation...");
+
+            // Store validation data
+            if (result.validation) {
+                setValidationData({
+                    warnings: result.validation?.warnings || [],
+                    suggestions: result.suggestions || [],
+                    quality_breakdown: result.quality_breakdown || {}
+                });
+            }
+
+            // Refetch the final RAG
             await refetch();
             await refetchDocs();
 
-            toast.success(`Profil régénéré avec succès! ${processed}/${totalDocs} document(s) traité(s)`);
+            toast.success(
+                `Profil régénéré avec succès! ` +
+                `${result.processedDocuments || totalDocs} document(s) traité(s) ensemble. ` +
+                `Score: ${result.completenessScore}/100`
+            );
 
-        } catch (e) {
-            logger.error("Error in incremental regeneration:", e);
-            toast.error(`Erreur après traitement de ${processed}/${totalDocs} documents`);
+        } catch (e: any) {
+            logger.error("Error in batch regeneration:", e);
+            toast.error(`Erreur lors de la régénération: ${e?.message || "Erreur inconnue"}`);
         } finally {
             setRegenerating(false);
+            setRegenProgress(0);
         }
 
     };
