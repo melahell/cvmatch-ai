@@ -188,14 +188,22 @@ export default function TechTemplate({
                             <span className="text-slate-300">{profil.localisation}</span>
                         </div>
                     )}
-                    <div className="flex items-center gap-2">
-                        <Github className="w-3 h-3 text-cyan-400" />
-                        <span className="text-slate-300">GitHub</span>
-                    </div>
+                    {profil.github && (
+                        <div className="flex items-center gap-2">
+                            <Github className="w-3 h-3 text-cyan-400" />
+                            <span className="text-slate-300 truncate">{profil.github}</span>
+                        </div>
+                    )}
+                    {profil.portfolio && (
+                        <div className="flex items-center gap-2">
+                            <Globe className="w-3 h-3 text-cyan-400" />
+                            <span className="text-slate-300 truncate">{profil.portfolio}</span>
+                        </div>
+                    )}
                     {profil.linkedin && (
                         <div className="flex items-center gap-2">
                             <Linkedin className="w-3 h-3 text-cyan-400" />
-                            <span className="text-slate-300">LinkedIn</span>
+                            <span className="text-slate-300 truncate">{profil.linkedin}</span>
                         </div>
                     )}
                 </div>

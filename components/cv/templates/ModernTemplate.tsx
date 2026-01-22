@@ -2,7 +2,7 @@
 
 import React from "react";
 import { TemplateProps } from "./index";
-import { Mail, Phone, MapPin, Linkedin, Globe } from "lucide-react";
+import { Mail, Phone, MapPin, Linkedin, Globe, Github } from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
 // Sanitize text by fixing spacing issues (applied at render time)
@@ -44,30 +44,8 @@ export default function ModernTemplate({
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
 
-    // Helper to safely render a realisation (can be string or object)
-    const renderRealisation = (r: any): string => {
-        let text = '';
-        if (typeof r === 'string') text = r;
-        else if (typeof r === 'object' && r !== null) {
-            if (r.description) text = r.description;
-            else if (r.impact) text = r.impact;
-            else text = JSON.stringify(r);
-        } else {
-            text = String(r);
-        }
-        return sanitizeText(text);
-    };
-
-    // Helper to safely render a skill (can be string or object)
-    const renderSkill = (s: any): string => {
-        if (typeof s === 'string') return s;
-        if (typeof s === 'object' && s !== null) {
-            if (s.name) return s.name;
-            if (s.skill) return s.skill;
-            return JSON.stringify(s);
-        }
-        return String(s);
-    };
+    const renderRealisation = (r: string): string => sanitizeText(r);
+    const renderSkill = (s: string): string => sanitizeText(s);
 
     // Data is pre-adapted by the CDC Pipeline (adaptive-algorithm.ts)
     // Templates only render, no slicing or limits here
@@ -153,7 +131,19 @@ export default function ModernTemplate({
                     {profil.linkedin && (
                         <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
                             <Linkedin className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-                            <span className="text-slate-100 truncate text-[7pt]">LinkedIn</span>
+                            <span className="text-slate-100 truncate text-[7pt]">{profil.linkedin}</span>
+                        </div>
+                    )}
+                    {profil.github && (
+                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
+                            <Github className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                            <span className="text-slate-100 truncate text-[7pt]">{profil.github}</span>
+                        </div>
+                    )}
+                    {profil.portfolio && (
+                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
+                            <Globe className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                            <span className="text-slate-100 truncate text-[7pt]">{profil.portfolio}</span>
                         </div>
                     )}
                 </div>

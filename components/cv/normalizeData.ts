@@ -12,6 +12,9 @@ interface RAGData {
         disponibilite?: string;
         teletravail?: string;
         tjm?: number;
+        github?: string;
+        portfolio?: string;
+        website?: string;
         contact?: {
             email?: string;
             telephone?: string;
@@ -226,6 +229,8 @@ export function normalizeRAGToCV(raw: any): CVData {
     const telephone = profil.telephone || contact.telephone || identity.contact?.telephone || '';
     const localisation = profil.localisation || contact.ville || identity.contact?.ville || '';
     const linkedin = profil.linkedin || contact.linkedin || identity.contact?.linkedin || '';
+    const github = profil.github || contact.github || identity.contact?.github || '';
+    const portfolio = profil.portfolio || profil.website || contact.portfolio || contact.website || identity.contact?.portfolio || identity.contact?.website || '';
     const elevatorPitch = profil.elevator_pitch || (data as any).elevator_pitch?.text || '';
     const photoUrl = profil.photo_url || identity.photo_url || '';
 
@@ -233,8 +238,8 @@ export function normalizeRAGToCV(raw: any): CVData {
     const experiences = (data.experiences || []).map((exp: any) => ({
         poste: sanitizeText(exp.poste),
         entreprise: sanitizeText(exp.entreprise),
-        date_debut: exp.date_debut || exp.debut || '',
-        date_fin: exp.actuel ? undefined : (exp.date_fin || exp.fin || undefined),
+        date_debut: exp.date_debut || exp.debut || exp.start_date || exp.startDate || exp.dateDebut || exp.date_start || '',
+        date_fin: exp.actuel ? undefined : (exp.date_fin || exp.fin || exp.end_date || exp.endDate || exp.dateFin || exp.date_end || undefined),
         lieu: sanitizeText(exp.lieu || exp.localisation),
         realisations: (exp.realisations || [])
             .filter((r: any) => {
@@ -283,9 +288,10 @@ export function normalizeRAGToCV(raw: any): CVData {
         if (comp.categories && Array.isArray(comp.categories)) {
             comp.categories.forEach((cat: any) => {
                 if (!cat.display && cat.display !== undefined) return; // Skip hidden categories
-                const items = (cat.items || [])
+                const rawItems = cat.items || cat.skills || [];
+                const items = (rawItems || [])
                     .filter((item: any) => item.display !== false)
-                    .map((item: any) => typeof item === 'string' ? item : item.nom || item.name || String(item));
+                    .map((item: any) => typeof item === 'string' ? item : item.nom || item.name || item.skill || item.value || String(item));
 
                 // Determine if technical or soft skill based on category name
                 const catName = (cat.nom || cat.name || '').toLowerCase();
@@ -502,6 +508,8 @@ export function normalizeRAGToCV(raw: any): CVData {
             telephone: telephone,
             localisation: sanitizeText(localisation),
             linkedin: linkedin,
+            github: github || undefined,
+            portfolio: portfolio || undefined,
             elevator_pitch: truncateText(sanitizeText(elevatorPitch), CV_LIMITS.maxElevatorPitchLength),
             photo_url: photoUrl
         },

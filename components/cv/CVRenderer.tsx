@@ -40,9 +40,25 @@ export default function CVRenderer({
     dense = false,
     unitStats
 }: CVRendererProps) {
+    const looksLikeCVData = (value: any): value is CVData => {
+        if (!value || typeof value !== "object") return false;
+        const profil = (value as any).profil;
+        const experiences = (value as any).experiences;
+        if (!profil || typeof profil !== "object") return false;
+        if (typeof profil.prenom !== "string") return false;
+        if (typeof profil.nom !== "string") return false;
+        if (typeof profil.titre_principal !== "string") return false;
+        if (!Array.isArray(experiences)) return false;
+        if (experiences.length === 0) return true;
+        const first = experiences[0];
+        if (!first || typeof first !== "object") return false;
+        return typeof first.poste === "string" && typeof first.entreprise === "string";
+    };
+
     // Normalize the data to template-friendly format
     const normalizedData = useMemo(() => {
         try {
+            if (looksLikeCVData(data)) return data;
             return normalizeRAGToCV(data);
         } catch (e) {
             console.error("Data normalization error:", e);
@@ -82,4 +98,3 @@ export default function CVRenderer({
 
 // Export for PDF generation
 export { ModernTemplate, TechTemplate, ClassicTemplate, CreativeTemplate };
-

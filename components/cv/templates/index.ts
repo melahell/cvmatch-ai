@@ -9,6 +9,8 @@ export interface CVData {
         telephone?: string;
         localisation?: string;
         linkedin?: string;
+        github?: string;
+        portfolio?: string;
         elevator_pitch?: string;
         photo_url?: string;
     };
