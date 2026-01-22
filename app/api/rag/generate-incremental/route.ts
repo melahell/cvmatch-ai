@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { getRAGExtractionPrompt } from "@/lib/ai/prompts";
+import { formatRAGForPrompt } from "@/lib/rag/format-rag-for-prompt";
 import { getDocumentProxy, extractText } from "unpdf";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore } from "@/lib/rag/quality-scoring";
@@ -194,13 +195,41 @@ export async function POST(req: Request) {
             });
         }
 
-        // 4. Call Gemini with timeout (45s - adequate for large documents)
+        // 4. Fetch existing RAG to provide context to Gemini (CRITICAL: Gemini sees accumulated context)
+        const { data: existingRag } = await supabase
+            .from("rag_metadata")
+            .select("completeness_details")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+        let existingRAGContext: string | undefined = undefined;
+        
+        // Only include existing RAG context if:
+        // - NOT in regeneration mode with first document (start fresh)
+        // - OR in completion mode (always enrich)
+        // - OR in regeneration mode but NOT first document (enrich with previous documents)
+        if (!(mode === "regeneration" && isFirstDocument) && existingRag?.completeness_details) {
+            existingRAGContext = formatRAGForPrompt(existingRag.completeness_details);
+            logger.info("Including existing RAG context in prompt", {
+                filename: doc.filename,
+                existingExperiences: existingRag.completeness_details.experiences?.length || 0,
+                contextLength: existingRAGContext.length
+            });
+        } else {
+            logger.info("Starting fresh - no existing RAG context", {
+                filename: doc.filename,
+                mode,
+                isFirstDocument
+            });
+        }
+
+        // 5. Call Gemini with timeout (45s - adequate for large documents)
         const geminiStart = Date.now();
         let responseText: string;
         let modelUsed: string | null = null;
 
         try {
-            const prompt = getRAGExtractionPrompt(truncatedText);
+            const prompt = getRAGExtractionPrompt(truncatedText, existingRAGContext);
             const cascade = await callWithRetry(
                 () => callWithTimeout(generateWithCascade(prompt), 45000),
                 3
@@ -246,18 +275,23 @@ export async function POST(req: Request) {
             }, { status: 500 });
         }
 
-        // 6. Fetch existing RAG metadata
+        // 6. Fetch existing RAG metadata (for merge logic)
         const mergeStart = Date.now();
-        const { data: existingRag } = await supabase
-            .from("rag_metadata")
-            .select("completeness_details")
-            .eq("user_id", userId)
-            .single();
+        // Note: existingRag was already fetched above for context, but we need it again for merge
+        // If we already have it, reuse it; otherwise fetch again
+        let existingRagForMerge = existingRag;
+        if (!existingRagForMerge) {
+            const { data: fetched } = await supabase
+                .from("rag_metadata")
+                .select("completeness_details")
+                .eq("user_id", userId)
+                .maybeSingle();
+            existingRagForMerge = fetched;
+        }
 
         // 7. Handle merge based on mode:
-        // - regeneration + isFirstDocument: start fresh (don't merge with existing)
-        // - regeneration + NOT first: merge with previous documents in this batch
-        // - completion: always merge with existing
+        // IMPORTANT: Since Gemini already saw the existing RAG context, newRAGData should already be enriched
+        // But we still do a light merge to handle edge cases and conflicts
         let mergedRAG;
 
         if (mode === "regeneration" && isFirstDocument) {
@@ -266,15 +300,16 @@ export async function POST(req: Request) {
             mergedRAG = newRAGData;
 
             // Preserve user preferences (rejected_inferred)
-            if (existingRag?.completeness_details?.rejected_inferred) {
-                mergedRAG.rejected_inferred = existingRag.completeness_details.rejected_inferred;
+            if (existingRagForMerge?.completeness_details?.rejected_inferred) {
+                mergedRAG.rejected_inferred = existingRagForMerge.completeness_details.rejected_inferred;
             }
-        } else if (existingRag?.completeness_details) {
-            // COMPLETION MODE or subsequent documents in regeneration: Merge
-            logger.info("Merging with existing RAG", { filename: doc.filename, mode: mode || "completion" });
-            const mergeResult = mergeRAGData(existingRag.completeness_details, newRAGData);
+        } else if (existingRAGContext && existingRagForMerge?.completeness_details) {
+            // Gemini already saw the context, so newRAGData should be enriched
+            // But do a light merge to handle any edge cases
+            logger.info("Light merge after context-aware extraction", { filename: doc.filename, mode: mode || "completion" });
+            const mergeResult = mergeRAGData(existingRagForMerge.completeness_details, newRAGData);
             mergedRAG = mergeResult.merged;
-            logger.info("Merge complete", {
+            logger.info("Light merge complete", {
                 itemsAdded: mergeResult.stats.itemsAdded,
                 itemsUpdated: mergeResult.stats.itemsUpdated,
                 conflictsCount: mergeResult.conflicts.length

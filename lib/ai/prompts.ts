@@ -1,32 +1,40 @@
 
 import { UserProfile, JobAnalysis } from "@/types";
 
-export const getRAGExtractionPrompt = (extractedText: string) => `
+export const getRAGExtractionPrompt = (extractedText: string, existingRAGContext?: string) => `
 Tu es un expert en extraction et structuration de données professionnelles.
 
-DOCUMENTS FOURNIS:
+${existingRAGContext ? `${existingRAGContext}\n\n` : ""}NOUVEAU DOCUMENT À TRAITER:
 ${extractedText}
 
 ══════════════════════════════════════════════════════════════════════════════
-MISSION CRITIQUE: Extrais et structure TOUTES les informations AVEC TRAÇABILITÉ.
+MISSION CRITIQUE: Enrichis le RAG existant avec les informations du nouveau document.
 ══════════════════════════════════════════════════════════════════════════════
 
-⚠️ IMPORTANT: Tu vois TOUS les documents ensemble (CV, LinkedIn, GitHub, etc.).
-⚠️ Fais des LIENS entre les sources pour enrichir chaque expérience:
-  * Si LinkedIn mentionne "reporting" et le CV mentionne "Excel", associe-les dans la même réalisation
-  * Si GitHub mentionne des projets et LinkedIn mentionne des technologies, combine-les
-  * Si plusieurs sources parlent de la même expérience, agrège TOUS les détails (ne perds rien)
-  * Si une source dit "Pilotage" et une autre dit "Jira/Planisware", combine-les: "Pilotage avec Jira/Planisware"
-  * Si LinkedIn liste 11 responsabilités et le CV en liste 7, prends TOUTES (union, pas intersection)
+${existingRAGContext ? `⚠️ CONTEXTE ACCUMULÉ: Tu as déjà un RAG avec des expériences, compétences, formations, etc.
+⚠️ TA MISSION: Enrichis ce RAG existant avec les nouvelles informations du document ci-dessus.
+⚠️ RÈGLES D'ENRICHISSEMENT:
+  * Si le nouveau document parle d'une expérience DÉJÀ dans le RAG → ENRICHIS cette expérience (ajoute les réalisations manquantes, combine les détails)
+  * Si le nouveau document mentionne une réalisation similaire à une existante → COMBINE-LES (union, ne perds rien)
+  * Si le nouveau document liste 11 responsabilités et le RAG existant en a 7 → PRENDS TOUTES (11 au total)
+  * Si le nouveau document mentionne "reporting" et le RAG existant mentionne "Excel" → ASSOCIE-LES dans la même réalisation
+  * Si le nouveau document ajoute des compétences non présentes → AJOUTE-LES
+  * Si le nouveau document contredit le RAG existant → PRIORITÉ au nouveau document (plus récent)
+` : `⚠️ PREMIER DOCUMENT: C'est le premier document, crée le RAG de base.
+⚠️ Extrais TOUTES les informations présentes dans le document.
+`}
 
-RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES)
-1) ⛔ Interdiction absolue d'inventer quoi que ce soit (poste, entreprise, dates, chiffres, clients, certifications, diplômes, projets).
-2) Si une info n'est pas clairement présente dans les documents → mets "" / [] / null (selon le champ). Ne “devine” jamais.
-3) Pour chaque information importante, ajoute des SOURCES (citations exactes tirées du texte fourni).
+RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES - CRITIQUES)
+1) ⛔ INTERDICTION ABSOLUE d'inventer quoi que ce soit (poste, entreprise, dates, chiffres, clients, certifications, diplômes, projets, outils, méthodes, livrables).
+2) ⛔ Si une info n'est PAS dans le nouveau document → NE L'AJOUTE PAS (même si elle semble logique).
+3) ⛔ Si le RAG existant contient une info et le nouveau document ne la mentionne pas → CONSERVE-LA du RAG existant.
+4) ⛔ Si le nouveau document ne mentionne PAS "e-learning", "CMS", "Oracle FatWire" → NE LES INVENTE PAS.
+5) ⛔ Pour chaque réalisation, OUTIL, MÉTHODE, LIVRABLE → DOIT être mentionné explicitement dans le nouveau document OU déjà présent dans le RAG existant.
+6) Pour chaque information importante, ajoute des SOURCES (citations exactes tirées du texte fourni).
    - Une source = un extrait court et exact (copié-collé), pas une paraphrase.
    - Maximum 2 sources par item pour limiter la taille.
-4) Les CHIFFRES et KPI (%, budgets, volumes, dates précises) ne doivent apparaître QUE s'ils existent textuellement dans les documents.
-5) Ne transforme pas un diplôme/certification en titre professionnel.
+7) Les CHIFFRES et KPI (%, budgets, volumes, dates précises) ne doivent apparaître QUE s'ils existent textuellement dans les documents.
+8) Ne transforme pas un diplôme/certification en titre professionnel.
 
 OBJECTIF DE RICHESSE (CRITIQUE)
 - Le RAG est une base de connaissance COMPLÈTE (pas un CV 1 page).
