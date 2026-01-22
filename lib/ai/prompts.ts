@@ -126,10 +126,47 @@ SCHÉMA CIBLE (JSON uniquement) :
 RÈGLES DE QUALITÉ (SANS INVENTION)
 ══════════════════════════════════════════════════════════════════════════════
 
-📌 EXPÉRIENCES / RÉALISATIONS (RICHESSE)
+📌 EXPÉRIENCES / RÉALISATIONS (RICHESSE) - OBLIGATOIRE
 ─────────────────────────────────────────────────────────────────────────────
-- Minimum attendu par expérience SI l’info existe : 6 réalisations.
-- Maximum par expérience : 14 réalisations (éviter les doublons).
+⚠️ CONTRAINTE STRICTE: Minimum 6 réalisations par expérience (si l'info existe dans le document).
+⚠️ Maximum 14 réalisations par expérience (éviter les doublons).
+⚠️ Si le document mentionne une responsabilité (ex: "reporting", "pilotage", "gouvernance"), 
+   tu DOIS déployer cette responsabilité en détails opérationnels (voir exemples ci-dessous).
+
+RÈGLES DE DÉPLOIEMENT LOGIQUE:
+Quand une responsabilité est mentionnée, déploie-la en réalisations concrètes incluant:
+- Process: étapes, méthodologie, cadencement
+- Outils: logiciels, plateformes, technologies utilisées (si mentionnés ou probables)
+- Méthodes: RACI, rituels, gouvernance, validation
+- Livrables: dashboards, rapports, KPIs, plans
+
+EXEMPLES DE DÉPLOIEMENT:
+
+Exemple 1: "Reporting des temps des ressources"
+→ Déploie en:
+  - "Mise en place et suivi du load array (planning de charge des ressources)"
+  - "Encadrement du resource manager pour validation et suivi des temps"
+  - "Application de la méthodologie de reporting avec cadencement hebdomadaire"
+  - "Utilisation d'Excel et PowerBI pour génération des dashboards de suivi"
+  - "Production de KPIs de capacité et d'utilisation des ressources"
+
+Exemple 2: "Pilotage de projet"
+→ Déploie en:
+  - "Animation des COPIL et comités de pilotage avec reporting régulier"
+  - "Gestion des parties prenantes avec matrice RACI et communication adaptée"
+  - "Suivi budgétaire avec analyse d'écarts et prévisions"
+  - "Utilisation de Jira/Planisware pour suivi planning et risques"
+  - "Production de tableaux de bord projet et reporting direction"
+
+Exemple 3: "Transformation digitale"
+→ Déploie en:
+  - "Cadrage et structuration des programmes de transformation"
+  - "Mise en place de la gouvernance avec instances décisionnelles"
+  - "Animation des ateliers de conduite du changement"
+  - "Utilisation d'outils collaboratifs (SharePoint, Teams) pour coordination"
+  - "Production de plans de transformation et roadmaps"
+
+RÈGLES GÉNÉRALES:
 - Chaque réalisation doit être une action concrète, pas un intitulé vague.
 - Si le document contient une liste (missions / achievements / responsibilities), éclate-la en plusieurs réalisations.
 - Préfère des réalisations courtes mais nombreuses plutôt que 2 phrases longues.

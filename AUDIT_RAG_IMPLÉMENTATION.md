@@ -62,7 +62,13 @@ if (experiencesWithFewRealisations.length > 0) {
 - Meilleure couverture des responsabilités implicites et compétences tacites
 - Contexte enrichi plus complet
 
-### ⚠️ Prompt - Modification Recommandée (À FAIRE MANUELLEMENT)
+### ✅ Prompt - Modification Appliquée
+
+**STATUS**: Les modifications principales sont appliquées. Le prompt contient maintenant des exemples de déploiement logique pour forcer Gemini à détailler les responsabilités (reporting → load array, Excel, etc.).
+
+**Note**: Si vous souhaitez renforcer encore plus le prompt, vous pouvez ajouter manuellement les exemples détaillés dans `lib/ai/prompts.ts` lignes 129-140.
+
+### ⚠️ Prompt - Modification Recommandée (OPTIONNEL - Déjà appliquée)
 
 **Fichier**: `lib/ai/prompts.ts` (lignes 129-140)
 
