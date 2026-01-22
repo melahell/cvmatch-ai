@@ -3,6 +3,7 @@
  */
 
 import { adaptCVToThemeUnits } from "./adaptive-algorithm";
+import { JobOfferContext, sortExperiencesByRelevance } from "./relevance-scoring";
 
 export interface CVValidationResult {
     isValid: boolean;
@@ -26,6 +27,10 @@ export interface CVContentLimits {
     maxTechnicalSkills: number;
     maxSoftSkills: number;
     maxFormations: number;
+    maxLanguages: number;
+    maxCertifications: number;
+    maxClients: number;
+    maxClientSectors: number;
     maxElevatorPitchChars: number;
 }
 
@@ -36,6 +41,10 @@ const DEFAULT_LIMITS: CVContentLimits = {
     maxTechnicalSkills: 12,
     maxSoftSkills: 6,
     maxFormations: 2,
+    maxLanguages: 3,
+    maxCertifications: 4,
+    maxClients: 8,
+    maxClientSectors: 4,
     maxElevatorPitchChars: 250,
 };
 
@@ -50,6 +59,10 @@ function getLimitsForTemplate(templateName: string, includePhoto: boolean): CVCo
             maxTechnicalSkills: 14,
             maxSoftSkills: 8,
             maxFormations: 3,
+            maxLanguages: 4,
+            maxCertifications: 6,
+            maxClients: 10,
+            maxClientSectors: 5,
             maxElevatorPitchChars: 280,
         };
     }
@@ -62,6 +75,10 @@ function getLimitsForTemplate(templateName: string, includePhoto: boolean): CVCo
             maxTechnicalSkills: 12,
             maxSoftSkills: 7,
             maxFormations: 2,
+            maxLanguages: 3,
+            maxCertifications: 4,
+            maxClients: 8,
+            maxClientSectors: 4,
             maxElevatorPitchChars: 240,
         };
     }
@@ -74,6 +91,10 @@ function getLimitsForTemplate(templateName: string, includePhoto: boolean): CVCo
             maxTechnicalSkills: 14,
             maxSoftSkills: 6,
             maxFormations: 2,
+            maxLanguages: 3,
+            maxCertifications: 4,
+            maxClients: 8,
+            maxClientSectors: 4,
             maxElevatorPitchChars: 220,
         };
     }
@@ -228,6 +249,16 @@ function sliceToLimits(cvData: any, limits: CVContentLimits) {
                 .slice(0, limits.maxBulletsPerExperience),
         }));
 
+    let remainingBullets = Math.max(0, limits.maxTotalBullets);
+    if (Array.isArray(next.experiences)) {
+        next.experiences = next.experiences.map((exp: any) => {
+            const reals = Array.isArray(exp.realisations) ? exp.realisations : [];
+            const kept = reals.slice(0, remainingBullets);
+            remainingBullets = Math.max(0, remainingBullets - kept.length);
+            return { ...exp, realisations: kept };
+        });
+    }
+
     if (next.competences?.techniques?.length > limits.maxTechnicalSkills) {
         next.competences.techniques = next.competences.techniques.slice(0, limits.maxTechnicalSkills);
     }
@@ -239,10 +270,117 @@ function sliceToLimits(cvData: any, limits: CVContentLimits) {
         next.formations = next.formations.slice(0, limits.maxFormations);
     }
 
+    if (Array.isArray(next.langues) && next.langues.length > limits.maxLanguages) {
+        next.langues = next.langues.slice(0, limits.maxLanguages);
+    }
+
+    if (Array.isArray(next.certifications) && next.certifications.length > limits.maxCertifications) {
+        next.certifications = next.certifications.slice(0, limits.maxCertifications);
+    }
+
+    const clients = next.clients_references;
+    if (clients && typeof clients === "object") {
+        if (Array.isArray(clients.secteurs) && clients.secteurs.length > limits.maxClientSectors) {
+            clients.secteurs = clients.secteurs.slice(0, limits.maxClientSectors);
+        }
+        if (Array.isArray(clients.clients) && clients.clients.length > limits.maxClients) {
+            clients.clients = clients.clients.slice(0, limits.maxClients);
+        }
+        if (Array.isArray(clients.secteurs)) {
+            const trimmed: any[] = [];
+            let total = 0;
+            for (const sector of clients.secteurs) {
+                const sectorClients = Array.isArray(sector.clients) ? sector.clients : [];
+                if (total >= limits.maxClients) break;
+                const allowed = sectorClients.slice(0, Math.max(0, limits.maxClients - total));
+                total += allowed.length;
+                trimmed.push({ ...sector, clients: allowed });
+            }
+            clients.secteurs = trimmed;
+        }
+        next.clients_references = clients;
+    }
+
     if (typeof next.profil?.elevator_pitch === "string" && next.profil.elevator_pitch.length > limits.maxElevatorPitchChars) {
         next.profil.elevator_pitch = next.profil.elevator_pitch.substring(0, Math.max(0, limits.maxElevatorPitchChars - 3)) + "...";
     }
 
+    return next;
+}
+
+const normalizeKey = (value: unknown) =>
+    String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .replace(/[^\p{L}\p{N}\s\-_.]/gu, "");
+
+const parseStartYear = (exp: any) => {
+    const raw = exp?.date_debut || exp?.debut || exp?.start_date || exp?.startDate || "";
+    const m = String(raw).match(/(19|20)\d{2}/);
+    return m ? Number(m[0]) : 0;
+};
+
+const isPMFamilyJob = (jobOffer: JobOfferContext | null) => {
+    const title = normalizeKey(jobOffer?.title || "");
+    return title.includes("chef de projet") || title.includes("project manager") || title.includes("pmo") || title.includes("program manager");
+};
+
+const isDevSideProjectLike = (exp: any) => {
+    const poste = normalizeKey(exp?.poste);
+    const entreprise = normalizeKey(exp?.entreprise);
+    const flags = ["fondateur", "developpeur", "developer", "backend", "architecte", "automation", "ia", "ml", "time project", "side project"];
+    const inPoste = flags.some((f) => poste.includes(f));
+    const inEntreprise = flags.some((f) => entreprise.includes(f));
+    const isCurrent = !exp?.date_fin && !exp?.fin && exp?.actuel;
+    return inPoste || inEntreprise || isCurrent;
+};
+
+function selectExperiencesForTemplate(cvData: any, limits: CVContentLimits, jobOffer: JobOfferContext | null) {
+    const next = JSON.parse(JSON.stringify(cvData));
+    const experiences = Array.isArray(next.experiences) ? next.experiences : [];
+    const visible = experiences.filter((e: any) => e?.display !== false);
+
+    const sorted = jobOffer
+        ? (sortExperiencesByRelevance(visible as any, jobOffer) as any[])
+        : [...visible].sort((a, b) => parseStartYear(b) - parseStartYear(a));
+
+    const deduped: any[] = [];
+    const seen = new Set<string>();
+    for (const exp of sorted) {
+        const key = [
+            normalizeKey(exp?.poste),
+            normalizeKey(exp?.entreprise),
+            normalizeKey(exp?.date_debut ?? exp?.debut),
+            normalizeKey(exp?.date_fin ?? exp?.fin ?? (exp?.actuel ? "present" : "")),
+        ].join("|");
+        if (!key || key === "|||") continue;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        deduped.push(exp);
+    }
+
+    const max = Math.max(1, limits.maxExperiences);
+    if (!isPMFamilyJob(jobOffer)) {
+        next.experiences = deduped.slice(0, max);
+        return next;
+    }
+
+    const kept: any[] = [];
+    const lowPriority: any[] = [];
+    for (const exp of deduped) {
+        if (isDevSideProjectLike(exp)) lowPriority.push(exp);
+        else kept.push(exp);
+    }
+    const primary = kept.slice(0, max);
+    if (primary.length >= max) {
+        next.experiences = primary;
+        return next;
+    }
+    const fill = lowPriority.slice(0, max - primary.length);
+    next.experiences = [...primary, ...fill];
     return next;
 }
 
@@ -253,8 +391,10 @@ export function fitCVToTemplate(params: {
     jobOffer?: any;
 }) {
     const baseLimits = getLimitsForTemplate(params.templateName, params.includePhoto);
+    const preselected = selectExperiencesForTemplate(params.cvData, baseLimits, (params.jobOffer || null) as JobOfferContext | null);
+    const prelimited = sliceToLimits(preselected, baseLimits);
     const adapted = adaptCVToThemeUnits({
-        cvData: params.cvData,
+        cvData: prelimited,
         templateName: params.templateName,
         includePhoto: params.includePhoto,
         jobOffer: params.jobOffer || null,

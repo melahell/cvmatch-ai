@@ -383,12 +383,12 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Formation en premier : ${rules.formationFirstPosition ? 'OUI' : 'NON (expériences d\'abord)'}
 
 2. EXPÉRIENCES (PRIORITÉ : COMPLÉTUDE) :
-   - AFFICHER TOUTES les expériences du profil source par défaut
-   - Maximum ${rules.maxExperiences} expériences affichées (les plus pertinentes)
+   - NE PAS afficher toutes les expériences : SÉLECTIONNER les plus pertinentes pour l'offre
+   - Maximum ${rules.maxExperiences} expériences affichées (les plus pertinentes et représentatives)
    - Maximum ${rules.maxBulletsPerExperience} bullets par expérience
    - Maximum ${rules.maxBulletChars} caractères par bullet
    - Afficher références clients : ${rules.showClientReferences ? 'OUI - OBLIGATOIRE' : 'NON'}
-   - ⚠️ PHILOSOPHIE : "Un CV complet rassure le recruteur. Masquer uniquement si vraiment hors-sujet."
+   - Objectif : 1 page lisible. Mieux vaut 3 expériences excellentes que 10 moyennes.
 
 3. QUANTIFICATION OBLIGATOIRE (≥60% des bullets) :
    Formats acceptés :
@@ -422,11 +422,10 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    → Ces mots-clés DOIVENT apparaître naturellement dans le CV
 
 7. COMPÉTENCES (MAXIMISER LA COMPLÉTUDE) :
-   - AFFICHER TOUTES les compétences du profil source
-   - Les organiser par catégories logiques (max 4 catégories)
+   - SÉLECTIONNER les compétences utiles pour l'offre (pas une liste catalogue)
    - Prioriser les compétences qui matchent l'offre en premier
-   - NE PAS limiter artificiellement le nombre de compétences
-   - Objectif : montrer l'étendue complète du profil
+   - Limite recommandée : 12-18 compétences techniques + 4-8 soft skills max
+   - Éviter les doublons et les variantes (ex: \"McDo\" vs \"McDonalds\")
 
 8. FORMATIONS (COPIE EXACTE OBLIGATOIRE) :
    ⛔ INTERDICTION ABSOLUE D'INVENTER DES FORMATIONS
@@ -434,6 +433,10 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - NE JAMAIS inventer d'école (HEC, ESSEC, Polytechnique, etc.)
    - NE JAMAIS inventer de diplôme ou d'année
    - Si le profil source n'a pas de formations, laisser le tableau VIDE []
+
+9. LANGUES (NORMALISATION) :
+   - 1 seule ligne par langue (PAS de variantes type \"Anglais (Global)\" / \"Anglais (Reading)\")
+   - Utiliser un niveau cohérent (CECRL A1-A2-B1-B2-C1-C2 ou \"Natif\") si présent dans la source
 
 9. TONALITÉ "${sectorConfig.tone.toUpperCase()}" :
    ${sectorConfig.tone === 'formal' ? '- Vocabulaire professionnel strict\n   - Phrases factuelles\n   - Pas de superlatifs' : ''}
@@ -566,6 +569,7 @@ RAPPELS CRITIQUES :
 ✅ 60%+ des réalisations DOIVENT avoir une quantification
 ✅ Les keywords ATS DOIVENT être intégrés naturellement
 ✅ Le JSON DOIT être valide et parsable
+✅ Ne jamais mettre de placeholders type \"non renseigné\" : utiliser \"\" si absent
 
 🚨 INTERDICTION ABSOLUE D'INVENTER :
 ⛔ NE JAMAIS inventer de formation, école ou diplôme

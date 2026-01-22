@@ -183,6 +183,38 @@ const normalizeForMatch = (value: unknown) => {
         .trim();
 };
 
+const normalizeLoose = (value: string) => {
+    return value
+        .trim()
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "");
+};
+
+const isPlaceholderValue = (value: string) => {
+    const v = normalizeLoose(value)
+        .replace(/\s+/g, " ")
+        .replace(/[^\p{L}\p{N}\s]/gu, "");
+    if (!v) return true;
+    return v === "non renseigne" || v === "non renseign" || v === "nr" || v === "n a" || v === "na" || v === "none" || v === "null" || v === "undefined";
+};
+
+const cleanRawString = (value: unknown) => {
+    if (typeof value !== "string") return "";
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (isPlaceholderValue(trimmed)) return "";
+    return trimmed;
+};
+
+const pickFirstString = (...candidates: unknown[]) => {
+    for (const c of candidates) {
+        const s = cleanRawString(c);
+        if (s) return s;
+    }
+    return "";
+};
+
 const extractNumbers = (text: string) => {
     return text.match(/\d[\d\s.,]*\d|\d/g) || [];
 };
@@ -630,10 +662,34 @@ export async function POST(req: Request) {
                 prenom: ragProfil?.prenom || identity?.prenom || "",
                 nom: ragProfil?.nom || identity?.nom || "",
                 titre_principal: safeTitle || ragProfil?.titre_principal || "",
-                email: identityContact?.email || ragContact?.email || "",
-                telephone: identityContact?.telephone || ragContact?.telephone || "",
-                localisation: identityContact?.ville || ragProfil?.localisation || "",
-                linkedin: identityContact?.linkedin || ragContact?.linkedin || "",
+                email: pickFirstString(
+                    identityContact?.email,
+                    (ragProfil as any)?.email,
+                    ragContact?.email,
+                    ragContact?.mail,
+                    ragContact?.email_pro
+                ),
+                telephone: pickFirstString(
+                    identityContact?.telephone,
+                    (ragProfil as any)?.telephone,
+                    (ragProfil as any)?.tel,
+                    ragContact?.telephone,
+                    ragContact?.tel,
+                    ragContact?.phone,
+                    ragContact?.mobile
+                ),
+                localisation: pickFirstString(
+                    identityContact?.ville,
+                    (ragProfil as any)?.localisation,
+                    ragContact?.ville
+                ) || ragProfil?.localisation || "",
+                linkedin: pickFirstString(
+                    identityContact?.linkedin,
+                    (ragProfil as any)?.linkedin,
+                    ragContact?.linkedin,
+                    ragContact?.linkedin_url,
+                    ragContact?.linkedinUrl
+                ),
                 elevator_pitch: safeOptimizedPitchText || ragProfil?.elevator_pitch || "",
                 photo_url: includePhoto && photoValue ? photoValue : undefined,
             },

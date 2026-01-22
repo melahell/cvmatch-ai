@@ -193,6 +193,38 @@ function sanitizeText(text: unknown): string {
     return result;
 }
 
+const normalizeLoose = (value: string) => {
+    return value
+        .trim()
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "");
+};
+
+const isPlaceholderValue = (value: string) => {
+    const v = normalizeLoose(value)
+        .replace(/\s+/g, " ")
+        .replace(/[^\p{L}\p{N}\s]/gu, "");
+    if (!v) return true;
+    return v === "non renseigne" || v === "non renseign" || v === "nr" || v === "n a" || v === "na" || v === "none" || v === "null" || v === "undefined";
+};
+
+const cleanRawString = (value: unknown) => {
+    if (typeof value !== "string") return "";
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (isPlaceholderValue(trimmed)) return "";
+    return trimmed;
+};
+
+const pickFirstString = (...candidates: unknown[]) => {
+    for (const c of candidates) {
+        const s = cleanRawString(c);
+        if (s) return s;
+    }
+    return "";
+};
+
 /**
  * Truncate text to max length
  */
@@ -246,17 +278,51 @@ export function normalizeRAGToCV(raw: any): CVData {
     const profil = data.profil || {};
     const identity = (data as any).identity || {};
     const contact = profil.contact || identity.contact || {};
+    const contactAny = contact as any;
 
     // Get name - try multiple sources
     const nom = profil.nom || identity.nom || '';
     const prenom = profil.prenom || identity.prenom || '';
     const titre = profil.titre_principal || identity.titre_vise || identity.titre_principal || '';
-    const email = profil.email || contact.email || identity.contact?.email || '';
-    const telephone = profil.telephone || contact.telephone || identity.contact?.telephone || '';
+    const email = pickFirstString(
+        profil.email,
+        contactAny.email,
+        contactAny.mail,
+        contactAny.email_pro,
+        identity?.contact?.email
+    );
+    const telephone = pickFirstString(
+        profil.telephone,
+        contactAny.telephone,
+        contactAny.tel,
+        contactAny.phone,
+        contactAny.mobile,
+        identity?.contact?.telephone
+    );
     const localisation = profil.localisation || contact.ville || identity.contact?.ville || '';
-    const linkedin = profil.linkedin || contact.linkedin || identity.contact?.linkedin || '';
-    const github = profil.github || contact.github || identity.contact?.github || '';
-    const portfolio = profil.portfolio || profil.website || contact.portfolio || contact.website || identity.contact?.portfolio || identity.contact?.website || '';
+    const linkedin = pickFirstString(
+        profil.linkedin,
+        contactAny.linkedin,
+        contactAny.linkedin_url,
+        contactAny.linkedinUrl,
+        identity?.contact?.linkedin
+    );
+    const github = pickFirstString(
+        profil.github,
+        contactAny.github,
+        contactAny.github_url,
+        contactAny.githubUrl,
+        identity?.contact?.github
+    );
+    const portfolio = pickFirstString(
+        profil.portfolio,
+        profil.website,
+        contactAny.portfolio,
+        contactAny.website,
+        contactAny.site,
+        identity?.contact?.portfolio,
+        identity?.contact?.website
+    );
     const elevatorPitch = profil.elevator_pitch || (data as any).elevator_pitch?.text || '';
     const photoUrl = profil.photo_url || identity.photo_url || '';
 
@@ -390,7 +456,15 @@ export function normalizeRAGToCV(raw: any): CVData {
     softSkills = Array.from(new Set(softSkills));
 
     // === NORMALIZE FORMATIONS ===
-    const formations = (data.formations || [])
+    const rawFormations = [
+        ...(Array.isArray((data as any).formations) ? (data as any).formations : []),
+        ...(Array.isArray((profil as any).formations) ? (profil as any).formations : []),
+        ...(Array.isArray((identity as any).formations) ? (identity as any).formations : []),
+        ...(Array.isArray((data as any).education) ? (data as any).education : []),
+        ...(Array.isArray((data as any).parcours) ? (data as any).parcours : []),
+    ];
+
+    const formations = (rawFormations || [])
         .filter((f: any) => f.display !== false)
         .map((f: any) => ({
             diplome: f.diplome || f.titre || '',
@@ -419,6 +493,49 @@ export function normalizeRAGToCV(raw: any): CVData {
             }));
         }
     }
+
+    const niveauRank = (niveau: string) => {
+        const n = normalizeLoose(niveau).replace(/\s+/g, " ");
+        if (n.includes("natif") || n.includes("native") || n.includes("matern")) return 7;
+        const m = n.match(/\b([abc])\s*([12])\b/i);
+        if (!m) return 0;
+        const letter = m[1].toUpperCase();
+        const num = Number(m[2]);
+        if (letter === "C") return num === 2 ? 6 : 5;
+        if (letter === "B") return num === 2 ? 4 : 3;
+        if (letter === "A") return num === 2 ? 2 : 1;
+        return 0;
+    };
+
+    const baseLangue = (langue: string) => {
+        const raw = langue.split("(")[0]?.trim() || langue.trim();
+        const key = normalizeLoose(raw).replace(/\s+/g, " ");
+        if (key === "english" || key === "anglais") return "anglais";
+        if (key === "french" || key === "francais" || key === "français") return "français";
+        return key;
+    };
+
+    const consolidateLangues = (items: Array<{ langue: string; niveau: string }>) => {
+        const bestByLang = new Map<string, { langue: string; niveau: string; rank: number }>();
+        for (const item of items) {
+            const langue = sanitizeText(item.langue);
+            const niveau = sanitizeText(item.niveau);
+            if (!langue) continue;
+            const key = baseLangue(langue);
+            const rank = niveauRank(niveau);
+            const existing = bestByLang.get(key);
+            if (!existing || rank > existing.rank || (rank === existing.rank && niveau.length > existing.niveau.length)) {
+                bestByLang.set(key, { langue: langue.split("(")[0]?.trim() || langue, niveau, rank });
+            }
+        }
+        const list = Array.from(bestByLang.values());
+        const priority = (k: string) => (k === "français" ? 3 : k === "anglais" ? 2 : 1);
+        return list
+            .sort((a, b) => priority(baseLangue(b.langue)) - priority(baseLangue(a.langue)) || b.rank - a.rank || a.langue.localeCompare(b.langue))
+            .map(({ langue, niveau }) => ({ langue, niveau }));
+    };
+
+    langues = consolidateLangues(langues);
 
     // Apply content limits for 1-page guarantee
     const limitedExperiences = experiences

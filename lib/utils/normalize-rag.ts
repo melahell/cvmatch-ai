@@ -66,19 +66,30 @@ export function normalizeRAGData(data: any): any {
 
     // Ensure IDs on experiences
     if (normalized.experiences && Array.isArray(normalized.experiences)) {
+        const getStart = (exp: any) =>
+            exp?.date_debut ?? exp?.debut ?? exp?.start_date ?? exp?.startDate ?? exp?.dateDebut ?? exp?.date_start ?? "";
+        const getEnd = (exp: any) =>
+            exp?.date_fin ?? exp?.fin ?? exp?.end_date ?? exp?.endDate ?? exp?.dateFin ?? exp?.date_end ?? "";
+
         const withIds = normalized.experiences.map((exp: any, idx: number) => {
             const poste = stableKey(exp?.poste);
             const entreprise = stableKey(exp?.entreprise);
-            const debut = stableKey(exp?.debut);
-            const fin = stableKey(exp?.fin ?? (exp?.actuel ? "present" : ""));
+            const debut = stableKey(getStart(exp));
+            const fin = stableKey(getEnd(exp) ?? (exp?.actuel ? "present" : ""));
             const base = `${poste}|${entreprise}|${debut}|${fin}`;
             const expId = exp?.id || `exp_${stableHash(base)}`;
 
             const realisations = Array.isArray(exp?.realisations)
                 ? exp.realisations.map((r: any, rIdx: number) => {
-                    const desc = stableKey(r?.description);
-                    const impact = stableKey(r?.impact);
+                    const desc = stableKey(typeof r === "string" ? r : r?.description);
+                    const impact = stableKey(typeof r === "string" ? "" : r?.impact);
                     const realBase = `${expId}|${desc}|${impact}|${rIdx}`;
+                    if (typeof r === "string") {
+                        return {
+                            id: `real_${stableHash(realBase)}`,
+                            description: r,
+                        };
+                    }
                     return {
                         ...r,
                         id: r?.id || `real_${stableHash(realBase)}`,
@@ -97,8 +108,8 @@ export function normalizeRAGData(data: any): any {
         for (const exp of withIds) {
             const poste = stableKey(exp?.poste);
             const entreprise = stableKey(exp?.entreprise);
-            const debut = stableKey(exp?.debut);
-            const fin = stableKey(exp?.fin ?? (exp?.actuel ? "present" : ""));
+            const debut = stableKey(getStart(exp));
+            const fin = stableKey(getEnd(exp) ?? (exp?.actuel ? "present" : ""));
             const key = `${poste}|${entreprise}|${debut}|${fin}`;
 
             const existing = mergedByKey.get(key);
@@ -109,11 +120,11 @@ export function normalizeRAGData(data: any): any {
 
             const existingReals = Array.isArray(existing.realisations) ? existing.realisations : [];
             const incomingReals = Array.isArray(exp.realisations) ? exp.realisations : [];
-            const realKeySet = new Set(existingReals.map((r: any) => stableKey(r?.description)));
+            const realKeySet = new Set(existingReals.map((r: any) => stableKey(typeof r === "string" ? r : r?.description)));
             const mergedReals = [
                 ...existingReals,
                 ...incomingReals.filter((r: any) => {
-                    const k = stableKey(r?.description);
+                    const k = stableKey(typeof r === "string" ? r : r?.description);
                     if (!k) return false;
                     if (realKeySet.has(k)) return false;
                     realKeySet.add(k);
