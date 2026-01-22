@@ -19,22 +19,26 @@ ${existingRAGContext ? `⚠️ CONTEXTE ACCUMULÉ: Tu as déjà un RAG avec des 
   * Si le nouveau document liste 11 responsabilités et le RAG existant en a 7 → PRENDS TOUTES (11 au total)
   * Si le nouveau document mentionne "reporting" et le RAG existant mentionne "Excel" → ASSOCIE-LES dans la même réalisation
   * Si le nouveau document ajoute des compétences non présentes → AJOUTE-LES
-  * Si le nouveau document contredit le RAG existant → PRIORITÉ au nouveau document (plus récent)
+  * Si plusieurs documents parlent de la même expérience → AGRÈGE TOUS les détails (union complète)
+  * Si le nouveau document contredit le RAG existant → PRIORITÉ au document le plus détaillé et récent
+  * Si un document est plus riche qu'un autre → Utilise le document riche pour enrichir le document pauvre
 ` : `⚠️ PREMIER DOCUMENT: C'est le premier document, crée le RAG de base.
 ⚠️ Extrais TOUTES les informations présentes dans le document.
 `}
 
 RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES - CRITIQUES)
-1) ⛔ INTERDICTION ABSOLUE d'inventer quoi que ce soit (poste, entreprise, dates, chiffres, clients, certifications, diplômes, projets, outils, méthodes, livrables).
-2) ⛔ Si une info n'est PAS dans le nouveau document → NE L'AJOUTE PAS (même si elle semble logique).
+1) ⛔ INTERDICTION ABSOLUE d'inventer : poste, entreprise, dates, chiffres, clients, certifications, diplômes, projets.
+2) ✅ AUTORISATION D'INFÉRENCE CONTRÔLÉE : Tu es autorisé à déduire les outils standards et étapes logiques implicites liées à un poste (ex: déduire l'usage d'Excel/Office pour du reporting, de Jira pour de l'Agile, de SharePoint pour de la collaboration) TANT QUE :
+   - Cela reste cohérent avec le niveau de séniorité et le secteur
+   - Tu marques l'élément comme "is_inferred: true"
+   - Tu fournis une justification dans "inference_justification" (min 30 caractères)
+   - Tu cites la phrase source qui justifie cette déduction
 3) ⛔ Si le RAG existant contient une info et le nouveau document ne la mentionne pas → CONSERVE-LA du RAG existant.
-4) ⛔ Si le nouveau document ne mentionne PAS "e-learning", "CMS", "Oracle FatWire" → NE LES INVENTE PAS.
-5) ⛔ Pour chaque réalisation, OUTIL, MÉTHODE, LIVRABLE → DOIT être mentionné explicitement dans le nouveau document OU déjà présent dans le RAG existant.
-6) Pour chaque information importante, ajoute des SOURCES (citations exactes tirées du texte fourni).
+4) ⛔ Les CHIFFRES et KPI (%, budgets, volumes, dates précises) ne doivent apparaître QUE s'ils existent textuellement dans les documents. JAMAIS d'invention de chiffres.
+5) Pour chaque information importante, ajoute des SOURCES (citations exactes tirées du texte fourni).
    - Une source = un extrait court et exact (copié-collé), pas une paraphrase.
    - Maximum 2 sources par item pour limiter la taille.
-7) Les CHIFFRES et KPI (%, budgets, volumes, dates précises) ne doivent apparaître QUE s'ils existent textuellement dans les documents.
-8) Ne transforme pas un diplôme/certification en titre professionnel.
+6) Ne transforme pas un diplôme/certification en titre professionnel.
 
 OBJECTIF DE RICHESSE (CRITIQUE)
 - Le RAG est une base de connaissance COMPLÈTE (pas un CV 1 page).
@@ -66,10 +70,19 @@ SCHÉMA CIBLE (JSON uniquement) :
       "sources": ["citations exactes (max 2)"],
       "realisations": [
         {
-          "description": "string (ACTION + CONTEXTE + LIVRABLE/PROCESS quand dispo, factuel)",
+          "description": "string (ACTION + CONTEXTE + LIVRABLE/PROCESS, détaillé et factuel)",
           "impact": "string (chiffré uniquement si présent dans le document, sinon vide \"\")",
-          "outils": ["string (uniquement si mentionné explicitement)"],
-          "methodes": ["string (uniquement si mentionné explicitement)"],
+          "outils": ["string (outils mentionnés explicitement OU outils standards déduits avec is_inferred=true)"],
+          "outils_deduits": [
+            {
+              "nom": "string (ex: Excel, Jira, SharePoint)",
+              "is_inferred": true,
+              "inference_justification": "string (min 30 caractères, ex: 'Outil standard pour reporting dans contexte PMO')",
+              "confidence": 70-85
+            }
+          ],
+          "methodes": ["string (méthodes mentionnées OU méthodes standards déduites)"],
+          "contexte_operationnel": "string (description détaillée du contexte, process, étapes - min 50 caractères)",
           "is_inferred": boolean,
           "inference_justification": "string (si is_inferred=true, min 30 caractères, prudente)",
           "confidence": 60-100,
@@ -145,27 +158,38 @@ RÈGLES DE QUALITÉ (SANS INVENTION)
 
 📌 EXPÉRIENCES / RÉALISATIONS (RICHESSE) - OBLIGATOIRE
 ─────────────────────────────────────────────────────────────────────────────
-⚠️ CONTRAINTE STRICTE: Minimum 6 réalisations par expérience (si l'info existe dans le document).
+⚠️ CONTRAINTE STRICTE: Minimum 6 réalisations par expérience (si l'info existe dans le document OU peut être logiquement déduite).
 ⚠️ Maximum 14 réalisations par expérience (éviter les doublons).
 ⚠️ Si le document mentionne une responsabilité (ex: "reporting", "pilotage", "gouvernance"), 
-   tu DOIS déployer cette responsabilité en détails opérationnels (voir exemples ci-dessous).
+   tu DOIS déployer cette responsabilité en détails opérationnels en utilisant :
+   - Les informations explicites du document
+   - Les déductions logiques autorisées (outils standards, méthodes standards du poste) avec is_inferred=true
+   - Voir exemples ci-dessous pour le format attendu
 
 RÈGLES DE DÉPLOIEMENT LOGIQUE:
 Quand une responsabilité est mentionnée, déploie-la en réalisations concrètes incluant:
-- Process: étapes, méthodologie, cadencement
-- Outils: logiciels, plateformes, technologies utilisées (si mentionnés ou probables)
-- Méthodes: RACI, rituels, gouvernance, validation
-- Livrables: dashboards, rapports, KPIs, plans
+- Process: étapes, méthodologie, cadencement (déduits logiquement si cohérents)
+- Outils: logiciels, plateformes, technologies utilisées
+  * Si mentionnés explicitement → dans "outils" avec is_inferred=false
+  * Si déduits logiquement (outils standards du poste) → dans "outils_deduits" avec justification
+- Méthodes: RACI, rituels, gouvernance, validation (si mentionnés ou standards du poste)
+- Livrables: dashboards, rapports, KPIs, plans (si mentionnés ou logiquement déductibles)
+- Contexte opérationnel: description détaillée du contexte, des étapes, du process (OBLIGATOIRE, min 50 caractères)
 
 EXEMPLES DE DÉPLOIEMENT:
 
 Exemple 1: "Reporting des temps des ressources"
 → Déploie en:
   - "Mise en place et suivi du load array (planning de charge des ressources)"
+    * contexte_operationnel: "Établissement du planning de charge des ressources sur base hebdomadaire, suivi des allocations et ajustements en fonction des priorités projet"
+    * outils_deduits: [{"nom": "Excel", "is_inferred": true, "inference_justification": "Outil standard pour reporting et tableaux de bord dans contexte PMO", "confidence": 80}]
   - "Encadrement du resource manager pour validation et suivi des temps"
   - "Application de la méthodologie de reporting avec cadencement hebdomadaire"
-  - "Utilisation d'Excel et PowerBI pour génération des dashboards de suivi"
   - "Production de KPIs de capacité et d'utilisation des ressources"
+  
+⚠️ NOTE IMPORTANTE : Les outils comme "Excel", "PowerBI" dans l'exemple sont des DÉDUCTIONS LOGIQUES (is_inferred=true). 
+Si le document mentionne explicitement "Excel", alors is_inferred=false. Si le document ne mentionne aucun outil mais parle de "reporting", 
+tu peux déduire des outils standards (Excel, Office) avec justification.
 
 Exemple 2: "Pilotage de projet"
 → Déploie en:
@@ -186,7 +210,9 @@ Exemple 3: "Transformation digitale"
 RÈGLES GÉNÉRALES:
 - Chaque réalisation doit être une action concrète, pas un intitulé vague.
 - Si le document contient une liste (missions / achievements / responsibilities), éclate-la en plusieurs réalisations.
-- Préfère des réalisations courtes mais nombreuses plutôt que 2 phrases longues.
+- Chaque réalisation DOIT avoir un "contexte_operationnel" détaillé (min 50 caractères) décrivant le process, les étapes, le contexte.
+- Préfère des réalisations détaillées avec contexte plutôt que des phrases courtes sans contexte.
+  - "inference_justification": min 30 caractères expliquant pourquoi cette déduction est logique
 - Pour les items inférés:
   - "is_inferred": true, "confidence": 60-85 (rarement 90+)
   - "sources": doit contenir la phrase explicite qui justifie l’inférence
