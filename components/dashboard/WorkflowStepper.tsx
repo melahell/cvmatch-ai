@@ -27,7 +27,9 @@ interface Step {
 export function WorkflowStepper({ ragScore, hasDocuments, hasAnalyses, hasCVs }: WorkflowStepperProps) {
     const [isExpanded, setIsExpanded] = useState(() => {
         // Open by default if RAG is empty (score = 0 or null)
-        return ragScore === null || ragScore === 0;
+        // Closed by default if all steps are completed
+        const allCompleted = hasDocuments && (ragScore !== null && ragScore > 0) && hasAnalyses && hasCVs;
+        return (ragScore === null || ragScore === 0) && !allCompleted;
     });
 
     // Determine step states
@@ -71,10 +73,8 @@ export function WorkflowStepper({ ragScore, hasDocuments, hasAnalyses, hasCVs }:
         },
     ];
 
-    // Hide if all steps are completed
-    if (currentStep === 4) {
-        return null;
-    }
+    // Always show the stepper - user can collapse it if needed
+    // Show "Tout est complété !" message if all steps done
 
     return (
         <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-purple-50">
@@ -86,15 +86,22 @@ export function WorkflowStepper({ ragScore, hasDocuments, hasAnalyses, hasCVs }:
                 >
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2">
-                            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                                {currentStep}
+                            <div className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold",
+                                currentStep === 4 ? "bg-green-500" : "bg-blue-600"
+                            )}>
+                                {currentStep === 4 ? "✓" : currentStep}
                             </div>
                             <div className="text-left">
                                 <h3 className="font-bold text-slate-900">
-                                    {steps.find(s => s.current)?.title || "Commencer"}
+                                    {currentStep === 4 
+                                        ? "✅ Toutes les étapes sont complétées !"
+                                        : steps.find(s => s.current)?.title || "Commencer"}
                                 </h3>
                                 <p className="text-xs text-slate-600">
-                                    {steps.find(s => s.current)?.description || "Suivez les étapes pour commencer"}
+                                    {currentStep === 4
+                                        ? "Vous pouvez continuer à utiliser l'application normalement"
+                                        : steps.find(s => s.current)?.description || "Suivez les étapes pour commencer"}
                                 </p>
                             </div>
                         </div>
