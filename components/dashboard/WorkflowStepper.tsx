@@ -190,7 +190,7 @@ export function WorkflowStepper({ ragScore, hasDocuments, hasAnalyses, hasCVs }:
                                                 <Link href={step.href}>
                                                     <Button
                                                         size="sm"
-                                                        variant={step.current ? "default" : "outline"}
+                                                        variant={step.current ? "primary" : "outline"}
                                                         className={cn(
                                                             "w-full sm:w-auto",
                                                             step.current && "bg-blue-600 hover:bg-blue-700"
