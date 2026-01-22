@@ -132,10 +132,12 @@ interface RAGData {
 /**
  * Sanitize text by fixing spacing issues - AGGRESSIVE version
  */
-function sanitizeText(text: string | undefined | null): string {
-    if (!text) return '';
+function sanitizeText(text: unknown): string {
+    if (text === null || text === undefined) return '';
+    const input = typeof text === "string" ? text : String(text);
+    if (!input) return '';
 
-    let result = text
+    let result = input
         // First pass: Add space before ANY uppercase letter that follows a lowercase (handles é→S, etc.)
         .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
         // Add space after punctuation if followed by letter
