@@ -155,6 +155,22 @@ const buildBoosterTrace = (analysisData: any, selection: Required<MatchContextSe
     };
 };
 
+const stripInferredRAGForCV = (profile: any) => {
+    if (!profile || typeof profile !== "object") return profile;
+    const cloned = JSON.parse(JSON.stringify(profile));
+    if (cloned && typeof cloned === "object") {
+        delete (cloned as any).contexte_enrichi;
+        delete (cloned as any).extraction_metadata;
+        delete (cloned as any).quality_metrics;
+        delete (cloned as any).rejected_inferred;
+        delete (cloned as any).metadata;
+        if ((cloned as any).competences?.inferred) {
+            delete (cloned as any).competences.inferred;
+        }
+    }
+    return cloned;
+};
+
 export async function POST(req: Request) {
     try {
         const generationStartMs = Date.now();
@@ -274,6 +290,7 @@ export async function POST(req: Request) {
         }
 
         const ragProfile = normalizeRAGData(ragData.completeness_details);
+        const ragProfileForPrompt = stripInferredRAGForCV(ragProfile);
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
         const selectedMatchReport = buildSelectedMatchReportForCV(analysisData, selection);
@@ -288,7 +305,7 @@ export async function POST(req: Request) {
         // 2. Generate CV with AI (with retry logic)
         const extraNotes = selection.extraInstructions ? `Instructions utilisateur pour ce CV:\n${selection.extraInstructions}` : "";
         const mergedNotes = [customNotes, extraNotes].filter(Boolean).join("\n\n");
-        const prompt = getCVOptimizationPrompt(ragProfile, jobDescription, mergedNotes, selectedMatchReport || undefined);
+        const prompt = getCVOptimizationPrompt(ragProfileForPrompt, jobDescription, mergedNotes, selectedMatchReport || undefined);
 
         console.log("=== CV GENERATION START ===");
 
@@ -324,17 +341,42 @@ export async function POST(req: Request) {
             ? (aiOptimizedCV as any).elevator_pitch.text
             : undefined;
 
+        const sourceText = JSON.stringify(ragProfileForPrompt || {}).toLowerCase();
+        const guardWarnings: string[] = [];
+        const isPitchGrounded = (candidate: string) => {
+            const numbers = candidate.match(/\d[\d\s.,]*\d|\d/g) || [];
+            for (const n of numbers) {
+                const token = n.replace(/\s+/g, "");
+                if (!token) continue;
+                if (!sourceText.includes(token.toLowerCase())) return false;
+            }
+            return true;
+        };
+
+        const safeOptimizedPitchText =
+            optimizedPitchText && isPitchGrounded(optimizedPitchText)
+                ? optimizedPitchText
+                : undefined;
+        if (optimizedPitchText && !safeOptimizedPitchText) {
+            guardWarnings.push("Elevator pitch IA ignoré (chiffres non présents dans le profil source)");
+        }
+
+        const safeTitle =
+            typeof identity?.titre_vise === "string" && identity.titre_vise.trim().length > 0
+                ? identity.titre_vise.trim()
+                : undefined;
+
         const mergedRaw = {
-            ...aiOptimizedCV,
+            ...ragProfile,
             profil: {
                 prenom: ragProfil?.prenom || identity?.prenom || "",
                 nom: ragProfil?.nom || identity?.nom || "",
-                titre_principal: identity?.titre_vise || ragProfil?.titre_principal || "",
+                titre_principal: safeTitle || ragProfil?.titre_principal || "",
                 email: identityContact?.email || ragContact?.email || "",
                 telephone: identityContact?.telephone || ragContact?.telephone || "",
                 localisation: identityContact?.ville || ragProfil?.localisation || "",
                 linkedin: identityContact?.linkedin || ragContact?.linkedin || "",
-                elevator_pitch: optimizedPitchText || ragProfil?.elevator_pitch || "",
+                elevator_pitch: safeOptimizedPitchText || ragProfil?.elevator_pitch || "",
                 photo_url: includePhoto && photoValue ? photoValue : undefined,
             },
         };
@@ -387,7 +429,7 @@ export async function POST(req: Request) {
             dense: !!dense,
             unit_stats: unitStats,
             // New fields for UI accordion
-            warnings: unitStats?.warnings || [],
+            warnings: [...(unitStats?.warnings || []), ...guardWarnings],
             formats_used: formatsUsed,
             relevance_scoring_applied: !!jobOfferContext,
             job_title: analysisData.job_title || null,

@@ -416,40 +416,8 @@ export function normalizeRAGToCV(raw: any): CVData {
     }
     const limitedCertifications = certificationStrings.slice(0, CV_LIMITS.maxCertifications);
 
-    // === EXTRACT CLIENTS ===
-    // Search for notable client names in the entire data
-    const clientPatterns = [
-        { name: 'Cartier', secteur: 'Luxe' },
-        { name: 'Chanel', secteur: 'Luxe' },
-        { name: 'Hermès', secteur: 'Luxe' },
-        { name: 'LVMH', secteur: 'Luxe' },
-        { name: 'Dior', secteur: 'Luxe' },
-        { name: 'Dreamworks', secteur: 'Média' },
-        { name: 'SNCF', secteur: 'Transport' },
-        { name: 'Engie', secteur: 'Énergie' },
-        { name: 'EDF', secteur: 'Énergie' },
-        { name: 'Total', secteur: 'Énergie' },
-        { name: 'Orange', secteur: 'Télécom' },
-        { name: 'Société Générale', secteur: 'Finance' },
-        { name: 'BNP', secteur: 'Finance' },
-        { name: 'AXA', secteur: 'Finance' },
-        { name: 'Airbus', secteur: 'Industrie' },
-        { name: 'Renault', secteur: 'Industrie' },
-        { name: 'Sanofi', secteur: 'Pharma' },
-        { name: 'L\'Oréal', secteur: 'Cosmétique' }
-    ];
-
-    const fullText = JSON.stringify(data).toLowerCase();
     const foundClients: string[] = [];
     const clientsBySector: Record<string, string[]> = {};
-
-    clientPatterns.forEach(({ name, secteur }) => {
-        if (fullText.includes(name.toLowerCase())) {
-            foundClients.push(name);
-            if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
-            clientsBySector[secteur].push(name);
-        }
-    });
 
     // Extract from references.clients (new RAGComplete format)
     if (data.references?.clients) {

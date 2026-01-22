@@ -2,14 +2,23 @@
 import { UserProfile, JobAnalysis } from "@/types";
 
 export const getRAGExtractionPrompt = (extractedText: string) => `
-Tu es un expert en extraction et structuration de données professionnelles de haut niveau.
+Tu es un expert en extraction et structuration de données professionnelles.
 
 DOCUMENTS FOURNIS:
 ${extractedText}
 
 ══════════════════════════════════════════════════════════════════════════════
-MISSION CRITIQUE: Extrais et structure TOUTES les informations avec RIGUEUR MAXIMALE
+MISSION CRITIQUE: Extrais et structure TOUTES les informations AVEC TRAÇABILITÉ.
 ══════════════════════════════════════════════════════════════════════════════
+
+RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES)
+1) ⛔ Interdiction absolue d'inventer quoi que ce soit (poste, entreprise, dates, chiffres, clients, certifications, diplômes, projets).
+2) Si une info n'est pas clairement présente dans les documents → mets "" / [] / null (selon le champ). Ne “devine” jamais.
+3) Pour chaque information importante, ajoute des SOURCES (citations exactes tirées du texte fourni).
+   - Une source = un extrait court et exact (copié-collé), pas une paraphrase.
+   - Maximum 2 sources par item pour limiter la taille.
+4) Les CHIFFRES et KPI (%, budgets, volumes, dates précises) ne doivent apparaître QUE s'ils existent textuellement dans les documents.
+5) Ne transforme pas un diplôme/certification en titre professionnel.
 
 SCHÉMA CIBLE (JSON uniquement) :
 {
@@ -19,7 +28,8 @@ SCHÉMA CIBLE (JSON uniquement) :
     "titre_principal": "string (titre professionnel précis, pas générique)",
     "localisation": "string",
     "contact": { "email": "string", "telephone": "string", "linkedin": "string" },
-    "elevator_pitch": "string (OBLIGATOIRE - voir règles ci-dessous)"
+    "elevator_pitch": "string (2-4 phrases, factuel, sans inventer)",
+    "sources": ["citations exactes (max 2)"]
   },
   "experiences": [
     {
@@ -28,10 +38,12 @@ SCHÉMA CIBLE (JSON uniquement) :
       "debut": "YYYY-MM",
       "fin": "YYYY-MM|null",
       "actuel": boolean,
+      "sources": ["citations exactes (max 2)"],
       "realisations": [
         {
-          "description": "string (ACTION + CONTEXTE)",
-          "impact": "string (QUANTIFIÉ OBLIGATOIRE - voir règles)"
+          "description": "string (ACTION + CONTEXTE, factuel)",
+          "impact": "string (chiffré uniquement si présent dans le document, sinon vide \"\")",
+          "sources": ["citations exactes (max 2)"]
         }
       ],
       "technologies": ["string"],
@@ -48,24 +60,24 @@ SCHÉMA CIBLE (JSON uniquement) :
         {
           "name": "string",
           "confidence": 60-100,
-          "reasoning": "string (min 50 caractères)",
-          "sources": ["citation exacte du document"]
+          "reasoning": "string (min 50 caractères, prudente)",
+          "sources": ["citation exacte du document (obligatoire)"]
         }
       ],
       "tools": [
         {
           "name": "string",
           "confidence": 60-100,
-          "reasoning": "string (min 50 caractères)",
-          "sources": ["citation exacte du document"]
+          "reasoning": "string (min 50 caractères, prudente)",
+          "sources": ["citation exacte du document (obligatoire)"]
         }
       ],
       "soft_skills": [
         {
           "name": "string",
           "confidence": 60-100,
-          "reasoning": "string (min 50 caractères)",
-          "sources": ["citation exacte du document"]
+          "reasoning": "string (min 50 caractères, prudente)",
+          "sources": ["citation exacte du document (obligatoire)"]
         }
       ]
     }
@@ -91,85 +103,27 @@ SCHÉMA CIBLE (JSON uniquement) :
       "impact": "string (quantifié si possible)",
       "date": "YYYY"
     }
+  ],
+  "extraction_warnings": [
+    "string (ex: \"date de début non trouvée\", \"email absent\", etc.)"
   ]
 }
 
 ══════════════════════════════════════════════════════════════════════════════
-RÈGLES DE VALIDATION STRICTES - RESPECT OBLIGATOIRE
+RÈGLES DE QUALITÉ (SANS INVENTION)
 ══════════════════════════════════════════════════════════════════════════════
 
-📌 RÈGLE 1: ELEVATOR PITCH (OBLIGATOIRE - 3 PHRASES STRUCTURÉES)
+📌 CLIENTS / RÉFÉRENCES
 ─────────────────────────────────────────────────────────────────────────────
-Format OBLIGATOIRE en exactement 3 phrases:
-
-1️⃣ Phrase 1: "[Titre/Expertise] avec [X années] d'expérience dans [secteur(s)]"
-2️⃣ Phrase 2: "A [réalisation quantifiée] pour [clients prestigieux si disponibles]"
-3️⃣ Phrase 3: "Expert en [domaine spécifique] avec [valeur unique quantifiée]"
-
-✅ EXEMPLE VALIDE:
-"Chef de Projet Digital avec 12 ans d'expérience dans le luxe et la finance. A piloté +50 projets Agile (budget cumulé 15M€) pour Cartier, Chanel et BNP Paribas. Expert en transformation digitale avec taux de succès projet de 95%."
-
-❌ EXEMPLES REJETÉS:
-- "Professionnel expérimenté dans le digital" (trop générique, pas quantifié)
-- "Chef de projet passionné par l'innovation" (pas de chiffres, pas de clients)
-- Pitch de moins de 200 caractères
-- Pitch sans aucun chiffre ou pourcentage
-
-LONGUEUR: Entre 200 et 400 caractères
-EXIGENCE: Au moins 3 chiffres/pourcentages dans le pitch total
-
-
-📌 RÈGLE 2: QUANTIFICATION DES IMPACTS (MINIMUM 60%)
-─────────────────────────────────────────────────────────────────────────────
-CHAQUE réalisation DOIT avoir un "impact" quantifié dans AU MOINS 60% des cas.
-
-Formats acceptés pour la quantification:
-✅ Volume: "150+ projets", "équipe de 8 personnes", "500 utilisateurs"
-✅ Budget: "budget 2M€", "économies de 500K€", "CA de 15M€"
-✅ Impact: "amélioration de 45%", "+40% de performance", "réduction de 30%"
-✅ Temps: "réduction délais de 3 mois", "time-to-market -40%"
-✅ Portée: "déploiement 12 pays", "15 sites", "réseau de 200 magasins"
-
-✅ EXEMPLES VALIDES:
-{
-  "description": "Pilotage de projets e-commerce pour clients luxe",
-  "impact": "Augmentation CA en ligne de 45% (15M€ → 22M€) sur 18 mois"
-}
-{
-  "description": "Mise en place méthodologie Agile SAFe",
-  "impact": "Réduction time-to-market de 40% (6 mois → 3.5 mois)"
-}
-
-❌ EXEMPLES REJETÉS (sauf si vraiment impossible à quantifier):
-{
-  "description": "Gestion de projets",
-  "impact": "Amélioration de la qualité" // Pas assez précis
-}
-
-RÈGLE: Si aucun chiffre n'est mentionné dans le document, tu peux mettre un impact qualitatif,
-mais essaie d'en trouver au moins 60% qui soient quantifiés.
-
-
-📌 RÈGLE 3: EXTRACTION DES CLIENTS (CRITIQUE)
-─────────────────────────────────────────────────────────────────────────────
-Cherche TOUTES les mentions d'entreprises clientes (pas l'employeur, mais les CLIENTS).
-
-Exemples de clients à extraire:
-✅ Luxe: Cartier, Chanel, LVMH, Hermès, Dior, Louis Vuitton, L'Oréal
-✅ Finance: BNP Paribas, Société Générale, Crédit Agricole, AXA, Natixis
-✅ Tech: Google, Microsoft, Amazon, IBM, Oracle, SAP
-✅ Industrie: Airbus, Renault, PSA, Total, Schneider Electric, Michelin
-✅ Autres: SNCF, Orange, EDF, Carrefour, Auchan, etc.
-
-IMPORTANT:
+- Extrais UNIQUEMENT les clients effectivement mentionnés dans les documents.
 - Mets chaque client dans "experiences[].clients_references" (array de strings)
 - ET aussi dans "references.clients" (avec nom + secteur)
-- Déduis le secteur d'activité du client (Luxe, Finance, Tech, Industrie, Santé, Transport, Énergie, Conseil, Retail, Autre)
+- Déduis le secteur si possible (sinon "Autre")
 
 Si aucun client n'est mentionné, laisse les arrays vides (ne pas inventer).
 
 
-📌 RÈGLE 4: CERTIFICATIONS VS FORMATIONS (SÉPARATION STRICTE)
+📌 CERTIFICATIONS VS FORMATIONS (SÉPARATION STRICTE)
 ─────────────────────────────────────────────────────────────────────────────
 CERTIFICATIONS = Certificats professionnels reconnus
 Exemples: PMP, PSM, AWS Certified Solutions Architect, PRINCE2, SAFe Agilist,
@@ -234,11 +188,10 @@ Génère UNIQUEMENT le JSON structuré.
 ❌ PAS d'explications
 
 Vérifie avant de répondre:
-✅ Elevator pitch = 3 phrases + 200-400 chars + 3+ chiffres
-✅ 60%+ des réalisations ont impact quantifié
-✅ Tous les clients extraits et classés par secteur
+✅ Aucune information inventée
+✅ Les sources sont présentes pour les champs importants
 ✅ Certifications séparées des formations
-✅ Compétences inférées avec confidence >= 60 + reasoning >= 50 chars + sources
+✅ Compétences inférées: confidence >= 60 + reasoning >= 50 + sources
 
 JSON uniquement ↓
 `;
