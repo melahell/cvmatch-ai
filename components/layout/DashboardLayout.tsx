@@ -231,7 +231,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     {/* Footer */}
                                     <div className="border-t border-cvBorder-light dark:border-slate-700 mt-1 pt-1">
                                         <div className="px-4 py-1 text-xs text-cvText-secondary">
-                                            CV Crush v5.3.2
+                                            CV Crush v5.3.3
                                         </div>
                                         <button
                                             onClick={() => { setMenuOpen(false); logout(); }}
