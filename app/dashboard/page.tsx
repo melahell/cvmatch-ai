@@ -16,6 +16,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { PhotoUpload } from "@/components/profile/PhotoUpload";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { Recommendations } from "@/components/dashboard/Recommendations";
+import { WorkflowStepper } from "@/components/dashboard/WorkflowStepper";
 import { ClickableCard } from "@/components/ui/ClickableCard";
 import { BadgeList } from "@/components/ui/BadgeList";
 import { getWelcomeMessage, shouldShowOnboardingCTA, shouldShowCompletionTips, getScoreDescription } from "@/lib/dashboardHelpers";
@@ -156,8 +157,18 @@ export default function DashboardPage() {
                     </ClickableCard>
                 </div>
 
-                {/* CTA BANNER FOR EMPTY PROFILE - ORANGE #6: With shimmer animation */}
-                {shouldShowOnboardingCTA(ragData?.score || 0, uploadedDocs.length) && (
+                {/* WORKFLOW STEPPER - 3 étapes guidées */}
+                <div className="mb-6 sm:mb-8">
+                    <WorkflowStepper
+                        ragScore={ragData?.score || null}
+                        hasDocuments={uploadedDocs.length > 0}
+                        hasAnalyses={stats.analyses > 0}
+                        hasCVs={stats.cvs > 0}
+                    />
+                </div>
+
+                {/* CTA BANNER FOR EMPTY PROFILE - Fallback si stepper masqué */}
+                {shouldShowOnboardingCTA(ragData?.score || 0, uploadedDocs.length) && (ragData?.score || 0) > 0 && (
                     <Link href="/onboarding" className="block mb-6 sm:mb-8">
                         <Card className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all">
                             {/* Shimmer effect */}
