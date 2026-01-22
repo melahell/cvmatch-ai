@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, GitCompare, BookmarkCheck, Landmark, Shield } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, GitCompare, BookmarkCheck, Landmark, Shield, Upload, FileSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
@@ -19,11 +19,14 @@ interface DashboardLayoutProps {
     title?: string;
 }
 
+// Navigation alignée avec la frise workflow (3 étapes)
 const baseNavItems = [
-    { href: "/dashboard", icon: Home, label: "Dashboard" },
-    { href: "/dashboard/analyze", icon: FileText, label: "Analyser" },
+    // Étape 1 : Importer vos documents
+    { href: "/dashboard/profile", icon: Upload, label: "Documents & Profil" },
+    // Étape 2 : Comparer une offre d'emploi
     { href: "/dashboard/tracking", icon: Briefcase, label: "Candidatures" },
-    { href: "/dashboard/profile", icon: User, label: "Mon Profil" },
+    // Étape 3 : Générer le CV parfait (analyser permet de générer)
+    { href: "/dashboard/analyze", icon: FileSearch, label: "Analyser & Générer" },
 ];
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
@@ -93,8 +96,11 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                         {/* Desktop Nav */}
                         <nav aria-label="Navigation principale" className="hidden md:flex items-center gap-1">
                             {navItems.map((item) => {
-                                const isActive = pathname === item.href ||
-                                    (item.href !== "/dashboard" && pathname?.startsWith(item.href));
+                                // Active state: exact match or starts with (for sub-pages)
+                                const isActive = pathname === item.href || 
+                                    (item.href !== "/dashboard" && pathname?.startsWith(item.href)) ||
+                                    // Special case: /dashboard is active for profile (home)
+                                    (item.href === "/dashboard/profile" && pathname === "/dashboard");
                                 return (
                                     <Link key={item.href} href={item.href}>
                                         <Button

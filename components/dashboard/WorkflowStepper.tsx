@@ -34,8 +34,8 @@ export function WorkflowStepper({ ragScore, hasDocuments, hasAnalyses, hasCVs }:
 
     // Determine step states
     const step1Completed = hasDocuments && (ragScore !== null && ragScore > 0);
-    const step2Completed = hasAnalyses;
-    const step3Completed = hasCVs;
+    const step2Completed = hasAnalyses; // A analysé au moins une offre
+    const step3Completed = hasCVs; // A généré au moins un CV
 
     // Determine current step
     let currentStep = 1;
@@ -49,7 +49,7 @@ export function WorkflowStepper({ ragScore, hasDocuments, hasAnalyses, hasCVs }:
             title: "Importer vos documents",
             description: "Uploadez votre CV, export LinkedIn, GitHub, etc.",
             icon: Upload,
-            href: "/onboarding",
+            href: "/dashboard/profile?tab=docs",
             completed: step1Completed,
             current: currentStep === 1,
         },
