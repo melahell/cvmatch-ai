@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
 import { ExternalLink, Briefcase, Plus, MapPin, Building2, Calendar, Search, ArrowUp, ArrowDown, Trash2, ChevronRight, LayoutGrid, LayoutList, Download, Clock, Send, Users, Trophy, FileText } from "lucide-react";
@@ -46,7 +46,7 @@ function formatRelativeDate(dateString: string): string {
 
 type SortOption = "date" | "score" | "status";
 
-export default function TrackingPage() {
+function TrackingPageContent() {
     const { userId, isLoading: authLoading } = useAuth();
     const searchParams = useSearchParams();
 
@@ -566,5 +566,17 @@ export default function TrackingPage() {
                 </AlertDialog>
             </TooltipProvider >
         </DashboardLayout >
+    );
+}
+
+export default function TrackingPage() {
+    return (
+        <Suspense fallback={
+            <DashboardLayout>
+                <LoadingSpinner fullScreen />
+            </DashboardLayout>
+        }>
+            <TrackingPageContent />
+        </Suspense>
     );
 }
