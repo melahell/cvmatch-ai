@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { usePathname } from "next/navigation";
-import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, Files, GitCompare, BookmarkCheck, Landmark, Shield } from "lucide-react";
+import { Home, FileText, Briefcase, User, LogOut, ChevronDown, BarChart3, Download, Keyboard, Bell, LayoutTemplate, GitCompare, BookmarkCheck, Landmark, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
@@ -22,7 +22,6 @@ interface DashboardLayoutProps {
 const baseNavItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
     { href: "/dashboard/analyze", icon: FileText, label: "Analyser" },
-    { href: "/dashboard/cvs", icon: Files, label: "Mes CVs" },
     { href: "/dashboard/tracking", icon: Briefcase, label: "Candidatures" },
     { href: "/dashboard/profile", icon: User, label: "Mon Profil" },
 ];
