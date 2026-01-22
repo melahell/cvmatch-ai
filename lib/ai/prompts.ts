@@ -31,7 +31,8 @@ RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES)
 OBJECTIF DE RICHESSE (CRITIQUE)
 - Le RAG est une base de connaissance COMPLÈTE (pas un CV 1 page).
 - Pour CHAQUE expérience, extrais un maximum de détails actionnables (missions, responsabilités, process, outils, livrables).
-- Si une phrase contient une responsabilité (“reporting”, “pilotage”, “suivi”, “coordination”, “gouvernance”, “budget”, “qualité”), transforme-la en 2 à 6 réalisations CONCRÈTES.
+- Si une phrase contient une responsabilité (“reporting”, “pilotage”, “suivi”, “coordination”, “gouvernance”, “budget”, “qualité”), transforme-la en 4 à 8 réalisations CONCRÈTES.
+- Si plusieurs sources mentionnent la même responsabilité, combine TOUS les détails de toutes les sources (union complète, ne perds rien).
 - Tu peux ajouter des éléments “logiquement induits” UNIQUEMENT s’ils sont directement supportés par une mention explicite dans le texte :
   - Dans ce cas, marque l’item comme inféré et cite la phrase source explicite.
   - Ne mets JAMAIS de chiffres sur un item inféré (impact = "") si le chiffre n’est pas dans le document.
