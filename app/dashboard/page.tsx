@@ -20,7 +20,7 @@ import { ClickableCard } from "@/components/ui/ClickableCard";
 import { BadgeList } from "@/components/ui/BadgeList";
 import { getWelcomeMessage, shouldShowOnboardingCTA, shouldShowCompletionTips, getScoreDescription } from "@/lib/dashboardHelpers";
 import Link from "next/link";
-import { createSupabaseClient } from "@/lib/supabase";
+import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export default function DashboardPage() {
@@ -42,10 +42,15 @@ export default function DashboardPage() {
 
         setGeneratingJobs(true);
         try {
+            const authHeaders = await getSupabaseAuthHeader();
             const response = await fetch('/api/rag/suggest-jobs', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    ...authHeaders
+                },
+                credentials: 'include',
+                body: JSON.stringify({})
             });
 
             if (!response.ok) {
