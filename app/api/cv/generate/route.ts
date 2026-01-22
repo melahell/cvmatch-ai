@@ -160,15 +160,47 @@ const stripInferredRAGForCV = (profile: any) => {
     if (!profile || typeof profile !== "object") return profile;
     const cloned = JSON.parse(JSON.stringify(profile));
     if (cloned && typeof cloned === "object") {
-        delete (cloned as any).contexte_enrichi;
         delete (cloned as any).extraction_metadata;
         delete (cloned as any).quality_metrics;
         delete (cloned as any).rejected_inferred;
         delete (cloned as any).metadata;
-        if ((cloned as any).competences?.inferred) {
-            delete (cloned as any).competences.inferred;
+    }
+    return cloned;
+};
+
+const buildRAGForCVPrompt = (profile: any) => {
+    const base = stripInferredRAGForCV(profile);
+    if (!base || typeof base !== "object") return base;
+    const cloned = JSON.parse(JSON.stringify(base));
+
+    const contexte = (cloned as any).contexte_enrichi;
+    if (contexte && typeof contexte === "object") {
+        if (Array.isArray(contexte.responsabilites_implicites)) {
+            contexte.responsabilites_implicites = contexte.responsabilites_implicites.slice(0, 10);
+        }
+        if (Array.isArray(contexte.competences_tacites)) {
+            contexte.competences_tacites = contexte.competences_tacites.slice(0, 12);
+        }
+        if (Array.isArray(contexte.soft_skills_deduites)) {
+            contexte.soft_skills_deduites = contexte.soft_skills_deduites.slice(0, 10);
         }
     }
+
+    const inferred = (cloned as any)?.competences?.inferred;
+    if (inferred && typeof inferred === "object") {
+        const prune = (arr: any, max: number) => {
+            if (!Array.isArray(arr)) return [];
+            const filtered = arr
+                .filter((s: any) => typeof s?.name === "string" && typeof s?.confidence === "number")
+                .sort((a: any, b: any) => (b.confidence ?? 0) - (a.confidence ?? 0))
+                .slice(0, max);
+            return filtered;
+        };
+        (cloned as any).competences.inferred.techniques = prune(inferred.techniques, 10);
+        (cloned as any).competences.inferred.tools = prune(inferred.tools, 10);
+        (cloned as any).competences.inferred.soft_skills = prune(inferred.soft_skills, 8);
+    }
+
     return cloned;
 };
 
@@ -571,7 +603,7 @@ export async function POST(req: Request) {
         }
 
         const ragProfile = normalizeRAGData(ragData.completeness_details);
-        const ragProfileForPrompt = stripInferredRAGForCV(ragProfile);
+        const ragProfileForPrompt = buildRAGForCVPrompt(ragProfile);
         const customNotes = ragData.custom_notes || "";
         const jobDescription = analysisData.job_description;
         const selectedMatchReport = buildSelectedMatchReportForCV(analysisData, selection);

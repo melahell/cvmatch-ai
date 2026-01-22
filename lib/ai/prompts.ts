@@ -20,6 +20,14 @@ RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES)
 4) Les CHIFFRES et KPI (%, budgets, volumes, dates précises) ne doivent apparaître QUE s'ils existent textuellement dans les documents.
 5) Ne transforme pas un diplôme/certification en titre professionnel.
 
+OBJECTIF DE RICHESSE (CRITIQUE)
+- Le RAG est une base de connaissance COMPLÈTE (pas un CV 1 page).
+- Pour CHAQUE expérience, extrais un maximum de détails actionnables (missions, responsabilités, process, outils, livrables).
+- Si une phrase contient une responsabilité (“reporting”, “pilotage”, “suivi”, “coordination”, “gouvernance”, “budget”, “qualité”), transforme-la en 2 à 6 réalisations CONCRÈTES.
+- Tu peux ajouter des éléments “logiquement induits” UNIQUEMENT s’ils sont directement supportés par une mention explicite dans le texte :
+  - Dans ce cas, marque l’item comme inféré et cite la phrase source explicite.
+  - Ne mets JAMAIS de chiffres sur un item inféré (impact = "") si le chiffre n’est pas dans le document.
+
 SCHÉMA CIBLE (JSON uniquement) :
 {
   "profil": {
@@ -41,8 +49,13 @@ SCHÉMA CIBLE (JSON uniquement) :
       "sources": ["citations exactes (max 2)"],
       "realisations": [
         {
-          "description": "string (ACTION + CONTEXTE, factuel)",
+          "description": "string (ACTION + CONTEXTE + LIVRABLE/PROCESS quand dispo, factuel)",
           "impact": "string (chiffré uniquement si présent dans le document, sinon vide \"\")",
+          "outils": ["string (uniquement si mentionné explicitement)"],
+          "methodes": ["string (uniquement si mentionné explicitement)"],
+          "is_inferred": boolean,
+          "inference_justification": "string (si is_inferred=true, min 30 caractères, prudente)",
+          "confidence": 60-100,
           "sources": ["citations exactes (max 2)"]
         }
       ],
@@ -112,6 +125,19 @@ SCHÉMA CIBLE (JSON uniquement) :
 ══════════════════════════════════════════════════════════════════════════════
 RÈGLES DE QUALITÉ (SANS INVENTION)
 ══════════════════════════════════════════════════════════════════════════════
+
+📌 EXPÉRIENCES / RÉALISATIONS (RICHESSE)
+─────────────────────────────────────────────────────────────────────────────
+- Minimum attendu par expérience SI l’info existe : 6 réalisations.
+- Maximum par expérience : 14 réalisations (éviter les doublons).
+- Chaque réalisation doit être une action concrète, pas un intitulé vague.
+- Si le document contient une liste (missions / achievements / responsibilities), éclate-la en plusieurs réalisations.
+- Préfère des réalisations courtes mais nombreuses plutôt que 2 phrases longues.
+- Pour les items inférés:
+  - "is_inferred": true, "confidence": 60-85 (rarement 90+)
+  - "sources": doit contenir la phrase explicite qui justifie l’inférence
+  - "impact": "" si non explicitement chiffré dans le document
+  - Utilise un vocabulaire prudent (ex: "Mise en place / cadrage / structuration" plutôt que "Automatisation complète")
 
 📌 CLIENTS / RÉFÉRENCES
 ─────────────────────────────────────────────────────────────────────────────
@@ -389,6 +415,9 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Maximum ${rules.maxBulletChars} caractères par bullet
    - Afficher références clients : ${rules.showClientReferences ? 'OUI - OBLIGATOIRE' : 'NON'}
    - Objectif : 1 page lisible. Mieux vaut 3 expériences excellentes que 10 moyennes.
+   - Tu peux SYNTHÉTISER plusieurs éléments du RAG en un seul bullet si nécessaire (sans perdre le sens)
+   - Tu peux DÉVELOPPER un élément en 2 bullets UNIQUEMENT si le RAG contient déjà plusieurs détails distincts
+   - Tu peux reformuler librement (verbes d’action, style ATS), MAIS sans inventer de faits ou de chiffres
 
 3. QUANTIFICATION OBLIGATOIRE (≥60% des bullets) :
    Formats acceptés :
@@ -473,6 +502,10 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    elle NE DOIT PAS apparaître dans le CV généré.
    
    En cas de doute, OMETS l'information plutôt que de l'inventer.
+   
+   CAS PARTICULIER : "contexte_enrichi" / éléments inférés présents dans la source
+   - Tu peux les utiliser pour enrichir le vocabulaire (process, gouvernance, reporting) UNIQUEMENT si c’est dans le JSON source
+   - Tu dois rester prudent (éviter les superlatifs, éviter toute quantification non sourcée)
 `;
 }
 

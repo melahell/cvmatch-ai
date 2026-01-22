@@ -78,16 +78,18 @@ export function truncateForRAGExtraction(text: string): {
 } {
     const MAX_TOKENS = 50000; // Conservative limit
 
-    const result = truncateToTokens(text, MAX_TOKENS);
+    const base = truncateToTokens(text, MAX_TOKENS);
+    const truncatedText = base.wasTruncated ? smartTruncate(text, MAX_TOKENS, { beginning: 65, end: 35 }) : base.truncated;
+    const finalTokens = estimateTokenCount(truncatedText);
 
     return {
-        text: result.truncated,
+        text: truncatedText,
         stats: {
-            originalTokens: result.originalTokens,
-            finalTokens: result.finalTokens,
-            wasTruncated: result.wasTruncated,
-            truncatedPercentage: result.wasTruncated
-                ? Math.round(((result.originalTokens - result.finalTokens) / result.originalTokens) * 100)
+            originalTokens: base.originalTokens,
+            finalTokens,
+            wasTruncated: base.wasTruncated,
+            truncatedPercentage: base.wasTruncated
+                ? Math.round(((base.originalTokens - finalTokens) / base.originalTokens) * 100)
                 : undefined
         }
     };
