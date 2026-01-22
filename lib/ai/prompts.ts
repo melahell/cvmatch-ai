@@ -11,6 +11,14 @@ ${extractedText}
 MISSION CRITIQUE: Extrais et structure TOUTES les informations AVEC TRAÇABILITÉ.
 ══════════════════════════════════════════════════════════════════════════════
 
+⚠️ IMPORTANT: Tu vois TOUS les documents ensemble (CV, LinkedIn, GitHub, etc.).
+⚠️ Fais des LIENS entre les sources pour enrichir chaque expérience:
+  * Si LinkedIn mentionne "reporting" et le CV mentionne "Excel", associe-les dans la même réalisation
+  * Si GitHub mentionne des projets et LinkedIn mentionne des technologies, combine-les
+  * Si plusieurs sources parlent de la même expérience, agrège TOUS les détails (ne perds rien)
+  * Si une source dit "Pilotage" et une autre dit "Jira/Planisware", combine-les: "Pilotage avec Jira/Planisware"
+  * Si LinkedIn liste 11 responsabilités et le CV en liste 7, prends TOUTES (union, pas intersection)
+
 RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES)
 1) ⛔ Interdiction absolue d'inventer quoi que ce soit (poste, entreprise, dates, chiffres, clients, certifications, diplômes, projets).
 2) Si une info n'est pas clairement présente dans les documents → mets "" / [] / null (selon le champ). Ne “devine” jamais.
