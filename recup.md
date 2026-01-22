@@ -1,1810 +1,1170 @@
+tu es sur que ton audit et ton travail sont complet??
 
-ok ca fonctionne. On va parler des page d'avant connexion a l'app. Audit ca et fait moi un retour. Ensuite je te ferais le mien
+SOLO Coder
 
-Thought for <1s
+Thought process
 
-Je vais faire un audit complet des pages avant connexion (landing page, login, onboarding).
+Non — je ne peux pas te garantir à 100% que “tout” est complet au sens zéro bug possible , parce qu’il y a une partie qui dépend de l’état Supabase (RLS/policies, sessions cookies, buckets, données réelles) et de ce que le navigateur garde en cache (service worker). En revanche, je suis sûr que l’audit et les fixes couvrent les causes directes que tu as montrées, et je les ai vérifiés côté code + build + tests .
 
-Audit Pages Pré-Connexion
-Rédigé un rapport d'audit complet des 3 pages pré-connexion (landing, login, onboarding) avec analyse des points forts/faibles, cohérence design system, responsive et 9 actions prioritaires classées.
+Ce qui est couvert et corrigé avec certitude
 
-Files Edited
-Audit Pages Pre Connexion
-Progress Updates
-1
-Analyse des pages landing, login, onboarding
+- 401 sur /api/profile/reset : cause = appel client sans Authorization alors que l’API exige requireSupabaseUser . Corrigé dans profile/page.tsx (ajout headers auth + credentials).
+- Ré-upload qui “ne marche pas” : cause = le client envoyait file alors que l’API attend files ( formData.getAll("files") ). Corrigé dans profile/page.tsx (envoi files + headers auth).
+- Suppression de document potentiellement bloquée : cause = /api/documents/delete exige auth, le hook n’envoyait pas le header. Corrigé dans useDocuments.ts .
+- ERR_UNKNOWN_URL_SCHEME sur storage:profile-photos:... : cause = un <img src="storage:..."> peut être rendu. Corrigé de deux façons :
+  - on injecte l’URL signée dans profil.photo_url via useRAGData.ts ,
+  - et les templates ne rendent la photo que si l’URL est http(s) : ModernTemplate.tsx , ClassicTemplate.tsx , CreativeTemplate.tsx , TechTemplate.tsx .
+Ce qui reste “possible” (et donc pas garanti sans observation en prod)
 
-2
-Rédaction du rapport d'audit
+- Session Supabase côté navigateur : si l’utilisateur est “connecté” côté UI mais la session n’est plus valide, tu auras encore des 401 (mais cette fois ce sera un vrai problème de session, pas un bug de code).
+- RLS/policies ou buckets : si le bucket documents / profile-photos ou les policies sont incohérents, upload/delete peut échouer même avec les bons headers.
+- Service worker / cache : tu as “SW registered”. Si un vieux SW sert du JS périmé, tu peux voir des comportements fantômes malgré le fix.
+Check ultra simple pour confirmer que c’est vraiment clean
 
-3
-Attente retour utilisateur
+- Tu vois v5.2.6 dans le footer.
+- Dans Network, l’appel /api/profile/reset inclut Authorization: Bearer … et répond 200.
+- Upload doc : requête /api/rag/upload contient un multipart avec clé files .
+- Plus aucune requête image avec URL qui commence par storage: (au pire avatar fallback, puis photo http signée).
+Si tu veux, je peux verrouiller ça encore plus en ajoutant une “hard refresh SW” côté app (ou un bouton “forcer mise à jour”), et surtout instrumenter proprement /api/profile/reset pour renvoyer un JSON détaillé (combien de lignes supprimées, combien de fichiers supprimés) pour que tu voies immédiatement pourquoi “impossible de supprimer” quand ça arrive.
 
-Voici mon audit des pages pré-connexion. À toi de me faire ton retour pour qu'on compare nos analyses !
+15:31
+Gilles GOZLAN
 
-Audit Pages Pre Connexion
-Open
-Audit complet des 3 pages pré-connexion (landing, login, onboarding) avec analyse des points forts, points faibles, cohérence design system, responsive et actions prioritaires classées par importance.
-tu as raison. Gardes tes remarques en tete et je te présente mon cahier des charges:
-# CDC 06 - MUSÉE DES CVs IMPOSSIBLES
-## Cahier des Charges Complet
+1 le rag est hyper light.
 
-**Version** : 1.0  
-**Date** : 18 janvier 2026  
-**Projet** : CVMatch AI  
-**Feature** : Page de démonstration interactive  
-**Auteur** : Gilles GOZLAN
+Quand j'importe les données de mon CV, page linkedin, info sur mon github et autre, il y a de quoi dire sur moi. En plus de ca j'ai demandé a ce que dans le rag on note les choses induite par exemple si je dit que je fais les reporting de temps des ressouces, il faut parler de la mise en place d'un loadarray, encadrement du ressource manager pour qu'il valide et suive correctement les temps, application de la methodologie, utilisation de xls ou powerbi etc... Bref les choses logiquee comme ca il faut les detailler. Donc etre complet sur l'import et ajouter des choses intéressante et la tu as fait tout l'inverse, on est "bloqué a 3 lignes par exeperience et il manque plein de chose
 
----
+Voila le screen, tu vas l'etudier et me faire un retour
 
-## 📑 TABLE DES MATIÈRES
+me prouver que tu as bien compris ma remarques en l'expliquant pour toutes les catégorie de mon rag et pas seulement celle de mon exemple
 
-1. [Vision & Objectifs](#1-vision--objectifs)
-2. [Scope Fonctionnel](#2-scope-fonctionnel)
-3. [Architecture de l'Information](#3-architecture-de-linformation)
-4. [Spécifications des Personnages](#4-spécifications-des-personnages)
-5. [Structure des Données](#5-structure-des-données)
-6. [Wireframes & Schémas](#6-wireframes--schémas)
-7. [User Flows](#7-user-flows)
-8. [Spécifications Techniques](#8-spécifications-techniques)
-9. [Contenu & Rédaction](#9-contenu--rédaction)
-10. [SEO & Marketing](#10-seo--marketing)
-11. [Métriques de Succès](#11-métriques-de-succès)
-12. [Roadmap d'Implémentation](#12-roadmap-dimplémentation)
+me dire comment le rag aurait du se comporter
 
----
+auditer l'existant
 
-## 1. VISION & OBJECTIFS
+me faire le delta entre les 2
 
-### 1.1 Concept
+SOLO Coder
 
-**Le Musée des CVs Impossibles** est une page de démonstration interactive qui présente les capacités de CVMatch AI à travers 10 profils de personnages historiques célèbres.
+Thought process
 
-**Promesse** : "Si l'IA peut générer un CV parfait pour Michel-Ange, imaginez ce qu'elle peut faire pour vous."
+Search Agent Audit pipeline RAG
 
-### 1.2 Objectifs Business
+Thought
 
-| Objectif | Description | KPI Cible |
-|----------|-------------|-----------|
-| **Acquisition** | Générer du trafic organique et viral | 10k visiteurs/mois (6 mois) |
-| **Conversion** | Transformer visiteurs en utilisateurs | Taux conversion 15% |
-| **Crédibilité** | Démontrer expertise technique | NPS > 8/10 |
-| **Viralité** | Partages sociaux massifs | 500 partages/mois |
-| **SEO** | Positionner CVMatch AI | Top 3 "CV IA" |
+Search codebase for 'RAG ingestion/generation/update flow: where profile is created from uploaded documents, parsed by Gemini, stored in rag_metadata; API routes under app/api/rag and any related services/utilities'
 
-### 1.3 Objectifs Utilisateurs
+Thought
 
-**Problème résolu** : Les utilisateurs ne comprennent pas ce que "génération de CV par IA" signifie concrètement.
+Search codebase for 'app/api/rag/**/route.ts'
 
-**Solution** : Montrer des exemples concrets, impressionnants et ludiques qui :
-- Démontrent la sophistication de l'IA
-- Illustrent la diversité des profils gérés
-- Prouvent la qualité des outputs (CVs + lettres)
-- Inspirent confiance dans le produit
+Search codebase for 'Prompt(s) used for RAG extraction, incremental extraction, top jobs suggestion, enrichment/inference, schema validation; likely in lib/ai/prompts.ts or lib/ai/*'
 
-### 1.4 Principes de Design
+Search codebase for 'truncateForRAGExtraction|truncateToTokens|MAX_TOKENS|slice\(|substring\(|responseMimeType|maxOutputTokens|max_tokens|token'
 
-1. **Show, don't tell** : Pas de blabla marketing, que des démos concrètes
-2. **Ludique mais crédible** : Fun sans être puéril
-3. **Accessible sans friction** : 0 inscription requise
-4. **Viral by design** : Conçu pour être partagé
-5. **Mobile-first** : 60%+ trafic mobile attendu
-
----
-
-## 2. SCOPE FONCTIONNEL
+app/api/rag/generate/route.ts
 
-### 2.1 Features Core (MVP)
+app/api/rag/generate/route.ts
 
-#### ✅ In Scope
+app/api/rag/generate-incremental/route.ts
 
-| Feature | Description | Priorité |
-|---------|-------------|----------|
-| **Galerie 10 personnages** | Grid interactif des profils | P0 |
-| **Page profil détaillée** | Vue complète par personnage | P0 |
-| **CVs multi-templates** | 4 templates par personnage | P0 |
-| **Top 10 des postes** | Jobs 2025 avec scoring | P0 |
-| **Lettres de motivation** | 3 lettres par personnage | P0 |
-| **Téléchargement PDFs** | CVs + lettres en PDF | P0 |
-| **Responsive design** | Mobile + Desktop | P0 |
-| **SEO optimization** | Meta tags + OG images | P0 |
-| **Partage social** | Boutons Twitter/LinkedIn | P1 |
-| **Analytics** | Tracking comportement | P1 |
-
-#### ❌ Out of Scope (v1)
-
-- Génération dynamique temps réel (tout est pré-généré)
-- Upload de profils custom par utilisateurs
-- Personnalisation des templates
-- Système de favoris/sauvegarde
-- Commentaires ou notations
-- Traduction multilingue (français uniquement v1)
-- API publique pour accès aux données
-
-### 2.2 User Stories
-
-**US-01** : En tant que visiteur curieux, je veux voir la liste des personnages disponibles pour choisir celui qui m'intéresse.
-
-**US-02** : En tant que visiteur, je veux voir le CV complet d'un personnage pour comprendre comment l'IA structure l'information.
-
-**US-03** : En tant que visiteur, je veux télécharger les CVs en PDF pour voir la qualité finale du rendu.
-
-**US-04** : En tant que visiteur, je veux voir les lettres de motivation générées pour évaluer la pertinence de l'IA.
-
-**US-05** : En tant que visiteur, je veux partager un profil sur les réseaux sociaux pour montrer à mes contacts.
-
-**US-06** : En tant que visiteur convaincu, je veux m'inscrire facilement pour créer mon propre profil.
-
----
-
-## 3. ARCHITECTURE DE L'INFORMATION
-
-### 3.1 Sitemap
-
-```
-CVMatch AI
-│
-└── /demo (Le Musée des CVs Impossibles)
-    │
-    ├── Page d'accueil musée
-    │   ├── Hero Section
-    │   ├── Galerie 10 personnages
-    │   └── CTA inscription
-    │
-    └── /demo/[character]
-        ├── Header profil
-        ├── Profil RAG (score + métadonnées)
-        ├── CVs générés (4 templates)
-        ├── Top 10 des postes
-        ├── Lettres de motivation (3)
-        └── CTA inscription
-```
-
-### 3.2 Structure URL
-
-| Page | URL | Type |
-|------|-----|------|
-| Musée accueil | `/demo` | Statique |
-| Profil Michel-Ange | `/demo/michelangelo` | Statique générée |
-| Profil Marie Curie | `/demo/curie` | Statique générée |
-| ... | `/demo/[character]` | ... |
-| PDF CV | `/demo-cvs/michelangelo-standard.pdf` | Fichier statique |
-| PDF Lettre | `/demo-letters/michelangelo-vatican.pdf` | Fichier statique |
-
-### 3.3 Navigation Flow
-
-```
-Landing Page CVMatch AI
-         ↓
-    [Lien menu "Démo"]
-         ↓
-   /demo (Musée accueil)
-         ↓
-   [Clic sur personnage]
-         ↓
-   /demo/michelangelo
-         ↓
-   [Télécharge CV ou lettre]
-         OU
-   [Clic "Créer mon profil"]
-         ↓
-   /signup?utm_source=demo&character=michelangelo
-```
-
----
-
-## 4. SPÉCIFICATIONS DES PERSONNAGES
-
-### 4.1 Critères de Sélection
-
-| Critère | Justification |
-|---------|---------------|
-| **Domaine public** | Aucun droit d'image ou de propriété intellectuelle |
-| **Reconnaissance universelle** | Noms connus internationalement |
-| **Diversité métiers** | Art, Science, Tech, Politique pour showcaser polyvalence IA |
-| **Diversité genres** | 40% femmes minimum |
-| **Diversité époques** | Antiquité → XXe siècle |
-| **Diversité origines** | Représentation géographique variée |
-| **Complexité profil** | Parcours riches qui challengent l'IA |
-| **Relocalisabilité 2025** | Compétences transposables au marché actuel |
-
-### 4.2 Les 10 Personnages Sélectionnés
-
-| # | Nom | Époque | Métier | Genre | Origine | Pourquoi intéressant |
-|---|-----|--------|--------|-------|---------|---------------------|
-| 1 | **Michel-Ange Buonarroti** | 1475-1564 | Sculpteur/Peintre | H | Italie | Freelance multi-casquettes, projets monumentaux |
-| 2 | **Marie Curie** | 1867-1934 | Physicienne/Chimiste | F | Pologne/France | Double Nobel, femme académique, recherche |
-| 3 | **Ada Lovelace** | 1815-1852 | Mathématicienne | F | UK | Première programmeuse, tech avant l'heure |
-| 4 | **Léonard de Vinci** | 1452-1519 | Inventeur/Artiste | H | Italie | Renaissance man ultime, innovation |
-| 5 | **Joséphine Baker** | 1906-1975 | Artiste/Résistante | F | USA/France | Reconversion, parcours atypique, résilience |
-| 6 | **Albert Einstein** | 1879-1955 | Physicien | H | Allemagne/USA | Académique → icône, Nobel, vulgarisation |
-| 7 | **Cléopâtre VII** | 69-30 av. J.-C. | Leader politique | F | Égypte | Management, diplomatie, leadership |
-| 8 | **Nikola Tesla** | 1856-1943 | Ingénieur/Inventeur | H | Serbie/USA | Innovation, brevets, R&D, entrepreneuriat |
-| 9 | **Frida Kahlo** | 1907-1954 | Artiste | F | Mexique | Artiste indépendante, marque personnelle |
-| 10 | **Alan Turing** | 1912-1954 | Mathématicien/Cryptographe | H | UK | Tech, guerre, intelligence artificielle |
-
-**Répartition** :
-- Genres : 4 femmes (40%), 6 hommes (60%)
-- Époques : 1 Antiquité, 4 Renaissance, 5 Moderne (XIXe-XXe)
-- Métiers : 4 Art, 3 Science, 2 Tech, 1 Politique
-- Origines : 3 Italie, 2 UK, 2 USA, 1 Pologne, 1 Égypte, 1 Mexique
-
-### 4.3 Profondeur de Contenu par Personnage
-
-| Élément | Quantité | Détails |
-|---------|----------|---------|
-| **Données RAG** | 1 profil complet | JSON structuré avec tous les champs |
-| **Expériences** | 3-5 majeures | Celles qui définissent le personnage |
-| **Compétences techniques** | 8-15 | Avec niveaux de maîtrise |
-| **Soft skills** | 6-10 | Identifiées à partir du parcours |
-| **Formations** | 2-4 | Éducation formelle + auto-formation |
-| **Projets notables** | 2-5 | Réalisations marquantes |
-| **CVs générés** | 4 templates | Standard, Moderne, Créatif, ATS Only |
-| **Top 10 jobs** | 10 postes 2025 | Avec scoring, salaires, descriptions |
-| **Lettres motivation** | 3 lettres | Pour Top 3 des jobs, tons variés |
-
----
-
-## 5. STRUCTURE DES DONNÉES
-
-### 5.1 Schéma de Données Profil
-
-```
-DemoProfile
-├── Métadonnées
-│   ├── id (string, slug unique)
-│   ├── name (string, nom complet)
-│   ├── period (string, dates naissance-décès)
-│   ├── title (string, titre professionnel principal)
-│   ├── icon (string, emoji représentatif)
-│   ├── completeness_score (number, 0-100)
-│   └── generation_time_ms (number, temps génération simulé)
-│
-├── RAG Data
-│   ├── profil
-│   │   ├── nom, prenom
-│   │   ├── titre_principal
-│   │   ├── titres_alternatifs (array)
-│   │   ├── localisation
-│   │   ├── contact (email fictif, portfolio, etc.)
-│   │   ├── elevator_pitch (150-200 mots)
-│   │   ├── mots_cles_secteurs (array)
-│   │   └── langues (object)
-│   │
-│   ├── experiences (array)
-│   │   └── [0...n]
-│   │       ├── id
-│   │       ├── poste
-│   │       ├── entreprise
-│   │       ├── localisation
-│   │       ├── debut, fin (dates)
-│   │       ├── actuel (boolean)
-│   │       ├── secteur
-│   │       ├── type_contrat
-│   │       ├── realisations (array)
-│   │       │   └── [0...n]
-│   │       │       ├── description
-│   │       │       ├── competences (array)
-│   │       │       ├── impact
-│   │       │       └── mots_cles (array)
-│   │       ├── technologies (array)
-│   │       ├── clients_cles (array)
-│   │       └── pertinence (object: management, technique, business)
-│   │
-│   ├── competences
-│   │   ├── techniques (object groupé par catégorie)
-│   │   │   └── [Catégorie]
-│   │   │       └── [0...n]
-│   │   │           ├── nom
-│   │   │           ├── niveau (Expert/Avancé/Intermédiaire)
-│   │   │           ├── pourcentage (0-100)
-│   │   │           ├── annees_experience
-│   │   │           ├── certification (nullable)
-│   │   │           ├── contexte
-│   │   │           └── mots_cles (array)
-│   │   ├── metier (object groupé par catégorie)
-│   │   └── soft_skills (array strings)
-│   │
-│   ├── formations_certifications (array)
-│   │   └── [0...n]
-│   │       ├── type (formation/certification)
-│   │       ├── titre
-│   │       ├── organisme
-│   │       ├── date_debut, date_fin
-│   │       ├── en_cours (boolean)
-│   │       ├── details
-│   │       └── niveau (nullable)
-│   │
-│   └── projets (array)
-│       └── [0...n]
-│           ├── titre
-│           ├── description
-│           ├── periode
-│           ├── role
-│           ├── technologies (array)
-│           ├── impact
-│           ├── url (nullable)
-│           └── contexte (Professionnel/Personnel)
-│
-├── CVs
-│   └── [template_name]
-│       ├── url (chemin PDF)
-│       └── preview_url (chemin image preview)
-│
-├── Top 10 Jobs
-│   └── [0...9]
-│       ├── rang (1-10)
-│       ├── titre_poste
-│       ├── match_score (0-100)
-│       ├── salaire_min, salaire_max
-│       ├── devise (EUR)
-│       ├── type_contrat (CDI/CDD/Freelance)
-│       ├── secteurs (array)
-│       ├── localisation
-│       ├── raison (pourquoi ce match)
-│       ├── competences_cles (array)
-│       └── job_description (texte détaillé)
-│
-└── Cover Letters
-    └── [0...2] (Top 3 jobs uniquement)
-        ├── job_id (référence au job)
-        ├── job_title
-        ├── match_score
-        └── letter
-            ├── tone (formal/professional_warm/creative)
-            ├── word_count (250-400 mots)
-            ├── content (markdown)
-            └── pdf_url (chemin PDF)
-```
-
-### 5.2 Templates de CVs
-
-| Template | Style | Usage | Particularités |
-|----------|-------|-------|----------------|
-| **Standard** | Classique professionnel | Tous secteurs, ATS-friendly | Colonnes traditionnelles, typo sobre |
-| **Moderne** | Contemporain épuré | Startups, tech, scale-ups | Design minimaliste, espaces blancs |
-| **Créatif** | Original coloré | Créatifs, marketing, design | Layout non-standard, touches couleur |
-| **ATS Only** | Texte pur | Optimisation maximale ATS | 0 design, que du texte structuré |
-
-### 5.3 Tons des Lettres de Motivation
-
-| Ton | Quand l'utiliser | Caractéristiques |
-|-----|------------------|------------------|
-| **Formal** | Institutions, grandes entreprises, postes corporate | Vouvoiement, formules classiques, structure rigide |
-| **Professional Warm** | PME, scale-ups, postes managériaux | Équilibre pro/humain, vouvoiement souple |
-| **Creative** | Startups, agences créatives, freelance | Style + personnel, storytelling, tu possible |
-
----
-
-## 6. WIREFRAMES & SCHÉMAS
-
-### 6.1 Page d'Accueil Musée (`/demo`)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ [Logo CVMatch AI]                    [Navigation]   [Essayer →]    │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                          HERO SECTION                               │
-│                                                                     │
-│                  🏛️ Le Musée des CVs Impossibles                   │
-│                                                                     │
-│            Découvrez comment l'IA transforme 10 parcours            │
-│            extraordinaires en CVs et lettres de motivation          │
-│                        prêts pour 2025                              │
-│                                                                     │
-│                  [⬇ Découvrir les personnages]                     │
-│                                                                     │
-│  💡 Démonstration gratuite • 0 inscription • 40 CVs à télécharger  │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                    GALERIE DES PERSONNAGES                          │
-│                                                                     │
-│  Sélectionnez un personnage pour voir son profil complet           │
-│                                                                     │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐ │
-│  │   🎨    │  │   🔬    │  │   💻    │  │   🖌️    │  │   💃    │ │
-│  │         │  │         │  │         │  │         │  │         │ │
-│  │ Michel- │  │  Marie  │  │   Ada   │  │ Léonard │  │Joséphine│ │
-│  │  Ange   │  │  Curie  │  │Lovelace │  │de Vinci │  │  Baker  │ │
-│  │         │  │         │  │         │  │         │  │         │ │
-│  │1475-1564│  │1867-1934│  │1815-1852│  │1452-1519│  │1906-1975│ │
-│  │         │  │         │  │         │  │         │  │         │ │
-│  │Sculpteur│  │Physicien│  │Mathéma- │  │Inventeur│  │ Artiste │ │
-│  │& Peintre│  │& Chimiste│ │ticienne │  │& Artiste│  │Résistant│ │
-│  │         │  │         │  │         │  │         │  │         │ │
-│  │[Voir le │  │[Voir le │  │[Voir le │  │[Voir le │  │[Voir le │ │
-│  │ profil] │  │ profil] │  │ profil] │  │ profil] │  │ profil] │ │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘ │
-│                                                                     │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐ │
-│  │   🧠    │  │   👑    │  │   ⚡    │  │   🎨    │  │   🔐    │ │
-│  │         │  │         │  │         │  │         │  │         │ │
-│  │ Albert  │  │Cléopâtre│  │ Nikola  │  │  Frida  │  │  Alan   │ │
-│  │Einstein │  │   VII   │  │  Tesla  │  │  Kahlo  │  │ Turing  │ │
-│  │         │  │         │  │         │  │         │  │         │ │
-│  │1879-1955│  │69-30 av.│  │1856-1943│  │1907-1954│  │1912-1954│ │
-│  │         │  │   J.-C. │  │         │  │         │  │         │ │
-│  │Physicien│  │  Leader │  │Ingénieur│  │ Artiste │  │Mathéma- │ │
-│  │         │  │Politique│  │Inventeur│  │         │  │ticien   │ │
-│  │         │  │         │  │         │  │         │  │         │ │
-│  │[Voir le │  │[Voir le │  │[Voir le │  │[Voir le │  │[Voir le │ │
-│  │ profil] │  │ profil] │  │ profil] │  │ profil] │  │ profil] │ │
-│  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘ │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                        SECTION PÉDAGOGIQUE                          │
-│                                                                     │
-│                     Comment ça fonctionne ?                         │
-│                                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐            │
-│  │    ÉTAPE 1  │    │    ÉTAPE 2  │    │    ÉTAPE 3  │            │
-│  │             │    │             │    │             │            │
-│  │ L'IA analyse│ ➜  │ Génère 4 CVs│ ➜  │  Propose 10 │            │
-│  │  le profil  │    │  + 3 lettres│    │ jobs adaptés│            │
-│  │             │    │             │    │             │            │
-│  │  0.8 sec    │    │   2.3 sec   │    │   1.5 sec   │            │
-│  └─────────────┘    └─────────────┘    └─────────────┘            │
-│                                                                     │
-│  Total : moins de 5 secondes pour un profil complet                │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                          CTA SECTION                                │
-│                                                                     │
-│          Impressionné par les capacités de l'IA ?                   │
-│          Créez VOTRE profil intelligent en 5 minutes                │
-│                                                                     │
-│                  [Essayer gratuitement →]                           │
-│                                                                     │
-│        💡 Aucune carte bancaire • Accès immédiat • 50 places       │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                            FOOTER                                   │
-│  [À propos] [Contact] [CGU] [Confidentialité]                      │
-│  © 2026 CVMatch AI • Made with 🤖 in France                        │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**Dimensions clés** :
-- Hero : 100vh (plein écran)
-- Cards personnages : 280x400px
-- Spacing entre cards : 24px
-- Section pédago : 60vh
-- CTA final : 40vh
-
----
-
-### 6.2 Page Profil Personnage (`/demo/michelangelo`)
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ [Logo CVMatch AI]                    [Navigation]   [Essayer →]    │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│ ← Retour à la galerie              MICHEL-ANGE BUONARROTI          │
-│                                    Sculpteur & Peintre Monumental   │
-│                                    1475-1564 • Florence, Italie     │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                        SECTION PROFIL RAG                           │
-│                                                                     │
-│  📊 PROFIL INTELLIGENT GÉNÉRÉ                   Score: 94/100 ⭐    │
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ ✅ Profil complet et structuré                                 ││
-│  │ ✅ 3 expériences majeures identifiées                          ││
-│  │ ✅ 12 compétences techniques extraites                         ││
-│  │ ✅ 8 soft skills détectées                                     ││
-│  │ ✅ Portfolio iconique reconnu                                  ││
-│  │                                                                ││
-│  │ ⏱️ Généré en : 0.8 secondes                                    ││
-│  │ 📄 Complétude : Excellent (94%)                                ││
-│  │ 🎯 Prêt pour génération CV                                     ││
-│  └────────────────────────────────────────────────────────────────┘│
-│                                                                     │
-│  [Voir le détail du profil RAG ▼]                                  │
-│                                                                     │
-│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
-│                                                                     │
-│  RÉSUMÉ DU PARCOURS                                                 │
-│  Artiste polyvalent avec 40+ ans d'expérience en sculpture         │
-│  monumentale, peinture à fresque et architecture. Reconnu pour     │
-│  livraison de projets d'envergure sous contraintes budgétaires...  │
-│                                                [Lire la suite ▼]   │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                      SECTION CVs GÉNÉRÉS                            │
-│                                                                     │
-│  📄 4 CVs PROFESSIONNELS (Téléchargement instantané)               │
-│                                                                     │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌────────┐│
-│  │   STANDARD   │  │   MODERNE    │  │   CRÉATIF    │  │   ATS  ││
-│  │              │  │              │  │              │  │  ONLY  ││
-│  │  ┌────────┐  │  │  ┌────────┐  │  │  ┌────────┐  │  │┌──────┐││
-│  │  │        │  │  │  │        │  │  │  │        │  │  ││      │││
-│  │  │ [Mini  │  │  │  │ [Mini  │  │  │  │ [Mini  │  │  ││[Mini]│││
-│  │  │Preview]│  │  │  │Preview]│  │  │  │Preview]│  │  ││      │││
-│  │  │        │  │  │  │        │  │  │  │        │  │  ││      │││
-│  │  │  PDF   │  │  │  │  PDF   │  │  │  │  PDF   │  │  ││ PDF │││
-│  │  │ A4 1p  │  │  │  │ A4 1p  │  │  │  │ A4 1p  │  │  ││A4 1p│││
-│  │  └────────┘  │  │  └────────┘  │  │  └────────┘  │  │└──────┘││
-│  │              │  │              │  │              │  │        ││
-│  │ Professionnel│  │Design épuré, │  │Layout unique,│  │Texte pur││
-│  │classique ATS │  │espaces blancs│  │touches de    │  │optimisé ││
-│  │compatible    │  │généreux      │  │couleur       │  │ATS 100% ││
-│  │              │  │              │  │              │  │        ││
-│  │ Recommandé ⭐│  │              │  │ Recommandé ⭐│  │        ││
-│  │              │  │              │  │              │  │        ││
-│  │[⬇ Télécharger│  │[⬇ Télécharger│  │[⬇ Télécharger│  │[⬇ PDF] ││
-│  │     PDF]     │  │     PDF]     │  │     PDF]     │  │        ││
-│  │              │  │              │  │              │  │        ││
-│  │ [👁️ Aperçu]  │  │ [👁️ Aperçu]  │  │ [👁️ Aperçu]  │  │[👁️View]││
-│  └──────────────┘  └──────────────┘  └──────────────┘  └────────┘│
-│                                                                     │
-│  💡 Les templates Standard et Créatif sont les plus adaptés à      │
-│     ce profil artistique avec expériences iconiques                │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                    SECTION TOP 10 DES POSTES                        │
-│                                                                     │
-│  🎯 TOP 10 DES OPPORTUNITÉS (Marché 2025)                          │
-│                                                                     │
-│  L'IA a analysé 10,000+ offres d'emploi pour identifier les        │
-│  postes les plus pertinents pour ce profil                         │
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ #1  Directeur Artistique - Musées du Vatican     97% Match ⭐  ││
-│  │                                                                ││
-│  │     💰 80,000 - 120,000 € | CDI | 📍 Rome, Italie             ││
-│  │     🏢 Patrimoine • Musées • Art religieux                     ││
-│  │                                                                ││
-│  │     💡 Pourquoi ce match :                                     ││
-│  │     Expertise inégalée du Vatican + portfolio iconique =       ││
-│  │     candidat idéal pour ce poste prestigieux                   ││
-│  │                                                                ││
-│  │     🔑 Compétences clés valorisées :                           ││
-│  │     • Conservation patrimoine                                  ││
-│  │     • Direction artistique                                     ││
-│  │     • Gestion collections                                      ││
-│  │     • Relations institutionnelles papales                      ││
-│  │                                                                ││
-│  │     [Lire la description complète ▼]                           ││
-│  │     [Voir la lettre de motivation →]                           ││
-│  └────────────────────────────────────────────────────────────────┘│
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ #2  Sculpteur Monumental - Atelier d'Art          94% Match ⭐ ││
-│  │                                                                ││
-│  │     💰 60,000 - 90,000 € | Freelance | 📍 Florence            ││
-│  │     🏢 Art contemporain • Sculpture • Commandes publiques      ││
-│  │                                                                ││
-│  │     💡 Portfolio exceptionnel + maîtrise marbre = profil       ││
-│  │        recherché pour commandes prestigieuses                  ││
-│  │                                                                ││
-│  │     [Lire la description complète ▼]                           ││
-│  │     [Voir la lettre de motivation →]                           ││
-│  └────────────────────────────────────────────────────────────────┘│
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ #3  Restaurateur Chef de Projet - UNESCO          92% Match   ││
-│  │     [Détails masqués] [Voir ▼]                                 ││
-│  └────────────────────────────────────────────────────────────────┘│
-│                                                                     │
-│  [Voir les 7 autres postes ▼]                                      │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                 SECTION LETTRES DE MOTIVATION                       │
-│                                                                     │
-│  📧 3 LETTRES GÉNÉRÉES PAR L'IA (Top 3 des postes)                 │
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ LETTRE #1 : Directeur Artistique - Musées du Vatican          ││
-│  │                                                                ││
-│  │ Match : 97/100  |  Ton : Formal  |  384 mots                  ││
-│  │                                                                ││
-│  │ ┌────────────────────────────────────────────────────────────┐││
-│  │ │ Madame, Monsieur,                                          │││
-│  │ │                                                            │││
-│  │ │ Fort de quarante années d'expérience au service de l'art   │││
-│  │ │ sacré et de ma collaboration étroite avec le Vatican lors  │││
-│  │ │ de la réalisation du plafond de la Chapelle Sixtine, je    │││
-│  │ │ souhaite apporter mon expertise unique au poste de         │││
-│  │ │ Directeur Artistique des Musées du Vatican.                │││
-│  │ │                                                            │││
-│  │ │ Mon parcours artistique m'a permis de développer une       │││
-│  │ │ compréhension profonde des enjeux liés à la conservation   │││
-│  │ │ et à la mise en valeur du patrimoine religieux...          │││
-│  │ │                                            [Lire la suite ▼]││
-│  │ └────────────────────────────────────────────────────────────┘││
-│  │                                                                ││
-│  │ [⬇ Télécharger en PDF]  [📋 Copier le texte]                  ││
-│  │                                                                ││
-│  │ 💡 Cette lettre utilise un ton formel adapté aux institutions ││
-│  │    prestigieuses et met en avant l'expérience Vatican         ││
-│  └────────────────────────────────────────────────────────────────┘│
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ LETTRE #2 : Sculpteur Monumental - Atelier Florence           ││
-│  │                                                                ││
-│  │ Match : 94/100  |  Ton : Professional Warm  |  298 mots       ││
-│  │                                                                ││
-│  │ [Voir la lettre complète ▼]                                   ││
-│  └────────────────────────────────────────────────────────────────┘│
-│                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ LETTRE #3 : Restaurateur Chef de Projet UNESCO                ││
-│  │                                                                ││
-│  │ Match : 92/100  |  Ton : Formal Professional  |  356 mots     ││
-│  │                                                                ││
-│  │ [Voir la lettre complète ▼]                                   ││
-│  └────────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                     CTA SECTION (Sticky)                            │
-│                                                                     │
-│         Vous aussi, obtenez un profil intelligent en 5 min          │
-│                                                                     │
-│            [Créer mon profil gratuitement →]                        │
-│                                                                     │
-│   💡 0€ pendant le POC • Accès immédiat • Comme Michel-Ange       │
-└─────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────┐
-│                            FOOTER                                   │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-**Dimensions clés** :
-- Header personnage : 120px height
-- Cards CVs : 320x480px
-- Jobs cards : full width, 180px height collapsed
-- Lettres : full width, 600px height expanded
-- CTA sticky : 80px height, fixed bottom
-
----
-
-### 6.3 Architecture de Fichiers
-
-```
-/mnt/project/
-│
-├── lib/
-│   └── data/
-│       └── demo-profiles/
-│           ├── index.ts (export all profiles)
-│           ├── michelangelo.json
-│           ├── curie.json
-│           ├── lovelace.json
-│           ├── davinci.json
-│           ├── baker.json
-│           ├── einstein.json
-│           ├── cleopatra.json
-│           ├── tesla.json
-│           ├── kahlo.json
-│           └── turing.json
-│
-├── public/
-│   ├── demo-cvs/
-│   │   ├── previews/ (images 800x1131px - ratio A4)
-│   │   │   ├── michelangelo-standard.png
-│   │   │   ├── michelangelo-moderne.png
-│   │   │   ├── michelangelo-creatif.png
-│   │   │   ├── michelangelo-ats.png
-│   │   │   └── ... (36 autres images)
-│   │   │
-│   │   ├── michelangelo-standard.pdf
-│   │   ├── michelangelo-moderne.pdf
-│   │   ├── michelangelo-creatif.pdf
-│   │   ├── michelangelo-ats.pdf
-│   │   └── ... (36 autres PDFs)
-│   │
-│   ├── demo-letters/
-│   │   ├── michelangelo-vatican-director.pdf
-│   │   ├── michelangelo-sculptor-florence.pdf
-│   │   ├── michelangelo-unesco-restoration.pdf
-│   │   └── ... (27 autres PDFs)
-│   │
-│   └── demo-og-images/ (OpenGraph pour partage social)
-│       ├── michelangelo.png (1200x630px)
-│       ├── curie.png
-│       └── ... (8 autres images)
-│
-└── app/
-    └── demo/
-        ├── page.tsx (galerie)
-        ├── layout.tsx
-        └── [character]/
-            └── page.tsx (profil détaillé)
-```
-
-**Tailles fichiers estimées** :
-- JSON profil : ~15-25 KB
-- PDF CV : ~150-300 KB
-- PDF Lettre : ~50-100 KB
-- Image preview CV : ~200-400 KB
-- Image OG : ~100-150 KB
-
-**Total par personnage** : ~2-3 MB  
-**Total projet** : ~20-30 MB
-
----
-
-## 7. USER FLOWS
-
-### 7.1 Flow Principal : Découverte
-
-```
-                    START
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Arrive sur /demo       │
-        │  (via menu ou landing)  │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Voit Hero Section      │
-        │  + Galerie 10 persos    │
-        └─────────────────────────┘
-                      │
-                      ▼
-              [Scroll ou clic]
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Parcourt les cards     │
-        │  Lit les descriptions   │
-        └─────────────────────────┘
-                      │
-                      ▼
-          [Sélectionne un perso]
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Arrive sur /demo/xxx   │
-        │  (page profil détaillée)│
-        └─────────────────────────┘
-                      │
-            ┌─────────┴─────────┐
-            ▼                   ▼
-    ┌───────────────┐   ┌───────────────┐
-    │ Scroll & Lit  │   │ Télécharge CV │
-    │ le contenu    │   │ ou lettre     │
-    └───────────────┘   └───────────────┘
-            │                   │
-            ▼                   ▼
-    ┌───────────────┐   ┌───────────────┐
-    │ Découvre      │   │ Ouvre PDF     │
-    │ Top 10 jobs   │   │ Évalue qualité│
-    └───────────────┘   └───────────────┘
-            │                   │
-            └─────────┬─────────┘
-                      ▼
-        ┌─────────────────────────┐
-        │  Convaincu par qualité  │
-        │  Clique CTA "Essayer"   │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Redirection /signup    │
-        │  avec utm_source=demo   │
-        └─────────────────────────┘
-                      │
-                      ▼
-                     END
-```
-
-### 7.2 Flow Alternatif : Partage Social
-
-```
-        Utilisateur sur /demo/michelangelo
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Lit le contenu         │
-        │  Trouve ça cool         │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Clique bouton partage  │
-        │  (Twitter ou LinkedIn)  │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Popup partage réseau   │
-        │  avec message pré-rempli│
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Publie sur son profil  │
-        │  avec OG image          │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Ses contacts voient    │
-        │  et cliquent le lien    │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Arrivent sur page demo │
-        │  → Effet viral          │
-        └─────────────────────────┘
-                      │
-                      ▼
-                     END
-```
-
-### 7.3 Flow Téléchargement
-
-```
-        Sur page /demo/michelangelo
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Scroll jusqu'aux CVs   │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Compare les 4 templates│
-        │  Lit les descriptions   │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Clique "Aperçu" sur un │
-        │  template qui l'intéresse│
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Modal s'ouvre avec     │
-        │  preview haute résolution│
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Clique "Télécharger"   │
-        │  dans le modal          │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  PDF se télécharge      │
-        │  (attribution tracking) │
-        └─────────────────────────┘
-                      │
-                      ▼
-        ┌─────────────────────────┐
-        │  Ouvre le PDF           │
-        │  Évalue la qualité      │
-        └─────────────────────────┘
-                      │
-            ┌─────────┴─────────┐
-            ▼                   ▼
-    ┌───────────────┐   ┌───────────────┐
-    │ Satisfait     │   │ Non satisfait │
-    │ → Télécharge  │   │ → Essaye un   │
-    │ d'autres CVs  │   │ autre template│
-    └───────────────┘   └───────────────┘
-            │                   │
-            └─────────┬─────────┘
-                      ▼
-        ┌─────────────────────────┐
-        │  Clique CTA inscription │
-        └─────────────────────────┘
-                      │
-                      ▼
-                     END
-```
-
----
-
-## 8. SPÉCIFICATIONS TECHNIQUES
-
-### 8.1 Stack Technique (Rappel CVMatch AI)
-
-| Composant | Technologie | Version |
-|-----------|-------------|---------|
-| **Framework** | Next.js | 14.x (App Router) |
-| **Language** | TypeScript | 5.x |
-| **Styling** | Tailwind CSS | 3.x |
-| **Database** | Supabase | Latest |
-| **Hosting** | Vercel | Latest |
-| **PDF Generation** | Puppeteer | 21.x |
-| **Analytics** | Posthog | Latest |
-
-### 8.2 Pré-Génération vs Génération Dynamique
-
-#### Phase POC : **100% Pré-généré**
-
-| Élément | Approche | Raison |
-|---------|----------|--------|
-| **JSON Profils** | Statique | Contrôle qualité total |
-| **PDFs CVs** | Pré-générés | 0 coût API Gemini |
-| **PDFs Lettres** | Pré-générés | 0 latence utilisateur |
-| **Images previews** | Pré-générées | Performance optimale |
-| **Top 10 Jobs** | Statique (JSON) | Cohérence garantie |
-
-**Avantages** :
-- ✅ Coût : 0€ API calls
-- ✅ Performance : Instantané
-- ✅ Qualité : Contrôle manuel complet
-- ✅ SEO : Tout indexable immédiatement
-
-**Inconvénient** :
-- ❌ Pas de "wow effect" génération temps réel
-- ❌ Maintenance si modification templates
-
-#### Phase Post-POC : **Hybride possible**
-
-Garder profils JSON statiques MAIS régénérer CVs/lettres dynamiquement si :
-- Nouveau template ajouté
-- Modification prompts Gemini
-- Utilisateur veut voir "en live"
-
-### 8.3 Génération des Contenus (Workflow)
-
-```
-ÉTAPE 1 : DONNÉES SOURCES
-└─> Recherche historique manuelle
-    └─> Validation sources (Wikipedia, biographies, musées)
-        └─> Structuration en JSON selon schéma défini
-
-ÉTAPE 2 : PROFILS RAG (JSON)
-└─> Rédaction manuelle ou assistée IA (Claude/Gemini)
-    └─> Validation qualité (complétude, précision)
-        └─> Stockage dans /lib/data/demo-profiles/
-
-ÉTAPE 3 : TOP 10 JOBS
-└─> Recherche offres d'emploi réelles 2025 similaires
-    └─> Adaptation au profil historique
-        └─> Scoring manuel avec justification
-            └─> Ajout descriptions jobs détaillées
-
-ÉTAPE 4 : CVs PDFs
-└─> Injection RAG dans template HTML/CSS
-    └─> Génération PDF via Puppeteer (headless Chrome)
-        └─> Génération preview PNG (screenshot)
-            └─> Stockage dans /public/demo-cvs/
-
-ÉTAPE 5 : LETTRES MOTIVATION
-└─> Génération assistée Gemini (avec prompt structuré)
-    └─> Révision manuelle + ajustements
-        └─> Génération PDF via Puppeteer
-            └─> Stockage dans /public/demo-letters/
-
-ÉTAPE 6 : IMAGES OG
-└─> Design dans Figma ou Canva
-    └─> Export 1200x630px
-        └─> Optimisation (compression)
-            └─> Stockage dans /public/demo-og-images/
-
-ÉTAPE 7 : DÉPLOIEMENT
-└─> Commit sur GitHub
-    └─> Auto-deploy Vercel
-        └─> Tests manuels
-            └─> Annonce publique
-```
-
-### 8.4 Performance Requirements
-
-| Métrique | Cible | Mesure |
-|----------|-------|--------|
-| **LCP (Largest Contentful Paint)** | < 2.5s | Core Web Vitals |
-| **FID (First Input Delay)** | < 100ms | Core Web Vitals |
-| **CLS (Cumulative Layout Shift)** | < 0.1 | Core Web Vitals |
-| **Time to Interactive** | < 3s | Lighthouse |
-| **PDF Download Speed** | < 1s | Monitoring custom |
-| **Mobile Score Lighthouse** | > 90 | Lighthouse CI |
-| **Desktop Score Lighthouse** | > 95 | Lighthouse CI |
-
-### 8.5 SEO Requirements
-
-#### Meta Tags (Par page)
-
-**Page Galerie** (`/demo`) :
-```
-title: "Le Musée des CVs Impossibles | CVMatch AI"
-description: "Découvrez 10 CVs de personnages historiques générés par IA. De Michel-Ange à Ada Lovelace, voyez la puissance de CVMatch AI."
-canonical: "https://cvmatch.ai/demo"
-og:image: "/demo-og-images/demo-home.png"
-```
-
-**Page Profil** (`/demo/michelangelo`) :
-```
-title: "CV de Michel-Ange généré par IA | CVMatch AI"
-description: "Le parcours de Michel-Ange (Sculpteur & Peintre, 1475-1564) transformé en CV moderne par IA. Score 94/100, 4 templates, 10 jobs identifiés."
-canonical: "https://cvmatch.ai/demo/michelangelo"
-og:image: "/demo-og-images/michelangelo.png"
-og:type: "article"
-article:published_time: [date de publication]
-```
-
-#### Structured Data (JSON-LD)
-
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "CreativeWork",
-  "name": "CV de Michel-Ange Buonarroti",
-  "description": "CV professionnel généré par IA pour le sculpteur et peintre Michel-Ange",
-  "creator": {
-    "@type": "Organization",
-    "name": "CVMatch AI"
-  },
-  "about": {
-    "@type": "Person",
-    "name": "Michelangelo Buonarroti",
-    "jobTitle": "Sculpteur & Peintre",
-    "birthDate": "1475",
-    "deathDate": "1564"
-  },
-  "datePublished": "2026-01-18",
-  "inLanguage": "fr-FR"
-}
-```
-
-#### Sitemap.xml
-
-```xml
-<url>
-  <loc>https://cvmatch.ai/demo</loc>
-  <lastmod>2026-01-18</lastmod>
-  <changefreq>monthly</changefreq>
-  <priority>0.8</priority>
-</url>
-<url>
-  <loc>https://cvmatch.ai/demo/michelangelo</loc>
-  <lastmod>2026-01-18</lastmod>
-  <changefreq>monthly</changefreq>
-  <priority>0.7</priority>
-</url>
-<!-- ... 9 autres personnages ... -->
-```
-
----
-
-## 9. CONTENU & RÉDACTION
-
-### 9.1 Tone of Voice
-
-**Général** :
-- 🎯 Professionnel mais accessible
-- 🎨 Créatif sans être puéril
-- 🧠 Pédagogique sans être condescendant
-- 😊 Enthousiaste mais crédible
-
-**À faire** :
-✅ Utiliser "nous" ou forme passive
-✅ Phrases courtes et percutantes
-✅ Données factuelles avec sources
-✅ Humour subtil si pertinent
-✅ Vocabulaire RH/recrutement professionnel
-
-**À éviter** :
-❌ Jargon technique excessif
-❌ Ton marketing agressif
-❌ Blagues douteuses ou déplacées
-❌ Promesses irréalistes
-❌ Comparaisons avec vrais concurrents
-
-### 9.2 Textes Clés
-
-#### Hero Section
-
-**Titre H1** :
-```
-🏛️ Le Musée des CVs Impossibles
-```
-
-**Sous-titre** :
-```
-Découvrez comment l'IA transforme 10 parcours extraordinaires
-en CVs et lettres de motivation prêts pour 2025
-```
-
-**Baseline** :
-```
-💡 Démonstration gratuite • 0 inscription • 40 CVs à télécharger
-```
-
-#### Section Pédagogique
-
-**Titre** :
-```
-Comment ça fonctionne ?
-```
-
-**Étape 1** :
-```
-L'IA analyse le profil
-Extraction automatique des expériences, compétences et réalisations
-⏱️ 0.8 secondes
-```
-
-**Étape 2** :
-```
-Génère 4 CVs + 3 lettres
-Adaptation à différents templates et tons professionnels
-⏱️ 2.3 secondes
-```
-
-**Étape 3** :
-```
-Propose 10 jobs adaptés
-Matching intelligent avec le marché de l'emploi 2025
-⏱️ 1.5 secondes
-```
-
-**Conclusion** :
-```
-Total : moins de 5 secondes pour un profil complet
-```
-
-#### CTA Final
-
-**Titre** :
-```
-Impressionné par les capacités de l'IA ?
-```
-
-**Sous-titre** :
-```
-Créez VOTRE profil intelligent en 5 minutes
-```
-
-**Bouton** :
-```
-Essayer gratuitement →
-```
-
-**Reassurance** :
-```
-💡 Aucune carte bancaire • Accès immédiat • 50 places POC
-```
-
-### 9.3 Copy pour Personnages
-
-**Format Card Galerie** :
-```
-[Emoji]
-[Prénom ou nom court]
-[Dates]
-[Métier principal]
-[Bouton "Voir le profil"]
-```
-
-**Exemple** :
-```
-🎨
-Michel-Ange
-1475-1564
-Sculpteur & Peintre
-[Voir le profil]
-```
-
-### 9.4 Copy Boutons Partage
-
-**Twitter** :
-```
-Regardez le CV de [Personnage] généré par IA ! 🤖
-L'IA a transformé son parcours en CV moderne avec score [X]/100.
-Découvrez Le Musée des CVs Impossibles 👉 https://cvmatch.ai/demo/[character]
-#CVMatchAI #IA #RecrutementInnovant
-```
-
-**LinkedIn** :
-```
-🏛️ Le Musée des CVs Impossibles : quand l'IA rencontre l'Histoire
-
-Je viens de découvrir comment CVMatch AI transforme le parcours de [Personnage] en CV professionnel adapté au marché 2025.
-
-Résultat : [X]/100 de complétude, 4 templates, et 10 opportunités identifiées.
-
-Si l'IA peut structurer la carrière de [Personnage], imaginez ce qu'elle peut faire pour vous ! 
-
-👉 https://cvmatch.ai/demo/[character]
-
-#RH #Recrutement #IA #Innovation #CVMatchAI
-```
-
----
-
-## 10. SEO & MARKETING
-
-### 10.1 Stratégie SEO
-
-#### Mots-Clés Cibles
-
-**Primaires** :
-- "CV généré par IA"
-- "création CV intelligence artificielle"
-- "générateur CV IA gratuit"
-- "CV automatique IA"
-
-**Secondaires** :
-- "CV Michel-Ange"
-- "CV Marie Curie"
-- "CV personnages historiques"
-- "exemple CV IA"
-- "démo CV intelligence artificielle"
-
-**Long-tail** :
-- "comment l'IA génère un CV"
-- "voir exemple CV créé par IA"
-- "CV professionnel automatique gratuit"
-- "transformation parcours en CV par IA"
-
-#### Backlinks Strategy
-
-**Cibles prioritaires** :
-1. **Blogs tech** : Blog du Modérateur, Siècle Digital, FrenchWeb
-2. **Médias RH** : MyRHLine, Culture RH, Focus RH
-3. **Reddit** : r/france, r/emploi, r/recrutement
-4. **Product Hunt** : Launch avec le Musée comme feature highlight
-5. **LinkedIn** : Posts viraux de Gilles avec screenshots
-
-**Anchor texts recommandés** :
-- "Musée des CVs Impossibles"
-- "démo CVMatch AI"
-- "CVs générés par IA"
-- "voir des exemples"
-
-### 10.2 Stratégie de Lancement
-
-#### Phase 1 : Pre-Launch (J-7)
-
-**Objectif** : Créer de l'anticipation
-
-- **J-7** : Teaser LinkedIn Gilles : "Je construis quelque chose de fou... 🏛️"
-- **J-5** : Tweet mystère : "Si Michel-Ange avait eu l'IA..."
-- **J-3** : Post LinkedIn avec screenshot flouté
-- **J-1** : Countdown Instagram Stories
-
-#### Phase 2 : Launch Day (J0)
-
-**Objectif** : Maximum visibility
-
-**Matin (9h)** :
-- Publication page /demo en production
-- Post LinkedIn long-form de Gilles (storytelling)
-- Tweet thread explicatif
-- Post Reddit r/france
-- Email newsletter (si liste existante)
-
-**Midi (12h)** :
-- Republication avec premiers retours users
-- Partage dans groupes Facebook RH/Tech
-- Post sur Product Hunt (si éligible)
-
-**Soir (18h)** :
-- Bilan J0 avec chiffres (visiteurs, téléchargements)
-- Stories Instagram/LinkedIn avec analytics
-- Engagement avec tous les commentaires
-
-#### Phase 3 : Post-Launch (J+1 à J+30)
-
-**Objectif** : Sustain momentum
-
-**Semaine 1** :
-- 1 post LinkedIn par jour sur un personnage différent
-- Partage screenshots users sur Twitter
-- Outreach journalistes tech/RH
-
-**Semaine 2-4** :
-- Guest posts sur blogs partenaires
-- Apparition podcast tech/RH si possible
-- Optimisation SEO basée sur analytics
-- A/B testing CTAs
-
-### 10.3 Contenu Viral (Idées)
-
-#### Posts LinkedIn Engageants
-
-**Format 1 : Before/After**
-```
-❌ AVANT : CV Word 4 pages, format confus
-✅ APRÈS : CV IA 1 page, score 94/100, 10 jobs matchés
-
-L'IA vient de transformer le parcours de Michel-Ange.
-Voici ce qu'elle a trouvé 👇
-[Screenshot impressionnant]
-```
-
-**Format 2 : Question rhétorique**
-```
-Si l'IA peut générer un CV pour Michel-Ange
-qui a vécu au XVIe siècle...
-
-Qu'est-ce qu'elle peut faire pour VOUS
-qui vivez en 2025 avec LinkedIn, emails, et portfolios ?
-
-Réponse : https://cvmatch.ai/demo 🏛️
-```
-
-**Format 3 : Stats choc**
-```
-Michel-Ange : 40 ans d'expérience
-L'IA : 0.8 secondes pour structurer son profil
-
-Marie Curie : 2 Prix Nobel
-L'IA : 10 opportunités modernes identifiées
-
-Alan Turing : Génie incompris
-L'IA : CV ATS-compliant 92/100
-
-Le Musée des CVs Impossibles est ouvert 👉
-```
-
-#### Twitter Threads
-
-**Thread Type 1 : Educational**
-```
-1/ 🧵 J'ai demandé à l'IA de générer un CV pour 10 personnages historiques.
-
-Les résultats sont fascinants. Voici ce que j'ai appris 👇
-
-2/ Michel-Ange (Sculpteur, 1475-1564)
-→ Score de complétude : 94/100
-→ Poste recommandé 2025 : Directeur Artistique Musées du Vatican
-→ Salaire estimé : 80-120k€
-
-L'IA comprend la transposition des compétences.
-
-3/ Marie Curie (Physicienne, 1867-1934)
-→ Double Prix Nobel
-→ L'IA a identifié : "Résilience face obstacles institutionnels"
-→ Top match : Chief Scientific Officer - Startup HealthTech
-
-L'IA détecte les soft skills implicites.
-
-[...suite thread 10 tweets...]
-
-11/ Conclusion : L'IA ne remplace pas votre expertise.
-Elle la STRUCTURE, l'OPTIMISE, et la VALORISE.
-
-Voir tous les profils : https://cvmatch.ai/demo
-
-12/ Quel personnage vous a le + surpris ? Commentez 👇
-```
-
-### 10.4 Analytics & Tracking
-
-#### Events à Tracker (Posthog)
-
-| Event Name | Trigger | Données capturées |
-|------------|---------|-------------------|
-| `demo_page_view` | Arrive sur /demo | Referrer, device |
-| `character_card_click` | Clic sur personnage galerie | Character ID |
-| `character_profile_view` | Arrive sur /demo/[char] | Character ID, scroll depth |
-| `cv_preview_open` | Clic aperçu CV | Character, template |
-| `cv_download` | Télécharge PDF CV | Character, template |
-| `letter_view` | Lit lettre motivation | Character, job rank |
-| `letter_download` | Télécharge lettre | Character, job rank |
-| `top10_expand` | Développe job description | Character, job rank |
-| `cta_click` | Clic "Essayer gratuitement" | Location (galerie ou profil) |
-| `share_button_click` | Clic partage social | Platform (Twitter/LinkedIn), character |
-
-#### Funnels à Monitorer
-
-**Funnel Conversion Principale** :
-```
-1. Visite /demo                    (100%)
-2. Clic sur un personnage          (40-60%)
-3. Scroll profil (>50%)            (60-80% du step 2)
-4. Télécharge ≥1 CV                (30-50% du step 3)
-5. Clique CTA inscription          (15-25% du step 4)
-6. S'inscrit effectivement         (60-80% du step 5)
-```
-
-**Funnel Viral** :
-```
-1. Visite /demo/[char]             (100%)
-2. Lit ≥2 sections                 (50-70%)
-3. Clique bouton partage           (5-10% du step 2)
-4. Partage effectivement           (70-90% du step 3)
-```
-
-#### KPIs Semaine 1
-
-| KPI | Cible | Mesure |
-|-----|-------|--------|
-| **Visiteurs uniques** | 500 | Google Analytics |
-| **Pages vues** | 2000 | Google Analytics |
-| **Taux rebond** | < 60% | Google Analytics |
-| **Temps moyen page** | > 2min | Google Analytics |
-| **CVs téléchargés** | 200 | Posthog custom |
-| **Partages sociaux** | 50 | Posthog + social APIs |
-| **Inscriptions depuis demo** | 25 (5% conv) | Supabase attribution |
-
----
-
-## 11. MÉTRIQUES DE SUCCÈS
-
-### 11.1 Objectifs Quantitatifs
-
-#### À 1 Mois
-
-| Métrique | Objectif | Stretch Goal |
-|----------|----------|--------------|
-| **Visiteurs uniques /demo** | 2,000 | 5,000 |
-| **Pages vues totales** | 8,000 | 15,000 |
-| **CVs téléchargés** | 1,000 | 2,500 |
-| **Lettres téléchargées** | 300 | 800 |
-| **Partages sociaux** | 100 | 300 |
-| **Backlinks obtenus** | 10 | 25 |
-| **Inscriptions attribution demo** | 100 | 250 |
-| **Taux conversion demo→signup** | 5% | 10% |
-
-#### À 3 Mois
-
-| Métrique | Objectif | Stretch Goal |
-|----------|----------|--------------|
-| **Visiteurs uniques /demo** | 8,000 | 15,000 |
-| **Ranking Google "CV IA"** | Top 10 | Top 5 |
-| **Domain Authority** | +5 points | +10 points |
-| **Trafic organique** | 40% du total | 60% du total |
-| **Inscriptions cumulées** | 500 | 1,000 |
-
-#### À 6 Mois
-
-| Métrique | Objectif | Stretch Goal |
-|----------|----------|--------------|
-| **Visiteurs uniques /demo** | 20,000 | 40,000 |
-| **CVs téléchargés cumulés** | 10,000 | 25,000 |
-| **Virality coefficient** | 1.2 | 1.5 |
-| **Inscriptions cumulées** | 2,000 | 5,000 |
-| **Revenue depuis cohorte demo** | 5,000€ | 15,000€ |
-
-### 11.2 Objectifs Qualitatifs
-
-| Critère | Indicateur de Succès |
-|---------|---------------------|
-| **Qualité perçue** | NPS > 8/10 sur enquête post-visite |
-| **Compréhension produit** | 80%+ comprennent ce que fait CVMatch AI après visite |
-| **Crédibilité technique** | Mentions positives "qualité IA" dans feedbacks |
-| **Effet mémorabilité** | 50%+ se souviennent du "Musée" 1 semaine après |
-| **Bouche-à-oreille** | 30%+ disent qu'ils recommanderaient à un ami |
-
-### 11.3 Red Flags (Signaux d'Alerte)
-
-| Problème | Seuil Critique | Action Corrective |
-|----------|----------------|-------------------|
-| **Taux rebond > 75%** | Après 1 semaine | Revoir Hero Section / UX |
-| **Temps page < 1min** | Après 1 semaine | Améliorer engagement contenu |
-| **0 téléchargements** | Par personnage sur 1 mois | Revoir qualité CVs de ce perso |
-| **Taux conv < 2%** | Après 1 mois | Revoir CTAs et proposition valeur |
-| **0 partages sociaux** | Après 2 semaines | Améliorer share copy et OG images |
-
----
-
-## 12. ROADMAP D'IMPLÉMENTATION
-
-### 12.1 Phases de Développement
-
-#### 🟢 Phase 1 : Création Contenus (Semaines 1-3)
-
-**Objectif** : Produire les 10 profils complets
-
-| Tâche | Durée estimée | Owner |
-|-------|---------------|-------|
-| Recherche historique 10 persos | 5 jours | Gilles |
-| Rédaction JSON RAG (10x) | 8 jours | Gilles + IA assist |
-| Génération Top 10 Jobs (10x) | 4 jours | Gilles |
-| Génération Lettres (30x) | 5 jours | IA + révision Gilles |
-
-**Livrables** :
-- ✅ 10 fichiers JSON profils complets
-- ✅ 10 fichiers JSON Top 10 Jobs
-- ✅ 30 lettres motivation en Markdown
-
----
-
-#### 🟡 Phase 2 : Génération Assets (Semaine 4)
-
-**Objectif** : Produire tous les PDFs et images
-
-| Tâche | Durée estimée | Owner |
-|-------|---------------|-------|
-| Setup templates CVs (4x) | 2 jours | Gilles + Trae.ai |
-| Génération 40 CVs PDF | 1 jour | Script automatique |
-| Génération 40 previews PNG | 1 jour | Script automatique |
-| Génération 30 lettres PDF | 0.5 jour | Script automatique |
-| Création 10 OG images | 2 jours | Gilles (Figma) |
-
-**Livrables** :
-- ✅ 40 PDFs CVs (4 templates x 10 persos)
-- ✅ 40 images preview CVs
-- ✅ 30 PDFs lettres
-- ✅ 10 images OG pour social
-
----
-
-#### 🔵 Phase 3 : Développement Front (Semaines 5-6)
-
-**Objectif** : Coder les pages /demo
-
-| Tâche | Durée estimée | Owner |
-|-------|---------------|-------|
-| Page galerie /demo | 2 jours | Trae.ai |
-| Page profil /demo/[char] | 3 jours | Trae.ai |
-| Composants réutilisables | 2 jours | Trae.ai |
-| Responsive mobile | 2 jours | Trae.ai |
-| Tests manuels cross-browser | 1 jour | Gilles |
-
-**Livrables** :
-- ✅ Page /demo fonctionnelle
-- ✅ 10 pages /demo/[character] fonctionnelles
-- ✅ Composants React réutilisables
-- ✅ Design responsive validé
-
----
-
-#### 🟣 Phase 4 : SEO & Analytics (Semaine 7)
-
-**Objectif** : Optimiser pour search et tracking
-
-| Tâche | Durée estimée | Owner |
-|-------|---------------|-------|
-| Meta tags dynamiques | 1 jour | Trae.ai |
-| Structured data JSON-LD | 1 jour | Trae.ai |
-| Sitemap.xml | 0.5 jour | Trae.ai |
-| Setup Posthog events | 1 jour | Trae.ai |
-| Setup Google Analytics | 0.5 jour | Gilles |
-| Boutons partage social | 1 jour | Trae.ai |
-
-**Livrables** :
-- ✅ SEO on-page complet
-- ✅ Tracking analytics opérationnel
-- ✅ Boutons partage fonctionnels
-
----
-
-#### 🟠 Phase 5 : Testing & QA (Semaine 8)
-
-**Objectif** : Garantir qualité avant lancement
-
-| Tâche | Durée estimée | Owner |
-|-------|---------------|-------|
-| Tests fonctionnels (tous flows) | 2 jours | Gilles |
-| Tests performance (Lighthouse) | 1 jour | Gilles |
-| Tests SEO (checklist) | 1 jour | Gilles |
-| Corrections bugs | 2 jours | Trae.ai |
-| Tests finaux pré-launch | 1 jour | Gilles |
-
-**Checklist QA** :
-- [ ] Tous les liens fonctionnent
-- [ ] Tous les PDFs se téléchargent
-- [ ] Tous les boutons cliquables
-- [ ] Images OG s'affichent sur Twitter/LinkedIn
-- [ ] Mobile responsive parfait
-- [ ] Lighthouse score > 90 mobile
-- [ ] 0 erreurs console JavaScript
-- [ ] Analytics tracking fonctionne
-
----
-
-#### 🔴 Phase 6 : Launch (Semaine 9)
-
-**Objectif** : Mise en production et promotion
-
-**J-1** :
-- Freeze code (plus de modifs)
-- Préparation posts réseaux sociaux
-- Brief presse si applicable
-
-**J0 (Launch Day)** :
-- 9h : Déploiement production
-- 9h30 : Post LinkedIn Gilles
-- 10h : Tweet + Thread
-- 11h : Post Reddit
-- 12h : Monitoring analytics en temps réel
-- 18h : Bilan J0 et ajustements si needed
-
-**J+1 à J+7** :
-- Posts quotidiens sur personnages
-- Engagement communauté
-- Monitoring analytics
-- Ajustements mineurs si bugs
-
----
-
-### 12.2 Timeline Visuel
-
-```
-SEMAINES 1-2-3          SEMAINE 4           SEMAINES 5-6-7      SEMAINE 8         SEMAINE 9
-┌─────────────┐        ┌──────────┐        ┌─────────────┐      ┌─────────┐      ┌────────┐
-│  CONTENUS   │   ➜    │  ASSETS  │   ➜    │    DEV      │  ➜   │   QA    │  ➜   │ LAUNCH │
-│             │        │          │        │             │      │         │      │        │
-│ • Recherche │        │ • PDFs   │        │ • Front     │      │ • Tests │      │ • Prod │
-│ • JSON RAG  │        │ • Images │        │ • SEO       │      │ • Debug │      │ • Promo│
-│ • Jobs      │        │ • OG     │        │ • Analytics │      │ • Perf  │      │        │
-│ • Lettres   │        │          │        │             │      │         │      │        │
-└─────────────┘        └──────────┘        └─────────────┘      └─────────┘      └────────┘
-
-    21 jours               7 jours             21 jours           7 jours         7 jours
-```
-
-**Total : 9 semaines (≈ 2 mois)**
-
----
-
-### 12.3 Ressources Requises
-
-| Ressource | Quantité | Coût Estimé |
-|-----------|----------|-------------|
-| **Temps Gilles** | 80-100h | 0€ (sweat equity) |
-| **Temps Trae.ai** | 40-60h | 0€ (inclus POC) |
-| **Figma Pro** (OG images) | 1 mois | 0€ (gratuit ou existant) |
-| **Hébergement Vercel** | Illimité | 0€ (free tier OK) |
-| **Storage Supabase** | ~30 MB | 0€ (free tier OK) |
-| **APIs Gemini** | 0 calls (pré-gen) | 0€ |
-| **Domaine cvmatch.ai** | 1 an | 12€ (déjà payé?) |
-
-**Total : 0-12€**
-
----
-
-### 12.4 Risques & Mitigation
-
-| Risque | Probabilité | Impact | Mitigation |
-|--------|-------------|--------|------------|
-| **Qualité contenu insuffisante** | Moyenne | Élevé | Révision manuelle systématique + feedback beta users |
-| **Temps dev sous-estimé** | Moyenne | Moyen | Buffer 1 semaine dans planning |
-| **Bugs bloquants launch** | Faible | Élevé | Phase QA dédiée + tests exhaustifs |
-| **Trafic 0 post-launch** | Faible | Élevé | Plan promo détaillé + outreach presse |
-| **Controverse perso historique** | Faible | Moyen | Sélection prudente persos + disclaimer respectueux |
-| **Overload serveur** | Très faible | Moyen | Vercel auto-scale + CDN Cloudflare |
-
----
-
-### 12.5 Post-Launch Roadmap
-
-#### Version 1.1 (M+1)
-
-- [ ] Ajout 5 nouveaux personnages (si succès)
-- [ ] Page "Making of" (coulisses création)
-- [ ] Intégration feedback users
-- [ ] A/B testing CTAs
-
-#### Version 1.2 (M+3)
-
-- [ ] Génération dynamique temps réel (mode "Custom")
-- [ ] Utilisateur peut uploader profil fictif
-- [ ] Comparaison side-by-side 2 personnages
-- [ ] Export ZIP (tous CVs d'un perso)
-
-#### Version 2.0 (M+6)
-
-- [ ] Traduction EN (version internationale)
-- [ ] 25 personnages totaux
-- [ ] API publique (pour devs)
-- [ ] Gamification (quiz "Quel perso es-tu?")
-
----
-
-## 13. ANNEXES
-
-### 13.1 Checklist Pré-Launch
-
-#### Contenu
-
-- [ ] 10 profils JSON validés et complets
-- [ ] 40 CVs PDF générés et vérifiés
-- [ ] 30 lettres PDF générées et relues
-- [ ] 10 images OG créées et optimisées
-- [ ] Tous les textes UI rédigés et validés
-
-#### Technique
-
-- [ ] Page /demo déployée en staging
-- [ ] 10 pages /demo/[char] fonctionnelles
-- [ ] Tous les liens testés
-- [ ] Mobile responsive validé
-- [ ] Performance Lighthouse > 90
-- [ ] SEO on-page complet
-- [ ] Analytics configuré et testé
-- [ ] Boutons partage fonctionnels
-
-#### Légal & Compliance
-
-- [ ] Disclaimer personnages historiques ajouté
-- [ ] RGPD : pas de données perso collectées
-- [ ] CGU mentionnent la page demo
-- [ ] Politique cookies à jour
-
-#### Marketing
-
-- [ ] Posts réseaux sociaux rédigés
-- [ ] Images promo créées
-- [ ] Email newsletter rédigé (si liste)
-- [ ] Outreach journalistes préparé
-- [ ] Plan de lancement finalisé
-
----
-
-### 13.2 Glossaire
-
-| Terme | Définition |
-|-------|------------|
-| **RAG** | Retrieval-Augmented Generation - Profil structuré utilisateur |
-| **ATS** | Applicant Tracking System - Logiciel de gestion candidatures |
-| **OG Image** | Open Graph Image - Image preview réseaux sociaux |
-| **LCP** | Largest Contentful Paint - Métrique performance web |
-| **JSON-LD** | Format de structured data pour SEO |
-| **POC** | Proof of Concept - Phase de validation produit |
-| **MVP** | Minimum Viable Product - Version minimale fonctionnelle |
-| **NPS** | Net Promoter Score - Indicateur satisfaction client |
-
----
-
-### 13.3 Références & Sources
-
-#### Inspiration Design
-
-- **Humaan.com/demo** : Page démo interactive
-- **Stripe.com/payments** : Showcase produit élégant
-- **Linear.app** : Design minimaliste et performant
-- **Notion.so/templates** : Galerie de templates
-
-#### Benchmarks SEO
-
-- **Canva.com/templates** : SEO multi-pages produits
-- **Resume.io** : Landing pages CV
-- **Zety.com** : Contenu éducatif SEO
-
-#### Standards Techniques
-
-- **Web.dev/vitals** : Core Web Vitals guidelines
-- **Schema.org/Person** : Structured data personnes
-- **OpenGraph Protocol** : OG tags best practices
-
----
-
-### 13.4 Contact & Support
-
-**Product Owner** : Gilles GOZLAN  
-**Email** : [email pro]  
-**LinkedIn** : [profil LinkedIn]
-
-**Questions fréquentes** :
-- Modifications du CDC : Versionning avec dates
-- Feedback implémentation : GitHub Issues ou direct Slack
-- Revues de code : Avant chaque merge sur main
-
----
-
-## FIN DU CAHIER DES CHARGES
-
-**Prochaines étapes** :
-1. Validation CDC par Gilles ✅
-2. Début Phase 1 : Création contenus
-3. Point de suivi hebdomadaire
-4. Ajustements itératifs si needed
-
-**Document vivant** : Ce CDC sera mis à jour au fur et à mesure des learnings et ajustements du projet.
-
----
-
-**Version** : 1.0  
-**Dernière mise à jour** : 18 janvier 2026  
-**Statut** : ✅ Prêt pour implémentation
+app/api/rag/generate-incremental/route.ts
+
+app/api/rag/update/route.ts
+
+app/api/rag/upload/route.ts
+
+lib/utils/text-truncate.ts
+
+lib/ai/prompts.ts
+
+Search codebase for 'Where inferred enrichment happens for RAG: functions like generateContexteEnrichi, enrichRAGData, inferred skills, responsibilities; also any deduplication/cleanup routes affecting experiences/realisations length'
+
+Thought
+
+lib/rag/merge-simple.ts
+
+lib/rag/merge-simple.ts
+
+Thought
+
+lib/rag/deduplicate.ts
+
+Thought
+
+app/api/rag/suggest-jobs/route.ts
+
+Search codebase for 'getTopJobsPrompt'
+
+lib/ai/prompts.ts
+
+J’ai passé en revue l’ensemble des endpoints RAG ( app/api/rag/* ), les prompts IA, et les utilitaires de limites/troncature : les points ci-dessous couvrent les endroits où les expériences/réalisations sont raccourcies/perdent de l’info, et où l’enrichissement “inféré” est censé se produire.
+
+Routes RAG (ingestion / génération / update)
+
+- Upload docs → Storage + DB (pas d’extraction ici) : upload/route.ts
+  - Upload dans le bucket documents , puis insert dans uploaded_documents avec extraction_status: "pending" .
+- Génération “batch” (concat tous les docs) + pipeline post-traitement : generate/route.ts
+  - Récupère tous les uploaded_documents , extrait/relit le texte, concatène allExtractedText , tronque , envoie à Gemini via getRAGExtractionPrompt() , parse + normalizeRAGData() .
+  - Post-pipeline : validateRAGData() → consolidateClients() → enrichissement contextuel generateContexteEnrichi() → calculateQualityScore() → suggestions (max 5) → merge selon mode → save rag_metadata .
+- Génération “incrémentale” (1 doc à la fois, compatible timeout) = pipeline allégé : generate-incremental/route.ts
+  - Tronque le texte du doc, appelle Gemini avec timeout (45s), merge avec l’existant, consolidateClients() , score qualité.
+  - Enrichissement lourd désactivé explicitement (commenté) pour tenir le budget temps : generate-incremental/route.ts
+- Update “manuel” (édition UI) : update/route.ts
+  - Remplace rag_metadata.completeness_details par ragData tel quel (aucune validation/merge/enrichissement ici).
+- Top jobs séparé (car désactivé dans /generate pour éviter timeout) : suggest-jobs/route.ts
+  - Fetch rag_metadata.completeness_details → prompt getTopJobsPrompt() → save top_10_jobs .
+- Routes de “nettoyage” susceptibles de réduire/perdre de l’info :
+  - Déduplication : deduplicate/route.ts + algo deduplicate.ts
+  - Cleanup (appelle dédup) : cleanup/route.ts
+Prompts (où sont définis “réalisations” et l’inférence)
+
+- Extraction RAG principale : getRAGExtractionPrompt
+  - experiences[].realisations[] contient description , impact , sources .
+  - Inferred enrichment demandé dès l’extraction via competences.inferred.* avec contraintes (confidence 60–100, reasoning ≥ 50 chars, sources obligatoires).
+  - Règle de taille : “Maximum 2 sources par item” (profil, expérience, réalisation, inféré) → raccourcit volontairement la traçabilité.
+- Top jobs : getTopJobsPrompt
+Troncatures / limites (où les expériences/réalisations peuvent être raccourcies)
+
+- Troncature avant Gemini (principale source de “raccourcissement” du contenu envoyé au modèle) :
+  - Utilitaire : truncateForRAGExtraction → MAX_TOKENS = 50000 (estimation 1 token ≈ 4 chars).
+  - Appliqué dans la génération batch : generate/route.ts
+  - Appliqué dans l’incrémental (par doc) : generate-incremental/route.ts
+  - Effet concret : si le CV/LinkedIn/portfolio concaténé dépasse la limite, la fin du texte peut être coupée (donc dernières expériences/réalisations potentiellement absentes de l’extraction).
+- Limites “de sortie” côté API (raccourcissement de réponse) :
+  - Suggestions renvoyées au client limitées à 5 : generate/route.ts et generate-incremental/route.ts
+  - Warnings renvoyés au client limités (incrémental) : slice(0, 10) : generate-incremental/route.ts
+- Déduplication = réduction + perte de structure (très important pour “réalisations”) :
+  - Dans deduplicate.ts , la fusion d’expériences reconstruit base.realisations comme Array<string> : deduplicate.ts
+  - Conséquence : si vos réalisations étaient des objets {description, impact, sources} , elles peuvent être converties en texte et perdre impact / sources (perçu comme “réalisations raccourcies” ou “moins détaillées”).
+Où l’enrichissement “inféré” devrait se faire (et où il est coupé)
+
+- Pendant l’extraction Gemini (inférence de compétences) : competences.inferred dans getRAGExtractionPrompt
+- Après extraction (enrichissement contextuel dédié) :
+  - Module + prompt : contexte-enrichi.ts
+  - Appelé dans la génération batch : generate/route.ts
+  - Non appelé en incrémental (désactivé pour performance) : generate-incremental/route.ts
+- Au moment du merge, certaines inférences peuvent être filtrées :
+  - Le merge exclut les compétences “rejetées” par l’utilisateur via rejected_inferred : merge-simple.ts
+Résumé “où ça raccourcit” vs “où ça enrichit”
+
+- Raccourcit/perd de l’info : troncature 50k tokens avant Gemini ( text-truncate.ts ), max 2 sources dans le prompt ( prompts.ts ), déduplication qui transforme/compresse realisations en strings ( deduplicate.ts ).
+- Enrichit (inféré) : competences.inferred demandé au modèle ( prompts.ts ) + enrichissement contextuel contexte_enrichi uniquement dans la route batch ( generate/route.ts ), pas en incrémental.
+
+lib/rag/contexte-enrichi.ts
+
+Thought
+
+app/api/rag/generate-incremental/route.ts
+
+Search codebase for 'isFirstDocument|isLast|documentId|mode'
+
+Thought
+
+Search codebase for 'generate-incremental'
+
+app/dashboard/profile/page.tsx
+
+Search codebase for 'realisations\.slice\(|slice\(0,\s*3\)|maxBullets|maxRealisations'
+
+Search codebase for 'realisations'
+
+components/profile/OverviewTab.tsx
+
+Search codebase for 'ragData\.experiences|realisations\)|slice\(|\.map\(\(exp'
+
+components/profile/OverviewTab.tsx
+
+app/api/rag/generate-incremental/route.ts
+
+Thought
+
+lib/rag/deduplicate.ts
+
+Thought
+
+app/api/profile/delete-item/route.ts
+
+Thought
+
+Search codebase for 'contexte_enrichi|responsabilites_implicites|competences_tacites|environnement_travail'
+
+Search codebase for 'generateContexteEnrichi|contexte_enrichi'
+
+app/api/rag/generate/route.ts
+
+Thought
+
+Réenrichir le RAG en fin de régénération incrémentale
+
+0/5 done
+
+Réenrichir le RAG en fin de régénération incrémentale
+
+Corriger la déduplication RAG sans perte de réalisations
+
+Réparer l’auth sur suppression/édition profil RAG
+
+Ajouter tests et déployer v5.2.7
+
+Afficher le contexte enrichi dans l’UI profil
+
+page.tsx
+app/dashboard/profile/page.tsx
+
++ 5 - 3
+
+Open Diff
+
+route.ts
+app/api/rag/generate-incremental/route.ts
+
++ 24 - 4
+
+Open Diff
+
+1 Lint Error
+
+Thought
+
+app/api/rag/generate-incremental/route.ts
+
+lib/ai/gemini.ts
+
+Thought
+
+Search codebase for 'generateWithCascade\('
+
+route.ts
+app/api/rag/generate-incremental/route.ts
+
++ 1 - 1
+
+Open Diff
+
+1/5 done
+
+Réenrichir le RAG en fin de régénération incrémentale
+
+Corriger la déduplication RAG sans perte de réalisations
+
+Réparer l’auth sur suppression/édition profil RAG
+
+Ajouter tests et déployer v5.2.7
+
+Afficher le contexte enrichi dans l’UI profil
+
+Corriger la déduplication RAG sans perte de réalisations
+
+deduplicate.ts
+lib/rag/deduplicate.ts
+
++ 61 - 17
+
+Open Diff
+
+2/5 done
+
+Réenrichir le RAG en fin de régénération incrémentale
+
+Corriger la déduplication RAG sans perte de réalisations
+
+Réparer l’auth sur suppression/édition profil RAG
+
+Ajouter tests et déployer v5.2.7
+
+Afficher le contexte enrichi dans l’UI profil
+
+Réparer l’auth sur suppression/édition profil RAG
+
+OverviewTab.tsx
+components/profile/OverviewTab.tsx
+
++ 3 - 1
+
+Open Diff
+
+3/5 done
+
+Réenrichir le RAG en fin de régénération incrémentale
+
+Corriger la déduplication RAG sans perte de réalisations
+
+Réparer l’auth sur suppression/édition profil RAG
+
+Ajouter tests et déployer v5.2.7
+
+Afficher le contexte enrichi dans l’UI profil
+
+Afficher le contexte enrichi dans l’UI profil
+
+OverviewTab.tsx
+components/profile/OverviewTab.tsx
+
++ 115 - 0
+
+Open Diff
+
+4/5 done
+
+Réenrichir le RAG en fin de régénération incrémentale
+
+Corriger la déduplication RAG sans perte de réalisations
+
+Réparer l’auth sur suppression/édition profil RAG
+
+Afficher le contexte enrichi dans l’UI profil
+
+Ajouter tests et déployer v5.2.7
+
+Ajouter tests et déployer v5.2.7
+
+rag-deduplicate.test.ts
+__tests__/rag-deduplicate.test.ts
+
++ 41 - 0
+
+Open Diff
+
+package.json
+package.json
+
++ 1 - 1
+
+Open Diff
+
+package-lock.json
+package-lock.json
+
++ 2 - 2
+
+Open Diff
+
+DashboardLayout.tsx
+components/layout/DashboardLayout.tsx
+
++ 1 - 1
+
+Open Diff
+
+sw.js
+public/sw.js
+
++ 1 - 1
+
+Open Diff
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ npx vitest run __tests__/rag-deduplicate.test.ts __tests__/cv-quality.test.ts
+
+RUN  v4.0.17 /Users/gillesgozlan/Desktop/CV-Crush
+
+ ✓ __tests__/rag-deduplicate.test.ts (2 tests) 6ms
+ ✓ __tests__/cv-quality.test.ts (5 tests) 18ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  15:47:19
+   Duration  2.82s (transform 420ms, setup 1.24s, import 352ms, tests 24ms, environment 3.28s)
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ npm run build
+
+> cvcrush@5.2.7 build
+> next build
+
+  ▲ Next.js 14.2.0
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+
+./app/dashboard/analyze/page.tsx
+231:8  Warning: React Hook useEffect has a missing dependency: 'handleAnalyze'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/dashboard/cvs/[id]/edit/page.tsx
+57:8  Warning: React Hook useEffect has a missing dependency: 'userId'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/cv/templates/ClassicTemplate.tsx
+103:33  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/cv/templates/CreativeTemplate.tsx
+133:33  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/cv/templates/ModernTemplate.tsx
+97:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/cv/templates/TechTemplate.tsx
+153:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+ ✓ Linting and checking validity of types    
+ ⚠ Using edge runtime on a page currently disables static generation for that page
+ ✓ Collecting page data    
+   Generating static pages (17/69)  [==  ] ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+   Generating static pages (54/69)  [  ==] ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+   Generating static pages (59/69)  [   =] ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ✓ Generating static pages (69/69)
+ ✓ Collecting build traces    
+ ✓ Finalizing page optimization    
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    3.53 kB         145 kB
+├ ○ /_not-found                          879 B          88.4 kB
+├ ○ /admin                               10.2 kB         244 kB
+├ ƒ /api/admin/auto-role                 0 B                0 B
+├ ○ /api/admin/me                        0 B                0 B
+├ ƒ /api/admin/users                     0 B                0 B
+├ ƒ /api/admin/users/[id]                0 B                0 B
+├ ƒ /api/ai/spellcheck                   0 B                0 B
+├ ƒ /api/analysis/[id]/export            0 B                0 B
+├ ƒ /api/auth/login                      0 B                0 B
+├ ƒ /api/billing/checkout                0 B                0 B
+├ ƒ /api/billing/portal                  0 B                0 B
+├ ƒ /api/billing/webhook                 0 B                0 B
+├ ƒ /api/cv/[id]/pdf                     0 B                0 B
+├ ƒ /api/cv/consolidate                  0 B                0 B
+├ ƒ /api/cv/generate                     0 B                0 B
+├ ƒ /api/cv/preview                      0 B                0 B
+├ ○ /api/debug/rag-contact               0 B                0 B
+├ ƒ /api/documents/delete                0 B                0 B
+├ ƒ /api/lm/generate                     0 B                0 B
+├ ƒ /api/match/analyze                   0 B                0 B
+├ ƒ /api/match/batch                     0 B                0 B
+├ ƒ /api/profile/add-skill               0 B                0 B
+├ ƒ /api/profile/delete-item             0 B                0 B
+├ ƒ /api/profile/photo                   0 B                0 B
+├ ƒ /api/profile/reject-skill            0 B                0 B
+├ ƒ /api/profile/reset                   0 B                0 B
+├ ƒ /api/profile/update-item             0 B                0 B
+├ ƒ /api/rag/cleanup                     0 B                0 B
+├ ƒ /api/rag/deduplicate                 0 B                0 B
+├ ƒ /api/rag/generate                    0 B                0 B
+├ ƒ /api/rag/generate-incremental        0 B                0 B
+├ ƒ /api/rag/reset                       0 B                0 B
+├ ƒ /api/rag/suggest-jobs                0 B                0 B
+├ ƒ /api/rag/update                      0 B                0 B
+├ ƒ /api/rag/upload                      0 B                0 B
+├ ƒ /api/tracking/archive                0 B                0 B
+├ ƒ /api/tracking/notes                  0 B                0 B
+├ ƒ /api/tracking/tags                   0 B                0 B
+├ ƒ /api/user/delete                     0 B                0 B
+├ ƒ /api/user/profile                    0 B                0 B
+├ ƒ /api/version                         0 B                0 B
+├ ○ /auth/confirm                        1.25 kB         140 kB
+├ ○ /dashboard                           8.53 kB         247 kB
+├ ○ /dashboard/analyze                   6.88 kB         233 kB
+├ ƒ /dashboard/analyze/[id]              12.9 kB         237 kB
+├ ○ /dashboard/compare                   2.92 kB         214 kB
+├ ƒ /dashboard/compare/[ids]             3.66 kB        98.2 kB
+├ ƒ /dashboard/cv/[id]                   7.86 kB         164 kB
+├ ƒ /dashboard/cv/[id]/print             2.09 kB         144 kB
+├ ○ /dashboard/cvs                       4.65 kB         221 kB
+├ ƒ /dashboard/cvs/[id]/edit             10.2 kB         163 kB
+├ ○ /dashboard/profile                   16.4 kB         256 kB
+├ ○ /dashboard/saved-jobs                1.97 kB         213 kB
+├ ○ /dashboard/settings                  7.17 kB         223 kB
+├ ○ /dashboard/stats                     2.65 kB         214 kB
+├ ○ /dashboard/templates                 3.05 kB         214 kB
+├ ○ /dashboard/tracking                  10.5 kB         250 kB
+├ ○ /demo                                83.6 kB         276 kB
+├ ● /demo/[character]                    28 kB           220 kB
+├   ├ /demo/michelangelo
+├   ├ /demo/curie
+├   ├ /demo/lovelace
+├   └ [+7 more paths]
+├ ○ /goodbye                             156 B          87.6 kB
+├ ○ /legal/cgu                           156 B          87.6 kB
+├ ○ /legal/contact                       4.84 kB         109 kB
+├ ○ /legal/privacy                       156 B          87.6 kB
+├ ○ /login                               4.37 kB         196 kB
+├ ○ /onboarding                          3.34 kB         230 kB
+├ ○ /profil                              5.8 kB          100 kB
+├ ○ /robots.txt                          0 B                0 B
+└ ○ /sitemap.xml                         0 B                0 B
++ First Load JS shared by all            87.5 kB
+  ├ chunks/7023-1d8367be284390a6.js      31.4 kB
+  ├ chunks/fd9d1056-31d98c93d59ba637.js  53.6 kB
+  └ other shared chunks (total)          2.42 kB
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ git status --porcelain=v1 -b
+
+## main...origin/main
+ M app/api/rag/generate-incremental/route.ts
+ M app/dashboard/profile/page.tsx
+ M components/layout/DashboardLayout.tsx
+ M components/profile/OverviewTab.tsx
+ M lib/rag/deduplicate.ts
+ M package-lock.json
+ M package.json
+ M public/sw.js
+?? AUDIT_COMPLET_2026.md
+?? __tests__/rag-deduplicate.test.ts
+
+Thought
+
+AUDIT_COMPLET_2026.md
+
+Manual-run AUDIT_COMPLET_2026.md Canceled
+
+Thought
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ git add app/api/rag/generate-incremental/route.ts app/dashboard/profile/page.tsx components/layout/DashboardLayout.tsx components/profile/OverviewTab.tsx lib/rag/deduplicate.ts package.json package-lock.json public/sw.js __tests__/rag-deduplicate.test.ts && git commit -m "feat: enrich RAG regeneration and preserve detailed achievements"
+
+[main f8796536] feat: enrich RAG regeneration and preserve detailed achievements
+ 9 files changed, 251 insertions(+), 28 deletions(-)
+ create mode 100644 __tests__/rag-deduplicate.test.ts
+
+CV-Crush
+Outside Sandbox
+Terminal
+
+$ git push origin main
+
+Everything up-to-date
+
+Thought
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ git log -1 --oneline --decorate --no-color && git status -sb
+
+f8796536 (HEAD -> main, origin/main, origin/HEAD) feat: enrich RAG regeneration and preserve detailed achievements
+## main...origin/main
+?? AUDIT_COMPLET_2026.md
+
+5/5 done
+
+Réenrichir le RAG en fin de régénération incrémentale
+
+Corriger la déduplication RAG sans perte de réalisations
+
+Réparer l’auth sur suppression/édition profil RAG
+
+Ajouter tests et déployer v5.2.7
+
+Afficher le contexte enrichi dans l’UI profil
+
+Tu as raison sur le fond : le RAG n’est pas censé être un “mini-CV 1 page” . Le RAG est la base de connaissances complète (facts + preuves + inférences), et le CV est une vue compressée sélectionnée à partir de ce RAG.
+
+Ton screen montre bien les catégories du RAG (Profil, Expériences, Compétences, Conclusions/IA, Formations, Langues, Certifications, Clients & références). Ta remarque s’applique à toutes ces catégories, pas juste à l’exemple “reporting temps → load array”.
+
+## Ce que tu demandes (et je confirme que j’ai compris) – catégorie par catégorie
+### 1) Profil (identité / pitch / liens / contact)
+Tu veux :
+
+- Un profil “riche” (titre, elevator pitch, secteur, séniorité, positionnement) alimenté par CV + LinkedIn + GitHub + autres .
+- Du contenu “déduit” correctement : ex. si tu es PMO/chef de projet, on doit déduire des responsabilités probables (gouvernance, reporting, KPI, pilotage budget, etc.) sans les mélanger aux faits (mais en les ajoutant en “inféré”).
+Ce que tu constates :
+
+- Profil trop “light” / mal initialisé (ex. placeholders, éléments manquants).
+### 2) Expériences (missions / réalisations / impacts / méthodes / outils)
+Tu veux :
+
+- Beaucoup plus de matière : pas juste 2–3 bullets.
+- Et surtout : quand une action est citée (“reporting temps”), le RAG doit déplier logiquement :
+  - outillage (Excel/PowerBI/Jira/Planisware…),
+  - process (validation resource manager, timesheets, gouvernance),
+  - artefacts (load plan, capacity planning, KPIs, dashboards),
+  - méthode (cadencement, RACI, rituels, COPIL…).
+Ce que tu constates :
+
+- Réalisations trop courtes, parfois “aplaties”, perte de détail.
+### 3) Compétences (explicites + inférées)
+Tu veux :
+
+- Les compétences explicites (ce qui est écrit) + des compétences inférées (ce qui est logiquement impliqué) avec :
+  - justification,
+  - niveau,
+  - outils/méthodes probables,
+  - et idéalement une trace “source/provenance”.
+Ce que tu constates :
+
+- Suggestion IA OK, mais pas assez “structurée”/actionnable.
+### 4) “Conclusions / IA / Déductions”
+Sur ton screen il y a clairement une section “IA / conclusions / enrichissement”.
+Tu veux :
+
+- Que ce bloc matérialise précisément tes inférences “logiques” (responsabilités implicites, environnement, soft skills déduites, etc.).
+Ce que tu constates :
+
+- C’était souvent vide / pauvre → donc tu as l’impression que “le RAG est light”.
+### 5) Formations / Langues / Certifications
+Tu veux :
+
+- Import complet (CV/LinkedIn), consolidation propre, pas de pertes.
+Ce que tu constates :
+
+- Parfois vide/mal remonté / incohérent.
+### 6) Clients & références
+Tu veux :
+
+- Extraction de clients depuis les expériences + regroupement par secteur + pas de perte.
+Ce que tu constates :
+
+- Présent mais parfois incomplet / incohérent selon la génération.
+## Comment le RAG aurait dû se comporter
+- Ingestion multi-sources : CV + LinkedIn + GitHub + autres → extraction factuelle structurée (profil, expériences, skills, formations…).
+- Fusion sans perte : déduplication intelligente sans aplatir les réalisations et sans fusionner des rôles distincts.
+- Enrichissement séparé : tout ce qui est “logique” (load plan, dashboards, gouvernance…) doit apparaître dans une couche contexte_enrichi (ou équivalent) avec niveau de certitude + justification, sans polluer le factuel .
+- UI : afficher le factuel + afficher l’enrichissement IA en clair (ce que tu attends).
+Ensuite seulement :
+
+- CV = projection compressée : on sélectionne 2–4 expériences, 3–5 bullets par expérience, etc. Mais ça ne doit pas “appauvrir” le RAG en base.
+## Audit de l’existant (ce qui expliquait ton “RAG light”)
+Points concrets trouvés dans le code :
+
+1. Régénération incrémentale = enrichissement lourd désactivé
+- La route batch /api/rag/generate calcule bien contexte_enrichi .
+- Mais la route utilisée par ta page profil /api/rag/generate-incremental ne le faisait pas (désactivé pour tenir le budget temps). <br/> → Résultat : après un import / regen via l’UI, tu pouvais te retrouver avec un RAG “sans déductions”.
+2. Déduplication qui pouvait “appauvrir”
+- La déduplication d’expériences transformait les realisations en strings et pouvait fusionner trop agressivement. <br/> → Perte de structure (impact/sources) + potentiel “lissage” du contenu.
+3. Suppression impossible (401 silencieux)
+- L’UI envoyait des requêtes de suppression sans Authorization → /api/profile/delete-item répondait 401. <br/> → Impression “impossible de supprimer”.
+## Delta (attendu vs actuel) – et ce que j’ai corrigé
+### Attendu
+- RAG complet (facts + inférences) ; pas de pertes en merge ; déductions visibles dans l’UI ; suppression fonctionne.
+### Actuel (avant)
+- Regénération incrémentale sans enrichissement ; dédup destructrice ; delete sans auth.
+### Corrigé (v5.2.7)
+- Enrichissement réactivé en fin de regen incrémentale (uniquement au dernier doc, avec budget temps, non-bloquant) :
+  - generate-incremental/route.ts
+  - profile/page.tsx
+- Déduplication non destructrice (ne casse plus les réalisations en strings, moins de fusions abusives) :
+  - deduplicate.ts
+- Suppression dans le profil RAG avec auth :
+  - OverviewTab.tsx
+- Affichage du “contexte enrichi” dans l’UI :
+  - OverviewTab.tsx
+- Tests anti-régression dédup :
+  - rag-deduplicate.test.ts
+Tu dois voir CV Crush v5.2.7 en bas du dashboard.
+
+## Point important : CV ≠ RAG
+Quand tu dis “bloqué à 3 lignes par expérience”, ça doit être vrai pour le CV final (1 page), mais pas pour le RAG . <br/> Ce que j’ai fait précédemment visait la partie “projection CV”. Ce que je viens de livrer en 5.2.7 corrige la partie “RAG knowledge base” pour qu’elle redevienne riche et exploitée .
+
+## Prochaines améliorations (si tu veux le RAG encore plus “dense”)
+Même avec ça, il reste 2 limites structurelles possibles :
+
+- Troncature texte avant IA (si tu importes beaucoup, une partie peut être coupée) → il faudrait une stratégie “par source” (CV/LinkedIn/GitHub) plutôt qu’un gros concat.
+- Prompt d’extraction : on peut explicitement demander “min 6–10 réalisations par expérience” + “déductions opérationnelles par thème” (reporting, gouvernance, outils, etc.), toujours dans une couche inférée.
+Si tu me confirmes que ton problème principal est bien “le RAG est trop maigre après regen”, je te fais la V2 : ingestion par source + extraction plus exhaustive + provenance renforcée (sans hallucination).
+
+Artifacts
+
+9 files changed + 259 - 35
+
+Open Diff
+
+page.tsx
+app/dashboard/profile/page.tsx
+
++ 5 - 3
+
+route.ts
+app/api/rag/generate-incremental/route.ts
+
++ 24 - 4
+
+deduplicate.ts
+lib/rag/deduplicate.ts
+
++ 61 - 17
+
+OverviewTab.tsx
+components/profile/OverviewTab.tsx
+
++ 123 - 6
+
+rag-deduplicate.test.ts
+__tests__/rag-deduplicate.test.ts
+
++ 41 - 0
+
+package.json
+package.json
+
++ 1 - 1
+
+package-lock.json
+package-lock.json
+
++ 2 - 2
+
+DashboardLayout.tsx
+components/layout/DashboardLayout.tsx
+
++ 1 - 1
+
+sw.js
+public/sw.js
+
++ 1 - 1
+
+SOLO Coder
+
+Thought process
+
+Search Agent Explorer génération CV
+
+Thought
+
+Search codebase for 'pipeline génération de CV: route API app/api/cv/generate (ou app/api/cv/*) et logique serveur correspondante'
+
+Thought
+
+Search codebase for 'lib/cv/**/*'
+
+app/api/cv/generate/route.ts
+
+app/api/cv/generate/route.ts
+
+lib/cv/validator.ts
+
+lib/cv/adaptive-algorithm.ts
+
+Thought
+
+lib/cv/hybrid-generator.ts
+
+Thought
+
+Search codebase for 'export function fitCVToTemplate'
+
+lib/cv/validator.ts
+
+app/api/cv/preview/route.ts
+
+J’ai localisé de manière exhaustive les points d’entrée CV ( app/api/cv/* ) et les modules lib/cv/* : il y a deux pipelines (preview “rapide” sans IA, génération “complète” avec IA + fitting local).
+
+1) Pipelines CV (où ça se joue)
+
+- Génération complète (POST) : route.ts
+  - Charge job_analyses + rag_metadata , normalise RAG, appelle Gemini , merge, normalise au format CV, puis fit au template .
+- Preview instantanée (GET) : route.ts
+  - Récupère rag_metadata puis passe dans l’algorithme local generateAdaptiveCV (pas d’appel IA).
+- Autres endpoints liés IA :
+  - Consolidation/correction rédactionnelle via Gemini : route.ts
+2) IA utilisée ? Où ?
+
+- Oui, IA utilisée dans le pipeline “complet” : generateWithCascade / callWithRetry (Gemini) dans route.ts .
+- Il existe aussi un “générateur hybride” (rapide vs optimisé) côté lib : generateHybridCV (Gemini en mode optimized ).
+3) Où insérer une étape “résumer / développer les expériences” avec budget de longueur
+
+Tu as deux endroits cohérents selon ce que tu veux piloter :
+
+- Point d’insertion recommandé (pipeline complet / production) : après la normalisation CV, avant le fitting template.
+  
+  - Aujourd’hui : mergedRaw → normalizeRAGToCV → fitCVToTemplate
+  - Emplacement exact : juste après normalizeRAGToCV et avant l’appel à fitCVToTemplate .
+  - Pourquoi : à ce moment-là tu as un cvData propre (structure attendue), et tu peux appliquer un budget dérivé du template avant que fitCVToTemplate ne tranche (sélection, slicing, compression, formats).
+  - Budget dispo : fitCVToTemplate calcule déjà des limites via getLimitsForTemplate (expériences, bullets, longueur pitch, etc.) dans fitCVToTemplate . Tu peux réutiliser ces mêmes limites pour guider “résumer/développer”.
+- Point d’insertion alternatif (pipeline preview / sans IA) : dans l’algorithme local, au moment où le format d’expérience limite le nombre/longueur de bullets.
+  
+  - L’algorithme applique déjà des formats et tronque en “compact/minimal” dans applyExperienceFormat .
+  - Si tu veux une étape non-IA (heuristique) qui “résume” systématiquement sous contrainte, c’est un bon crochet (mais ça ne “développera” pas vraiment sans contenu source plus riche).
+4) Concrètement : quel “step” ajouter
+
+- Créer une fonction dédiée (ex: lib/cv/experience-budget.ts ) appelée depuis app/api/cv/generate entre normalizeRAGToCV(...) et fitCVToTemplate(...) pour produire une version des experiences[].realisations :
+  - Mode “résumer” si dépassement (bullets trop longues / trop nombreuses) en respectant maxBulletsPerExperience , une limite de chars par bullet, etc. (limites déjà implicites dans validateCVContent ).
+  - Mode “développer” seulement si tu détectes de la place (ex: peu de bullets + unités restantes), idéalement piloté par les “units” de adaptCVToThemeUnits (retourne totalUnitsUsed et warnings) : voir CVAdaptationResult .
+En résumé : IA = oui (dans /api/cv/generate et /api/cv/consolidate , et dans lib/cv/hybrid-generator ), et l’endroit le plus propre pour insérer une étape “résumer/développer sous budget” est juste après normalizeRAGToCV et avant fitCVToTemplate dans app/api/cv/generate/route.ts , en réutilisant les limites/contraintes déjà centralisées dans lib/cv/validator.ts .
+
+app/api/cv/generate/route.ts
+
+Search codebase for 'function mergeAIOptimizationsIntoProfile|mergeAIOptimizationsIntoProfile'
+
+Search codebase for 'mergeAIOptimizationsIntoProfile\('
+
+Search codebase for 'const mergeAIOptimizationsIntoProfile|function mergeAIOptimizationsIntoProfile'
+
+app/api/cv/generate/route.ts
+
+Search codebase for 'getCVOptimizationPrompt\(|CVOptimizationPrompt|optimizations_applied'
+
+lib/ai/prompts.ts
+
+Thought
+
+Search codebase for 'export function normalizeRAGData|normalizeRAGData\('
+
+lib/utils/normalize-rag.ts
+
+Thought
+
+lib/ai/prompts.ts
+
+Thought
+
+Search codebase for 'stripInferredRAGForCV'
+
+Search codebase for 'function stripInferredRAGForCV|const stripInferredRAGForCV'
+
+app/api/cv/generate/route.ts
+
+Search codebase for 'export function getCVOptimizationPrompt|export const getCVOptimizationPrompt|getOutputBlock\('
+
+Search codebase for 'getCVOptimizationPrompt'
+
+lib/ai/prompts.ts
+
+Thought
+
+lib/utils/text-truncate.ts
+
+Thought
+
+Améliorer la troncature texte pour éviter pertes de contenu
+
+0/4 done
+
+Rendre l’extraction RAG beaucoup plus riche
+
+Faire utiliser au CV l’ensemble du RAG (et l’enrichi)
+
+Tester, builder, versionner et pousser
+
+Améliorer la troncature texte pour éviter pertes de contenu
+
+prompts.ts
+lib/ai/prompts.ts
+
++ 27 - 1
+
+Open Diff
+
+prompts.ts
+lib/ai/prompts.ts
+
++ 7 - 0
+
+Open Diff
+
+Thought
+
+route.ts
+app/api/cv/generate/route.ts
+
++ 36 - 4
+
+Open Diff
+
+route.ts
+app/api/cv/generate/route.ts
+
++ 1 - 1
+
+Open Diff
+
+Thought
+
+text-truncate.ts
+lib/utils/text-truncate.ts
+
++ 9 - 7
+
+Open Diff
+
+1/4 done
+
+Améliorer la troncature texte pour éviter pertes de contenu
+
+Rendre l’extraction RAG beaucoup plus riche
+
+Faire utiliser au CV l’ensemble du RAG (et l’enrichi)
+
+Tester, builder, versionner et pousser
+
+Rendre l’extraction RAG beaucoup plus riche & Faire utiliser au CV l’ensemble du RAG (et l’enrichi)
+
+3/4 done
+
+Rendre l’extraction RAG beaucoup plus riche
+
+Faire utiliser au CV l’ensemble du RAG (et l’enrichi)
+
+Améliorer la troncature texte pour éviter pertes de contenu
+
+Tester, builder, versionner et pousser
+
+Tester, builder, versionner et pousser
+
+package.json
+package.json
+
++ 1 - 1
+
+Open Diff
+
+package-lock.json
+package-lock.json
+
++ 2 - 2
+
+Open Diff
+
+DashboardLayout.tsx
+components/layout/DashboardLayout.tsx
+
++ 1 - 1
+
+Open Diff
+
+sw.js
+public/sw.js
+
++ 1 - 1
+
+Open Diff
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ npx vitest run __tests__/rag-deduplicate.test.ts __tests__/cv-quality.test.ts
+
+RUN  v4.0.17 /Users/gillesgozlan/Desktop/CV-Crush
+
+ ✓ __tests__/rag-deduplicate.test.ts (2 tests) 24ms
+ ✓ __tests__/cv-quality.test.ts (5 tests) 15ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  16:19:41
+   Duration  2.27s (transform 399ms, setup 779ms, import 365ms, tests 39ms, environment 2.74s)
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ npm run build
+
+> cvcrush@5.2.8 build
+> next build
+
+  ▲ Next.js 14.2.0
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+
+./app/dashboard/analyze/page.tsx
+231:8  Warning: React Hook useEffect has a missing dependency: 'handleAnalyze'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/dashboard/cvs/[id]/edit/page.tsx
+57:8  Warning: React Hook useEffect has a missing dependency: 'userId'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/cv/templates/ClassicTemplate.tsx
+103:33  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/cv/templates/CreativeTemplate.tsx
+133:33  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/cv/templates/ModernTemplate.tsx
+97:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/cv/templates/TechTemplate.tsx
+153:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+ ✓ Linting and checking validity of types    
+ ⚠ Using edge runtime on a page currently disables static generation for that page
+ ✓ Collecting page data    
+   Generating static pages (18/69)  [=== ] ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+   Generating static pages (57/69)  [  ==] ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+   Generating static pages (64/69)  [   =] ⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3000". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
+ ✓ Generating static pages (69/69)
+ ✓ Collecting build traces    
+ ✓ Finalizing page optimization    
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    3.53 kB         145 kB
+├ ○ /_not-found                          879 B          88.4 kB
+├ ○ /admin                               10.2 kB         244 kB
+├ ƒ /api/admin/auto-role                 0 B                0 B
+├ ○ /api/admin/me                        0 B                0 B
+├ ƒ /api/admin/users                     0 B                0 B
+├ ƒ /api/admin/users/[id]                0 B                0 B
+├ ƒ /api/ai/spellcheck                   0 B                0 B
+├ ƒ /api/analysis/[id]/export            0 B                0 B
+├ ƒ /api/auth/login                      0 B                0 B
+├ ƒ /api/billing/checkout                0 B                0 B
+├ ƒ /api/billing/portal                  0 B                0 B
+├ ƒ /api/billing/webhook                 0 B                0 B
+├ ƒ /api/cv/[id]/pdf                     0 B                0 B
+├ ƒ /api/cv/consolidate                  0 B                0 B
+├ ƒ /api/cv/generate                     0 B                0 B
+├ ƒ /api/cv/preview                      0 B                0 B
+├ ○ /api/debug/rag-contact               0 B                0 B
+├ ƒ /api/documents/delete                0 B                0 B
+├ ƒ /api/lm/generate                     0 B                0 B
+├ ƒ /api/match/analyze                   0 B                0 B
+├ ƒ /api/match/batch                     0 B                0 B
+├ ƒ /api/profile/add-skill               0 B                0 B
+├ ƒ /api/profile/delete-item             0 B                0 B
+├ ƒ /api/profile/photo                   0 B                0 B
+├ ƒ /api/profile/reject-skill            0 B                0 B
+├ ƒ /api/profile/reset                   0 B                0 B
+├ ƒ /api/profile/update-item             0 B                0 B
+├ ƒ /api/rag/cleanup                     0 B                0 B
+├ ƒ /api/rag/deduplicate                 0 B                0 B
+├ ƒ /api/rag/generate                    0 B                0 B
+├ ƒ /api/rag/generate-incremental        0 B                0 B
+├ ƒ /api/rag/reset                       0 B                0 B
+├ ƒ /api/rag/suggest-jobs                0 B                0 B
+├ ƒ /api/rag/update                      0 B                0 B
+├ ƒ /api/rag/upload                      0 B                0 B
+├ ƒ /api/tracking/archive                0 B                0 B
+├ ƒ /api/tracking/notes                  0 B                0 B
+├ ƒ /api/tracking/tags                   0 B                0 B
+├ ƒ /api/user/delete                     0 B                0 B
+├ ƒ /api/user/profile                    0 B                0 B
+├ ƒ /api/version                         0 B                0 B
+├ ○ /auth/confirm                        1.25 kB         140 kB
+├ ○ /dashboard                           8.53 kB         247 kB
+├ ○ /dashboard/analyze                   6.88 kB         233 kB
+├ ƒ /dashboard/analyze/[id]              12.9 kB         237 kB
+├ ○ /dashboard/compare                   2.92 kB         214 kB
+├ ƒ /dashboard/compare/[ids]             3.66 kB        98.2 kB
+├ ƒ /dashboard/cv/[id]                   7.86 kB         164 kB
+├ ƒ /dashboard/cv/[id]/print             2.09 kB         144 kB
+├ ○ /dashboard/cvs                       4.65 kB         221 kB
+├ ƒ /dashboard/cvs/[id]/edit             10.2 kB         163 kB
+├ ○ /dashboard/profile                   16.4 kB         256 kB
+├ ○ /dashboard/saved-jobs                1.97 kB         213 kB
+├ ○ /dashboard/settings                  7.17 kB         223 kB
+├ ○ /dashboard/stats                     2.65 kB         214 kB
+├ ○ /dashboard/templates                 3.05 kB         214 kB
+├ ○ /dashboard/tracking                  10.5 kB         250 kB
+├ ○ /demo                                83.6 kB         276 kB
+├ ● /demo/[character]                    28 kB           220 kB
+├   ├ /demo/michelangelo
+├   ├ /demo/curie
+├   ├ /demo/lovelace
+├   └ [+7 more paths]
+├ ○ /goodbye                             156 B          87.6 kB
+├ ○ /legal/cgu                           156 B          87.6 kB
+├ ○ /legal/contact                       4.84 kB         109 kB
+├ ○ /legal/privacy                       156 B          87.6 kB
+├ ○ /login                               4.37 kB         196 kB
+├ ○ /onboarding                          3.34 kB         230 kB
+├ ○ /profil                              5.8 kB          100 kB
+├ ○ /robots.txt                          0 B                0 B
+└ ○ /sitemap.xml                         0 B                0 B
++ First Load JS shared by all            87.5 kB
+  ├ chunks/7023-1d8367be284390a6.js      31.4 kB
+  ├ chunks/fd9d1056-31d98c93d59ba637.js  53.6 kB
+  └ other shared chunks (total)          2.42 kB
+
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ git status --porcelain=v1 -b
+
+## main...origin/main
+ M app/api/cv/generate/route.ts
+ M components/layout/DashboardLayout.tsx
+ M lib/ai/prompts.ts
+ M lib/utils/text-truncate.ts
+ M package-lock.json
+ M package.json
+ M public/sw.js
+?? AUDIT_COMPLET_2026.md
+
+Thought
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ git add app/api/cv/generate/route.ts lib/ai/prompts.ts lib/utils/text-truncate.ts package.json package-lock.json components/layout/DashboardLayout.tsx public/sw.js && git commit -m "feat: richer RAG extraction and CV uses enriched RAG"
+
+[main 15d5e07f] feat: richer RAG extraction and CV uses enriched RAG
+ 7 files changed, 84 insertions(+), 17 deletions(-)
+
+CV-Crush
+Outside Sandbox
+Terminal
+
+$ git push origin main
+
+Everything up-to-date
+
+Thought
+
+CV-Crush
+In Sandbox
+Terminal
+
+$ git log -2 --oneline --decorate --no-color && git status -sb
+
+15d5e07f (HEAD -> main, origin/main, origin/HEAD) feat: richer RAG extraction and CV uses enriched RAG
+f8796536 feat: enrich RAG regeneration and preserve detailed achievements
+## main...origin/main
+?? AUDIT_COMPLET_2026.md
+
+Thought
+
+4/4 done
+
+Rendre l’extraction RAG beaucoup plus riche
+
+Faire utiliser au CV l’ensemble du RAG (et l’enrichi)
+
+Tester, builder, versionner et pousser
+
+Améliorer la troncature texte pour éviter pertes de contenu
+
+Oui, je comprends parfaitement.
+
+- Le RAG doit être “la vérité riche” : une base exhaustive (beaucoup plus de matière que le CV), avec des réalisations détaillées par expérience, et des éléments logiquement induits quand c’est justifiable (mais clairement marqués comme inférés, sans chiffres inventés).
+- Le CV doit être “une projection” : l’IA doit pouvoir piocher dans le RAG , puis compresser (synthétiser 4 lignes en 1 bullet) ou développer (scinder/enrichir) selon le budget du template , sans inventer.
+### Ce que j’ai changé (v5.2.8)
+- Extraction RAG beaucoup plus riche : le prompt force désormais des expériences plus denses (objectif 6–14 réalisations/exp si l’info existe) et autorise des items “induits” uniquement s’ils sont supportés par une phrase explicite, avec is_inferred , confidence , inference_justification .
+  - prompts.ts
+- Moins de pertes lors de troncature : on conserve maintenant le début + la fin du texte au lieu de couper uniquement au début (ça évite de perdre des expériences/projets placés en fin de doc).
+  - text-truncate.ts
+- Le CV reçoit l’ensemble du RAG (incluant l’enrichi) : la génération CV ne supprime plus contexte_enrichi et competences.inferred ; on les prune juste (top items) pour ne pas exploser le prompt.
+  - generate/route.ts
+- Instruction explicite côté CV “synthétiser vs développer” : le prompt CV autorise explicitement à fusionner/synthétiser ou développer des points en restant ancré dans le JSON source.
+  - prompts.ts
+### Ce que tu dois faire pour le constater
+- Ton RAG actuel ne “magiquement” devient pas riche : il faut régénérer le profil RAG après import (ou reset + regen). Ensuite tu dois voir beaucoup plus de réalisations par expérience, et du contexte_enrichi exploitable.
+- Puis régénérer un CV : l’IA pourra vraiment piocher dans ce RAG enrichi et adapter la longueur en fonction des contraintes du template.
+Si après regen le RAG est encore maigre, la prochaine étape est d’attaquer la cause la plus fréquente : extraction par source (CV vs LinkedIn vs GitHub) + fusion (au lieu d’une extraction trop “monobloc”), pour éviter que le modèle résume trop tôt.
+
+Artifacts

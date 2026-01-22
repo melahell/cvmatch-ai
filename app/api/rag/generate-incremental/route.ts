@@ -289,11 +289,15 @@ export async function POST(req: Request) {
         const postProcessStart = Date.now();
         mergedRAG = consolidateClients(mergedRAG);
 
+        // Enrichissement contextuel: amélioré pour être plus systématique
+        // Tentative d'enrichissement même si ce n'est pas le dernier document (budget limité)
+        // Priorité au dernier document pour enrichissement complet
         if (isLastDocument) {
             const elapsedBefore = Date.now() - startTime;
             const remainingBudgetMs = 52000 - elapsedBefore;
             if (remainingBudgetMs > 8000) {
                 try {
+                    logger.info("Starting contextual enrichment", { remainingBudgetMs });
                     const contexteEnrichi = await generateContexteEnrichi(mergedRAG, async (prompt: string) => {
                         const cascade = await callWithTimeout(
                             callWithRetry(() => generateWithCascade(prompt)),
@@ -303,9 +307,58 @@ export async function POST(req: Request) {
                     });
                     if (contexteEnrichi) {
                         mergedRAG.contexte_enrichi = contexteEnrichi;
+                        logger.info("Contextual enrichment completed", {
+                            responsabilites: contexteEnrichi.responsabilites_implicites?.length || 0,
+                            competences: contexteEnrichi.competences_tacites?.length || 0
+                        });
                     }
                 } catch (e: any) {
                     logger.warn("Incremental enrichment failed (non-blocking)", { error: e?.message });
+                }
+            } else {
+                logger.warn("Skipping enrichment - insufficient time budget", { remainingBudgetMs });
+            }
+        } else {
+            // Pour les documents intermédiaires, on peut faire un enrichissement léger si budget disponible
+            // Mais on priorise le dernier document pour l'enrichissement complet
+            const elapsedBefore = Date.now() - startTime;
+            const remainingBudgetMs = 52000 - elapsedBefore;
+            if (remainingBudgetMs > 12000) {
+                // Seulement si on a beaucoup de temps disponible
+                try {
+                    logger.info("Light contextual enrichment for intermediate document", { remainingBudgetMs });
+                    const contexteEnrichi = await generateContexteEnrichi(mergedRAG, async (prompt: string) => {
+                        const cascade = await callWithTimeout(
+                            callWithRetry(() => generateWithCascade(prompt)),
+                            Math.min(8000, Math.max(5000, remainingBudgetMs - 2000))
+                        );
+                        return cascade.result;
+                    });
+                    if (contexteEnrichi) {
+                        // Merge avec enrichissement existant si présent
+                        if (mergedRAG.contexte_enrichi) {
+                            mergedRAG.contexte_enrichi = {
+                                responsabilites_implicites: [
+                                    ...(mergedRAG.contexte_enrichi.responsabilites_implicites || []),
+                                    ...(contexteEnrichi.responsabilites_implicites || [])
+                                ],
+                                competences_tacites: [
+                                    ...(mergedRAG.contexte_enrichi.competences_tacites || []),
+                                    ...(contexteEnrichi.competences_tacites || [])
+                                ],
+                                soft_skills_deduites: [
+                                    ...(mergedRAG.contexte_enrichi.soft_skills_deduites || []),
+                                    ...(contexteEnrichi.soft_skills_deduites || [])
+                                ],
+                                environnement_travail: contexteEnrichi.environnement_travail || mergedRAG.contexte_enrichi.environnement_travail
+                            };
+                        } else {
+                            mergedRAG.contexte_enrichi = contexteEnrichi;
+                        }
+                    }
+                } catch (e: any) {
+                    // Silently fail for intermediate documents
+                    logger.debug("Light enrichment skipped for intermediate document", { error: e?.message });
                 }
             }
         }
@@ -368,6 +421,25 @@ export async function POST(req: Request) {
 
         // 12. Generate improvement suggestions based on validation
         const suggestions: string[] = [];
+        
+        // NEW: Validate minimum realisations per experience
+        const experiencesWithFewRealisations = (mergedRAG.experiences || []).filter((exp: any) => {
+            const realCount = (exp.realisations || []).length;
+            return realCount > 0 && realCount < 6;
+        });
+        
+        if (experiencesWithFewRealisations.length > 0) {
+            const avgRealisations = Math.round(
+                experiencesWithFewRealisations.reduce((sum: number, exp: any) => 
+                    sum + (exp.realisations || []).length, 0) / experiencesWithFewRealisations.length
+            );
+            suggestions.push(
+                `⚠️ ${experiencesWithFewRealisations.length} expérience(s) avec moins de 6 réalisations ` +
+                `(moyenne: ${avgRealisations}). Le document source semble contenir plus d'informations. ` +
+                `Considérez une re-génération avec mode "regeneration" pour extraire tous les détails.`
+            );
+        }
+        
         if (validationResult.metrics.quantification_percentage < 60) {
             suggestions.push(`Ajouter des impacts quantifiés (actuellement ${validationResult.metrics.quantification_percentage}%, objectif 60%+)`);
         }
@@ -379,6 +451,15 @@ export async function POST(req: Request) {
         }
         if (validationResult.metrics.elevator_pitch_numbers_count < 3) {
             suggestions.push(`Ajouter des chiffres clés dans l'elevator pitch (actuellement: ${validationResult.metrics.elevator_pitch_numbers_count})`);
+        }
+        
+        // Add validation warning for insufficient realisations
+        if (experiencesWithFewRealisations.length > 0) {
+            validationResult.warnings.push({
+                severity: 'warning' as const,
+                category: 'completeness',
+                message: `${experiencesWithFewRealisations.length} expérience(s) avec moins de 6 réalisations. Le RAG pourrait être plus riche.`
+            });
         }
 
         return NextResponse.json({

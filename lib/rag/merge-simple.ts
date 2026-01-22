@@ -16,7 +16,7 @@ import { combinedSimilarity, areStringsSimilar } from './string-similarity';
  * 
  * Criteria (all must match):
  * 1. Same company after normalization
- * 2. Start dates within 6 months
+ * 2. Start dates within 3 months (stricter to avoid merging distinct experiences)
  * 3. Position similarity >= 60%
  */
 function areExperiencesSimilar(exp1: any, exp2: any): boolean {
@@ -27,14 +27,14 @@ function areExperiencesSimilar(exp1: any, exp2: any): boolean {
     const company2 = normalizeCompanyName(exp2.entreprise);
     if (company1 !== company2) return false;
 
-    // 2. Compare dates with ±6 months tolerance
+    // 2. Compare dates with ±3 months tolerance (stricter to preserve distinct experiences)
     const start1 = new Date(exp1.debut || "2000-01");
     const start2 = new Date(exp2.debut || "2000-01");
     const monthsDiff = Math.abs(
         (start1.getFullYear() - start2.getFullYear()) * 12 +
         (start1.getMonth() - start2.getMonth())
     );
-    if (monthsDiff > 6) return false;
+    if (monthsDiff > 3) return false;
 
     // 3. Compare positions with fuzzy matching (60% threshold)
     const positionSimilarity = combinedSimilarity(exp1.poste, exp2.poste);
@@ -45,11 +45,14 @@ function areExperiencesSimilar(exp1: any, exp2: any): boolean {
 
 /**
  * Check if two realisations are similar using word-based matching
- * Uses Jaccard index (55% threshold) - better for reformulated sentences
+ * Uses Jaccard index (75% threshold) - stricter to preserve unique details
  * 
  * Example: "Gestion de 100 utilisateurs" vs "Gouvernance de 100 utilisateurs"
  * → Levenshtein: 67% (MISS)
  * → Jaccard: 75% (DETECTED)
+ * 
+ * Increased threshold from 55% to 75% to avoid losing unique realisations
+ * that are only partially similar (e.g., different tools, methods, or contexts)
  */
 function areRealisationsSimilar(real1: any, real2: any): boolean {
     const desc1 = real1?.description || "";
@@ -82,8 +85,9 @@ function areRealisationsSimilar(real1: any, real2: any): boolean {
     const union = new Set([...set1, ...set2]);
     const jaccard = intersection.size / union.size;
 
-    // 55% threshold - detects reformulations while avoiding false positives
-    return jaccard >= 0.55;
+    // 75% threshold (increased from 55%) - stricter to preserve unique realisations
+    // Only merge if they are truly similar, not just partially related
+    return jaccard >= 0.75;
 }
 
 /**
