@@ -1,6 +1,6 @@
 {
   "name": "cvcrush",
-  "version": "5.3.10",
+  "version": "6.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

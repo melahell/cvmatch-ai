@@ -328,6 +328,228 @@ OUTPUT (JSON Array) :
 ]
 `;
 
+/**
+ * Prompt pour générer AI_WIDGETS_SCHEMA (nouveau système V2)
+ * Convertit RAG + match analysis en widgets scorés prêts pour le bridge AIAdapter
+ */
+export const getAIWidgetsGenerationPrompt = (
+    ragProfile: any,
+    matchAnalysis: any,
+    jobDescription: string
+) => `
+Tu es un expert en génération de contenu CV optimisé pour ATS et recruteurs.
+
+═══════════════════════════════════════════════════════════════
+MISSION : Générer des widgets scorés (AI_WIDGETS_SCHEMA)
+═══════════════════════════════════════════════════════════════
+
+PROFIL RAG COMPLET :
+${JSON.stringify(ragProfile, null, 2)}
+
+ANALYSE DE MATCH AVEC L'OFFRE :
+${JSON.stringify(matchAnalysis, null, 2)}
+
+OFFRE D'EMPLOI :
+${jobDescription}
+
+═══════════════════════════════════════════════════════════════
+RÈGLES CRITIQUES
+═══════════════════════════════════════════════════════════════
+
+1. ANTI-HALLUCINATION STRICTE :
+   - ⛔ INTERDICTION d'inventer : postes, entreprises, dates, chiffres, clients, certifications
+   - ✅ UNIQUEMENT des informations présentes dans le RAG fourni
+   - ✅ Pour chaque widget, inclure "sources.rag_experience_id" ou "sources.rag_path" si disponible
+
+2. SCORING DE PERTINENCE (relevance_score 0-100) :
+   - 90-100 : Directement aligné avec l'offre (mots-clés match, expérience exacte)
+   - 70-89 : Très pertinent (compétences alignées, secteur similaire)
+   - 50-69 : Pertinent mais générique (compétences transférables)
+   - < 50 : Peu pertinent (ne pas inclure dans le CV final)
+
+3. PRIORISATION SELON MATCH ANALYSIS :
+   - Boost les widgets liés aux "strengths" identifiés
+   - Boost les widgets contenant les "missing_keywords" (si présents dans le RAG)
+   - Boost les widgets alignés avec "key_selling_points"
+
+4. QUANTIFICATION OBLIGATOIRE :
+   - Si le RAG contient des chiffres (budgets, volumes, %, délais) → INCLURE dans le widget
+   - Si pas de chiffres → widget sans quantification (mais toujours factuel)
+
+5. STRUCTURE DES WIDGETS :
+   - Chaque widget = unité atomique (1 bullet, 1 compétence, 1 formation, etc.)
+   - Pas de widgets composites (pas de "3 bullets en 1")
+   - Chaque widget a un "type" et une "section" claire
+
+═══════════════════════════════════════════════════════════════
+SCHÉMA DE SORTIE (JSON uniquement)
+═══════════════════════════════════════════════════════════════
+
+{
+  "profil_summary": {
+    "prenom": "string (depuis RAG.profil.prenom)",
+    "nom": "string (depuis RAG.profil.nom)",
+    "titre_principal": "string (depuis RAG.profil.titre_principal OU job_title de l'offre si plus pertinent)",
+    "localisation": "string (depuis RAG.profil.localisation)",
+    "elevator_pitch": "string (depuis RAG.profil.elevator_pitch, max 200 caractères)"
+  },
+  "job_context": {
+    "company": "string (depuis matchAnalysis.company)",
+    "job_title": "string (depuis matchAnalysis.job_title)",
+    "match_score": number (depuis matchAnalysis.match_score),
+    "keywords": ["string"] (depuis matchAnalysis.missing_keywords + keywords de l'offre)
+  },
+  "widgets": [
+    {
+      "id": "string (unique, ex: 'w1', 'w2')",
+      "type": "summary_block" | "experience_header" | "experience_bullet" | "skill_item" | "skill_group" | "education_item" | "project_item" | "language_item",
+      "section": "header" | "summary" | "experiences" | "skills" | "education" | "projects" | "languages" | "references",
+      "text": "string (texte brut à afficher, max 300 caractères pour bullets, max 200 pour summary)",
+      "relevance_score": number (0-100),
+      "sub_type": "string (optionnel, ex: 'lead_bullet', 'secondary_bullet')",
+      "tags": ["string"] (optionnel, ex: ["management", "cloud", "kpi"]),
+      "offer_keywords": ["string"] (optionnel, mots-clés de l'offre qui ont motivé ce widget),
+      "sources": {
+        "rag_experience_id": "string (si widget lié à une expérience, ex: 'exp_0')",
+        "rag_realisation_id": "string (si widget lié à une réalisation spécifique)",
+        "rag_path": "string (ex: 'experiences[2].realisations[1]')",
+        "source_ids": ["string"] (IDs de documents sources si disponibles)
+      },
+      "quality": {
+        "has_numbers": boolean (true si le texte contient des chiffres),
+        "length": number (longueur en caractères),
+        "grounded": boolean (true si toutes les infos sont traçables dans le RAG),
+        "issues": ["string"] (optionnel, ex: ["too_generic"] si problème détecté)
+      }
+    }
+  ],
+  "meta": {
+    "model": "gemini-3.0-pro",
+    "created_at": "string (ISO date)",
+    "locale": "fr-FR",
+    "version": "v1"
+  }
+}
+
+═══════════════════════════════════════════════════════════════
+EXEMPLES DE WIDGETS
+═══════════════════════════════════════════════════════════════
+
+WIDGET 1 - Summary Block (score élevé car aligné offre) :
+{
+  "id": "w1",
+  "type": "summary_block",
+  "section": "summary",
+  "text": "7 ans d'expérience en développement de produits SaaS B2B, spécialisés dans les plateformes de paiement temps réel.",
+  "relevance_score": 88,
+  "sources": {
+    "rag_path": "profil.elevator_pitch"
+  },
+  "quality": {
+    "has_numbers": true,
+    "length": 95,
+    "grounded": true
+  }
+}
+
+WIDGET 2 - Experience Header :
+{
+  "id": "w2",
+  "type": "experience_header",
+  "section": "experiences",
+  "text": "Senior Full-Stack Engineer - ScalePay",
+  "relevance_score": 90,
+  "sources": {
+    "rag_experience_id": "exp_scalepay",
+    "rag_path": "experiences[0]"
+  },
+  "quality": {
+    "has_numbers": false,
+    "length": 38,
+    "grounded": true
+  }
+}
+
+WIDGET 3 - Experience Bullet (avec quantification) :
+{
+  "id": "w3",
+  "type": "experience_bullet",
+  "section": "experiences",
+  "text": "Conception et mise en production d'une API de paiement temps réel (99,99% uptime) utilisée par 150+ marchands.",
+  "relevance_score": 95,
+  "tags": ["api", "fintech", "scalability"],
+  "offer_keywords": ["API", "production", "scalabilité"],
+  "sources": {
+    "rag_experience_id": "exp_scalepay",
+    "rag_realisation_id": "real_api_payment",
+    "rag_path": "experiences[0].realisations[2]"
+  },
+  "quality": {
+    "has_numbers": true,
+    "length": 102,
+    "grounded": true
+  }
+}
+
+WIDGET 4 - Skill Item :
+{
+  "id": "w4",
+  "type": "skill_item",
+  "section": "skills",
+  "text": "TypeScript",
+  "relevance_score": 80,
+  "offer_keywords": ["TypeScript"],
+  "sources": {
+    "rag_path": "competences.explicit.techniques[0]"
+  },
+  "quality": {
+    "has_numbers": false,
+    "length": 10,
+    "grounded": true
+  }
+}
+
+═══════════════════════════════════════════════════════════════
+STRATÉGIE DE SÉLECTION
+═══════════════════════════════════════════════════════════════
+
+1. EXPÉRIENCES :
+   - Sélectionner les 3-6 expériences les plus pertinentes (selon match_score)
+   - Pour chaque expérience sélectionnée :
+     * 1 widget "experience_header" (score = pertinence globale de l'expérience)
+     * 3-6 widgets "experience_bullet" (sélectionner les meilleures réalisations, scorer selon alignement offre)
+
+2. COMPÉTENCES :
+   - Extraire les compétences techniques ET soft skills du RAG
+   - Scorer selon présence dans l'offre / match analysis
+   - Inclure les "missing_keywords" si présents dans le RAG comme compétences
+
+3. FORMATIONS / LANGUES :
+   - Inclure toutes les formations pertinentes (score selon niveau / secteur)
+   - Inclure toutes les langues (score élevé si mentionnées dans l'offre)
+
+4. SUMMARY :
+   - 1 seul widget "summary_block" (le meilleur pitch depuis RAG.profil.elevator_pitch)
+
+═══════════════════════════════════════════════════════════════
+OUTPUT FINAL
+═══════════════════════════════════════════════════════════════
+
+Génère UNIQUEMENT le JSON conforme au schéma AI_WIDGETS_SCHEMA.
+❌ PAS de markdown (pas de \`\`\`json)
+❌ PAS de commentaires
+❌ PAS d'explications
+
+Vérifie avant de répondre :
+✅ Tous les widgets ont un relevance_score 0-100
+✅ Tous les widgets sont grounded (traçables dans le RAG)
+✅ Les widgets d'expérience ont rag_experience_id ou rag_path
+✅ Les widgets avec chiffres ont has_numbers: true
+✅ Le nombre total de widgets est raisonnable (20-50 widgets max)
+
+JSON uniquement ↓
+`;
+
 export const getMatchAnalysisPrompt = (userProfile: any, jobText: string) => `
 Tu es un expert RH / Career Coach avec une expertise en négociation salariale et stratégie de candidature.
 
