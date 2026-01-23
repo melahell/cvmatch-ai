@@ -96,25 +96,55 @@ export async function POST(req: Request) {
         };
 
         // 4. Generate widgets from RAG + match analysis (CERVEAU IA)
-        const widgetsEnvelope = await generateWidgetsFromRAGAndMatch({
-            ragProfile,
-            matchAnalysis,
-            jobDescription,
-        });
+        let widgetsEnvelope;
+        try {
+            widgetsEnvelope = await generateWidgetsFromRAGAndMatch({
+                ragProfile,
+                matchAnalysis,
+                jobDescription,
+            });
 
-        if (!widgetsEnvelope) {
+            if (!widgetsEnvelope) {
+                return NextResponse.json(
+                    { 
+                        error: "Erreur génération widgets IA",
+                        errorCode: "WIDGETS_GENERATION_FAILED",
+                        details: "L'IA n'a pas pu générer les widgets de contenu. Vérifiez que votre profil RAG est complet."
+                    },
+                    { status: 500 }
+                );
+            }
+        } catch (widgetError: any) {
+            console.error("Widgets generation error:", widgetError);
             return NextResponse.json(
-                { error: "Erreur génération widgets IA" },
+                {
+                    error: "Erreur lors de la génération des widgets IA",
+                    errorCode: "WIDGETS_GENERATION_ERROR",
+                    details: widgetError.message || "Erreur inconnue lors de l'appel à l'IA"
+                },
                 { status: 500 }
             );
         }
 
         // 5. Convert widgets to CVData via bridge (AIAdapter)
-        const cvData = convertAndSort(widgetsEnvelope, {
-            minScore: 50,
-            maxExperiences: 6,
-            maxBulletsPerExperience: 6,
-        });
+        let cvData;
+        try {
+            cvData = convertAndSort(widgetsEnvelope, {
+                minScore: 50,
+                maxExperiences: 6,
+                maxBulletsPerExperience: 6,
+            });
+        } catch (conversionError: any) {
+            console.error("Widgets conversion error:", conversionError);
+            return NextResponse.json(
+                {
+                    error: "Erreur lors de la conversion des widgets en CV",
+                    errorCode: "WIDGETS_CONVERSION_ERROR",
+                    details: conversionError.message || "Erreur lors de la transformation des widgets en format CV"
+                },
+                { status: 500 }
+            );
+        }
 
         // 6. Extract job offer context for relevance scoring
         const jobOfferContext: JobOfferContext | null = jobDescription
@@ -126,12 +156,29 @@ export async function POST(req: Request) {
             : null;
 
         // 7. Fit CV to template (spatial adaptation)
-        const { cvData: finalCV, compressionLevelApplied, dense, unitStats } = fitCVToTemplate({
-            cvData,
-            templateName: template || "modern",
-            includePhoto: includePhoto ?? true,
-            jobOffer: jobOfferContext,
-        });
+        let finalCV, compressionLevelApplied, dense, unitStats;
+        try {
+            const fitResult = fitCVToTemplate({
+                cvData,
+                templateName: template || "modern",
+                includePhoto: includePhoto ?? true,
+                jobOffer: jobOfferContext,
+            });
+            finalCV = fitResult.cvData;
+            compressionLevelApplied = fitResult.compressionLevelApplied;
+            dense = fitResult.dense;
+            unitStats = fitResult.unitStats;
+        } catch (fitError: any) {
+            console.error("CV template fitting error:", fitError);
+            return NextResponse.json(
+                {
+                    error: "Erreur lors de l'adaptation du CV au template",
+                    errorCode: "TEMPLATE_FITTING_ERROR",
+                    details: fitError.message || "Erreur lors de l'ajustement spatial du CV"
+                },
+                { status: 500 }
+            );
+        }
 
         // 8. Calculate metadata
         const generationTime = Date.now() - generationStartMs;
@@ -176,7 +223,14 @@ export async function POST(req: Request) {
 
         if (cvError) {
             console.error("CV Save Error", cvError);
-            return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
+            return NextResponse.json(
+                {
+                    error: "Erreur lors de la sauvegarde du CV",
+                    errorCode: "CV_SAVE_ERROR",
+                    details: cvError.message || "Impossible de sauvegarder le CV généré"
+                },
+                { status: 500 }
+            );
         }
 
         return NextResponse.json({
@@ -192,6 +246,13 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
         console.error("CV Generation V2 Error", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json(
+            {
+                error: "Erreur inattendue lors de la génération du CV V2",
+                errorCode: "UNEXPECTED_ERROR",
+                details: error.message || "Une erreur inconnue s'est produite"
+            },
+            { status: 500 }
+        );
     }
 }

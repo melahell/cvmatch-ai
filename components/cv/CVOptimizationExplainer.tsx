@@ -19,6 +19,9 @@ interface CVOptimizationExplainerProps {
     jobTitle?: string;
     compressionLevel?: number;
     dense?: boolean;
+    isV2?: boolean;
+    widgetsTotal?: number;
+    widgetsFiltered?: number;
 }
 
 export function CVOptimizationExplainer({
@@ -28,6 +31,9 @@ export function CVOptimizationExplainer({
     jobTitle,
     compressionLevel = 0,
     dense = false,
+    isV2 = false,
+    widgetsTotal,
+    widgetsFiltered,
 }: CVOptimizationExplainerProps) {
     const [open, setOpen] = useState(false);
 
@@ -89,6 +95,30 @@ export function CVOptimizationExplainer({
                             </div>
                         </div>
                     </div>
+
+                    {/* V2 Widgets Info */}
+                    {isV2 && (
+                        <div className="flex items-start gap-3">
+                            <Sparkles className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                                <h4 className="font-semibold text-slate-800 text-sm mb-1">
+                                    Généré avec V2 Widgets
+                                </h4>
+                                <p className="text-sm text-slate-600">
+                                    {widgetsTotal !== undefined && widgetsFiltered !== undefined ? (
+                                        <>
+                                            <strong>{widgetsFiltered}</strong> widgets sélectionnés sur <strong>{widgetsTotal}</strong> générés
+                                            {widgetsTotal > widgetsFiltered && (
+                                                <span className="text-slate-500"> (score de pertinence ≥ 50)</span>
+                                            )}
+                                        </>
+                                    ) : (
+                                        "CV généré avec l'architecture V2 Widgets (contenu scoré et trié par pertinence)"
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Scoring de pertinence */}
                     {relevanceScoringApplied && (

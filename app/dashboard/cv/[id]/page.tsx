@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
-import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info } from "lucide-react";
+import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
@@ -184,6 +184,11 @@ export default function CVViewPage() {
     const compressionLevel = cvMetadata?.compression_level_applied || 0;
     const pageCount = cvMetadata?.page_count || 1;
     const seniorityLevel = cvMetadata?.seniority_level;
+    
+    // V2 Widgets metadata
+    const isV2 = cvMetadata?.generator_type === "v2_widgets";
+    const widgetsTotal = cvMetadata?.widgets_total;
+    const widgetsFiltered = cvMetadata?.widgets_filtered;
 
     // Quality score badge color
     const getScoreColor = (score: number | undefined) => {
@@ -225,6 +230,19 @@ export default function CVViewPage() {
 
                     {/* Quality & Page Indicators */}
                     <div className="hidden md:flex items-center gap-3">
+                        {/* V2 Widgets Badge */}
+                        {isV2 && (
+                            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                <Sparkles className="w-3 h-3" />
+                                V2 Widgets
+                                {widgetsTotal !== undefined && widgetsFiltered !== undefined && (
+                                    <span className="ml-1 text-indigo-600">
+                                        ({widgetsFiltered}/{widgetsTotal})
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
                         {/* Page Count Badge */}
                         <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${pageCount === 1 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                             }`}>
@@ -292,6 +310,12 @@ export default function CVViewPage() {
 
                 {/* Mobile Indicators */}
                 <div className="md:hidden flex items-center justify-center gap-2 pb-2 px-4">
+                    {isV2 && (
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
+                            <Sparkles className="w-3 h-3" />
+                            V2
+                        </div>
+                    )}
                     <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${pageCount === 1 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                         }`}>
                         <FileText className="w-3 h-3" />
@@ -328,6 +352,9 @@ export default function CVViewPage() {
                         jobTitle={cvMetadata.job_title}
                         compressionLevel={compressionLevel}
                         dense={cvMetadata.dense || false}
+                        isV2={isV2}
+                        widgetsTotal={widgetsTotal}
+                        widgetsFiltered={widgetsFiltered}
                     />
                 </div>
             )}
