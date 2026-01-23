@@ -608,10 +608,10 @@ export function normalizeRAGToCV(raw: any): CVData {
     // Extract from references.clients (new RAGComplete format)
     if (data.references?.clients) {
         data.references.clients.forEach((c) => {
-            const clientName = typeof c === 'string' ? c : (c.nom || c.name || '');
+            const clientName = typeof c === 'string' ? c : (c.nom || (c as any).name || '');
             if (clientName && !foundClients.includes(clientName)) {
                 foundClients.push(clientName);
-                const secteur = (typeof c === 'object' ? (c.secteur || c.sector) : undefined) || 'Autre';
+                const secteur = (typeof c === 'object' ? (c.secteur || (c as any).sector) : undefined) || 'Autre';
                 if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
                 clientsBySector[secteur].push(clientName);
             }
