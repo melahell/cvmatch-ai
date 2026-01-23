@@ -531,28 +531,38 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    → Ces mots-clés DOIVENT apparaître naturellement dans le CV
 
 7. COMPÉTENCES (MAXIMISER LA COMPLÉTUDE) :
+   - Le profil contient un "skill_map" qui aplatit TOUTES les compétences (expériences + global + par_domaine)
+   - Utilise le skill_map pour voir rapidement où chaque compétence a été utilisée (used_in_experiences)
    - SÉLECTIONNER les compétences utiles pour l'offre (pas une liste catalogue)
    - Prioriser les compétences qui matchent l'offre en premier
    - Limite recommandée : 12-18 compétences techniques + 4-8 soft skills max
    - Éviter les doublons et les variantes (ex: \"McDo\" vs \"McDonalds\")
+   - Si le profil contient aussi "competences.explicit" ou "competences.inferred", utilise-les en complément du skill_map
 
-8. FORMATIONS (COPIE EXACTE OBLIGATOIRE) :
+8. FORMATIONS (COPIE EXACTE OBLIGATOIRE - COMPLÉTUDE) :
    ⛔ INTERDICTION ABSOLUE D'INVENTER DES FORMATIONS
-   - COPIER UNIQUEMENT les formations présentes dans le profil source
+   - COPIER TOUTES les formations présentes dans le profil source (tableau "formations")
    - NE JAMAIS inventer d'école (HEC, ESSEC, Polytechnique, etc.)
    - NE JAMAIS inventer de diplôme ou d'année
    - Si le profil source n'a pas de formations, laisser le tableau VIDE []
+   - ⚠️ IMPORTANT : Si le profil contient des formations, elles DOIVENT apparaître dans le CV généré
 
-9. LANGUES (NORMALISATION) :
+9. CERTIFICATIONS (COPIE EXACTE OBLIGATOIRE - COMPLÉTUDE) :
+   ⛔ INTERDICTION ABSOLUE D'INVENTER DES CERTIFICATIONS
+   - COPIER TOUTES les certifications présentes dans le profil source (tableau "certifications")
+   - Si le profil source n'a pas de certifications, laisser le tableau VIDE []
+   - ⚠️ IMPORTANT : Si le profil contient des certifications, elles DOIVENT apparaître dans le CV généré
+
+10. LANGUES (NORMALISATION - COMPLÉTUDE) :
    - 1 seule ligne par langue (PAS de variantes type \"Anglais (Global)\" / \"Anglais (Reading)\")
    - Utiliser un niveau cohérent (CECRL A1-A2-B1-B2-C1-C2 ou \"Natif\") si présent dans la source
 
-9. TONALITÉ "${sectorConfig.tone.toUpperCase()}" :
+11. TONALITÉ "${sectorConfig.tone.toUpperCase()}" :
    ${sectorConfig.tone === 'formal' ? '- Vocabulaire professionnel strict\n   - Phrases factuelles\n   - Pas de superlatifs' : ''}
    ${sectorConfig.tone === 'dynamic' ? '- Vocabulaire dynamique et moderne\n   - Orienté résultats et innovation\n   - Action verbs forts' : ''}
    ${sectorConfig.tone === 'executive' ? '- Vision stratégique mise en avant\n   - Leadership et impact organisationnel\n   - Références C-level si possible' : ''}
 
-10. FORMATAGE STRICT (OBLIGATOIRE) :
+12. FORMATAGE STRICT (OBLIGATOIRE) :
    ESPACES OBLIGATOIRES :
    - "5 ans" (PAS "5ans")
    - "150+ projets" (PAS "150+projets" ou "150 +projets")
@@ -567,7 +577,7 @@ BLOC 3 : RÈGLES D'OPTIMISATION
 
    ⚠️ VÉRIFIE le formatage de CHAQUE phrase avant de générer le JSON final.
 
-11. 🚨 RÈGLE ANTI-HALLUCINATION (CRITIQUE) :
+13. 🚨 RÈGLE ANTI-HALLUCINATION (CRITIQUE) :
    ⛔ TU NE DOIS JAMAIS INVENTER D'INFORMATION
    
    INTERDICTIONS ABSOLUES :
@@ -674,6 +684,10 @@ GÉNÈRE un JSON structuré avec les sections suivantes :
   
   "langues": [
     { "langue": "Français", "niveau": "Natif", "display": "Français (natif)" }
+  ],
+  
+  "certifications": [
+    { "nom": "string", "organisme": "string (optionnel)", "date": "YYYY (optionnel)" }
   ]
 }
 

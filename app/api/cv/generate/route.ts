@@ -168,40 +168,281 @@ const stripInferredRAGForCV = (profile: any) => {
     return cloned;
 };
 
+/**
+ * Convertit une réalisation atomisée en texte narratif fluide
+ */
+const convertRealisationToNarrative = (r: any): string => {
+    if (typeof r === "string") return r;
+    if (!r || typeof r !== "object") return "";
+
+    const parts: string[] = [];
+    
+    // Description principale
+    if (r.description) parts.push(r.description);
+    
+    // Impact (si différent de description)
+    if (r.impact && r.impact !== r.description) {
+        parts.push(r.impact);
+    }
+    
+    // Quantification : reconstruire en texte naturel
+    if (r.quantification) {
+        const q = r.quantification;
+        let quantText = "";
+        if (q.display) {
+            quantText = q.display;
+        } else if (q.valeur && q.unite) {
+            quantText = `${q.valeur} ${q.unite}`;
+        }
+        if (quantText) {
+            // Ajouter la quantification de manière naturelle
+            if (parts.length > 0) {
+                parts[parts.length - 1] = `${parts[parts.length - 1]} (${quantText})`;
+            } else {
+                parts.push(quantText);
+            }
+        }
+    }
+    
+    return parts.join(" - ").trim();
+};
+
+/**
+ * Aplatit toutes les compétences en un skill_map unique
+ */
+const buildSkillMap = (profile: any): Record<string, { level?: string; used_in_experiences: string[]; context?: string }> => {
+    const skillMap: Record<string, { level?: string; used_in_experiences: string[]; context?: string }> = {};
+    
+    const addSkill = (skillName: string, level?: string, expId?: string, context?: string) => {
+        if (!skillName || typeof skillName !== "string") return;
+        const normalized = skillName.trim();
+        if (!normalized) return;
+        
+        if (!skillMap[normalized]) {
+            skillMap[normalized] = { level, used_in_experiences: [], context };
+        }
+        if (expId && !skillMap[normalized].used_in_experiences.includes(expId)) {
+            skillMap[normalized].used_in_experiences.push(expId);
+        }
+        if (level && !skillMap[normalized].level) {
+            skillMap[normalized].level = level;
+        }
+        if (context && !skillMap[normalized].context) {
+            skillMap[normalized].context = context;
+        }
+    };
+    
+    // Extraire depuis competences.explicit
+    const competences = profile?.competences || {};
+    if (competences.explicit) {
+        // Techniques
+        const techs = competences.explicit.techniques || [];
+        techs.forEach((t: any) => {
+            const name = typeof t === "string" ? t : (t?.nom || t?.name || "");
+            const level = typeof t === "object" ? (t?.niveau || t?.level) : undefined;
+            addSkill(name, level);
+        });
+        
+        // Soft skills
+        const softs = competences.explicit.soft_skills || [];
+        softs.forEach((s: string) => addSkill(s));
+        
+        // Autres catégories
+        ["langages_programmation", "frameworks", "outils", "cloud_devops", "methodologies"].forEach(cat => {
+            const items = competences.explicit[cat] || [];
+            items.forEach((item: string) => addSkill(item));
+        });
+    }
+    
+    // Extraire depuis competences (format legacy)
+    if (Array.isArray(competences.techniques)) {
+        competences.techniques.forEach((t: any) => {
+            const name = typeof t === "string" ? t : (t?.nom || t?.name || "");
+            addSkill(name);
+        });
+    }
+    if (Array.isArray(competences.soft_skills)) {
+        competences.soft_skills.forEach((s: string) => addSkill(s));
+    }
+    
+    // Extraire depuis competences.par_domaine
+    if (competences.par_domaine && typeof competences.par_domaine === "object") {
+        Object.entries(competences.par_domaine).forEach(([domaine, skills]: [string, any]) => {
+            if (Array.isArray(skills)) {
+                skills.forEach((skill: string) => addSkill(skill, undefined, undefined, domaine));
+            }
+        });
+    }
+    
+    // Extraire depuis les expériences
+    const experiences = Array.isArray(profile?.experiences) ? profile.experiences : [];
+    experiences.forEach((exp: any, idx: number) => {
+        const expId = `exp_${idx}`;
+        
+        // Technologies de l'expérience
+        const techs = exp?.technologies || [];
+        techs.forEach((t: string) => addSkill(t, undefined, expId));
+        
+        // Outils
+        const outils = exp?.outils || [];
+        outils.forEach((o: string) => addSkill(o, undefined, expId));
+        
+        // Méthodologies
+        const methods = exp?.methodologies || [];
+        methods.forEach((m: string) => addSkill(m, undefined, expId));
+    });
+    
+    // Extraire depuis inferred (seulement haute confiance)
+    if (competences.inferred) {
+        ["techniques", "tools", "soft_skills"].forEach(cat => {
+            const items = competences.inferred[cat] || [];
+            items.forEach((item: any) => {
+                if (item?.name && (item.confidence === undefined || item.confidence >= 70)) {
+                    addSkill(item.name, undefined, undefined, item.reasoning?.substring(0, 100));
+                }
+            });
+        });
+    }
+    
+    return skillMap;
+};
+
+/**
+ * Transforme le RAG en format optimisé pour LLM (littéraire, compact, sans métadonnées)
+ */
 const buildRAGForCVPrompt = (profile: any) => {
+    if (!profile || typeof profile !== "object") return profile;
+    
     const base = stripInferredRAGForCV(profile);
     if (!base || typeof base !== "object") return base;
-    const cloned = JSON.parse(JSON.stringify(base));
-
-    const contexte = (cloned as any).contexte_enrichi;
-    if (contexte && typeof contexte === "object") {
+    
+    // Construire le skill_map aplatissant toutes les compétences
+    const skillMap = buildSkillMap(base);
+    
+    // Transformer les expériences : convertir réalisations en texte narratif
+    const experiences = (base.experiences || []).map((exp: any) => {
+        const transformed: any = {
+            poste: exp.poste,
+            entreprise: exp.entreprise,
+            debut: exp.debut || exp.date_debut,
+            fin: exp.fin || exp.date_fin,
+            actuel: exp.actuel,
+            lieu: exp.lieu,
+            secteur: exp.secteur,
+            contexte: exp.contexte,
+        };
+        
+        // Convertir réalisations en texte narratif
+        if (Array.isArray(exp.realisations)) {
+            transformed.realisations = exp.realisations
+                .map(convertRealisationToNarrative)
+                .filter((r: string) => r.length > 0);
+        }
+        
+        // Technologies/outils (référencés dans skill_map)
+        if (exp.technologies) transformed.technologies = exp.technologies;
+        if (exp.outils) transformed.outils = exp.outils;
+        if (exp.methodologies) transformed.methodologies = exp.methodologies;
+        if (exp.clients_references) transformed.clients_references = exp.clients_references;
+        
+        return transformed;
+    });
+    
+    // Construire le profil simplifié
+    const profil = base.profil || {};
+    const transformedProfil: any = {
+        nom: profil.nom,
+        prenom: profil.prenom,
+        titre_principal: profil.titre_principal,
+        localisation: profil.localisation,
+        elevator_pitch: profil.elevator_pitch,
+        photo_url: profil.photo_url,
+    };
+    
+    // Contact simplifié
+    if (profil.contact) {
+        transformedProfil.contact = {
+            email: profil.contact.email,
+            telephone: profil.contact.telephone,
+            linkedin: profil.contact.linkedin,
+        };
+    } else {
+        // Fallback si contact est à la racine
+        transformedProfil.contact = {
+            email: (profil as any).email,
+            telephone: (profil as any).telephone,
+            linkedin: (profil as any).linkedin,
+        };
+    }
+    
+    // Formations simplifiées
+    const formations = (base.formations || []).map((f: any) => ({
+        titre: f.titre || f.diplome,
+        organisme: f.organisme || f.ecole || f.etablissement,
+        annee: f.annee,
+        mention: f.mention,
+    }));
+    
+    // Certifications simplifiées
+    const certifications = (base.certifications || []).map((c: any) => 
+        typeof c === "string" ? c : c.nom
+    );
+    
+    // Langues simplifiées
+    let langues: Array<{ langue: string; niveau: string }> = [];
+    if (Array.isArray(base.langues)) {
+        langues = base.langues.map((l: any) => ({
+            langue: l.langue || l.name,
+            niveau: l.niveau || l.level,
+        }));
+    } else if (base.langues && typeof base.langues === "object") {
+        langues = Object.entries(base.langues).map(([langue, niveau]) => ({
+            langue,
+            niveau: String(niveau),
+        }));
+    }
+    
+    // Contexte enrichi (limité)
+    const contexte = base.contexte_enrichi;
+    const contexteSimplifie: any = {};
+    if (contexte) {
         if (Array.isArray(contexte.responsabilites_implicites)) {
-            contexte.responsabilites_implicites = contexte.responsabilites_implicites.slice(0, 10);
+            contexteSimplifie.responsabilites_implicites = contexte.responsabilites_implicites.slice(0, 8);
         }
         if (Array.isArray(contexte.competences_tacites)) {
-            contexte.competences_tacites = contexte.competences_tacites.slice(0, 12);
+            contexteSimplifie.competences_tacites = contexte.competences_tacites.slice(0, 10);
         }
         if (Array.isArray(contexte.soft_skills_deduites)) {
-            contexte.soft_skills_deduites = contexte.soft_skills_deduites.slice(0, 10);
+            contexteSimplifie.soft_skills_deduites = contexte.soft_skills_deduites.slice(0, 8);
         }
     }
-
-    const inferred = (cloned as any)?.competences?.inferred;
-    if (inferred && typeof inferred === "object") {
-        const prune = (arr: any, max: number) => {
-            if (!Array.isArray(arr)) return [];
-            const filtered = arr
-                .filter((s: any) => typeof s?.name === "string" && typeof s?.confidence === "number")
-                .sort((a: any, b: any) => (b.confidence ?? 0) - (a.confidence ?? 0))
-                .slice(0, max);
-            return filtered;
-        };
-        (cloned as any).competences.inferred.techniques = prune(inferred.techniques, 10);
-        (cloned as any).competences.inferred.tools = prune(inferred.tools, 10);
-        (cloned as any).competences.inferred.soft_skills = prune(inferred.soft_skills, 8);
+    
+    // Références clients simplifiées
+    const references = base.references || {};
+    const clientsSimplifies = (references.clients || []).map((c: any) => ({
+        nom: c.nom,
+        secteur: c.secteur,
+    }));
+    
+    // Assembler le format optimisé
+    const optimized: any = {
+        profil: transformedProfil,
+        experiences,
+        skill_map: skillMap, // NOUVEAU : compétences aplaties
+        formations,
+        certifications,
+        langues,
+        references: {
+            clients: clientsSimplifies,
+        },
+    };
+    
+    // Ajouter contexte enrichi seulement s'il existe
+    if (Object.keys(contexteSimplifie).length > 0) {
+        optimized.contexte_enrichi = contexteSimplifie;
     }
-
-    return cloned;
+    
+    return optimized;
 };
 
 const normalizeForMatch = (value: unknown) => {
