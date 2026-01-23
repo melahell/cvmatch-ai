@@ -506,13 +506,20 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Impact : "amélioration de 45%", "réduction délais de 3 mois"
    - Portée : "déploiement 500 utilisateurs", "12 pays"
 
-4. RÉFÉRENCES CLIENTS (si ${rules.showClientReferences ? 'ACTIF' : 'désactivé'}) :
+4. RÉFÉRENCES CLIENTS (COMPLÉTUDE OBLIGATOIRE) :
+   ⚠️ IMPORTANT : Si le profil source contient des références clients (dans "references.clients" ou "experiences[].clients_references"), 
+   elles DOIVENT TOUTES apparaître dans le CV généré.
+   
    ${rules.showClientReferences ? `
-   OBLIGATOIRE : Ajouter une section clients_references avec les grands noms :
-   - Extraire les clients mentionnés dans les expériences (ex: Cartier, Dreamworks, SNCF...)
-   - Les grouper par secteur (Luxe, Finance, Industrie...)
-   - Ajouter dans le JSON : "clients_references": { "included": true, "groupes": [...] }
-   ` : 'Non applicable'}
+   OBLIGATOIRE : Ajouter une section clients_references avec TOUS les clients :
+   - Extraire TOUS les clients mentionnés dans les expériences (ex: Cartier, Dreamworks, SNCF, Servier, Ipsen, Engie, Total, Renault, PSA, Safran, Société Générale, BNP Paribas, CNP Assurances, Arval, Logista, McDonalds, Quick, Flunch, Cube Creative, Dreamworks, Naïa Thalassa...)
+   - Extraire AUSSI les clients depuis "references.clients" si présent dans le profil source
+   - Les grouper par secteur (Luxe, Finance, Industrie, Santé, Énergie, Transport, Retail, Autre...)
+   - Format attendu : "clients_references": { "included": true, "groupes": [{ "secteur": "Luxe", "clients": ["Cartier", "Chanel"] }, { "secteur": "Finance", "clients": ["Société Générale", "BNP Paribas"] }] }
+   - Ne JAMAIS inventer de clients
+   - Si le profil contient 20 clients, le CV doit en afficher 20 (ou au moins les plus pertinents pour l'offre, mais TOUS si possible)
+   - Prioriser les clients pertinents pour l'offre, mais ne pas exclure les autres sans raison valide
+   ` : 'Non applicable - mais si des références sont présentes dans le profil source, elles doivent être incluses'}
 
 5. PERTINENCE_SCORE PAR EXPÉRIENCE :
    Pour CHAQUE expérience, calcule un score 0-100 basé sur :
@@ -662,6 +669,9 @@ GÉNÈRE un JSON structuré avec les sections suivantes :
   ],
   
   "competences": {
+    "techniques": ["string", "string", ...],  // Format simple array (PRIORITÉ)
+    "soft_skills": ["string", "string", ...],  // Format simple array (PRIORITÉ)
+    // Format alternatif (si nécessaire) :
     "display_mode": "categorized",
     "categories": [
       {
@@ -669,6 +679,14 @@ GÉNÈRE un JSON structuré avec les sections suivantes :
         "items": [{ "nom": "Planisware", "niveau": "expert", "keywords_ats": ["PPM"] }],
         "display": true
       }
+    ]
+  },
+  
+  "clients_references": {
+    "included": true,
+    "groupes": [
+      { "secteur": "Luxe", "clients": ["Cartier", "Chanel"] },
+      { "secteur": "Finance", "clients": ["Société Générale", "BNP Paribas"] }
     ]
   },
   

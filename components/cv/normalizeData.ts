@@ -201,6 +201,17 @@ const normalizeLoose = (value: string) => {
         .replace(/[\u0300-\u036f]/g, "");
 };
 
+const normalizeForMatch = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    const s = typeof value === "string" ? value : String(value);
+    return s
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim();
+};
+
 const isPlaceholderValue = (value: string) => {
     const v = normalizeLoose(value)
         .replace(/\s+/g, " ")
@@ -378,9 +389,31 @@ export function normalizeRAGToCV(raw: any): CVData {
     // 1. { techniques: [...], soft_skills: [...] } - simple format
     // 2. { explicit: { techniques: [...] }, inferred: {...} } - RAG enriched format
     // 3. { categories: [...] } - CDC/AI format
+    // 4. skill_map (from buildRAGForCVPrompt) - flattened format
 
     let techniques: string[] = [];
     let softSkills: string[] = [];
+
+    // NOUVEAU : Extraire depuis skill_map si competences vide ou incomplet
+    if ((!data.competences || (data.competences && !data.competences.techniques && !data.competences.explicit)) && (data as any).skill_map) {
+        const skillMap = (data as any).skill_map;
+        const allSkills = Object.keys(skillMap);
+        
+        // Filtrer soft skills (mots-clés connus)
+        const softSkillKeywords = ['soft', 'communication', 'leadership', 'management', 'team', 'problem solving',
+            'automation mindset', 'learning agility', 'strategic thinking', 'pragmatisme', 'persistence', 'autonomie',
+            'diplomatie', 'rigueur', 'synthèse', 'orientation client', 'force de proposition', 'adaptabilité'];
+        
+        techniques = allSkills.filter(skill => {
+            const skillLower = skill.toLowerCase();
+            return !softSkillKeywords.some(keyword => skillLower.includes(keyword));
+        });
+        
+        softSkills = allSkills.filter(skill => {
+            const skillLower = skill.toLowerCase();
+            return softSkillKeywords.some(keyword => skillLower.includes(keyword));
+        });
+    }
 
     if (data.competences) {
         const comp = data.competences as any;
@@ -575,11 +608,12 @@ export function normalizeRAGToCV(raw: any): CVData {
     // Extract from references.clients (new RAGComplete format)
     if (data.references?.clients) {
         data.references.clients.forEach((c) => {
-            if (c.nom && !foundClients.includes(c.nom)) {
-                foundClients.push(c.nom);
-                const secteur = c.secteur || 'Autre';
+            const clientName = typeof c === 'string' ? c : (c.nom || c.name || '');
+            if (clientName && !foundClients.includes(clientName)) {
+                foundClients.push(clientName);
+                const secteur = (typeof c === 'object' ? (c.secteur || c.sector) : undefined) || 'Autre';
                 if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
-                clientsBySector[secteur].push(c.nom);
+                clientsBySector[secteur].push(clientName);
             }
         });
     }
@@ -587,14 +621,17 @@ export function normalizeRAGToCV(raw: any): CVData {
     // Extract from experiences.clients_references (new format)
     experiences.forEach(exp => {
         const rawExp = (data.experiences || []).find(e =>
-            e.entreprise === exp.entreprise
+            (e.entreprise === exp.entreprise || normalizeForMatch(e.entreprise) === normalizeForMatch(exp.entreprise)) &&
+            (e.poste === exp.poste || normalizeForMatch(e.poste) === normalizeForMatch(exp.poste))
         );
         if (rawExp?.clients_references) {
-            rawExp.clients_references.forEach((c: string) => {
-                if (!foundClients.includes(c)) {
-                    foundClients.push(c);
-                    if (!clientsBySector['Autre']) clientsBySector['Autre'] = [];
-                    clientsBySector['Autre'].push(c);
+            rawExp.clients_references.forEach((c: string | any) => {
+                const clientName = typeof c === 'string' ? c : (c.nom || c.name || '');
+                if (clientName && !foundClients.includes(clientName)) {
+                    foundClients.push(clientName);
+                    const secteur = (typeof c === 'object' ? (c.secteur || c.sector) : undefined) || 'Autre';
+                    if (!clientsBySector[secteur]) clientsBySector[secteur] = [];
+                    clientsBySector[secteur].push(clientName);
                 }
             });
         }

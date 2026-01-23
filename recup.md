@@ -1,105 +1,391 @@
-C'est une excellente initiative de remettre en question ce format. En analysant le fichier RAG_STANDARD_FORMAT.md, je comprends pourquoi tu ne le trouves "pas bon".
+v5.3.9
+Aller au contenu principal
+CV
+CRUSH
+CV Crush
+Documents & Profil
+Candidatures
+Analyser & Générer
 
-Ton intuition est juste : ce format souffre d'un sur-ingénierie (over-engineering) classique. Il essaie d'être une base de données relationnelle rigide alors qu'il devrait être un contexte fluide pour une IA générative.
+Gilles GOZLAN
+Gilles GOZLAN
+Mon Profil RAG
+Score de complétude : 70/100
 
-Voici mon analyse critique détaillée de ce qui ne va pas, et comment le rendre plus performant.
+Régénérer
+Enregistrer
 
-1. Le problème structurel : "Database vs Context"
-Ce format est conçu comme un schéma de base de données (type MongoDB ou SQL), pas comme un contexte RAG pour un LLM.
+Vue & Pondération
 
-La redondance des compétences : Le format sépare les compétences à trois endroits différents :
+Documents
 
-Dans chaque expérience : technologies, outils.
+Avancé
+Pondération : Utilisée uniquement lors de la génération manuelle d'un CV. Elle n'affecte pas vos données de profil permanentes.
+💡 Pondération :
+🔥 Important
+= Mis en avant
+✅ Inclus
+= Par défaut
+❌ Exclu
+= Jamais inclus
+Profil
+(Cliquez sur un champ pour modifier)
+Prénom
+Gilles
+Nom
+GOZLAN
+Titre professionnel
+PMO & Quality Manager / Développeur IA Full-Stack
+Localisation
+Sèvres, Île-de-France, France
+Elevator Pitch
+Expert hybride cumulant plus de 7 ans d'expérience en pilotage de projets (PMO) et assurance qualité pour des grands comptes (Volkswagen, Assystem, Servier). Parallèlement développeur Full-Stack spécialisé en IA générative locale et automatisation (LLM, RAG, Python, n8n), alliant rigueur méthodologique et innovation technique. Certifié Expert Planisware et titulaire d'un score TOEIC parfait (990/990).
+Expériences (4)
+Project Manager Officer [ PMO ] & Quality Manager
+Volkswagen Financial Services • 2023-04 - Présent
+✅ Inclus
+Réalisations :
+•
+Gestion centralisée du portefeuille de projets de la DSI et allocation des ressources
 
-Dans un bloc global explicit.
+•
+Administration fonctionnelle et technique de la solution PPM Orchestra
 
-Dans un bloc par_domaine. Problème : C'est un cauchemar de maintenance. Si l'IA détecte "Python" dans une expérience, elle doit mettre à jour trois tableaux différents. Cela augmente le risque d'hallucination ou d'incohérence (ex: Python est "expert" dans le résumé, mais absent des expériences).
+•
+Définition et déploiement de la méthodologie de gestion de projet et assurance qualité
 
-La nesting (imbrication) excessive : Regarde la profondeur de l'objet : competences -> inferred -> techniques -> [{ reasoning, sources }]. Problème : Les LLMs (même GPT-4 ou Claude 3.5) perdent en "attention" quand ils doivent naviguer dans des JSONs trop profonds pour générer du texte. Pour générer un CV, l'IA a besoin de savoir ce que tu sais faire, pas d'avoir un historique de métadonnées sur le "pourquoi" elle a deviné que tu savais le faire (reasoning, confidence). Ces métadonnées polluent le contexte utile.
+•
+Mise en place et exécution d'audits Qualité réguliers — Amélioration de la conformité de 100%
 
-2. Le problème de la "Granularité Rigide"
-Le format impose une structure trop stricte pour les realisations :
+•
+Pilotage de la conduite du changement et formation des nouveaux arrivants
 
-TypeScript
+•
+Centralisation et validation de la documentation technique et fonctionnelle DSI
 
-quantification?: {
-  type: 'volume' | 'budget' | 'pourcentage' | ...;
-  valeur: string;
-  unite: string;
-  display: string;
-};
-Pourquoi c'est mauvais pour un RAG CV : Dans la réalité, une réalisation est souvent une phrase narrative fluide : "Gestion d'un budget de 50k€ avec une équipe de 3 personnes". En forçant l'IA à "exploser" cette phrase dans des cases (valeur: "50", unite: "k€", type: "budget"), tu perds le liant sémantique.
+•
+Création de contenus de formation digitaux et communication interne
 
-Si tu veux reconstruire la phrase pour le CV final, tu dois réassembler les morceaux, ce qui donne souvent des phrases robotiques.
+Planisware
+Orchestra
+Oracle
+FatWire
+Chef de projet fonctionnel & technique
+ASSYSTEM (anciennement ECPDS) • 2016-10 - 2023-04
+✅ Inclus
+Réalisations :
+•
+Pilotage de l'intégration et de la migration de progiciels (Planisware) chez les clients
 
-Le RAG devrait stocker la phrase d'impact optimisée, pas les données brutes atomisées.
+•
+Animation d'ateliers de recueil de besoins avec les Key Users
 
-3. Le manque de "Narrative" (Le Storytelling)
-Ce format est un "sac de faits". Or, un bon CV est une histoire.
+•
+Gestion commerciale et avant-vente sur appels d'offres
 
-Il y a un champ contexte dans les expériences, mais il est optionnel et isolé.
+•
+Management d'équipes projet et suivi budgétaire
 
-Il manque une notion de "Fil Rouge" ou de "Targeting". Ce format stocke tout, mais ne dit pas ce qui est important.
+•
+Conception et spécification d'évolutions fonctionnelles
 
-Exemple : Si tu vises un poste de CTO, tes compétences techniques (code pur) doivent être minimisées au profit du management. Ce JSON statique ne permet pas de pondérer l'importance des éléments selon l'objectif.
+•
+Mise en place du support applicatif et coaching utilisateurs
 
-4. L'usine à gaz des "Sources"
-Le format demande de tracker les sources: string[] pour absolument chaque sous-élément (chaque compétence, chaque réalisation, chaque diplôme). Critique : C'est utile pour le débogage système, mais inutile pour la génération du CV. Cela consomme énormément de tokens pour rien. L'IA a juste besoin de savoir : "Est-ce que cette info est vérifiée ?". Un simple booléen verified: true suffirait, ou une liste de sources globale par expérience.
+Planisware
+Orchestra
+Chef de projet multimédia / Responsable technique
+ALTEN - ACF • 2015-01 - 2016-10
+✅ Inclus
+Réalisations :
+•
+Administration et évolution de plateformes LMS et collaboratives
 
-Ma recommandation : Le Format "Semantic Document"
-Au lieu de ce JSON hyper-structuré, je te suggère un format hybride Markdown Structuré + JSON léger. C'est beaucoup plus proche de la façon dont les LLMs "pensent" et écrivent.
+•
+Accompagnement au changement logiciel en présentiel
 
-Voici à quoi devrait ressembler un "Bon" RAG pour CV :
+•
+Gestion de projets multimédia et coordination d'équipes
 
-1. Aplatir les Compétences (Le "Skill Graph")
-Ne sépare pas par expérience/global. Crée un dictionnaire unique de compétences qui pointe vers les expériences.
+•
+Conception et réalisation de supports de formation
 
-JSON
+•
+Support technique et maintenance des environnements digitaux
 
-"skill_map": {
-  "Python": {
-    "level": "Expert",
-    "used_in_experiences": ["exp_1", "exp_3"],
-    "context": "Utilisé pour l'automatisation et le Data Science"
-  }
-}
-Pourquoi ? L'IA voit immédiatement où tu as utilisé Python sans scanner tout le JSON.
+•
+Reporting d'activité et suivi de la performance des plateformes
 
-2. Remplacer les objets complexes par du texte sémantique
-Pour les réalisations, utilise des chaînes de caractères riches ou du Markdown, pas des objets.
+SharePoint
+CrossKnowledge
+Moodle
+Auto-Entrepreneur (Chef de projet multimédia / Responsable technique)
+Freelance • 2013-01 - 2015-01
+✅ Inclus
+Réalisations :
+•
+Assistance à maîtrise d'ouvrage et gestion de projets digitaux
 
-Mauvais (Actuel) :
+•
+Gestion complète du cycle de vie projet (Ressources, Coûts, Risques)
 
-JSON
+•
+Réalisation de productions graphiques et audiovisuelles
 
-{ "description": "Dev App", "quantification": { "valeur": "30", "unite": "%", "type": "pourcentage" } }
-Bon (Optimisé LLM) :
+•
+Développement web et intégration multimédia
 
-JSON
+•
+Création de modules E-learning conformes aux standards
 
-"bullets": [
-  "Développement d'une app React augmentant le trafic de **30%** (KPI validé)."
-]
-L'IA est excellente pour extraire le "30%" du texte si besoin. Pas besoin de le pré-mâcher.
+•
+Gestion de la relation client et développement commercial
 
-3. Ajouter une couche d'Intention
-Ton format actuel décrit le PASSÉ. Il manque le FUTUR. Ajoute une section strategy au niveau racine :
+Planisware
+Orchestra
+MS Project
+Adobe Suite
+3DSmax
+Maya
+Drupal
+Java/J2EE
+HTML5
+CSS
+Python
+Vos Compétences
+Techniques :
+Planisware (P5, V6, e7)
+✅ Inclus
+Orchestra
+✅ Inclus
+MS Project
+✅ Inclus
+SQL
+✅ Inclus
+PL-SQL
+✅ Inclus
+Java/J2EE
+✅ Inclus
+Python
+✅ Inclus
+HTML 5
+✅ Inclus
+CSS
+✅ Inclus
+LLM Local (Ollama)
+✅ Inclus
+RAG (Qdrant)
+✅ Inclus
+FastAPI
+✅ Inclus
+Next.js
+✅ Inclus
+n8n
+✅ Inclus
+Docker
+✅ Inclus
+Linux
+✅ Inclus
+PostgreSQL
+✅ Inclus
+MongoDB
+✅ Inclus
+Redis
+✅ Inclus
+Adobe Suite
+✅ Inclus
+Cursor
+✅ Inclus
+Git / GitHub
+✅ Inclus
+Prompt Engineering
+✅ Inclus
+GPU Computing & Optimization
+✅ Inclus
+Soft Skills :
+Problem Solving
+Automation Mindset
+Learning Agility
+Strategic Thinking
+Pragmatisme
+Persistence
+Management d'équipes
+Communication
+Leadership
+Autonomie
+Formations (1)
 
-JSON
+MASTER 2 – Diplôme « Réalisateur Numérique - Chef de Projet Digital »
+Institut de l'Internet et du Multimédia • 2013
+✅ Inclus
 
-"strategy": {
-  "target_role": "CTO / VP Engineering",
-  "key_strengths_to_highlight": ["Leadership", "Scalability"],
-  "weaknesses_to_downplay": ["Java Legacy", "Micro-management"],
-  "tone": "Executive & Strategic"
-}
-C'est ça qui va guider la génération du CV, bien plus que le champ tjm ou teletravail.
+Langues (2)
 
-Conclusion
-Le fichier RAG_STANDARD_FORMAT.md décrit un format de stockage d'application, pas un format de génération RAG efficace.
+Anglais :
+C2
 
-Si tu l'utilises pour stocker les données dans Supabase : C'est OK (bien que lourd).
+Français :
+Natif
 
-Si tu l'envoies tel quel dans le prompt de Gemini/GPT pour écrire le CV : C'est mauvais. Tu gaspilles des tokens et tu confonds le modèle avec trop de structure.
+🏆
+Certifications (5)
 
-Conseil immédiat : Garde ce format pour ta BDD si tu veux, mais crée une fonction de transformation (buildRAGForCVPrompt mentionnée dans le doc) qui le convertit en un format beaucoup plus littéraire et compact avant de l'envoyer à l'IA.
+Expert sur la solution Entreprise e7 (Planisware) - 2022-2023
+
+TOEIC Listening and Reading - Score: 990/990 (Date: 13 Dec 2024)
+
+RTX 5090 Early Adopter (2025)
+
+Qdrant Production Implementation
+
+Cursor MVP Score 6.5/10
+
+🤝
+Clients & Références
+Clients (par secteur) :
+Servier
+(Santé)
+Cartier
+(Luxe)
+Chanel
+(Luxe)
+Cube Creative
+(Autre)
+Dreamworks
+(Autre)
+Engie
+(Énergie)
+Flunch
+(Retail)
+Ipsen
+(Santé)
+Logista
+(Transport)
+McDonalds
+(Retail)
+Naïa Thalassa
+(Autre)
+PSA
+(Industrie)
+Quick
+(Retail)
+Renault
+(Industrie)
+Safran
+(Industrie)
+Société Générale
+(Finance)
+Total
+(Énergie)
+Volkswagen Financial Services
+(Finance)
+Arval
+(Autre)
+Arval (BNP Paribas)
+(Finance)
+BNP Paribas
+(Finance)
+CNP
+(Autre)
+CNP Assurances
+(Finance)
+Clients par expérience :
+Volkswagen Financial Services: Volkswagen Financial Services
+ASSYSTEM (anciennement ECPDS): ServierIpsenSociété GénéraleCNPArvalBNP ParibasChanelEngieLogistaSafranMcDonalds
+ALTEN - ACF: ServierTotalRenaultPSA
+Freelance: CartierQuickFlunchDreamworksCube CreativeNaïa Thalassa
+Contexte enrichi (déductions)
+Responsabilités implicites :
+Reporting
+Très probable
+•
+Consolidation des KPIs de performance du portefeuille projets (DSI)
+•
+Production de tableaux de bord décisionnels pour le CODIR/COPIL
+•
+Analyse des écarts (Planning/Budget/Ressources) et alertes préventives
+Justification : Le rôle de PMO central au sein d'une DSI (VWFS) implique nécessairement la responsabilité de fournir une vision macro et micro de la santé des projets à la direction pour arbitrage.
+
+Gouvernance
+Très probable
+•
+Préparation et animation des instances de pilotage (Revues de portefeuille)
+•
+Arbitrage de l'allocation des ressources (Gestion de la capacité/Charge)
+•
+Standardisation des processus de gestion de projet (Waterall/Agile)
+Justification : Mention explicite de 'Gestion centralisée du portefeuille' et 'Allocation des ressources' combinée au titre de Quality Manager qui induit la définition des standards.
+
+Stakeholders
+Probable
+•
+Alignement stratégique entre les métiers (Business) et la DSI
+•
+Gestion des attentes et des priorités contradictoires
+•
+Influence sans autorité hiérarchique directe sur les chefs de projets
+Justification : Poste transverse en DSI d'une captive financière (VWFS) nécessitant de faire le lien entre les impératifs techniques et les besoins métiers, renforcé par l'expérience consulting précédente.
+
+Change_Management
+Très probable
+•
+Évangélisation de la culture projet et des bonnes pratiques
+•
+Gestion des résistances liées à l'adoption des outils PPM (Orchestra)
+•
+Ingénierie pédagogique pour la montée en compétence des équipes
+Justification : Combine l'expérience actuelle ('Pilotage de la conduite du changement') avec le fort background passé en LMS/E-learning et formation.
+
+Budget
+Probable
+•
+Suivi du consommé budgétaire (CAPEX/OPEX) du portefeuille DSI
+•
+Participation aux phases de construction budgétaire annuelle
+•
+Contrôle de la rentabilité et de la facturation (contexte ESN précédent)
+Justification : Le pilotage de portefeuille DSI inclut systématiquement le volet financier. L'expérience chez Assystem (Suivi budgétaire, Avant-vente) confirme cette compétence.
+
+Compétences tacites :
+Configuration & Paramétrage Outils PPM
+Expert
+Administration technique et fonctionnelle d'Orchestra (actuel) et Planisware (passé) sur plus de 7 ans.
+
+Amélioration Continue des Processus
+Avancé
+Double casquette PMO & Quality Manager impliquant l'audit, la définition de méthodologies et l'optimisation des flux de travail.
+
+Pédagogie & Andragogie
+Expert
+Background initial fort en E-learning/LMS et création de contenus de formation, réutilisé pour former les nouveaux arrivants et le change management.
+
+Gestion de la relation client interne/externe
+Avancé
+7 ans en ESN (Assystem) face à des grands comptes exigeants (Banque, Pharma, Luxe) avant de passer interne.
+
+Soft skills déduites :
+Diplomatie & Sens politique
+Rigueur méthodologique
+Capacité de synthèse
+Orientation client/service
+Force de proposition
+Adaptabilité contextuelle
+Environnement de travail :
+Complexité organisationnelle
+Élevée
+Niveau d’autonomie
+Élevé
+Exposition direction
+Élevée
+Criticité missions
+Élevée
+Français
+Anglais
+CV
+CRUSH
+CV Crush © 2026
+Conditions Générales
+Confidentialité
+Nous contacter
+Fait avec 💜 en France
+

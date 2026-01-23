@@ -424,11 +424,75 @@ const buildRAGForCVPrompt = (profile: any) => {
         secteur: c.secteur,
     }));
     
+    // Construire competences depuis skill_map ET garder format original
+    const originalCompetences = base.competences || {};
+    
+    // Extraire techniques depuis skill_map (toutes sauf soft skills)
+    const techniquesFromSkillMap = Object.keys(skillMap).filter(skill => {
+        const skillLower = skill.toLowerCase();
+        // Filtrer les soft skills connus
+        const softSkillKeywords = ['soft', 'communication', 'leadership', 'management', 'team', 'problem solving', 
+            'automation mindset', 'learning agility', 'strategic thinking', 'pragmatisme', 'persistence', 'autonomie'];
+        return !softSkillKeywords.some(keyword => skillLower.includes(keyword));
+    });
+    
+    // Extraire soft_skills depuis skill_map
+    const softSkillsFromSkillMap = Object.keys(skillMap).filter(skill => {
+        const skillLower = skill.toLowerCase();
+        const softSkillKeywords = ['soft', 'communication', 'leadership', 'management', 'team', 'problem solving',
+            'automation mindset', 'learning agility', 'strategic thinking', 'pragmatisme', 'persistence', 'autonomie'];
+        return softSkillKeywords.some(keyword => skillLower.includes(keyword));
+    });
+    
+    // Construire le format competences combiné
+    const competencesCombined: any = {
+        // Format original pour compatibilité
+        ...originalCompetences,
+    };
+    
+    // Extraire techniques depuis format original
+    const originalTechniques: string[] = [];
+    if (originalCompetences.explicit?.techniques) {
+        originalTechniques.push(...originalCompetences.explicit.techniques.map((t: any) => 
+            typeof t === 'string' ? t : (t.nom || t.name || '')
+        ).filter(Boolean));
+    }
+    if (Array.isArray(originalCompetences.techniques)) {
+        originalTechniques.push(...originalCompetences.techniques.map((t: any) => 
+            typeof t === 'string' ? t : (t.nom || t.name || '')
+        ).filter(Boolean));
+    }
+    
+    // Extraire soft_skills depuis format original
+    const originalSoftSkills: string[] = [];
+    if (originalCompetences.explicit?.soft_skills) {
+        originalSoftSkills.push(...originalCompetences.explicit.soft_skills.filter((s: any) => typeof s === 'string'));
+    }
+    if (Array.isArray(originalCompetences.soft_skills)) {
+        originalSoftSkills.push(...originalCompetences.soft_skills.filter((s: any) => typeof s === 'string'));
+    }
+    
+    // Combiner toutes les sources (dédupliquer)
+    const allTechniques = Array.from(new Set([
+        ...originalTechniques,
+        ...techniquesFromSkillMap
+    ]));
+    
+    const allSoftSkills = Array.from(new Set([
+        ...originalSoftSkills,
+        ...softSkillsFromSkillMap
+    ]));
+    
+    // Format simplifié pour l'IA
+    competencesCombined.techniques = allTechniques;
+    competencesCombined.soft_skills = allSoftSkills;
+    
     // Assembler le format optimisé
     const optimized: any = {
         profil: transformedProfil,
         experiences,
-        skill_map: skillMap, // NOUVEAU : compétences aplaties
+        skill_map: skillMap, // Pour l'IA (vue aplatissant)
+        competences: competencesCombined, // Format compatible pour normalizeRAGToCV
         formations,
         certifications,
         langues,
