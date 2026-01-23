@@ -3,7 +3,7 @@
  * Utilise le prompt Gemini pour produire des widgets scorés
  */
 
-import { generateWithCascade } from "@/lib/ai/gemini";
+import { generateWithGemini, GEMINI_MODELS } from "@/lib/ai/gemini";
 import { getAIWidgetsGenerationPrompt } from "@/lib/ai/prompts";
 import { validateAIWidgetsEnvelope, AIWidgetsEnvelope } from "./ai-widgets";
 
@@ -27,9 +27,9 @@ export async function generateWidgetsFromRAGAndMatch(
             params.jobDescription
         );
 
-        const response = await generateWithCascade({
+        const response = await generateWithGemini({
             prompt,
-            model: "pro", // Gemini 3.0 Pro pour qualité
+            model: GEMINI_MODELS.principal, // gemini-3-pro-preview
         });
 
         // Parser la réponse JSON
