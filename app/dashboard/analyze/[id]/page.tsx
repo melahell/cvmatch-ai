@@ -37,6 +37,7 @@ export default function MatchResultPage() {
     const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
     const [generatingCV, setGeneratingCV] = useState(false);
     const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
+    const [templateSelectorOpenV2, setTemplateSelectorOpenV2] = useState(false);
     const [booster, setBooster] = useState<BoosterSelectionState>({
         selectedStrengthIndexes: [],
         selectedMissingKeywords: [],
@@ -122,6 +123,39 @@ export default function MatchResultPage() {
         } catch (error: any) {
             console.error("Erreur génération CV:", error);
             setError(error.message || "Erreur lors de la génération du CV");
+            setGeneratingCV(false);
+        }
+    };
+
+    const handleGenerateCVWithSelectionV2 = async (templateId: string, includePhoto: boolean) => {
+        setTemplateSelectorOpenV2(false);
+        setGeneratingCV(true);
+
+        try {
+            const authHeaders = await getSupabaseAuthHeader();
+            const res = await fetch("/api/cv/generate-v2", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                body: JSON.stringify({
+                    analysisId: id,
+                    template: templateId,
+                    includePhoto: includePhoto,
+                }),
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.error || "Erreur génération V2");
+            }
+
+            const data = await res.json();
+
+            // Redirect to CV Preview
+            router.push(`/dashboard/cv/${data.cvId}`);
+
+        } catch (error: any) {
+            console.error("Erreur génération CV V2:", error);
+            setError(error.message || "Erreur lors de la génération du CV V2");
             setGeneratingCV(false);
         }
     };
@@ -599,16 +633,41 @@ export default function MatchResultPage() {
                                 </>
                             )}
                         </Button>
+                        <Button
+                            size="lg"
+                            variant="outline"
+                            className="h-11 sm:h-12 md:h-14 px-5 sm:px-6 md:px-8 text-sm sm:text-base md:text-lg border-2 border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/20"
+                            onClick={() => setTemplateSelectorOpenV2(true)}
+                            disabled={generatingCV}
+                        >
+                            {generatingCV ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> Génération...
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Générer avec V2 (Widgets)
+                                </>
+                            )}
+                        </Button>
                     </div>
                 </div>
 
             </div>
 
-            {/* Template Selector Modal */}
+            {/* Template Selector Modal V1 */}
             <TemplateSelector
                 isOpen={templateSelectorOpen}
                 onClose={() => setTemplateSelectorOpen(false)}
                 onSelect={(tpl, incPhoto) => handleGenerateCVWithSelection(tpl, incPhoto)}
+                currentPhoto={ragData?.photo_url}
+            />
+
+            {/* Template Selector Modal V2 */}
+            <TemplateSelector
+                isOpen={templateSelectorOpenV2}
+                onClose={() => setTemplateSelectorOpenV2(false)}
+                onSelect={(tpl, incPhoto) => handleGenerateCVWithSelectionV2(tpl, incPhoto)}
                 currentPhoto={ragData?.photo_url}
             />
         </DashboardLayout>

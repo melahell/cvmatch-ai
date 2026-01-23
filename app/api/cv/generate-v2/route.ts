@@ -1,0 +1,188 @@
+import { createSupabaseAdminClient, requireSupabaseUser } from "@/lib/supabase";
+import { NextResponse } from "next/server";
+import { checkRateLimit, createRateLimitError } from "@/lib/utils/rate-limit";
+import { normalizeRAGData } from "@/lib/utils/normalize-rag";
+import { generateWidgetsFromRAGAndMatch } from "@/lib/cv/generate-widgets";
+import { convertAndSort } from "@/lib/cv/ai-adapter";
+import { fitCVToTemplate } from "@/lib/cv/validator";
+import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scoring";
+import packageJson from "@/package.json";
+
+export const runtime = "nodejs";
+
+type MatchContextSelection = {
+    selectedStrengthIndexes?: number[];
+    selectedMissingKeywords?: string[];
+    selectedPreparationChecklistIndexes?: number[];
+    selectedSellingPointsIndexes?: number[];
+    extraInstructions?: string;
+};
+
+/**
+ * Endpoint V2 : Génération CV avec architecture AI Widgets → Bridge → Renderer
+ * 
+ * Différence avec V1 :
+ * - V1 : RAG → Prompt monolithique → CV optimisé directement
+ * - V2 : RAG → Widgets scorés → Bridge (convertAndSort) → CV normalisé
+ */
+export async function POST(req: Request) {
+    const generationStartMs = Date.now();
+    const userId = await requireSupabaseUser();
+
+    // Rate limiting
+    const rateLimitResult = await checkRateLimit(userId, "cv_generation");
+    if (!rateLimitResult.allowed) {
+        return createRateLimitError(rateLimitResult);
+    }
+
+    try {
+        const body = await req.json();
+        const { analysisId, template, includePhoto, matchContextSelection } = body;
+
+        if (!analysisId) {
+            return NextResponse.json({ error: "analysisId requis" }, { status: 400 });
+        }
+
+        const supabase = createSupabaseAdminClient();
+
+        // 1. Fetch job analysis
+        const { data: analysisData, error: analysisError } = await supabase
+            .from("job_analyses")
+            .select("*")
+            .eq("id", analysisId)
+            .eq("user_id", userId)
+            .single();
+
+        if (analysisError || !analysisData) {
+            return NextResponse.json({ error: "Analyse introuvable" }, { status: 404 });
+        }
+
+        const jobDescription = analysisData.job_description || analysisData.job_text || "";
+
+        // 2. Fetch RAG profile
+        const { data: ragMetadata, error: ragError } = await supabase
+            .from("rag_metadata")
+            .select("completeness_details")
+            .eq("user_id", userId)
+            .single();
+
+        if (ragError || !ragMetadata) {
+            return NextResponse.json({ error: "Profil RAG introuvable" }, { status: 404 });
+        }
+
+        const ragProfile = normalizeRAGData(ragMetadata.completeness_details);
+        if (!ragProfile || !ragProfile.profil) {
+            return NextResponse.json({ error: "Profil RAG incomplet" }, { status: 400 });
+        }
+
+        // 3. Build match analysis object for widgets generation
+        const matchAnalysis = {
+            job_title: analysisData.job_title,
+            company: analysisData.company_name,
+            match_score: analysisData.match_score,
+            match_report: analysisData.analysis_result?.match_report || {},
+            strengths: analysisData.analysis_result?.match_report?.strengths || [],
+            missing_keywords: analysisData.analysis_result?.match_report?.missing_keywords || [],
+            coaching_tips: analysisData.analysis_result?.match_report?.coaching_tips || {},
+        };
+
+        // 4. Generate widgets from RAG + match analysis (CERVEAU IA)
+        const widgetsEnvelope = await generateWidgetsFromRAGAndMatch({
+            ragProfile,
+            matchAnalysis,
+            jobDescription,
+        });
+
+        if (!widgetsEnvelope) {
+            return NextResponse.json(
+                { error: "Erreur génération widgets IA" },
+                { status: 500 }
+            );
+        }
+
+        // 5. Convert widgets to CVData via bridge (AIAdapter)
+        const cvData = convertAndSort(widgetsEnvelope, {
+            minScore: 50,
+            maxExperiences: 6,
+            maxBulletsPerExperience: 6,
+        });
+
+        // 6. Extract job offer context for relevance scoring
+        const jobOfferContext: JobOfferContext | null = jobDescription
+            ? {
+                ...parseJobOfferFromText(jobDescription),
+                title: analysisData.job_title || parseJobOfferFromText(jobDescription).title,
+                sector: analysisData.company_name || undefined,
+            }
+            : null;
+
+        // 7. Fit CV to template (spatial adaptation)
+        const { cvData: finalCV, compressionLevelApplied, dense, unitStats } = fitCVToTemplate({
+            cvData,
+            templateName: template || "modern",
+            includePhoto: includePhoto ?? true,
+            jobOffer: jobOfferContext,
+        });
+
+        // 8. Calculate metadata
+        const generationTime = Date.now() - generationStartMs;
+
+        // Count widgets used
+        const widgetsUsed = widgetsEnvelope.widgets.length;
+        const widgetsFiltered = widgetsEnvelope.widgets.filter((w) => w.relevance_score >= 50).length;
+
+        // Add metadata
+        (finalCV as any).cv_metadata = {
+            template_used: template || "modern",
+            generated_for_job_id: analysisId,
+            match_score: analysisData.match_score,
+            generated_at: new Date().toISOString(),
+            generator_version: packageJson.version,
+            generator_model: widgetsEnvelope.meta?.model || "gemini-3-pro-preview",
+            compression_level_applied: compressionLevelApplied,
+            page_count: 1,
+            dense: !!dense,
+            unit_stats: unitStats,
+            generation_duration_ms: generationTime,
+            generator_type: "v2_widgets",
+            widgets_total: widgetsUsed,
+            widgets_filtered: widgetsFiltered,
+            relevance_scoring_applied: !!jobOfferContext,
+            job_title: analysisData.job_title || null,
+        };
+
+        // 9. Save Generated CV
+        const { data: cvGen, error: cvError } = await supabase
+            .from("cv_generations")
+            .insert({
+                user_id: userId,
+                job_analysis_id: analysisId,
+                template_name: template || "modern",
+                cv_data: finalCV,
+                optimizations_applied: [],
+                generation_duration_ms: generationTime,
+            })
+            .select("id")
+            .single();
+
+        if (cvError) {
+            console.error("CV Save Error", cvError);
+            return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
+        }
+
+        return NextResponse.json({
+            success: true,
+            cvId: cvGen?.id,
+            cvData: finalCV,
+            templateName: template || "modern",
+            includePhoto,
+            generatorVersion: "v2",
+            widgetsUsed,
+            widgetsFiltered,
+        });
+
+    } catch (error: any) {
+        console.error("CV Generation V2 Error", error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
