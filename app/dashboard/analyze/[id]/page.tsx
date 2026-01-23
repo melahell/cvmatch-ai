@@ -129,35 +129,9 @@ export default function MatchResultPage() {
 
     const handleGenerateCVWithSelectionV2 = async (templateId: string, includePhoto: boolean) => {
         setTemplateSelectorOpenV2(false);
-        setGeneratingCV(true);
-
-        try {
-            const authHeaders = await getSupabaseAuthHeader();
-            const res = await fetch("/api/cv/generate-v2", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", ...authHeaders },
-                body: JSON.stringify({
-                    analysisId: id,
-                    template: templateId,
-                    includePhoto: includePhoto,
-                }),
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.error || "Erreur génération V2");
-            }
-
-            const data = await res.json();
-
-            // Redirect to CV Preview
-            router.push(`/dashboard/cv/${data.cvId}`);
-
-        } catch (error: any) {
-            console.error("Erreur génération CV V2:", error);
-            setError(error.message || "Erreur lors de la génération du CV V2");
-            setGeneratingCV(false);
-        }
+        // Rediriger directement vers CV Builder avec architecture client-side
+        // Le CV Builder générera les widgets et permettra l'édition interactive
+        router.push(`/dashboard/cv-builder?analysisId=${id}`);
     };
 
     const handleRetry = () => {

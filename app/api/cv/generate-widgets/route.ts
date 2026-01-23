@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { generateWidgetsFromRAGAndMatch } from "@/lib/cv/generate-widgets";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
+import { parseJobOfferFromText, type JobOfferContext } from "@/lib/cv/relevance-scoring";
 
 export const runtime = "nodejs";
 
@@ -143,6 +144,21 @@ export async function POST(req: Request) {
             );
         }
 
+        // 7.5. Build JobOfferContext for advanced scoring
+        const jobOfferContext: JobOfferContext = parseJobOfferFromText(jobDescription);
+        // Enrichir avec données de l'analyse
+        if (analysisData.job_title) {
+            jobOfferContext.title = analysisData.job_title;
+        }
+        if (analysisData.company_name) {
+            jobOfferContext.company = analysisData.company_name;
+        }
+        // Ajouter missing_keywords depuis match_report
+        const matchReport = analysisData.analysis_result?.match_report || {};
+        if (matchReport.missing_keywords && Array.isArray(matchReport.missing_keywords)) {
+            (jobOfferContext as any).missing_keywords = matchReport.missing_keywords;
+        }
+
         // 8. Return widgets ONLY (no conversion, no template fitting)
         return NextResponse.json({
             success: true,
@@ -154,6 +170,7 @@ export async function POST(req: Request) {
                 widgetsCount: widgetsEnvelope.widgets.length,
                 model: widgetsEnvelope.meta?.model || "gemini-3-pro-preview",
             },
+            jobOfferContext, // Ajouter contexte offre pour scoring avancé côté client
         });
     } catch (error: any) {
         console.error("Error in generate-widgets:", error);

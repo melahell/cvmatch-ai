@@ -17,7 +17,8 @@ import CVRenderer from "@/components/cv/CVRenderer";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw } from "lucide-react";
-import { convertWidgetsToCV, convertWidgetsToCVWithValidation, type ConvertOptions } from "@/lib/cv/client-bridge";
+import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions } from "@/lib/cv/client-bridge";
+import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
 import {
     saveWidgetsToCache,
     getWidgetsFromCache,
@@ -31,8 +32,11 @@ import { TEMPLATES } from "@/components/cv/templates";
 import { ValidationWarnings } from "@/components/cv/ValidationWarnings";
 import { MultiTemplatePreview } from "@/components/cv/MultiTemplatePreview";
 import { PDFExportButton } from "@/components/cv/PDFExportButton";
+import { DraggableCV } from "@/components/cv/DraggableCV";
+import { ExperienceEditor } from "@/components/cv/ExperienceEditor";
 import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
+import { useCVReorder } from "@/hooks/useCVReorder";
 import Cookies from "js-cookie";
 
 interface GenerationState {
@@ -46,6 +50,7 @@ interface GenerationState {
         widgetsCount: number;
         model: string;
     } | null;
+    jobOfferContext: JobOfferContext | null;
 }
 
 function CVBuilderContent() {
@@ -60,12 +65,14 @@ function CVBuilderContent() {
         error: null,
         widgets: null,
         metadata: null,
+        jobOfferContext: null,
     });
 
     const [templateId, setTemplateId] = useState<string>("modern");
     const [cvData, setCvData] = useState<RendererResumeSchema | null>(null);
     const [validationResult, setValidationResult] = useState<any>(null);
     const [viewMode, setViewMode] = useState<"single" | "multi">("single");
+    const [showEditor, setShowEditor] = useState<boolean>(false);
     const [convertOptions, setConvertOptions] = useState<ConvertOptions>({
         minScore: 50,
         maxExperiences: 6,
@@ -83,12 +90,23 @@ function CVBuilderContent() {
         convertOptions,
     });
 
+    // Hook drag & drop pour réorganisation
+    const {
+        reorderedCV,
+        reorderExperiences,
+        reorderTechniques,
+        reorderSoftSkills,
+        reorderExperienceBullets,
+        resetOrder,
+    } = useCVReorder(cvData, analysisId);
+
     // Charger widgets depuis cache ou API
     const loadWidgets = useCallback(async (forceRefresh = false) => {
         if (!analysisId) {
             setState((prev) => ({
                 ...prev,
                 error: "analysisId requis dans l'URL",
+                jobOfferContext: null,
             }));
             return;
         }
@@ -97,14 +115,17 @@ function CVBuilderContent() {
         if (!forceRefresh) {
             const cached = getWidgetsFromCache(analysisId);
             if (cached) {
+                // Récupérer jobOfferContext depuis metadata si présent
+                const jobContext = (cached.metadata as any)?.jobOfferContext || null;
                 setState({
                     isLoading: false,
                     error: null,
                     widgets: cached.widgets,
                     metadata: cached.metadata,
+                    jobOfferContext: jobContext,
                 });
                 // Convertir immédiatement avec le template actuel
-                convertWidgetsToCVData(cached.widgets, templateId, convertOptions);
+                convertWidgetsToCVData(cached.widgets, templateId, convertOptions, jobContext);
                 return;
             }
         }
@@ -127,32 +148,39 @@ function CVBuilderContent() {
             const data = await response.json();
             const widgets = data.widgets as AIWidgetsEnvelope;
             const metadata = data.metadata;
+            const jobOfferContext = (data.jobOfferContext as JobOfferContext) || null;
 
-            // Sauvegarder dans cache
-            saveWidgetsToCache(analysisId, widgets, metadata);
+            // Sauvegarder dans cache (inclure jobOfferContext dans metadata pour cache)
+            const metadataWithContext = {
+                ...metadata,
+                jobOfferContext, // Inclure dans metadata pour cache
+            };
+            saveWidgetsToCache(analysisId, widgets, metadataWithContext);
 
             setState({
                 isLoading: false,
                 error: null,
                 widgets,
                 metadata,
+                jobOfferContext,
             });
 
-            // Convertir immédiatement
-            convertWidgetsToCVData(widgets, templateId, convertOptions);
+            // Convertir immédiatement avec scoring avancé
+            convertWidgetsToCVData(widgets, templateId, convertOptions, jobOfferContext);
         } catch (error: any) {
             setState({
                 isLoading: false,
                 error: error.message || "Erreur lors de la génération des widgets",
                 widgets: null,
                 metadata: null,
+                jobOfferContext: null,
             });
         }
     }, [analysisId, jobId, templateId, convertOptions]);
 
-    // Convertir widgets → CVData (côté client, instantané) avec validation
+    // Convertir widgets → CVData (côté client, instantané) avec validation + scoring avancé
     const convertWidgetsToCVData = useCallback(
-        (widgets: AIWidgetsEnvelope, template: string, options: ConvertOptions) => {
+        (widgets: AIWidgetsEnvelope, template: string, options: ConvertOptions, jobContext?: JobOfferContext | null) => {
             if (!analysisId) return;
 
             // Normaliser options
@@ -169,8 +197,20 @@ function CVBuilderContent() {
                 // Toujours valider même si en cache (pour afficher warnings)
                 if (ragData) {
                     try {
-                        const { validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
-                        setValidationResult(validation);
+                        // Utiliser scoring avancé si jobContext disponible
+                        if (jobContext) {
+                            const { validation } = convertWidgetsToCVWithAdvancedScoring(
+                                widgets,
+                                ragData,
+                                jobContext,
+                                normalizedOptions,
+                                true
+                            );
+                            setValidationResult(validation);
+                        } else {
+                            const { validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
+                            setValidationResult(validation);
+                        }
                     } catch (error) {
                         console.error("Erreur validation:", error);
                     }
@@ -178,21 +218,29 @@ function CVBuilderContent() {
                 return;
             }
 
-            // Convertir avec validation si RAG disponible
+            // Convertir avec validation + scoring avancé si RAG disponible
             try {
-                // Normaliser options (assurer toutes les propriétés sont définies)
-                const normalizedOptions: Required<ConvertOptions> = {
-                    minScore: options.minScore ?? 50,
-                    maxExperiences: options.maxExperiences ?? 6,
-                    maxBulletsPerExperience: options.maxBulletsPerExperience ?? 6,
-                };
-
                 if (ragData) {
-                    const { cvData: cv, validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
-                    setCvData(cv);
-                    setValidationResult(validation);
-                    // Sauvegarder dans cache
-                    saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                    // Utiliser scoring avancé si jobContext disponible
+                    if (jobContext) {
+                        const { cvData: cv, validation } = convertWidgetsToCVWithAdvancedScoring(
+                            widgets,
+                            ragData,
+                            jobContext,
+                            normalizedOptions,
+                            true
+                        );
+                        setCvData(cv);
+                        setValidationResult(validation);
+                        // Sauvegarder dans cache
+                        saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                    } else {
+                        // Fallback avec validation simple si pas de jobContext
+                        const { cvData: cv, validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
+                        setCvData(cv);
+                        setValidationResult(validation);
+                        saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                    }
                 } else {
                     // Fallback sans validation si RAG non disponible
                     const cv = convertWidgetsToCV(widgets, normalizedOptions);
@@ -221,10 +269,10 @@ function CVBuilderContent() {
     // Reconvertir quand template ou options changent
     useEffect(() => {
         if (state.widgets) {
-            convertWidgetsToCVData(state.widgets, templateId, convertOptions);
+            convertWidgetsToCVData(state.widgets, templateId, convertOptions, state.jobOfferContext);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [templateId, convertOptions, state.widgets]);
+    }, [templateId, convertOptions, state.widgets, state.jobOfferContext]);
 
     const handleTemplateChange = (newTemplate: string) => {
         setTemplateId(newTemplate);
@@ -298,6 +346,14 @@ function CVBuilderContent() {
                             >
                                 {viewMode === "single" ? "Comparer templates" : "Vue single"}
                             </Button>
+                            <Button
+                                variant={showEditor ? "primary" : "outline"}
+                                size="sm"
+                                onClick={() => setShowEditor(!showEditor)}
+                                disabled={!cvData}
+                            >
+                                {showEditor ? "Masquer éditeur" : "Éditer ordre"}
+                            </Button>
                             {cvData && (
                                 <PDFExportButton
                                     elementId="cv-preview-container"
@@ -358,16 +414,32 @@ function CVBuilderContent() {
                 )}
 
                 {state.widgets && cvData && (
-                    <>
-                        {viewMode === "multi" ? (
-                            <MultiTemplatePreview
-                                cvData={cvData}
-                                onTemplateSelect={handleMultiPreviewSelect}
-                            />
-                        ) : (
-                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                                {/* Sidebar : Contrôles */}
-                                <aside className="space-y-4">
+                    <DraggableCV
+                        cvData={reorderedCV || cvData}
+                        onReorderExperiences={reorderExperiences}
+                        onReorderTechniques={reorderTechniques}
+                        onReorderSoftSkills={reorderSoftSkills}
+                        onReorderBullets={reorderExperienceBullets}
+                    >
+                        <>
+                            {showEditor && (
+                                <div className="mb-6">
+                                    <ExperienceEditor
+                                        experiences={(reorderedCV || cvData).experiences}
+                                        onReorder={reorderExperiences}
+                                        onReorderBullets={reorderExperienceBullets}
+                                    />
+                                </div>
+                            )}
+                            {viewMode === "multi" ? (
+                                <MultiTemplatePreview
+                                    cvData={reorderedCV || cvData}
+                                    onTemplateSelect={handleMultiPreviewSelect}
+                                />
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                                    {/* Sidebar : Contrôles */}
+                                    <aside className="space-y-4">
                                     <Card>
                                         <CardHeader>
                                             <CardTitle className="text-sm">Template</CardTitle>
@@ -459,10 +531,10 @@ function CVBuilderContent() {
                                             </CardTitle>
                                         </CardHeader>
                                 <CardContent className="bg-slate-100 flex items-center justify-center p-4 min-h-[800px]">
-                                    {cvData ? (
+                                    {reorderedCV || cvData ? (
                                         <div id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
                                             <CVRenderer
-                                                data={cvData}
+                                                data={reorderedCV || cvData}
                                                 templateId={templateId}
                                                 includePhoto={true}
                                                 dense={false}
@@ -479,7 +551,8 @@ function CVBuilderContent() {
                                 </div>
                             </div>
                         )}
-                    </>
+                        </>
+                    </DraggableCV>
                 )}
             </main>
         </div>
