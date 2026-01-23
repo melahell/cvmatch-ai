@@ -574,6 +574,11 @@ const buildSourceSkillSet = (profile: any) => {
         if (key) skills.add(key);
     };
 
+    // NOUVEAU : Extraire depuis skill_map si présent (format optimisé)
+    if (profile?.skill_map && typeof profile.skill_map === "object") {
+        Object.keys(profile.skill_map).forEach(skill => add(skill));
+    }
+
     const competences = profile?.competences || {};
     const collectArray = (arr: unknown) => {
         if (!Array.isArray(arr)) return;
@@ -735,6 +740,31 @@ const mergeAIOptimizationsIntoProfile = (params: {
     const desiredTechniques: string[] = [];
     const desiredSoft: string[] = [];
 
+    // NOUVEAU : Gérer le format "categories" de l'IA
+    if (aiCompetences.categories && Array.isArray(aiCompetences.categories)) {
+        for (const cat of aiCompetences.categories) {
+            if (cat.display === false) continue;
+            const items = cat.items || cat.skills || [];
+            const catName = (cat.nom || cat.name || '').toLowerCase();
+            const isSoftSkill = catName.includes('soft') || catName.includes('personnel') || catName.includes('transvers');
+            
+            for (const item of items) {
+                if (typeof item === 'object' && item.display === false) continue;
+                const skillName = typeof item === 'string' ? item : (item.nom || item.name || item.skill || '');
+                if (!skillName) continue;
+                const key = normalizeForMatch(skillName);
+                if (!key || !sourceSkillSet.has(key)) continue;
+                
+                if (isSoftSkill) {
+                    desiredSoft.push(String(skillName));
+                } else {
+                    desiredTechniques.push(String(skillName));
+                }
+            }
+        }
+    }
+
+    // Format simple (techniques/soft_skills arrays)
     for (const s of extractSkillStrings(aiCompetences?.techniques ?? aiCompetences?.langages_programmation ?? [])) {
         const key = normalizeForMatch(s);
         if (!key || !sourceSkillSet.has(key)) continue;
