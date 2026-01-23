@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
-import { checkRateLimit, createRateLimitError } from "@/lib/utils/rate-limit";
+import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { generateWidgetsFromRAGAndMatch } from "@/lib/cv/generate-widgets";
 import { convertAndSort } from "@/lib/cv/ai-adapter";
@@ -9,14 +9,6 @@ import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scori
 import packageJson from "@/package.json";
 
 export const runtime = "nodejs";
-
-type MatchContextSelection = {
-    selectedStrengthIndexes?: number[];
-    selectedMissingKeywords?: string[];
-    selectedPreparationChecklistIndexes?: number[];
-    selectedSellingPointsIndexes?: number[];
-    extraInstructions?: string;
-};
 
 /**
  * Endpoint V2 : Génération CV avec architecture AI Widgets → Bridge → Renderer
@@ -29,10 +21,25 @@ export async function POST(req: Request) {
     const generationStartMs = Date.now();
     const userId = await requireSupabaseUser();
 
-    // Rate limiting
-    const rateLimitResult = await checkRateLimit(userId, "cv_generation");
-    if (!rateLimitResult.allowed) {
-        return createRateLimitError(rateLimitResult);
+    const supabase = createSupabaseAdminClient();
+
+    // Rate limiting (même logique que V1)
+    const { data: userRow } = await supabase
+        .from("users")
+        .select("subscription_tier, subscription_status, subscription_expires_at")
+        .eq("id", userId)
+        .single();
+
+    const isExpired = userRow?.subscription_expires_at
+        ? new Date(userRow.subscription_expires_at) < new Date()
+        : false;
+    const tier = !userRow || userRow.subscription_status !== "active" || isExpired
+        ? "free"
+        : (userRow.subscription_tier || "free");
+
+    const rateLimitResult = checkRateLimit(`cv:${userId}`, getRateLimitConfig(tier, "CV_GENERATION"));
+    if (!rateLimitResult.success) {
+        return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
     }
 
     try {
@@ -42,8 +49,6 @@ export async function POST(req: Request) {
         if (!analysisId) {
             return NextResponse.json({ error: "analysisId requis" }, { status: 400 });
         }
-
-        const supabase = createSupabaseAdminClient();
 
         // 1. Fetch job analysis
         const { data: analysisData, error: analysisError } = await supabase
