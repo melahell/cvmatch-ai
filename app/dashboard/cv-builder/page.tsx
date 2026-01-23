@@ -37,6 +37,7 @@ import { ExperienceEditor } from "@/components/cv/ExperienceEditor";
 import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
 import { useCVReorder } from "@/hooks/useCVReorder";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
 import Cookies from "js-cookie";
 
 interface GenerationState {
@@ -134,9 +135,15 @@ function CVBuilderContent() {
         setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
         try {
+            // Récupérer headers d'authentification
+            const authHeaders = await getSupabaseAuthHeader();
+            
             const response = await fetch("/api/cv/generate-widgets", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    ...authHeaders,
+                },
                 body: JSON.stringify({ analysisId, jobId }),
             });
 
