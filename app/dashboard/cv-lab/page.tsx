@@ -230,7 +230,7 @@ export default function CVLabPage() {
                                             key={id}
                                             type="button"
                                             size="sm"
-                                            variant={templateId === id ? "default" : "outline"}
+                                            variant={templateId === id ? "primary" : "outline"}
                                             onClick={() => setTemplateId(id)}
                                         >
                                             {id}
