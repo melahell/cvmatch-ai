@@ -40,7 +40,7 @@ export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: C
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <span className="text-xs text-slate-600">{date}</span>
                                 {isV2 && (
-                                    <Badge variant="secondary" className="text-xs bg-indigo-100 text-indigo-700 border-indigo-200">
+                                    <Badge variant="outline" className="text-xs bg-indigo-100 text-indigo-700 border-indigo-200">
                                         <Sparkles className="w-3 h-3 mr-1" />
                                         V2
                                     </Badge>
