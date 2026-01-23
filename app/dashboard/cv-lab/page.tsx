@@ -229,7 +229,7 @@ export default function CVLabPage() {
                                         <Button
                                             key={id}
                                             type="button"
-                                            size="xs"
+                                            size="sm"
                                             variant={templateId === id ? "default" : "outline"}
                                             onClick={() => setTemplateId(id)}
                                         >
