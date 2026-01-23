@@ -16,6 +16,7 @@
 import { createSupabaseAdminClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWidgetsFromRAGAndMatch } from "@/lib/cv/generate-widgets";
+import type { AIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { parseJobOfferFromText, type JobOfferContext } from "@/lib/cv/relevance-scoring";
@@ -114,31 +115,73 @@ export async function POST(req: Request) {
             );
         }
 
-        const ragProfile = normalizeRAGData(ragData.rag_data);
+        // Vérifier que completeness_details existe
+        if (!ragData.completeness_details) {
+            return NextResponse.json(
+                {
+                    error: "Profil RAG incomplet",
+                    errorCode: "RAG_INCOMPLETE",
+                    details: "Le champ completeness_details est manquant dans rag_metadata",
+                },
+                { status: 400 }
+            );
+        }
+
+        const ragProfile = normalizeRAGData(ragData.completeness_details);
+        
+        if (!ragProfile) {
+            return NextResponse.json(
+                {
+                    error: "Erreur normalisation RAG",
+                    errorCode: "RAG_NORMALIZATION_FAILED",
+                    details: "Impossible de normaliser les données RAG",
+                },
+                { status: 500 }
+            );
+        }
 
         // 6. Build match analysis context
+        const analysisResult = analysisData.analysis_result || {};
+        const matchReport = analysisResult.match_report || {};
+        
         const matchAnalysis = {
             company: analysisData.company_name,
             match_score: analysisData.match_score,
-            match_report: analysisData.analysis_result?.match_report || {},
-            strengths: analysisData.analysis_result?.match_report?.strengths || [],
-            missing_keywords: analysisData.analysis_result?.match_report?.missing_keywords || [],
-            coaching_tips: analysisData.analysis_result?.match_report?.coaching_tips || {},
+            match_report: matchReport,
+            strengths: matchReport.strengths || [],
+            missing_keywords: matchReport.missing_keywords || [],
+            coaching_tips: matchReport.coaching_tips || {},
         };
 
         // 7. Generate widgets from RAG + match analysis (CERVEAU IA)
-        const widgetsEnvelope = await generateWidgetsFromRAGAndMatch({
-            ragProfile,
-            matchAnalysis,
-            jobDescription,
-        });
+        let widgetsEnvelope: AIWidgetsEnvelope | null = null;
+        try {
+            console.log("[generate-widgets] Début génération widgets pour analysisId:", analysisId);
+            widgetsEnvelope = await generateWidgetsFromRAGAndMatch({
+                ragProfile,
+                matchAnalysis,
+                jobDescription,
+            });
 
-        if (!widgetsEnvelope) {
+            if (!widgetsEnvelope) {
+                console.error("[generate-widgets] generateWidgetsFromRAGAndMatch a retourné null");
+                return NextResponse.json(
+                    {
+                        error: "Erreur génération widgets IA",
+                        errorCode: "WIDGETS_GENERATION_FAILED",
+                        details: "L'IA n'a pas pu générer les widgets de contenu. Vérifiez que votre profil RAG est complet.",
+                    },
+                    { status: 500 }
+                );
+            }
+            console.log("[generate-widgets] Widgets générés avec succès:", widgetsEnvelope.widgets.length, "widgets");
+        } catch (widgetError: any) {
+            console.error("[generate-widgets] Erreur lors de la génération des widgets:", widgetError);
             return NextResponse.json(
                 {
-                    error: "Erreur génération widgets IA",
-                    errorCode: "WIDGETS_GENERATION_FAILED",
-                    details: "L'IA n'a pas pu générer les widgets de contenu. Vérifiez que votre profil RAG est complet.",
+                    error: "Erreur lors de la génération des widgets IA",
+                    errorCode: "WIDGETS_GENERATION_ERROR",
+                    details: widgetError.message || "Erreur inconnue lors de l'appel à l'IA",
                 },
                 { status: 500 }
             );
@@ -153,8 +196,7 @@ export async function POST(req: Request) {
         if (analysisData.company_name) {
             jobOfferContext.company = analysisData.company_name;
         }
-        // Ajouter missing_keywords depuis match_report
-        const matchReport = analysisData.analysis_result?.match_report || {};
+        // Ajouter missing_keywords depuis match_report (déjà défini plus haut)
         if (matchReport.missing_keywords && Array.isArray(matchReport.missing_keywords)) {
             (jobOfferContext as any).missing_keywords = matchReport.missing_keywords;
         }
@@ -165,7 +207,7 @@ export async function POST(req: Request) {
             widgets: widgetsEnvelope,
             metadata: {
                 analysisId,
-                jobId: jobId || analysisData.job_id,
+                jobId: jobId || undefined,
                 generatedAt: new Date().toISOString(),
                 widgetsCount: widgetsEnvelope.widgets.length,
                 model: widgetsEnvelope.meta?.model || "gemini-3-pro-preview",
