@@ -18,17 +18,22 @@ export const runtime = "nodejs";
  * - V2 : RAG → Widgets scorés → Bridge (convertAndSort) → CV normalisé
  */
 export async function POST(req: Request) {
-    const generationStartMs = Date.now();
-    const userId = await requireSupabaseUser();
+    try {
+        const generationStartMs = Date.now();
+        const auth = await requireSupabaseUser(req);
+        if (auth.error || !auth.user || !auth.token) {
+            return NextResponse.json({ error: auth.error || "Non autorisé" }, { status: 401 });
+        }
 
-    const supabase = createSupabaseAdminClient();
+        const userId = auth.user.id;
+        const supabase = createSupabaseAdminClient();
 
-    // Rate limiting (même logique que V1)
-    const { data: userRow } = await supabase
-        .from("users")
-        .select("subscription_tier, subscription_status, subscription_expires_at")
-        .eq("id", userId)
-        .single();
+        // Rate limiting (même logique que V1)
+        const { data: userRow } = await supabase
+            .from("users")
+            .select("subscription_tier, subscription_status, subscription_expires_at")
+            .eq("id", userId)
+            .single();
 
     const isExpired = userRow?.subscription_expires_at
         ? new Date(userRow.subscription_expires_at) < new Date()
@@ -42,7 +47,6 @@ export async function POST(req: Request) {
         return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
     }
 
-    try {
         const body = await req.json();
         const { analysisId, template, includePhoto, matchContextSelection } = body;
 
