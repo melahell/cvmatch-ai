@@ -6,41 +6,32 @@
  * - Company name normalization (VW FS = Volkswagen Financial Services)
  * - Fuzzy position matching (60% similarity threshold)
  * - Date tolerance (±6 months)
+ * - Fuzzy matching pour déduplication intelligente
+ * - Respect strict de rejected_inferred
  */
 
 import { normalizeCompanyName } from './normalize-company';
 import { combinedSimilarity, areStringsSimilar } from './string-similarity';
+import { 
+    areExperiencesSimilar as fuzzyAreExperiencesSimilar,
+    areSkillsSimilar,
+    isSkillRejected,
+    deduplicateBySimilarity
+} from './fuzzy-matcher';
 
 /**
  * Check if two experiences are similar (same company + overlapping dates + similar position)
  * 
  * Criteria (all must match):
- * 1. Same company after normalization
- * 2. Start dates within 3 months (stricter to avoid merging distinct experiences)
- * 3. Position similarity >= 60%
+ * 1. Same company after normalization (fuzzy matching avec seuil 85%)
+ * 2. Start dates within 6 months (tolérance augmentée pour variations)
+ * 3. Position similarity >= 70% (fuzzy matching amélioré)
  */
 function areExperiencesSimilar(exp1: any, exp2: any): boolean {
     if (!exp1 || !exp2) return false;
 
-    // 1. Compare companies with normalization
-    const company1 = normalizeCompanyName(exp1.entreprise);
-    const company2 = normalizeCompanyName(exp2.entreprise);
-    if (company1 !== company2) return false;
-
-    // 2. Compare dates with ±3 months tolerance (stricter to preserve distinct experiences)
-    const start1 = new Date(exp1.debut || "2000-01");
-    const start2 = new Date(exp2.debut || "2000-01");
-    const monthsDiff = Math.abs(
-        (start1.getFullYear() - start2.getFullYear()) * 12 +
-        (start1.getMonth() - start2.getMonth())
-    );
-    if (monthsDiff > 3) return false;
-
-    // 3. Compare positions with fuzzy matching (60% threshold)
-    const positionSimilarity = combinedSimilarity(exp1.poste, exp2.poste);
-    if (positionSimilarity < 0.6) return false;
-
-    return true;
+    // Utiliser fuzzy matching amélioré
+    return fuzzyAreExperiencesSimilar(exp1, exp2, 0.85, 0.7);
 }
 
 /**
@@ -233,16 +224,30 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
                 return Array.from(skillMap.values());
             };
 
+            // Dédupliquer compétences explicites avec fuzzy matching
+            const deduplicateSkills = (skills: any[]): any[] => {
+                return deduplicateBySimilarity(
+                    skills,
+                    (s) => typeof s === 'string' ? s.toLowerCase() : (s.name || s.nom || '').toLowerCase(),
+                    (a, b) => {
+                        const nameA = typeof a === 'string' ? a : (a.name || a.nom || '');
+                        const nameB = typeof b === 'string' ? b : (b.name || b.nom || '');
+                        return areSkillsSimilar(nameA, nameB, 0.85);
+                    },
+                    0.85
+                );
+            };
+
             return {
                 explicit: {
-                    techniques: [...new Set([
+                    techniques: deduplicateSkills([
                         ...(existing.competences?.explicit?.techniques || []),
                         ...(incoming.competences?.explicit?.techniques || [])
-                    ])],
-                    soft_skills: [...new Set([
+                    ]),
+                    soft_skills: deduplicateSkills([
                         ...(existing.competences?.explicit?.soft_skills || []),
                         ...(incoming.competences?.explicit?.soft_skills || [])
-                    ])]
+                    ])
                 },
                 inferred: {
                     techniques: mergeInferredSkills(

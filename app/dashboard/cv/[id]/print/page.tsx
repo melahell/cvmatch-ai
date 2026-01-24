@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
+import { logger } from "@/lib/utils/logger";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
@@ -120,7 +121,8 @@ export default function CVPrintPage() {
                         setRendered(true);
                         // Set a global flag that Puppeteer can detect
                         (window as any).__CV_RENDER_COMPLETE__ = true;
-                        console.log('✅ CV Render Complete');
+                        // Log only in development
+                        logger.debug('CV Render Complete');
                     }, 500);
                 });
             } else {
@@ -128,7 +130,8 @@ export default function CVPrintPage() {
                 setTimeout(() => {
                     setRendered(true);
                     (window as any).__CV_RENDER_COMPLETE__ = true;
-                    console.log('✅ CV Render Complete (fallback)');
+                    // Log only in development
+                    logger.debug('CV Render Complete (fallback)');
                 }, 1500);
             }
         }

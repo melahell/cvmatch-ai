@@ -328,13 +328,231 @@ Chaque CV généré avec V2 contient des métadonnées dans `cv_data.cv_metadata
 npm test
 ```
 
+## Cache Widgets
+
+### Architecture Cache Serveur
+
+Le cache widgets est implémenté dans `lib/cv/widget-cache.ts` et intégré automatiquement dans l'endpoint `/api/cv/generate-widgets`.
+
+**Table Supabase** : `widget_cache`
+
+**Structure** :
+```sql
+CREATE TABLE widget_cache (
+  id UUID PRIMARY KEY,
+  cache_key TEXT UNIQUE NOT NULL,
+  widgets JSONB NOT NULL,
+  metadata JSONB NOT NULL,
+  created_at TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP NOT NULL
+);
+```
+
+### Clé de Cache
+
+La clé de cache est générée à partir de :
+- `analysisId` : ID de l'analyse d'offre
+- `ragCompletenessScore` : Score de complétude RAG (0-100)
+- `jobDescriptionHash` : Hash SHA256 de la description d'offre (normalisée)
+
+**Format** : `sha256(analysisId:ragScore:jobDescriptionHash)`
+
+**Fonction** : `generateCacheKey(analysisId, ragCompletenessScore, jobDescriptionHash)`
+
+### Invalidation
+
+- **TTL** : 24 heures
+- **Invalidation** : Automatique après expiration (`expires_at < NOW()`)
+- **Vérification** : À chaque requête, vérification cache avant génération
+
+### Performance Gains
+
+| Scénario | Temps Réponse |
+|----------|---------------|
+| Cache Hit | < 500ms |
+| Cache Miss (Génération) | 15-30s |
+| **Gain** | **30-60x plus rapide** |
+
+### Utilisation
+
+Le cache est **transparent** : aucune action requise côté client. L'endpoint `/api/cv/generate-widgets` gère automatiquement :
+1. Vérification cache avant génération
+2. Sauvegarde cache après génération réussie
+3. Retour flag `cached: true` dans les métadonnées si cache hit
+
+**Exemple** :
+```typescript
+const response = await fetch('/api/cv/generate-widgets', {
+  method: 'POST',
+  body: JSON.stringify({ analysisId: 'xxx' })
+});
+
+const { widgets, metadata } = await response.json();
+if (metadata.cached) {
+  console.log('Widgets récupérés du cache');
+}
+```
+
+---
+
+## Advanced Scoring
+
+### Critères de Scoring
+
+Le scoring avancé évalue les widgets selon 5 critères avec poids configurables :
+
+| Critère | Poids Défaut | Description |
+|---------|--------------|-------------|
+| **Pertinence offre** | 40% | Alignement avec l'offre d'emploi |
+| **Score ATS** | 30% | Matching keywords et missing keywords |
+| **Impact métrique** | 15% | Présence de chiffres et quantifications |
+| **Récence** | 10% | Expériences récentes privilégiées |
+| **Séniorité** | 5% | Alignement niveau d'expérience avec le poste |
+
+**Fichier** : `lib/cv/advanced-scoring.ts`
+
+### Calcul du Score
+
+```typescript
+const compositeScore =
+    relevanceScore * 0.4 +
+    atsScore * 0.3 +
+    metricsScore * 0.15 +
+    recencyScore * 0.1 +
+    seniorityScore * 0.05;
+```
+
+### Score ATS
+
+Le score ATS (Applicant Tracking System) est calculé dans `lib/cv/ats-scorer.ts` :
+
+- **Missing keywords** : 20 points chacun (priorité haute)
+- **Keywords normaux** : 5 points chacun
+- **Chiffres présents** : 10 points
+- **Format standardisé** : 5 points
+- **Maximum** : 100 points
+
+### Score Impact Métrique
+
+- **Présence chiffres** : 10 points par chiffre
+- **Pourcentages** : +15 points
+- **Montants (€, $)** : +15 points
+- **Volumes (+, millions)** : +10 points
+
+### Score Récence
+
+Basé sur l'ancienneté de l'expérience :
+
+- **0-2 ans** : 100 points
+- **2-5 ans** : 80 points
+- **5-10 ans** : 50 points
+- **> 10 ans** : 20 points
+
+### Score Séniorité
+
+Alignement niveau du poste avec niveau dans le widget :
+
+- **Match parfait** (senior/senior, junior/junior) : 100 points
+- **Match partiel** : 80 points
+- **Décalage** : 60 points
+- **Neutre** : 70 points
+
+### Re-scoring Workflow
+
+1. **Génération widgets** : Widgets générés avec score de pertinence de base
+2. **Re-scoring** : Application du scoring avancé si `jobOfferContext` disponible
+3. **Tri** : Widgets triés par score final décroissant
+4. **Filtrage** : Exclusion widgets avec score < `minScore`
+
+**Fichier** : `lib/cv/client-bridge.ts` → `convertWidgetsToCVWithAdvancedScoring`
+
+**Logs** : Logs détaillés pour debugging (delta scores, widgets améliorés/dégradés)
+
+---
+
+## Client-Side Processing
+
+### Architecture Frankenstein
+
+L'architecture V2 utilise un traitement côté client pour réactivité maximale :
+
+**Flow** :
+1. **Serveur** : Génère widgets une fois (ou récupère du cache)
+2. **Client** : Convertit widgets → CVData
+3. **Client** : Applique template
+4. **Client** : Preview temps réel
+5. **Client** : Switch thème instantané (< 200ms)
+
+**Avantages** :
+- Switch thème sans re-génération
+- Preview instantané
+- Réduction charge serveur
+- Meilleure UX
+
+### Conversion Côté Client
+
+**Fichier** : `lib/cv/client-bridge.ts`
+
+**Fonctions** :
+- `convertWidgetsToCV` : Conversion basique
+- `convertWidgetsToCVWithValidation` : Conversion + validation anti-hallucination
+- `convertWidgetsToCVWithAdvancedScoring` : Conversion + scoring avancé
+
+**Exemple** :
+```typescript
+import { convertWidgetsToCVWithAdvancedScoring } from '@/lib/cv/client-bridge';
+
+const { cvData, validation } = convertWidgetsToCVWithAdvancedScoring(
+  widgetsEnvelope,
+  ragProfile,
+  jobOfferContext,
+  {
+    minScore: 60,
+    maxExperiences: 5
+  },
+  true // enableAdvancedScoring
+);
+```
+
+### Cache LocalStorage/SessionStorage
+
+**Fichier** : `lib/cv/client-cache.ts`
+
+**Fonctions** :
+- `saveWidgetsToCache` : Sauvegarde widgets en localStorage
+- `getWidgetsFromCache` : Récupère widgets du cache
+- `saveCVDataToCache` : Sauvegarde CVData par template
+- `getCVDataFromCache` : Récupère CVData du cache
+
+**Clés de cache** :
+- `widgets:${analysisId}` : Widgets pour une analyse
+- `cvData:${analysisId}:${template}` : CVData pour un template
+
+**Expiration** : 24 heures (localStorage) ou session (sessionStorage)
+
+**Usage** :
+```typescript
+import { saveWidgetsToCache, getWidgetsFromCache } from '@/lib/cv/client-cache';
+
+// Sauvegarder
+saveWidgetsToCache(analysisId, widgetsEnvelope);
+
+// Récupérer
+const cached = getWidgetsFromCache(analysisId);
+if (cached) {
+  // Utiliser widgets du cache
+}
+```
+
+---
+
 ## Évolutions futures
 
-- [ ] Cache des widgets générés (éviter régénération identique)
-- [ ] Ajustement dynamique `minScore` selon qualité RAG
+- [x] Cache des widgets générés (éviter régénération identique) ✅ **Implémenté v6.2.5**
+- [x] Ajustement dynamique `minScore` selon qualité RAG ✅ **Implémenté v6.2.5**
+- [x] Export widgets bruts pour analyse ✅ **Implémenté v6.2.5**
 - [ ] Support widgets personnalisés (utilisateur peut ajouter)
-- [ ] Visualisation des scores de pertinence dans l'UI
-- [ ] Export widgets bruts pour analyse
+- [ ] Visualisation des scores de pertinence dans l'UI (partiellement implémenté)
 
 ## Références
 

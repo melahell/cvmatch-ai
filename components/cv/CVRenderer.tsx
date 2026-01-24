@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { CVData, JobContext, TemplateProps } from "./templates";
 import { normalizeRAGToCV } from "./normalizeData";
 import { generateCSSVariables, cssVariablesToStyle } from "@/lib/cv/css-variables";
+import { logger } from "@/lib/utils/logger";
 
 // Dynamic imports for templates
 const ModernTemplate = dynamic(() => import("./templates/ModernTemplate"), { ssr: false });
@@ -61,7 +62,7 @@ export default function CVRenderer({
             if (looksLikeCVData(data)) return data;
             return normalizeRAGToCV(data);
         } catch (e) {
-            console.error("Data normalization error:", e);
+            logger.error("Data normalization error", { error: e });
             return data as CVData;
         }
     }, [data]);

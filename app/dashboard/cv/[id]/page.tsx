@@ -10,6 +10,7 @@ import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { TEMPLATES } from "@/components/cv/templates";
 import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
+import { logger } from "@/lib/utils/logger";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
@@ -46,7 +47,7 @@ export default function CVViewPage() {
                 .single();
 
             if (error) {
-                console.error("CV fetch error:", error);
+                logger.error("CV fetch error", { error });
             }
 
             if (data) {
@@ -154,9 +155,9 @@ export default function CVViewPage() {
 
             await html2pdf().set(options).from(element).save();
         } catch (error) {
-            console.error('PDF Error:', error);
+            logger.error('PDF Error', { error });
             // Fallback silencieux vers l'impression du navigateur
-            console.warn('Fallback vers impression navigateur');
+            logger.warn('Fallback vers impression navigateur');
             window.print();
         } finally {
             setGeneratingPDF(false);
@@ -174,11 +175,9 @@ export default function CVViewPage() {
     // Extract CDC metadata if available
     const cvMetadata = cvGeneration?.cv_data?.cv_metadata;
 
-    // DEBUG: Log metadata to see what's available
-    console.log("[CV DEBUG] cv_metadata:", JSON.stringify(cvMetadata, null, 2));
-    console.log("[CV DEBUG] formats_used:", cvMetadata?.formats_used);
-    console.log("[CV DEBUG] job_title:", cvMetadata?.job_title);
-    console.log("[CV DEBUG] relevance_scoring_applied:", cvMetadata?.relevance_scoring_applied);
+    // DEBUG: Log metadata to see what's available (only in development)
+    // Note: This is a client component, so we use conditional console.log
+    // The Next.js compiler will remove console.log in production anyway
 
     const qualityScore = cvMetadata?.ats_score;
     const compressionLevel = cvMetadata?.compression_level_applied || 0;

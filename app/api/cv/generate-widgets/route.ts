@@ -20,6 +20,14 @@ import type { AIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { parseJobOfferFromText, type JobOfferContext } from "@/lib/cv/relevance-scoring";
+import { 
+    calculateOptimalMinScore,
+    getWidgetsFromServerCache,
+    saveWidgetsToServerCache,
+    generateCacheKey,
+    hashJobDescription
+} from "@/lib/cv/widget-cache";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
@@ -110,6 +118,7 @@ export async function POST(req: Request) {
                     error: "Profil RAG introuvable",
                     errorCode: "RAG_PROFILE_NOT_FOUND",
                     details: "Veuillez compléter votre profil RAG avant de générer un CV.",
+                    userMessage: "Votre profil professionnel n'est pas complet. Veuillez compléter votre profil avant de générer un CV.",
                 },
                 { status: 404 }
             );
@@ -135,10 +144,49 @@ export async function POST(req: Request) {
                     error: "Erreur normalisation RAG",
                     errorCode: "RAG_NORMALIZATION_FAILED",
                     details: "Impossible de normaliser les données RAG",
+                    userMessage: "Une erreur est survenue lors du traitement de votre profil. Veuillez réessayer ou contacter le support si le problème persiste.",
                 },
                 { status: 500 }
             );
         }
+
+        // 5.5. Check cache before generation
+        const ragCompletenessScore = ragData.completeness_score || 0;
+        const jobDescriptionHash = hashJobDescription(jobDescription);
+        const cacheKey = generateCacheKey(analysisId, ragCompletenessScore, jobDescriptionHash);
+
+        const cachedWidgets = await getWidgetsFromServerCache(cacheKey);
+        if (cachedWidgets) {
+            logger.debug("[generate-widgets] Cache HIT", { 
+                cacheKey, 
+                widgetsCount: cachedWidgets.widgets.widgets.length 
+            });
+            
+            // Build JobOfferContext for response
+            const jobOfferContext: JobOfferContext = parseJobOfferFromText(jobDescription);
+            if (analysisData.job_title) {
+                jobOfferContext.title = analysisData.job_title;
+            }
+            if (analysisData.company_name) {
+                jobOfferContext.company = analysisData.company_name;
+            }
+            const matchReport = (analysisData.analysis_result || {}).match_report || {};
+            if (matchReport.missing_keywords && Array.isArray(matchReport.missing_keywords)) {
+                (jobOfferContext as any).missing_keywords = matchReport.missing_keywords;
+            }
+
+            return NextResponse.json({
+                success: true,
+                widgets: cachedWidgets.widgets,
+                metadata: {
+                    ...cachedWidgets.metadata,
+                    cached: true,
+                },
+                jobOfferContext,
+            });
+        }
+
+        logger.debug("[generate-widgets] Cache MISS", { cacheKey });
 
         // 6. Build match analysis context
         const analysisResult = analysisData.analysis_result || {};
@@ -156,7 +204,7 @@ export async function POST(req: Request) {
         // 7. Generate widgets from RAG + match analysis (CERVEAU IA)
         let widgetsEnvelope: AIWidgetsEnvelope | null = null;
         try {
-            console.log("[generate-widgets] Début génération widgets pour analysisId:", analysisId);
+            logger.debug("[generate-widgets] Début génération widgets pour analysisId", { analysisId });
             widgetsEnvelope = await generateWidgetsFromRAGAndMatch({
                 ragProfile,
                 matchAnalysis,
@@ -164,19 +212,20 @@ export async function POST(req: Request) {
             });
 
             if (!widgetsEnvelope) {
-                console.error("[generate-widgets] generateWidgetsFromRAGAndMatch a retourné null");
+                logger.error("[generate-widgets] generateWidgetsFromRAGAndMatch a retourné null");
                 return NextResponse.json(
                     {
                         error: "Erreur génération widgets IA",
                         errorCode: "WIDGETS_GENERATION_FAILED",
                         details: "L'IA n'a pas pu générer les widgets de contenu. Vérifiez que votre profil RAG est complet.",
+                        userMessage: "L'IA n'a pas pu générer le contenu de votre CV. Votre profil professionnel pourrait être incomplet. Veuillez compléter votre profil et réessayer.",
                     },
                     { status: 500 }
                 );
             }
-            console.log("[generate-widgets] Widgets générés avec succès:", widgetsEnvelope.widgets.length, "widgets");
+            logger.debug("[generate-widgets] Widgets générés avec succès", { widgetsCount: widgetsEnvelope.widgets.length });
         } catch (widgetError: any) {
-            console.error("[generate-widgets] Erreur lors de la génération des widgets:", widgetError);
+            logger.error("[generate-widgets] Erreur lors de la génération des widgets", { error: widgetError });
             return NextResponse.json(
                 {
                     error: "Erreur lors de la génération des widgets IA",
@@ -201,6 +250,9 @@ export async function POST(req: Request) {
             (jobOfferContext as any).missing_keywords = matchReport.missing_keywords;
         }
 
+        // 7.6. Calculate optimal minScore based on RAG completeness (ragCompletenessScore déjà calculé plus haut)
+        const optimalMinScore = calculateOptimalMinScore(ragCompletenessScore);
+
         // 8. Return widgets ONLY (no conversion, no template fitting)
         return NextResponse.json({
             success: true,
@@ -211,11 +263,13 @@ export async function POST(req: Request) {
                 generatedAt: new Date().toISOString(),
                 widgetsCount: widgetsEnvelope.widgets.length,
                 model: widgetsEnvelope.meta?.model || "gemini-3-pro-preview",
+                ragCompletenessScore,
+                optimalMinScore, // Score minimum recommandé selon qualité RAG
             },
             jobOfferContext, // Ajouter contexte offre pour scoring avancé côté client
         });
     } catch (error: any) {
-        console.error("Error in generate-widgets:", error);
+        logger.error("Error in generate-widgets", { error });
         return NextResponse.json(
             {
                 error: "Erreur inattendue lors de la génération des widgets",

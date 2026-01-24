@@ -21,6 +21,7 @@ import { rescoreWidgetsWithAdvanced } from "./advanced-scoring";
 import type { AIWidgetsEnvelope } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
 import type { JobOfferContext } from "./relevance-scoring";
+import { logger } from "@/lib/utils/logger";
 
 // Réexporter fonction de base (sans validation)
 export { convertAndSort as convertWidgetsToCV, type ConvertOptions };
@@ -91,9 +92,26 @@ export function convertWidgetsToCVWithAdvancedScoring(
     // 2. Re-scorer avec scoring avancé si activé
     let widgetsToConvert = validation.validWidgets;
     if (useAdvancedScoring && jobOffer) {
+        logger.debug("[client-bridge] Advanced scoring activé", {
+            widgetsCount: validation.validWidgets.length,
+            hasJobOffer: !!jobOffer,
+            hasRAGProfile: !!ragProfile,
+        });
         widgetsToConvert = rescoreWidgetsWithAdvanced(validation.validWidgets, {
             jobOffer,
             ragProfile,
+        });
+        // Logger quelques scores pour vérification
+        const sampleScores = widgetsToConvert.slice(0, 3).map(w => ({
+            id: w.id,
+            originalScore: validation.validWidgets.find(ow => ow.id === w.id)?.relevance_score || 0,
+            advancedScore: w.relevance_score,
+        }));
+        logger.debug("[client-bridge] Advanced scoring appliqué", { sampleScores });
+    } else {
+        logger.debug("[client-bridge] Advanced scoring désactivé", {
+            useAdvancedScoring,
+            hasJobOffer: !!jobOffer,
         });
     }
 

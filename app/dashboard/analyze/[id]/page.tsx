@@ -18,8 +18,10 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { useRAGData } from "@/hooks/useRAGData";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import Cookies from "js-cookie";
 import { JobAnalysis } from "@/types";
+import { logger } from "@/lib/utils/logger";
 
 type BoosterSelectionState = {
     selectedStrengthIndexes: number[];
@@ -70,7 +72,7 @@ export default function MatchResultPage() {
                     .single();
 
                 if (dbError) {
-                    console.error("Erreur Supabase:", dbError);
+                    logger.error("Erreur Supabase", { error: dbError });
                     setError("Impossible de charger l'analyse");
                     setLoading(false);
                     return;
@@ -84,7 +86,7 @@ export default function MatchResultPage() {
 
                 setAnalysis(data as JobAnalysis);
             } catch (err) {
-                console.error("Erreur inattendue:", err);
+                logger.error("Erreur inattendue", { error: err });
                 setError("Une erreur est survenue");
             } finally {
                 setLoading(false);
@@ -121,7 +123,7 @@ export default function MatchResultPage() {
             router.push(`/dashboard/cv/${data.cvId}`);
 
         } catch (error: any) {
-            console.error("Erreur génération CV:", error);
+            logger.error("Erreur génération CV", { error });
             setError(error.message || "Erreur lors de la génération du CV");
             setGeneratingCV(false);
         }
@@ -607,23 +609,45 @@ export default function MatchResultPage() {
                                 </>
                             )}
                         </Button>
-                        <Button
-                            size="lg"
-                            variant="outline"
-                            className="h-11 sm:h-12 md:h-14 px-5 sm:px-6 md:px-8 text-sm sm:text-base md:text-lg border-2 border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/20"
-                            onClick={() => setTemplateSelectorOpenV2(true)}
-                            disabled={generatingCV}
-                        >
-                            {generatingCV ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> Génération...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Générer avec V2 (Widgets)
-                                </>
-                            )}
-                        </Button>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div>
+                                        <Button
+                                            size="lg"
+                                            variant="outline"
+                                            className="h-11 sm:h-12 md:h-14 px-5 sm:px-6 md:px-8 text-sm sm:text-base md:text-lg border-2 border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/20 relative"
+                                            onClick={() => setTemplateSelectorOpenV2(true)}
+                                            disabled={generatingCV}
+                                        >
+                                            {generatingCV ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> Génération...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Générer avec V2 (Édition Interactive)
+                                                    <Badge variant="info" className="ml-2 text-[10px] px-1.5 py-0.5 absolute -top-2 -right-2">
+                                                        Nouveau
+                                                    </Badge>
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-xs">
+                                    <div className="space-y-2 text-xs">
+                                        <p className="font-semibold">V2 - Édition Interactive</p>
+                                        <ul className="list-disc list-inside space-y-1 text-slate-600">
+                                            <li>Switch thème instantané (&lt;100ms)</li>
+                                            <li>Drag & drop pour réorganiser</li>
+                                            <li>Preview multi-thèmes comparatif</li>
+                                            <li>Validation anti-hallucination visible</li>
+                                        </ul>
+                                    </div>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 </div>
 

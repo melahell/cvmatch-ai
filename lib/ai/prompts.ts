@@ -550,17 +550,42 @@ Vérifie avant de répondre :
 JSON uniquement ↓
 `;
 
-export const getMatchAnalysisPrompt = (userProfile: any, jobText: string) => `
+export const getMatchAnalysisPrompt = (userProfile: any, jobText: string) => {
+    const contexteEnrichi = userProfile?.contexte_enrichi;
+    const contexteSection = contexteEnrichi ? `
+═══════════════════════════════════════════════════════════════
+CONTEXTE ENRICHI (Responsabilités Implicites & Compétences Tacites)
+═══════════════════════════════════════════════════════════════
+
+RESPONSABILITÉS IMPLICITES :
+${JSON.stringify(contexteEnrichi.responsabilites_implicites || [], null, 2)}
+
+COMPÉTENCES TACITES :
+${JSON.stringify(contexteEnrichi.competences_tacites || [], null, 2)}
+
+SOFT SKILLS DÉDUITES :
+${JSON.stringify(contexteEnrichi.soft_skills_deduites || [], null, 2)}
+
+ENVIRONNEMENT DE TRAVAIL :
+${JSON.stringify(contexteEnrichi.environnement_travail || {}, null, 2)}
+
+NOTE : Ces éléments sont déduits du contexte et peuvent enrichir l'analyse de match.
+Utilise-les pour identifier des atouts supplémentaires non explicitement mentionnés.
+` : '';
+
+    return `
 Tu es un expert RH / Career Coach avec une expertise en négociation salariale et stratégie de candidature.
 
-PROFIL DU CANDIDAT :
-${JSON.stringify(userProfile)}
-
+PROFIL DU CANDIDAT (DONNÉES EXPLICITES) :
+${JSON.stringify(userProfile, null, 2)}
+${contexteSection}
 OFFRE D'EMPLOI :
 ${jobText}
 
 MISSION:
 Analyse le match entre ce profil et cette offre, en incluant une estimation salariale et des conseils de prospection personnalisés.
+
+IMPORTANT : Utilise le contexte enrichi (responsabilités implicites, compétences tacites) pour identifier des atouts supplémentaires qui ne sont pas explicitement mentionnés mais qui sont logiquement déductibles du profil.
 
 OUTPUT (JSON uniquement) :
 {
@@ -961,7 +986,8 @@ export const getCVOptimizationPromptV2 = (context: CVPromptContext): string => {
 
 /**
  * WRAPPER pour compatibilité avec l'ancienne API
- * TODO: Migrer progressivement vers getCVOptimizationPromptV2
+ * NOTE: Cette fonction est maintenant un simple wrapper vers getCVOptimizationPromptV2
+ * Tous les appels utilisent déjà la version V2 en interne
  */
 export const getCVOptimizationPrompt = (profile: any, jobDescription: string, customNotes?: string, matchReport?: any) => {
   // Détecter la séniorité depuis les expériences

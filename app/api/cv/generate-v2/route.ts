@@ -7,6 +7,7 @@ import { convertAndSort } from "@/lib/cv/ai-adapter";
 import { fitCVToTemplate } from "@/lib/cv/validator";
 import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scoring";
 import packageJson from "@/package.json";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
@@ -135,7 +136,7 @@ export async function POST(req: Request) {
                 maxBulletsPerExperience: 6,
             });
         } catch (conversionError: any) {
-            console.error("Widgets conversion error:", conversionError);
+            logger.error("Widgets conversion error", { error: conversionError });
             return NextResponse.json(
                 {
                     error: "Erreur lors de la conversion des widgets en CV",
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
             dense = fitResult.dense;
             unitStats = fitResult.unitStats;
         } catch (fitError: any) {
-            console.error("CV template fitting error:", fitError);
+            logger.error("CV template fitting error", { error: fitError });
             return NextResponse.json(
                 {
                     error: "Erreur lors de l'adaptation du CV au template",
@@ -245,7 +246,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("CV Generation V2 Error", error);
+        logger.error("CV Generation V2 Error", { error });
         return NextResponse.json(
             {
                 error: "Erreur inattendue lors de la génération du CV V2",

@@ -102,7 +102,7 @@ export default function ClassicTemplate({
                             {hasHttpPhoto ? (
                                 <img
                                     src={profil.photo_url}
-                                    alt={`${profil.prenom} ${profil.nom}`}
+                                    alt={`Photo professionnelle de ${profil.prenom} ${profil.nom}`}
                                     className="w-full h-full object-cover"
                                 />
                             ) : (

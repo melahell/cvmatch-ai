@@ -2,7 +2,11 @@
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
+// Singleton pattern pour éviter instanciations multiples
 let supabaseInstance: SupabaseClient | null = null;
+
+// Cache pour clients utilisateur par token (évite recréation pour même token)
+const userClientsCache = new Map<string, SupabaseClient>();
 
 const getSupabasePublicEnv = () => {
     const supabaseUrl =
@@ -31,10 +35,21 @@ export const getBearerToken = (request: Request): string | null => {
     return token;
 };
 
+/**
+ * Crée un client Supabase pour un utilisateur authentifié
+ * Utilise un cache pour réutiliser les clients avec le même token
+ * @param accessToken - Token d'accès de l'utilisateur
+ * @returns Client Supabase réutilisé ou nouvellement créé
+ */
 export const createSupabaseUserClient = (accessToken: string): SupabaseClient => {
+    // Réutiliser client existant pour ce token
+    if (userClientsCache.has(accessToken)) {
+        return userClientsCache.get(accessToken)!;
+    }
+
     const { supabaseUrl, supabaseKey } = getSupabasePublicEnv();
 
-    return createClient(supabaseUrl, supabaseKey, {
+    const client = createClient(supabaseUrl, supabaseKey, {
         global: {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
@@ -46,6 +61,10 @@ export const createSupabaseUserClient = (accessToken: string): SupabaseClient =>
             detectSessionInUrl: false,
         },
     });
+
+    // Mettre en cache pour réutilisation
+    userClientsCache.set(accessToken, client);
+    return client;
 };
 
 type RequireSupabaseUserResult =
@@ -74,20 +93,51 @@ export const requireSupabaseUser = async (request: Request): Promise<RequireSupa
     }
 };
 
+// Cache pour session (évite appels répétés getSession)
+let sessionCache: { token: string; expiresAt: number } | null = null;
+const SESSION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Récupère le header d'authentification Supabase
+ * Utilise un cache pour éviter appels répétés getSession
+ * @returns Headers avec token d'authentification ou objet vide
+ */
 export const getSupabaseAuthHeader = async (): Promise<Record<string, string>> => {
     if (typeof window === "undefined") return {};
+
+    // Vérifier cache session
+    if (sessionCache && sessionCache.expiresAt > Date.now()) {
+        return {
+            Authorization: `Bearer ${sessionCache.token}`,
+        };
+    }
 
     const supabase = createSupabaseClient();
     const {
         data: { session },
     } = await supabase.auth.getSession();
-    if (!session?.access_token) return {};
+    
+    if (!session?.access_token) {
+        sessionCache = null;
+        return {};
+    }
+
+    // Mettre en cache
+    sessionCache = {
+        token: session.access_token,
+        expiresAt: Date.now() + SESSION_CACHE_TTL,
+    };
 
     return {
         Authorization: `Bearer ${session.access_token}`,
     };
 };
 
+/**
+ * Crée ou réutilise le client Supabase singleton pour le client
+ * Pattern singleton pour éviter instanciations multiples
+ * @returns Client Supabase réutilisé ou nouvellement créé
+ */
 export const createSupabaseClient = (): SupabaseClient => {
     if (supabaseInstance) {
         return supabaseInstance;

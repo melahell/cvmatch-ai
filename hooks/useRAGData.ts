@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { calculateCompletenessWithBreakdown } from "@/lib/utils/completeness";
@@ -43,7 +43,7 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
-    const fetchRAGData = async () => {
+    const fetchRAGData = useCallback(async () => {
         if (!userId) {
             setLoading(false);
             return;
@@ -128,12 +128,11 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
         } finally {
             setLoading(false);
         }
-    };
+    }, [userId]);
 
     useEffect(() => {
         fetchRAGData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]);
+    }, [fetchRAGData]);
 
     return {
         data,

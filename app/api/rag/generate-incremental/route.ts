@@ -532,7 +532,13 @@ export async function POST(req: Request) {
                 quality: qualityScore.quality_metrics?.elevator_pitch_quality_score || Math.round(qualityScore.overall_score * 0.85),
                 impact: validationResult.metrics.quantification_percentage || Math.round(qualityScore.overall_score * 0.8)
             },
-            suggestions: suggestions.slice(0, 5)
+            suggestions: suggestions.slice(0, 5),
+            // Merge stats (si mode completion)
+            mergeStats: mergeResult ? {
+                itemsAdded: mergeResult.stats.itemsAdded,
+                itemsUpdated: mergeResult.stats.itemsUpdated,
+                itemsKept: mergeResult.stats.itemsKept
+            } : undefined
         });
 
     } catch (error: any) {

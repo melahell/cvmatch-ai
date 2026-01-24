@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Briefcase, FileText, Upload, PlusCircle, TrendingUp, ExternalLink, Target, Eye, Download, RefreshCw, Loader2, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,15 @@ import Link from "next/link";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { toast } from "sonner";
 
+// Lazy load DashboardCharts (uses Recharts which is heavy)
+const DashboardCharts = dynamic(
+    () => import("@/components/dashboard/DashboardCharts").then(mod => ({ default: mod.DashboardCharts })),
+    { 
+        loading: () => <div className="h-[200px] animate-pulse bg-slate-100 rounded" />,
+        ssr: false 
+    }
+);
+
 export default function DashboardPage() {
     const { userId, userName: authUserName, isLoading: authLoading } = useAuth();
 
@@ -38,7 +48,7 @@ export default function DashboardPage() {
     const [selectedJob, setSelectedJob] = useState<any>(null);
 
     // Generate job suggestions
-    const generateJobSuggestions = async () => {
+    const generateJobSuggestions = useCallback(async () => {
         if (!userId || generatingJobs) return;
 
         setGeneratingJobs(true);
@@ -62,15 +72,27 @@ export default function DashboardPage() {
             toast.success('Suggestions de postes générées !');
             refetchRAG(); // Refresh to show new jobs
         } catch (error: any) {
-            console.error('Job suggestions error:', error);
+            logger.error('Job suggestions error', { error });
             toast.error(error.message || 'Erreur lors de la génération');
         } finally {
             setGeneratingJobs(false);
         }
-    };
+    }, [userId, generatingJobs, refetchRAG]);
 
-    // Combined loading state
-    const loading = ragLoading || dashboardLoading || authLoading;
+    // Combined loading state (memoized)
+    const loading = useMemo(() => ragLoading || dashboardLoading || authLoading, [ragLoading, dashboardLoading, authLoading]);
+
+    // Memoize skills extraction
+    const allSkills = useMemo(() => {
+        const explicitTech = ragData?.competences?.explicit?.techniques || [];
+        const inferredTech = (ragData?.competences?.inferred?.techniques || [])
+            .map((t: any) => typeof t === 'string' ? t : t.name)
+            .filter(Boolean);
+        const inferredTools = (ragData?.competences?.inferred?.tools || [])
+            .map((t: any) => typeof t === 'string' ? t : t.name)
+            .filter(Boolean);
+        return [...new Set([...explicitTech, ...inferredTech, ...inferredTools])];
+    }, [ragData?.competences]);
 
     if (loading) {
         return (
@@ -306,33 +328,19 @@ export default function DashboardPage() {
                         </Link>
 
                         {/* Skills - extracted from RAG competences.explicit + competences.inferred */}
-                        {(() => {
-                            // Extract skills from RAG structure: competences.explicit.techniques + inferred
-                            const explicitTech = ragData?.competences?.explicit?.techniques || [];
-                            const inferredTech = (ragData?.competences?.inferred?.techniques || [])
-                                .map((t: any) => typeof t === 'string' ? t : t.name)
-                                .filter(Boolean);
-                            const inferredTools = (ragData?.competences?.inferred?.tools || [])
-                                .map((t: any) => typeof t === 'string' ? t : t.name)
-                                .filter(Boolean);
-
-                            // Merge all and dedupe
-                            const allSkills = [...new Set([...explicitTech, ...inferredTech, ...inferredTools])];
-
-                            return allSkills.length > 0 ? (
-                                <Card>
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm">Compétences clés</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <BadgeList
-                                            items={allSkills}
-                                            maxItems={10}
-                                        />
-                                    </CardContent>
-                                </Card>
-                            ) : null;
-                        })()}
+                        {allSkills.length > 0 ? (
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm">Compétences clés</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <BadgeList
+                                        items={allSkills}
+                                        maxItems={10}
+                                    />
+                                </CardContent>
+                            </Card>
+                        ) : null}
 
                     </div>
 

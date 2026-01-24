@@ -8,6 +8,7 @@ import { normalizeRAGToCV } from "@/components/cv/normalizeData";
 import { fitCVToTemplate } from "@/lib/cv/validator";
 import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scoring";
 import packageJson from "@/package.json";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
@@ -877,7 +878,7 @@ export async function POST(req: Request) {
             if (cacheAge < CACHE_TTL) {
                 const cachedGeneratorVersion = (cachedCV as any)?.cv_data?.cv_metadata?.generator_version;
                 if (cachedGeneratorVersion !== packageJson.version) {
-                    console.log(`[CV CACHE SKIP] generator_version mismatch (${cachedGeneratorVersion} != ${packageJson.version})`);
+                    logger.debug("[CV CACHE SKIP] generator_version mismatch", { cachedGeneratorVersion, currentVersion: packageJson.version });
                 } else {
                 const cachedHasPhoto = !!(cachedCV as any)?.cv_data?.profil?.photo_url;
                 if (!includePhoto) {
@@ -885,7 +886,7 @@ export async function POST(req: Request) {
                     if (cvWithoutPhoto?.profil) {
                         delete cvWithoutPhoto.profil.photo_url;
                     }
-                    console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
+                    logger.debug("[CV CACHE HIT] Returning cached CV", { cacheAge: Math.round(cacheAge / 1000) });
                     return NextResponse.json({
                         success: true,
                         cvId: cachedCV.id,
@@ -898,7 +899,7 @@ export async function POST(req: Request) {
                 }
 
                 if (cachedHasPhoto) {
-                    console.log(`[CV CACHE HIT] Returning cached CV (age: ${Math.round(cacheAge / 1000)}s)`);
+                    logger.debug("[CV CACHE HIT] Returning cached CV", { cacheAge: Math.round(cacheAge / 1000) });
                     return NextResponse.json({
                         success: true,
                         cvId: cachedCV.id,
@@ -911,7 +912,7 @@ export async function POST(req: Request) {
                 }
                 }
             } else {
-                console.log(`[CV CACHE EXPIRED] Cache too old (${Math.round(cacheAge / 1000)}s), regenerating...`);
+                logger.debug("[CV CACHE EXPIRED] Cache too old, regenerating", { cacheAge: Math.round(cacheAge / 1000) });
             }
         }
 
@@ -955,7 +956,7 @@ export async function POST(req: Request) {
         const mergedNotes = [customNotes, extraNotes].filter(Boolean).join("\n\n");
         const prompt = getCVOptimizationPrompt(ragProfileForPrompt, jobDescription, mergedNotes, selectedMatchReport || undefined);
 
-        console.log("=== CV GENERATION START ===");
+        logger.debug("=== CV GENERATION START ===");
 
         let responseText: string;
         let modelUsed: string | undefined;
@@ -963,10 +964,9 @@ export async function POST(req: Request) {
             const cascadeResult = await callWithRetry(() => generateWithCascade(prompt));
             responseText = cascadeResult.result.response.text();
             modelUsed = cascadeResult.modelUsed;
-            console.log("Using model:", cascadeResult.modelUsed);
-            console.log("Gemini response length:", responseText.length);
+            logger.debug("Using model", { model: cascadeResult.modelUsed, responseLength: responseText.length });
         } catch (geminiError: any) {
-            console.error("Gemini API Error:", geminiError.message);
+            logger.error("Gemini API Error", { error: geminiError.message });
             return NextResponse.json({
                 error: "AI service error: Unable to generate CV at this time",
                 errorCode: "GEMINI_ERROR",
@@ -981,7 +981,7 @@ export async function POST(req: Request) {
         try {
             aiOptimizedCV = JSON.parse(jsonString);
         } catch (e) {
-            console.error("CV Parse Error - Response was:", responseText.substring(0, 500));
+            logger.error("CV Parse Error - Response was", { responsePreview: responseText.substring(0, 500) });
             return NextResponse.json({ error: "AI Parse Error" }, { status: 500 });
         }
 
@@ -1135,7 +1135,7 @@ export async function POST(req: Request) {
             .single();
 
         if (cvError) {
-            console.error("CV Save Error", cvError);
+            logger.error("CV Save Error", { error: cvError });
             return NextResponse.json({ error: "Failed to save CV: " + cvError.message }, { status: 500 });
         }
 
@@ -1148,7 +1148,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("CV Generation Error", error);
+        logger.error("CV Generation Error", { error });
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

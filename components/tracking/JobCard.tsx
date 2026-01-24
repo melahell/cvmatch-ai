@@ -125,13 +125,27 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
 
                             <div className="flex items-start gap-2 flex-1 min-w-0">
                                 <div className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${status.dot}`} />
-                                <div className="min-w-0 flex-1">
-                                    <h2 className="font-semibold text-sm text-slate-900 line-clamp-2">
-                                        {job.job_title || "Poste"}
-                                    </h2>
-                                    <p className="text-xs text-slate-600 line-clamp-1">
-                                        {job.company || "Entreprise"} {job.location && `• ${job.location}`}
-                                    </p>
+                            <div className="min-w-0 flex-1">
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <h2 className="font-semibold text-sm text-slate-900 line-clamp-2" title={job.job_title || "Poste"}>
+                                            {job.job_title || "Poste"}
+                                        </h2>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{job.job_title || "Poste"}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <p className="text-xs text-slate-600 line-clamp-1" title={`${job.company || "Entreprise"}${job.location ? ` • ${job.location}` : ''}`}>
+                                            {job.company || "Entreprise"} {job.location && `• ${job.location}`}
+                                        </p>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{job.company || "Entreprise"}{job.location ? ` • ${job.location}` : ''}</p>
+                                    </TooltipContent>
+                                </Tooltip>
                                     <p className="text-xs text-slate-600 flex items-center gap-1 mt-0.5">
                                         <Calendar className="w-3 h-3" />
                                         {formatRelativeDate(job.submitted_at)}
@@ -192,9 +206,16 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                         <div className="flex items-start gap-3 flex-1 min-w-0">
                             <div className={`w-3 h-3 rounded-full mt-1.5 shrink-0 ${status.dot}`} />
                             <div className="min-w-0 flex-1">
-                                <h2 className="font-bold text-lg text-slate-900 truncate">
-                                    {job.job_title || "Poste à définir"}
-                                </h2>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <h2 className="font-bold text-lg text-slate-900 truncate" title={job.job_title || "Poste à définir"}>
+                                            {job.job_title || "Poste à définir"}
+                                        </h2>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{job.job_title || "Poste à définir"}</p>
+                                    </TooltipContent>
+                                </Tooltip>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 mt-1">
                                     <span className="flex items-center gap-1 font-medium text-slate-700">
                                         <Building2 className="w-3 h-3" />
@@ -250,7 +271,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                 </Link>
                                 {job.job_url && (
                                     <a href={job.job_url} target="_blank" rel="noopener noreferrer">
-                                        <Button variant="ghost" size="sm" title="Voir l'offre">
+                                        <Button variant="ghost" size="sm" title="Voir l'offre" aria-label="Voir l'offre d'emploi">
                                             <ExternalLink className="w-4 h-4" />
                                         </Button>
                                     </a>
@@ -261,6 +282,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                     className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
                                     onClick={() => onDelete(job.id)}
                                     title="Supprimer"
+                                    aria-label="Supprimer cette candidature"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </Button>

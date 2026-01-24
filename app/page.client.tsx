@@ -29,12 +29,47 @@ export default function LandingPageClient() {
         ]
     };
 
+    const faqStructuredData = {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "Comment fonctionne CV Crush ?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "CV Crush analyse l'offre d'emploi avec l'intelligence artificielle, compare votre profil et génère un CV personnalisé optimisé pour maximiser vos chances de recrutement."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "CV Crush est-il gratuit ?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Oui, CV Crush propose un plan gratuit avec des fonctionnalités de base. Des plans premium sont disponibles pour des fonctionnalités avancées."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Mes données sont-elles sécurisées ?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Oui, toutes vos données sont stockées de manière sécurisée et vous pouvez les supprimer à tout moment. CV Crush respecte le RGPD."
+                }
+            }
+        ]
+    };
+
     return (
         <div className="min-h-screen bg-white">
             {/* JSON-LD Structured Data */}
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+            />
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
             />
 
             {/* NAVBAR */}

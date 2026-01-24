@@ -113,7 +113,7 @@ export function PhotoUpload({
                         {preview ? (
                             <Image
                                 src={preview}
-                                alt="Photo de profil"
+                                alt={profileName ? `Photo de profil de ${profileName}` : "Photo de profil de l'utilisateur"}
                                 width={96}
                                 height={96}
                                 className="object-cover w-full h-full"

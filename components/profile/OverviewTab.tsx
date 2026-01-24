@@ -1057,6 +1057,73 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                 </div>
             )}
 
+            {/* Contexte Enrichi Section */}
+            {ragData?.contexte_enrichi && (
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-indigo-600" />
+                            <CardTitle className="text-base">Contexte Enrichi</CardTitle>
+                            <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-700 border-indigo-200">
+                                Déductions IA
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {/* Responsabilités Implicites */}
+                        {ragData.contexte_enrichi.responsabilites_implicites && ragData.contexte_enrichi.responsabilites_implicites.length > 0 && (
+                            <div>
+                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Responsabilités Implicites</h4>
+                                <div className="space-y-2">
+                                    {ragData.contexte_enrichi.responsabilites_implicites.map((resp: any, i: number) => (
+                                        <div key={i} className="p-3 rounded-md bg-blue-50 border border-blue-100 text-xs">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Badge variant="outline" className="text-xs">
+                                                    {resp.categorie}
+                                                </Badge>
+                                                <Badge variant="outline" className="text-xs">
+                                                    {resp.niveau_certitude}
+                                                </Badge>
+                                            </div>
+                                            <p className="text-slate-700 font-medium mb-1">{resp.actions?.join(", ") || "N/A"}</p>
+                                            <p className="text-slate-600 text-[11px]">{resp.justification}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Compétences Tacites */}
+                        {ragData.contexte_enrichi.competences_tacites && ragData.contexte_enrichi.competences_tacites.length > 0 && (
+                            <div>
+                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Compétences Tacites</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {ragData.contexte_enrichi.competences_tacites.map((comp: any, i: number) => (
+                                        <Badge key={i} variant="outline" className="text-xs">
+                                            {comp.competence} ({comp.niveau_deduit})
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Soft Skills Déduites */}
+                        {ragData.contexte_enrichi.soft_skills_deduites && ragData.contexte_enrichi.soft_skills_deduites.length > 0 && (
+                            <div>
+                                <h4 className="text-sm font-semibold text-slate-700 mb-2">Soft Skills Déduites</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {ragData.contexte_enrichi.soft_skills_deduites.map((skill: string, i: number) => (
+                                        <Badge key={i} variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                                            {skill}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Delete Confirmation Modal */}
             {pendingDelete && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

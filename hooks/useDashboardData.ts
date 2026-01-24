@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 
@@ -28,7 +28,7 @@ export function useDashboardData(userId: string | null) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const fetchDashboardData = useCallback(async () => {
         if (!userId) {
             setLoading(false);
             return;
@@ -36,67 +36,67 @@ export function useDashboardData(userId: string | null) {
 
         const supabase = createSupabaseClient();
 
-        async function fetchDashboardData() {
-            try {
-                // Fetch Stats with error handling
-                const { count: appliedCount, error: appliedError } = await supabase
-                    .from("job_analyses")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId)
-                    .neq("application_status", "pending");
+        try {
+            // Fetch Stats with error handling
+            const { count: appliedCount, error: appliedError } = await supabase
+                .from("job_analyses")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId)
+                .neq("application_status", "pending");
 
-                if (appliedError) {
-                    logger.error('Failed to fetch applied count:', appliedError);
-                }
-
-                const { count: analysesCount, error: analysesError } = await supabase
-                    .from("job_analyses")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId);
-
-                if (analysesError) {
-                    logger.error('Failed to fetch analyses count:', analysesError);
-                }
-
-                const { count: cvCount, error: cvError } = await supabase
-                    .from("cv_generations")
-                    .select("*", { count: "exact", head: true })
-                    .eq("user_id", userId);
-
-                if (cvError) {
-                    logger.error('Failed to fetch CV count:', cvError);
-                }
-
-                setStats({
-                    analyses: analysesCount || 0,
-                    cvs: cvCount || 0,
-                    applied: appliedCount || 0
-                });
-
-                // Fetch Uploaded Documents with error handling
-                const { data: docs, error: docsError } = await supabase
-                    .from("uploaded_documents")
-                    .select("id, filename, created_at, file_type, storage_path")
-                    .eq("user_id", userId)
-                    .order("created_at", { ascending: false })
-                    .limit(5);
-
-                if (docsError) {
-                    logger.error('Failed to fetch documents:', docsError);
-                } else {
-                    setUploadedDocs(docs || []);
-                }
-
-            } catch (err) {
-                logger.error('Dashboard data fetch error:', err);
-                setError('Failed to load dashboard data');
-            } finally {
-                setLoading(false);
+            if (appliedError) {
+                logger.error('Failed to fetch applied count:', appliedError);
             }
-        }
 
-        fetchDashboardData();
+            const { count: analysesCount, error: analysesError } = await supabase
+                .from("job_analyses")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId);
+
+            if (analysesError) {
+                logger.error('Failed to fetch analyses count:', analysesError);
+            }
+
+            const { count: cvCount, error: cvError } = await supabase
+                .from("cv_generations")
+                .select("*", { count: "exact", head: true })
+                .eq("user_id", userId);
+
+            if (cvError) {
+                logger.error('Failed to fetch CV count:', cvError);
+            }
+
+            setStats({
+                analyses: analysesCount || 0,
+                cvs: cvCount || 0,
+                applied: appliedCount || 0
+            });
+
+            // Fetch Uploaded Documents with error handling
+            const { data: docs, error: docsError } = await supabase
+                .from("uploaded_documents")
+                .select("id, filename, created_at, file_type, storage_path")
+                .eq("user_id", userId)
+                .order("created_at", { ascending: false })
+                .limit(5);
+
+            if (docsError) {
+                logger.error('Failed to fetch documents:', docsError);
+            } else {
+                setUploadedDocs(docs || []);
+            }
+
+        } catch (err) {
+            logger.error('Dashboard data fetch error:', err);
+            setError('Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
     }, [userId]);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [fetchDashboardData]);
 
     return { stats, uploadedDocs, loading, error };
 }

@@ -6,12 +6,14 @@
  * Affiche les widgets filtrés et les raisons de leur filtrage.
  */
 
-import { AlertCircle, XCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertCircle, XCircle, AlertTriangle, Info, CheckCircle, ChevronDown, ChevronUp, ExternalLink, HelpCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { ValidationResult } from "@/lib/cv/widget-validator";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface ValidationWarningsProps {
     validation: ValidationResult;
@@ -20,6 +22,7 @@ interface ValidationWarningsProps {
 
 export function ValidationWarnings({ validation, className }: ValidationWarningsProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const router = useRouter();
 
     if (validation.warnings.length === 0 && validation.stats.filtered === 0) {
         return null;
@@ -45,6 +48,27 @@ export function ValidationWarnings({ validation, className }: ValidationWarnings
                         <CardTitle className="text-sm">
                             Validation Anti-Hallucination
                         </CardTitle>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-xs">
+                                    <div className="space-y-2 text-xs">
+                                        <p className="font-semibold">Qu'est-ce que la validation anti-hallucination ?</p>
+                                        <p className="text-slate-600">
+                                            Cette validation vérifie que tous les éléments générés par l'IA sont "groundés" dans votre profil RAG source.
+                                        </p>
+                                        <p className="text-slate-600">
+                                            <strong>Non groundé</strong> = L'IA a inventé une information qui n'existe pas dans vos documents (chiffres, compétences, expériences).
+                                        </p>
+                                        <p className="text-slate-600">
+                                            Les éléments non groundés sont automatiquement filtrés pour garantir l'exactitude de votre CV.
+                                        </p>
+                                    </div>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                     <div className="flex items-center gap-2">
                         <Badge
@@ -193,6 +217,74 @@ export function ValidationWarnings({ validation, className }: ValidationWarnings
                                 <span className="text-green-700 font-medium">
                                     Tous les widgets sont validés et groundés dans le RAG source.
                                 </span>
+                            </div>
+                        )}
+
+                        {/* Actions suggérées si warnings */}
+                        {validation.stats.filtered > 0 && (
+                            <div className="pt-3 border-t border-slate-200">
+                                <p className="text-xs font-semibold text-slate-700 mb-2">
+                                    Que faire pour corriger ?
+                                </p>
+                                <div className="space-y-2">
+                                    {validation.stats.filteredBySkill > 0 && (
+                                        <div className="flex items-start gap-2 p-2 rounded-md bg-blue-50 border border-blue-100 text-xs">
+                                            <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                            <div className="flex-1">
+                                                <p className="text-blue-900 font-medium mb-1">
+                                                    Compétences non présentes
+                                                </p>
+                                                <p className="text-blue-700 mb-2">
+                                                    L'IA a mentionné des compétences qui ne sont pas dans votre profil. Ajoutez-les à votre profil pour les inclure dans le CV.
+                                                </p>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => router.push("/dashboard/profile")}
+                                                    className="text-xs h-7"
+                                                >
+                                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                                    Compléter mon profil
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {validation.stats.filteredByNumbers > 0 && (
+                                        <div className="flex items-start gap-2 p-2 rounded-md bg-amber-50 border border-amber-100 text-xs">
+                                            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                                            <div className="flex-1">
+                                                <p className="text-amber-900 font-medium mb-1">
+                                                    Chiffres non groundés
+                                                </p>
+                                                <p className="text-amber-700">
+                                                    Certains chiffres mentionnés par l'IA ne sont pas présents dans vos documents. Vérifiez votre profil pour ajouter ces informations précises.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {validation.stats.filteredByExperience > 0 && (
+                                        <div className="flex items-start gap-2 p-2 rounded-md bg-red-50 border border-red-100 text-xs">
+                                            <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                            <div className="flex-1">
+                                                <p className="text-red-900 font-medium mb-1">
+                                                    Expériences introuvables
+                                                </p>
+                                                <p className="text-red-700 mb-2">
+                                                    L'IA a référencé des expériences qui ne correspondent pas à votre profil. Vérifiez que toutes vos expériences sont bien documentées.
+                                                </p>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => router.push("/dashboard/profile?tab=docs")}
+                                                    className="text-xs h-7"
+                                                >
+                                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                                    Vérifier mes documents
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
                 </CardContent>

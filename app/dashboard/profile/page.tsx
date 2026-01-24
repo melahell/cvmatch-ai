@@ -227,6 +227,15 @@ function ProfileContent() {
                         quality_breakdown: result.quality_breakdown
                     });
                 }
+
+                // Afficher stats de merge si disponibles (mode completion)
+                if (mode === "completion" && result.mergeStats) {
+                    const stats = result.mergeStats;
+                    toast.success(
+                        `Fusion réussie: ${stats.itemsAdded || 0} ajoutés, ${stats.itemsUpdated || 0} mis à jour, ${stats.itemsKept || 0} conservés`,
+                        { duration: 5000 }
+                    );
+                }
             }
 
             // Refetch the final merged RAG

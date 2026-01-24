@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Logo } from "@/components/ui/Logo";
@@ -40,6 +40,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [planLabel, setPlanLabel] = useState("Gratuit");
+    const menuTriggerRef = useRef<HTMLButtonElement>(null);
+
+    // Helper to close menu and restore focus
+    const handleCloseMenu = () => {
+        setMenuOpen(false);
+        // Restore focus to trigger button after close
+        setTimeout(() => menuTriggerRef.current?.focus(), 0);
+    };
 
     // Enable keyboard shortcuts
     useKeyboardShortcuts();
@@ -123,6 +131,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                     {/* User Menu */}
                     <div className="relative">
                         <button
+                            ref={menuTriggerRef}
                             onClick={() => setMenuOpen(!menuOpen)}
                             aria-expanded={menuOpen}
                             aria-haspopup="menu"
@@ -155,7 +164,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             <>
                                 <div
                                     className="fixed inset-0 z-40"
-                                    onClick={() => setMenuOpen(false)}
+                                    onClick={handleCloseMenu}
                                 />
                                 <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-surface-primary dark:bg-slate-900 rounded-lg shadow-lg border border-cvBorder-light dark:border-slate-700 py-2 z-50">
                                     <div className="px-4 py-2 border-b border-cvBorder-light dark:border-slate-700">
@@ -168,7 +177,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <ThemeToggle />
                                         <Link href="/demo">
                                             <button
-                                                onClick={() => setMenuOpen(false)}
+                                                onClick={handleCloseMenu}
                                                 className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <Landmark className="w-4 h-4" />
@@ -177,7 +186,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         </Link>
                                         <Link href="/dashboard/saved-jobs">
                                             <button
-                                                onClick={() => setMenuOpen(false)}
+                                                onClick={handleCloseMenu}
                                                 className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <BookmarkCheck className="w-4 h-4" />
@@ -186,7 +195,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         </Link>
                                         <Link href="/dashboard/compare">
                                             <button
-                                                onClick={() => setMenuOpen(false)}
+                                                onClick={handleCloseMenu}
                                                 className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <GitCompare className="w-4 h-4" />
@@ -195,7 +204,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         </Link>
                                         <Link href="/dashboard/templates">
                                             <button
-                                                onClick={() => setMenuOpen(false)}
+                                                onClick={handleCloseMenu}
                                                 className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <LayoutTemplate className="w-4 h-4" />
@@ -204,7 +213,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         </Link>
                                         <Link href="/dashboard/stats">
                                             <button
-                                                onClick={() => setMenuOpen(false)}
+                                                onClick={handleCloseMenu}
                                                 className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <BarChart3 className="w-4 h-4" />
@@ -213,7 +222,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         </Link>
                                         <Link href="/dashboard/settings">
                                             <button
-                                                onClick={() => setMenuOpen(false)}
+                                                onClick={handleCloseMenu}
                                                 className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                             >
                                                 <Bell className="w-4 h-4" />
@@ -223,7 +232,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         {isAdmin && (
                                             <Link href="/admin">
                                                 <button
-                                                    onClick={() => setMenuOpen(false)}
+                                                    onClick={handleCloseMenu}
                                                     className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                                 >
                                                     <Shield className="w-4 h-4" />
@@ -232,14 +241,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                             </Link>
                                         )}
                                         <button
-                                            onClick={() => { setMenuOpen(false); setExportModalOpen(true); }}
+                                            onClick={() => { handleCloseMenu(); setExportModalOpen(true); }}
                                             className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                         >
                                             <Download className="w-4 h-4" />
                                             Exporter mes données
                                         </button>
                                         <button
-                                            onClick={() => { setMenuOpen(false); setShortcutsModalOpen(true); }}
+                                            onClick={() => { handleCloseMenu(); setShortcutsModalOpen(true); }}
                                             className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
                                         >
                                             <Keyboard className="w-4 h-4" />
@@ -254,7 +263,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                             CV Crush v5.3.9
                                         </div>
                                         <button
-                                            onClick={() => { setMenuOpen(false); logout(); }}
+                                            onClick={() => { handleCloseMenu(); logout(); }}
                                             className="w-full px-4 py-2 text-left text-sm text-semantic-error hover:bg-semantic-error/10 dark:hover:bg-red-950 flex items-center gap-2"
                                         >
                                             <LogOut className="w-4 h-4" />

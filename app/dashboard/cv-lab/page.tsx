@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import CVRenderer from "@/components/cv/CVRenderer";
+import dynamic from "next/dynamic";
+import { Loader2 } from "lucide-react";
+
+// Lazy load CVRenderer (heavy component with templates)
+const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
+    loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
+    ssr: false
+});
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";

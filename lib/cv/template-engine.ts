@@ -561,19 +561,616 @@ function getClassicTemplate(): string {
 }
 
 /**
- * Template Modern Spacious (placeholder)
+ * Template Modern Spacious - Design moderne avec espacement généreux
+ * Optimisé pour lisibilité et impact visuel
  */
 function getModernSpaciousTemplate(): string {
-  // TODO: Implement modern spacious template
-  return getClassicTemplate(); // Fallback for now
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV - {{header.prenom}} {{header.nom}}</title>
+  <style>
+    :root {
+      --unit-to-mm: {{unit_to_mm}}mm;
+      --color-primary: {{colors.primary}};
+      --color-secondary: {{colors.secondary}};
+      --color-accent: {{colors.accent}};
+      --font-name: {{font_sizes.name}}pt;
+      --font-title: {{font_sizes.title}}pt;
+      --font-section: {{font_sizes.section_header}}pt;
+      --font-body: {{font_sizes.body}}pt;
+      --font-small: {{font_sizes.small}}pt;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+      font-size: var(--font-body);
+      color: var(--color-primary);
+      line-height: 1.6;
+      background: white;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm;
+      background: white;
+      margin: 0 auto;
+    }
+
+    /* HEADER - Spacious design */
+    .cv-header {
+      height: calc({{header_units}} * var(--unit-to-mm));
+      border-bottom: 3px solid var(--color-accent);
+      padding-bottom: 8mm;
+      margin-bottom: 10mm;
+      text-align: center;
+    }
+
+    .cv-header h1 {
+      font-size: calc(var(--font-name) + 4pt);
+      color: var(--color-primary);
+      margin-bottom: 4mm;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .cv-header .title {
+      font-size: calc(var(--font-title) + 2pt);
+      color: var(--color-secondary);
+      font-weight: 400;
+      margin-bottom: 6mm;
+    }
+
+    .cv-header .contacts {
+      display: flex;
+      justify-content: center;
+      gap: 12mm;
+      font-size: var(--font-small);
+      color: var(--color-secondary);
+      flex-wrap: wrap;
+    }
+
+    /* SUMMARY - Spacious with padding */
+    {{#if summary}}
+    .cv-summary {
+      min-height: calc({{summary_units}} * var(--unit-to-mm));
+      margin-bottom: 10mm;
+      padding: 8mm;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-left: 5px solid var(--color-accent);
+      border-radius: 4mm;
+    }
+
+    .cv-summary p {
+      text-align: justify;
+      line-height: 1.7;
+      font-size: calc(var(--font-body) + 0.5pt);
+    }
+    {{/if}}
+
+    /* SECTIONS - More spacing */
+    .cv-section {
+      margin-bottom: 10mm;
+      page-break-inside: avoid;
+    }
+
+    .cv-section-header {
+      font-size: calc(var(--font-section) + 1pt);
+      font-weight: 700;
+      color: var(--color-primary);
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--color-accent);
+      padding-bottom: 3mm;
+      margin-bottom: 6mm;
+      letter-spacing: 1px;
+    }
+
+    /* EXPERIENCES - Spacious layout */
+    .experience-item {
+      margin-bottom: 8mm;
+      page-break-inside: avoid;
+      padding: 4mm;
+      background: #fafafa;
+      border-radius: 3mm;
+    }
+
+    .experience-item.detailed,
+    .experience-item.standard {
+      height: calc({{units_used}} * var(--unit-to-mm));
+    }
+
+    .exp-header {
+      margin-bottom: 4mm;
+    }
+
+    .exp-title {
+      font-weight: 700;
+      font-size: calc(var(--font-body) + 2pt);
+      color: var(--color-primary);
+      margin-bottom: 2mm;
+    }
+
+    .exp-company-dates {
+      color: var(--color-secondary);
+      font-size: var(--font-small);
+      margin-top: 2mm;
+    }
+
+    .exp-context {
+      font-style: italic;
+      color: var(--color-secondary);
+      margin: 4mm 0;
+      line-height: 1.5;
+      padding: 3mm;
+      background: white;
+      border-radius: 2mm;
+    }
+
+    .exp-achievements {
+      list-style: none;
+      padding-left: 6mm;
+      margin-top: 3mm;
+    }
+
+    .exp-achievements li {
+      position: relative;
+      margin-bottom: 3mm;
+      line-height: 1.6;
+      padding-left: 4mm;
+    }
+
+    .exp-achievements li::before {
+      content: "▸";
+      color: var(--color-accent);
+      position: absolute;
+      left: 0;
+      font-weight: bold;
+      font-size: calc(var(--font-body) + 1pt);
+    }
+
+    .exp-technologies {
+      font-size: var(--font-small);
+      color: var(--color-secondary);
+      margin-top: 4mm;
+      padding-top: 3mm;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    /* SKILLS - Spacious badges */
+    .skill-category {
+      margin-bottom: 6mm;
+    }
+
+    .skill-category-title {
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 4mm;
+      font-size: calc(var(--font-body) + 0.5pt);
+    }
+
+    .skill-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4mm;
+    }
+
+    .skill-item {
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      padding: 2mm 5mm;
+      border-radius: 4mm;
+      font-size: var(--font-small);
+      border: 1px solid #dee2e6;
+    }
+
+    /* FORMATION - Spacious */
+    .formation-item {
+      margin-bottom: 6mm;
+      page-break-inside: avoid;
+      padding: 3mm;
+      background: #fafafa;
+      border-radius: 2mm;
+    }
+
+    .formation-title {
+      font-weight: 700;
+      color: var(--color-primary);
+      font-size: calc(var(--font-body) + 0.5pt);
+    }
+
+    .formation-school {
+      color: var(--color-secondary);
+      font-size: var(--font-small);
+      margin-top: 2mm;
+    }
+
+    @media print {
+      .page {
+        margin: 0;
+        padding: 20mm;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="cv-header">
+      <h1>{{header.prenom}} {{header.nom}}</h1>
+      <div class="title">{{header.titre}}</div>
+      {{#if header.email}}
+      <div class="contacts">
+        {{#if header.email}}<span>✉ {{header.email}}</span>{{/if}}
+        {{#if header.telephone}}<span>📞 {{header.telephone}}</span>{{/if}}
+        {{#if header.localisation}}<span>📍 {{header.localisation}}</span>{{/if}}
+        {{#if header.linkedin}}<span>🔗 {{header.linkedin}}</span>{{/if}}
+      </div>
+      {{/if}}
+    </header>
+
+    {{#if summary}}
+    <section class="cv-summary">
+      <p>{{summary.text}}</p>
+    </section>
+    {{/if}}
+
+    <section class="cv-section">
+      <h2 class="cv-section-header">Expériences Professionnelles</h2>
+      {{#each experiences}}
+      <div class="experience-item {{this.format}}">
+        {{#if this.is_minimal}}
+          <div class="exp-title-company">
+            <strong>{{this.position}}</strong> | {{this.company}}
+          </div>
+          <div class="exp-dates">{{this.dates}}</div>
+        {{else}}
+          <div class="exp-header">
+            <div class="exp-title">{{this.position}}</div>
+            <div class="exp-company-dates">{{this.company}} | {{this.dates}}</div>
+          </div>
+          {{#if this.context}}
+          <div class="exp-context">{{this.context}}</div>
+          {{/if}}
+          {{#if this.achievements}}
+          <ul class="exp-achievements">
+            {{#each this.achievements}}
+            <li>{{this}}</li>
+            {{/each}}
+          </ul>
+          {{/if}}
+          {{#if this.technologies}}
+          <div class="exp-technologies">
+            <strong>Technologies:</strong> {{join this.technologies ", "}}
+          </div>
+          {{/if}}
+        {{/if}}
+      </div>
+      {{/each}}
+    </section>
+
+    {{#if skills}}
+    <section class="cv-section">
+      <h2 class="cv-section-header">Compétences Techniques</h2>
+      {{#each skills}}
+      <div class="skill-category">
+        <div class="skill-category-title">{{this.category}}</div>
+        <div class="skill-items">
+          {{#each this.items}}
+          <span class="skill-item">{{this}}</span>
+          {{/each}}
+        </div>
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{#if formations}}
+    <section class="cv-section">
+      <h2 class="cv-section-header">Formation</h2>
+      {{#each formations}}
+      <div class="formation-item">
+        <div class="formation-title">{{this.diplome}}</div>
+        <div class="formation-school">{{this.ecole}} | {{this.annee}}</div>
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+  </div>
+</body>
+</html>`;
 }
 
 /**
- * Template Compact ATS (placeholder)
+ * Template Compact ATS - Optimisé pour parsing ATS
+ * Format simple, mots-clés visibles, structure claire
  */
 function getCompactATSTemplate(): string {
-  // TODO: Implement compact ATS template
-  return getClassicTemplate(); // Fallback for now
+  return `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV - {{header.prenom}} {{header.nom}}</title>
+  <style>
+    :root {
+      --unit-to-mm: {{unit_to_mm}}mm;
+      --color-primary: {{colors.primary}};
+      --color-secondary: {{colors.secondary}};
+      --font-name: {{font_sizes.name}}pt;
+      --font-title: {{font_sizes.title}}pt;
+      --font-section: {{font_sizes.section_header}}pt;
+      --font-body: {{font_sizes.body}}pt;
+      --font-small: {{font_sizes.small}}pt;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      font-size: var(--font-body);
+      color: #000;
+      line-height: 1.3;
+      background: white;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 12mm;
+      background: white;
+      margin: 0 auto;
+    }
+
+    /* HEADER - Compact */
+    .cv-header {
+      height: calc({{header_units}} * var(--unit-to-mm));
+      border-bottom: 1px solid #000;
+      padding-bottom: 2mm;
+      margin-bottom: 3mm;
+    }
+
+    .cv-header h1 {
+      font-size: var(--font-name);
+      color: #000;
+      margin-bottom: 1mm;
+      font-weight: bold;
+    }
+
+    .cv-header .title {
+      font-size: var(--font-title);
+      color: #333;
+      font-weight: normal;
+      margin-bottom: 1mm;
+    }
+
+    .cv-header .contacts {
+      display: flex;
+      gap: 5mm;
+      font-size: var(--font-small);
+      color: #333;
+      flex-wrap: wrap;
+    }
+
+    /* SUMMARY - Compact */
+    {{#if summary}}
+    .cv-summary {
+      min-height: calc({{summary_units}} * var(--unit-to-mm));
+      margin-bottom: 3mm;
+      padding: 2mm;
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+    }
+
+    .cv-summary p {
+      text-align: left;
+      line-height: 1.4;
+    }
+    {{/if}}
+
+    /* SECTIONS - Compact */
+    .cv-section {
+      margin-bottom: 3mm;
+      page-break-inside: avoid;
+    }
+
+    .cv-section-header {
+      font-size: var(--font-section);
+      font-weight: bold;
+      color: #000;
+      text-transform: uppercase;
+      border-bottom: 1px solid #000;
+      padding-bottom: 1mm;
+      margin-bottom: 2mm;
+    }
+
+    /* EXPERIENCES - Compact, ATS-friendly */
+    .experience-item {
+      margin-bottom: 3mm;
+      page-break-inside: avoid;
+    }
+
+    .experience-item.detailed,
+    .experience-item.standard {
+      height: calc({{units_used}} * var(--unit-to-mm));
+    }
+
+    .exp-header {
+      margin-bottom: 1mm;
+    }
+
+    .exp-title {
+      font-weight: bold;
+      font-size: var(--font-body);
+      color: #000;
+    }
+
+    .exp-company-dates {
+      color: #333;
+      font-size: var(--font-small);
+      margin-top: 0.5mm;
+    }
+
+    .exp-achievements {
+      list-style: disc;
+      padding-left: 5mm;
+      margin-top: 1mm;
+    }
+
+    .exp-achievements li {
+      margin-bottom: 1mm;
+      line-height: 1.3;
+    }
+
+    .exp-technologies {
+      font-size: var(--font-small);
+      color: #333;
+      margin-top: 1mm;
+    }
+
+    /* SKILLS - Compact, keyword-rich */
+    .skill-category {
+      margin-bottom: 2mm;
+    }
+
+    .skill-category-title {
+      font-weight: bold;
+      color: #000;
+      margin-bottom: 1mm;
+      font-size: var(--font-body);
+    }
+
+    .skill-items {
+      display: inline;
+    }
+
+    .skill-item {
+      display: inline;
+      color: #000;
+      font-size: var(--font-small);
+    }
+
+    .skill-item::after {
+      content: ", ";
+    }
+
+    .skill-item:last-child::after {
+      content: "";
+    }
+
+    /* FORMATION - Compact */
+    .formation-item {
+      margin-bottom: 2mm;
+      page-break-inside: avoid;
+    }
+
+    .formation-title {
+      font-weight: bold;
+      color: #000;
+      font-size: var(--font-body);
+    }
+
+    .formation-school {
+      color: #333;
+      font-size: var(--font-small);
+      margin-top: 0.5mm;
+    }
+
+    @media print {
+      .page {
+        margin: 0;
+        padding: 12mm;
+        page-break-after: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="cv-header">
+      <h1>{{header.prenom}} {{header.nom}}</h1>
+      <div class="title">{{header.titre}}</div>
+      {{#if header.email}}
+      <div class="contacts">
+        {{#if header.email}}<span>{{header.email}}</span>{{/if}}
+        {{#if header.telephone}}<span>{{header.telephone}}</span>{{/if}}
+        {{#if header.localisation}}<span>{{header.localisation}}</span>{{/if}}
+        {{#if header.linkedin}}<span>{{header.linkedin}}</span>{{/if}}
+      </div>
+      {{/if}}
+    </header>
+
+    {{#if summary}}
+    <section class="cv-summary">
+      <p>{{summary.text}}</p>
+    </section>
+    {{/if}}
+
+    <section class="cv-section">
+      <h2 class="cv-section-header">Expériences Professionnelles</h2>
+      {{#each experiences}}
+      <div class="experience-item {{this.format}}">
+        <div class="exp-header">
+          <div class="exp-title">{{this.position}}</div>
+          <div class="exp-company-dates">{{this.company}} | {{this.dates}}</div>
+        </div>
+        {{#if this.achievements}}
+        <ul class="exp-achievements">
+          {{#each this.achievements}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+        {{/if}}
+        {{#if this.technologies}}
+        <div class="exp-technologies">
+          <strong>Technologies:</strong> {{join this.technologies ", "}}
+        </div>
+        {{/if}}
+      </div>
+      {{/each}}
+    </section>
+
+    {{#if skills}}
+    <section class="cv-section">
+      <h2 class="cv-section-header">Compétences Techniques</h2>
+      {{#each skills}}
+      <div class="skill-category">
+        <div class="skill-category-title">{{this.category}}:</div>
+        <div class="skill-items">
+          {{#each this.items}}
+          <span class="skill-item">{{this}}</span>
+          {{/each}}
+        </div>
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+
+    {{#if formations}}
+    <section class="cv-section">
+      <h2 class="cv-section-header">Formation</h2>
+      {{#each formations}}
+      <div class="formation-item">
+        <div class="formation-title">{{this.diplome}}</div>
+        <div class="formation-school">{{this.ecole}} | {{this.annee}}</div>
+      </div>
+      {{/each}}
+    </section>
+    {{/if}}
+  </div>
+</body>
+</html>`;
 }
 
 export { prepareTemplateData, getInlineTemplate };

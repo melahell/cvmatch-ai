@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
 import { JobAnalysis } from "@/types";
 import { logger } from "@/lib/utils/logger";
@@ -49,7 +49,7 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
 
-    const fetchJobAnalyses = async () => {
+    const fetchJobAnalyses = useCallback(async () => {
         if (!userId) {
             setLoading(false);
             return;
@@ -113,14 +113,13 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
         } finally {
             setLoading(false);
         }
-    };
+    }, [userId]);
 
     useEffect(() => {
         fetchJobAnalyses();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [userId]);
+    }, [fetchJobAnalyses]);
 
-    const updateStatus = async (id: string, newStatus: JobAnalysis["application_status"]) => {
+    const updateStatus = useCallback(async (id: string, newStatus: JobAnalysis["application_status"]) => {
         try {
             if (!userId) {
                 throw new Error("User not authenticated");
@@ -147,9 +146,9 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
             logger.error('Error updating job status:', e);
             throw e;
         }
-    };
+    }, [userId, fetchJobAnalyses]);
 
-    const deleteJob = async (id: string) => {
+    const deleteJob = useCallback(async (id: string) => {
         try {
             if (!userId) {
                 throw new Error("User not authenticated");
@@ -176,7 +175,7 @@ export function useJobAnalyses(userId: string | null): UseJobAnalysesReturn {
             logger.error('Error deleting job:', e);
             throw e;
         }
-    };
+    }, [userId, fetchJobAnalyses]);
 
     return {
         data,

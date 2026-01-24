@@ -4,6 +4,7 @@ import React from "react";
 import { DataListCard, DataListContent, DataListRow, DataListMain, DataListActions } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FileText, Download, Edit, Sparkles } from "lucide-react";
 
 interface CVCardProps {
@@ -35,8 +36,24 @@ export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: C
                             <FileText className="w-5 h-5 text-blue-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm sm:text-base line-clamp-2">{title}</h3>
-                            {company && <p className="text-sm text-slate-600 line-clamp-1">{company}</p>}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <h3 className="font-semibold text-sm sm:text-base line-clamp-2" title={title}>{title}</h3>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{title}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                            {company && (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <p className="text-sm text-slate-600 line-clamp-1" title={company}>{company}</p>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p>{company}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            )}
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <span className="text-xs text-slate-600">{date}</span>
                                 {isV2 && (
@@ -56,14 +73,28 @@ export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: C
 
                     <DataListActions className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {onRename && (
-                            <Button variant="ghost" size="sm" onClick={() => onRename(cv.id)}>
-                                <Edit className="w-4 h-4" />
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" onClick={() => onRename(cv.id)} aria-label="Renommer le CV">
+                                        <Edit className="w-4 h-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Renommer</p>
+                                </TooltipContent>
+                            </Tooltip>
                         )}
                         {onDownload && (
-                            <Button variant="ghost" size="sm" onClick={() => onDownload(cv.id)}>
-                                <Download className="w-4 h-4" />
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" onClick={() => onDownload(cv.id)} aria-label="Télécharger le CV">
+                                        <Download className="w-4 h-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Télécharger</p>
+                                </TooltipContent>
+                            </Tooltip>
                         )}
                     </DataListActions>
                 </DataListRow>

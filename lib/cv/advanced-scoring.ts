@@ -11,6 +11,7 @@
 
 import type { AIWidget } from "./ai-widgets";
 import type { JobOfferContext } from "./relevance-scoring";
+import { logger } from "@/lib/utils/logger";
 
 export interface AdvancedScoreWeights {
     relevance: number; // Poids pertinence offre (0-1)
@@ -243,8 +244,37 @@ export function rescoreWidgetsWithAdvanced(
         weights?: Partial<AdvancedScoreWeights>;
     }
 ): AIWidget[] {
-    return widgets.map((widget) => ({
-        ...widget,
-        relevance_score: calculateAdvancedScore(widget, context),
-    }));
+    const weights: AdvancedScoreWeights = { ...DEFAULT_WEIGHTS, ...(context.weights || {}) };
+    
+    logger.debug("[advanced-scoring] Re-scoring widgets", {
+        widgetsCount: widgets.length,
+        weights,
+        hasJobOffer: !!context.jobOffer,
+        hasRAGProfile: !!context.ragProfile,
+    });
+    
+    const rescored = widgets.map((widget) => {
+        const originalScore = widget.relevance_score || 50;
+        const advancedScore = calculateAdvancedScore(widget, context);
+        
+        return {
+            ...widget,
+            relevance_score: advancedScore,
+        };
+    });
+    
+    // Logger statistiques
+    const scoreChanges = rescored.map(w => {
+        const original = widgets.find(ow => ow.id === w.id)?.relevance_score || 50;
+        return { id: w.id, original, advanced: w.relevance_score, delta: w.relevance_score - original };
+    });
+    const avgDelta = scoreChanges.reduce((sum, s) => sum + s.delta, 0) / scoreChanges.length;
+    
+    logger.debug("[advanced-scoring] Re-scoring terminé", {
+        avgDelta: Math.round(avgDelta),
+        improved: scoreChanges.filter(s => s.delta > 0).length,
+        degraded: scoreChanges.filter(s => s.delta < 0).length,
+    });
+    
+    return rescored;
 }

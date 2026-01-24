@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Clock, FileText, Upload, Briefcase } from "lucide-react";
 import { formatRelativeDate } from "@/lib/formatters";
 
@@ -43,9 +44,18 @@ export function RecentActivity({ activities = [] }: RecentActivityProps) {
                                 {getIcon(activity.type)}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-700 truncate">
-                                    {activity.title}
-                                </p>
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <p className="text-sm font-medium text-slate-700 truncate" title={activity.title}>
+                                                {activity.title}
+                                            </p>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{activity.title}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                                 <p className="text-xs text-slate-600">
                                     {formatRelativeDate(activity.timestamp)}
                                 </p>

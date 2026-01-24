@@ -9,12 +9,15 @@
 
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, X } from "lucide-react";
+import { GripVertical, X, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { RendererResumeSchema } from "@/lib/cv/renderer-schema";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { useState, useEffect, useCallback } from "react";
 
 interface ExperienceEditorProps {
     experiences: RendererResumeSchema["experiences"];
@@ -60,8 +63,9 @@ function DraggableExperienceItem({
                 <button
                     {...attributes}
                     {...listeners}
-                    className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity mt-1"
+                    className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-indigo-600 transition-colors mt-1"
                     aria-label={`Réorganiser expérience ${index + 1}`}
+                    title="Glisser pour réorganiser"
                 >
                     <GripVertical className="w-4 h-4" />
                 </button>
@@ -99,12 +103,55 @@ export function ExperienceEditor({
     className,
 }: ExperienceEditorProps) {
     const experienceIds = experiences.map((_, i) => `exp-${i}`);
+    const [hasShownHelp, setHasShownHelp] = useState(false);
+    const [lastReorderTime, setLastReorderTime] = useState<number>(0);
+
+    // Afficher message d'aide au premier affichage
+    useEffect(() => {
+        if (!hasShownHelp && experiences.length > 0) {
+            const helpShown = localStorage.getItem("cv-editor-help-shown");
+            if (!helpShown) {
+                setTimeout(() => {
+                    toast.info("💡 Glissez les expériences pour réorganiser l'ordre dans votre CV", {
+                        duration: 5000,
+                    });
+                    localStorage.setItem("cv-editor-help-shown", "true");
+                    setHasShownHelp(true);
+                }, 1000);
+            }
+        }
+    }, [hasShownHelp, experiences.length]);
+
+    // Wrapper pour onReorder avec feedback
+    const handleReorder = useCallback((newOrder: number[]) => {
+        onReorder(newOrder);
+        const now = Date.now();
+        // Éviter les toasts trop fréquents (max 1 toutes les 2 secondes)
+        if (now - lastReorderTime > 2000) {
+            toast.success("Ordre sauvegardé", { duration: 2000 });
+            setLastReorderTime(now);
+        }
+    }, [onReorder, lastReorderTime]);
 
     return (
         <Card className={className}>
             <CardHeader>
                 <CardTitle className="text-sm flex items-center justify-between">
-                    <span>Éditeur d'Expériences</span>
+                    <div className="flex items-center gap-2">
+                        <span>Éditeur d'Expériences</span>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-xs">
+                                    <p className="text-xs">
+                                        Réorganisez l'ordre d'affichage des expériences dans votre CV en glissant-déposant.
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
                     <Badge variant="info" className="text-xs">
                         {experiences.length} expériences
                     </Badge>
@@ -123,9 +170,14 @@ export function ExperienceEditor({
                         ))}
                     </div>
                 </SortableContext>
-                <p className="text-xs text-slate-500 mt-3 italic">
-                    💡 Glissez-déposez pour réorganiser. L'ordre sera sauvegardé automatiquement.
-                </p>
+                <div className="mt-3 p-2 rounded-md bg-blue-50 border border-blue-100">
+                    <p className="text-xs text-blue-700 flex items-start gap-2">
+                        <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>
+                            <strong>Glissez-déposez</strong> les expériences pour réorganiser. L'ordre sera sauvegardé automatiquement et appliqué à votre CV.
+                        </span>
+                    </p>
+                </div>
             </CardContent>
         </Card>
     );
