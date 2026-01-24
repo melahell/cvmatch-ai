@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Check, Loader2, Sparkles, X } from "lucide-react";
+import { logger } from "@/lib/utils/logger";
 
 interface SpellcheckInputProps {
     value: string;
@@ -56,7 +57,7 @@ export function SpellcheckInput({
                 }
             }
         } catch (error) {
-            console.error("Spellcheck error:", error);
+            logger.error("Spellcheck error", { error, text });
         } finally {
             setIsChecking(false);
         }

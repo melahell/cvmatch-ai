@@ -5,6 +5,9 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 // Singleton pattern pour éviter instanciations multiples
 let supabaseInstance: SupabaseClient | null = null;
 
+// Singleton pour client admin (serveur uniquement)
+let adminClientInstance: SupabaseClient | null = null;
+
 // Cache pour clients utilisateur par token (évite recréation pour même token)
 const userClientsCache = new Map<string, SupabaseClient>();
 
@@ -244,9 +247,14 @@ export const createSignedUrl = async (
     return data?.signedUrl ?? null;
 };
 
-export const createSupabaseAdminClient = () => {
+export const createSupabaseAdminClient = (): SupabaseClient => {
     if (typeof window !== "undefined") {
         throw new Error("createSupabaseAdminClient ne doit pas être appelé côté client");
+    }
+
+    // Pattern singleton pour éviter instanciations multiples
+    if (adminClientInstance) {
+        return adminClientInstance;
     }
 
     const supabaseUrl =
@@ -261,11 +269,13 @@ export const createSupabaseAdminClient = () => {
         );
     }
 
-    return createClient(supabaseUrl, serviceKey, {
+    adminClientInstance = createClient(supabaseUrl, serviceKey, {
         auth: {
             autoRefreshToken: false,
             persistSession: false,
             detectSessionInUrl: false,
         },
     });
+
+    return adminClientInstance;
 };

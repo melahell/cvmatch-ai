@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useCallback } from "react";
 import { DataListCard, DataListContent, DataListRow, DataListMain, DataListActions } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,10 +19,18 @@ interface AnalysisCardProps {
     onDelete?: (id: string) => void;
 }
 
-export function AnalysisCard({ analysis, onCompare, onDelete }: AnalysisCardProps) {
+export const AnalysisCard = React.memo(function AnalysisCard({ analysis, onCompare, onDelete }: AnalysisCardProps) {
     const jobTitle = analysis.match_report?.poste_cible || "Analyse";
     const company = analysis.match_report?.entreprise || "";
     const date = new Date(analysis.created_at).toLocaleDateString("fr-FR");
+
+    const handleCompare = useCallback(() => {
+        onCompare?.(analysis.id);
+    }, [analysis.id, onCompare]);
+
+    const handleDelete = useCallback(() => {
+        onDelete?.(analysis.id);
+    }, [analysis.id, onDelete]);
 
     return (
         <DataListCard>
@@ -68,4 +77,4 @@ export function AnalysisCard({ analysis, onCompare, onDelete }: AnalysisCardProp
             </DataListContent>
         </DataListCard>
     );
-}
+});

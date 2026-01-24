@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DiffViewer } from "@/components/cv/DiffViewer";
 import { getCVVersions, type CVVersion } from "@/lib/cv/cv-history";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 export default function CVEditorPage() {
     const { id } = useParams();
@@ -99,7 +100,7 @@ export default function CVEditorPage() {
                 });
             } catch (versionError) {
                 // Non-blocking, continue même si versioning échoue
-                console.error("Versioning error:", versionError);
+                logger.error("Versioning error", { error: versionError, cvId: id });
             }
         }
     }, [id, supabase, userId, modificationCount]);
@@ -132,7 +133,7 @@ export default function CVEditorPage() {
                     setVersions(data.versions || []);
                 }
             } catch (error) {
-                console.error("Error loading versions:", error);
+                logger.error("Error loading versions", { error, cvId: id });
             } finally {
                 setLoadingVersions(false);
             }
@@ -251,7 +252,7 @@ export default function CVEditorPage() {
                 alert("Erreur lors de la consolidation IA. Réessayez.");
             }
         } catch (error) {
-            console.error("Consolidation error:", error);
+            logger.error("Consolidation error", { error, cvId: id });
             alert("Erreur lors de la consolidation IA.");
         } finally {
             setConsolidating(false);

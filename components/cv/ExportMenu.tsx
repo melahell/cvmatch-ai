@@ -20,6 +20,7 @@ import { exportCVToJSON } from "@/lib/cv/export-json";
 import type { RendererResumeSchema } from "@/lib/cv/renderer-schema";
 import type { AIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 interface ExportMenuProps {
     cvData: RendererResumeSchema;
@@ -100,7 +101,7 @@ export function ExportMenu({
                 }
             }
         } catch (error: any) {
-            console.error(`Error exporting to ${format}:`, error);
+            logger.error(`Error exporting to ${format}`, { error, format });
             toast.error(`Erreur lors de l'export ${format}: ${error.message || "Erreur inconnue"}`);
         } finally {
             setExporting(null);

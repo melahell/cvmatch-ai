@@ -1,3 +1,4 @@
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { LucideIcon } from "lucide-react";
@@ -63,4 +64,4 @@ export function StatsCard({
     }
 
     return <Card className="h-full">{content}</Card>;
-}
+});

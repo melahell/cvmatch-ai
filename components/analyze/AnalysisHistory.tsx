@@ -10,6 +10,7 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ExternalLink, Eye, Search, Calendar } from "lucide-react";
+import { logger } from "@/lib/utils/logger";
 
 interface Analysis {
     id: string;
@@ -45,7 +46,7 @@ export function AnalysisHistory({ userId }: AnalysisHistoryProps) {
             if (error) throw error;
             setAnalyses(data || []);
         } catch (error) {
-            console.error('Error fetching analyses:', error);
+            logger.error('Error fetching analyses', { error });
         } finally {
             setLoading(false);
         }

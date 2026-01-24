@@ -8,6 +8,7 @@ import { RAGComplete } from "@/types/rag-complete";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ragToCVData } from "@/lib/utils/rag-to-cv-data";
+import { logger } from "@/lib/utils/logger";
 
 // Import templates
 import ModernTemplate from "@/components/cv/templates/ModernTemplate";
@@ -164,7 +165,7 @@ export function CVPreviewModal({
             document.body.removeChild(container);
 
         } catch (err) {
-            console.error('PDF Generation Error:', err);
+            logger.error('PDF Generation Error', { error: err });
             window.print();
         } finally {
             setIsGenerating(false);

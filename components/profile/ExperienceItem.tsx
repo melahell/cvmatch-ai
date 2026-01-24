@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,9 +64,9 @@ export function ExperienceItem({
                         <div className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             <span>
-                                {formatDate(experience.date_debut)}
+                                {formattedStartDate}
                                 {' - '}
-                                {isCurrentPosition ? "Aujourd'hui" : formatDate(experience.date_fin || '')}
+                                {formattedEndDate}
                             </span>
                         </div>
                         {experience.lieu && (
@@ -117,4 +118,4 @@ export function ExperienceItem({
             </div>
         </Card>
     );
-}
+});

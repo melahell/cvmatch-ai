@@ -6,6 +6,7 @@ import { Download, FileJson, FileText, Loader2, X, CheckCircle } from "lucide-re
 import { useAuth } from "@/hooks/useAuth";
 import { createSupabaseClient } from "@/lib/supabase";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 interface ExportDataModalProps {
     isOpen: boolean;
@@ -88,7 +89,7 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
             toast.success("Export téléchargé avec succès !");
             onClose();
         } catch (error: any) {
-            console.error("Export error:", error);
+            logger.error("Export error", { error, format });
             toast.error("Erreur lors de l'export");
         } finally {
             setExporting(false);

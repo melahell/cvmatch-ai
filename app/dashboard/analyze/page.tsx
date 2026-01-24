@@ -14,6 +14,7 @@ import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AnalysisHistory } from "@/components/analyze/AnalysisHistory";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
+import { logger } from "@/lib/utils/logger";
 
 // Validation utilities
 const ALLOWED_FILE_TYPES = ['.pdf', '.doc', '.docx', '.txt'];
@@ -320,7 +321,7 @@ export default function AnalyzePage() {
             router.push(`/dashboard/analyze/${data.analysis_id}`);
 
         } catch (error: any) {
-            console.error("Analyze error:", error);
+            logger.error("Analyze error", { error, jobUrl });
             if (error instanceof TypeError) {
                 toast.error('Erreur de connexion. Vérifiez votre internet.');
             } else {

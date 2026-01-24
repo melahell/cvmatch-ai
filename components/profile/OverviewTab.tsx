@@ -11,6 +11,7 @@ import { EditableField } from "@/components/ui/EditableField";
 import type { InferredSkill } from "@/types/rag";
 import { normalizeCompetences } from "@/lib/utils/normalize-competences";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
+import { logger } from "@/lib/utils/logger";
 
 type WeightValue = "important" | "inclus" | "exclu";
 
@@ -116,11 +117,11 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                 onRefetch?.();
             } else {
                 const error = await response.json();
-                console.error("Failed to delete:", error);
+                logger.error("Failed to delete item", { error, itemId: id });
                 alert(`Erreur: ${error.error || "Suppression échouée"}`);
             }
         } catch (error) {
-            console.error("Delete error:", error);
+            logger.error("Delete error", { error, section });
         } finally {
             setDeletingItem(null);
         }
@@ -166,7 +167,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                 throw new Error(error.error || "Échec de la mise à jour");
             }
         } catch (error: any) {
-            console.error("Update profile error:", error);
+            logger.error("Update profile error", { error, field, value });
             throw error;
         }
     };
@@ -268,7 +269,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                 // Trigger refetch to update UI
                 onRefetch?.();
             } else {
-                console.error("Failed to add skill");
+                logger.error("Failed to add skill", { skillName });
             }
         } catch (error) {
             console.error("Error adding skill:", error);
@@ -297,10 +298,10 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
             if (response.ok) {
                 onRefetch?.();
             } else {
-                console.error("Failed to reject skill");
+                logger.error("Failed to reject skill", { skillName });
             }
         } catch (error) {
-            console.error("Error rejecting skill:", error);
+            logger.error("Error rejecting skill", { error, skillName });
         } finally {
             setRejectingSkill(null);
         }

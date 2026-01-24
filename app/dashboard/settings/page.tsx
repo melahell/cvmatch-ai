@@ -12,6 +12,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from "@/lib/utils/logger";
 
 interface NotificationPrefs {
     emailNewMatch: boolean;
@@ -92,7 +93,7 @@ export default function SettingsPage() {
                     setSubscriptionStatus(data.subscriptionStatus || "inactive");
                 }
             } catch (error) {
-                console.error("Error loading settings:", error);
+                logger.error("Error loading settings", { error, userId });
             } finally {
                 setLoading(false);
             }
