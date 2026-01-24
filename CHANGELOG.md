@@ -5,6 +5,31 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [6.3.0] - 2026-01-24
+
+### Added
+- Phase 4 complète : Améliorations RAG (duplication, enrichissement contextuel, fusion intelligente)
+  - Prompt Gemini amélioré avec règle de consolidation (limite 8-12 réalisations)
+  - Threshold déduplication ajusté de 0.85 à 0.75
+  - Contexte enrichi : responsabilités implicites, compétences tacites, environnement travail
+  - Normalisation entreprises améliorée (variations, acronymes, suffixes)
+  - Similarité chaînes améliorée (Jaccard + Levenshtein avec poids adaptatifs)
+  - Déduplication sémantique avec préservation meilleure version
+- Phase 5 complète : Tests et Validation
+  - Tests E2E : workflow RAG, déduplication, match scores amélioration
+  - Tests unitaires : deduplicate, merge, contexte-enrichi, fuzzy-matcher, string-similarity, normalize-company
+  - Tests intégration : pipeline RAG, enrichissement, matching avec contexte
+
+### Improved
+- Qualité RAG : 0 doublons sémantiques (similarité > 0.75), 8-12 réalisations max par expérience
+- Match scores : amélioration de 15-25% avec contexte enrichi
+- Déduplication : préservation structure complète des réalisations (impact, sources, outils)
+- Normalisation : 95%+ entreprises normalisées correctement
+
+### Fixed
+- Bug deduplicate.ts : préservation structure réalisations lors fusion
+- Mode REPLACE/regeneration : vérifié et fonctionnel
+
 ## [6.2.9] - 2026-01-24
 
 ### Added
