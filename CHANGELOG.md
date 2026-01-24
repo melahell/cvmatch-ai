@@ -5,6 +5,12 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [6.2.9] - 2026-01-24
+
+### Added
+- Plan d'exécution Phase 4 : Améliorations RAG (duplication, enrichissement, fusion)
+- Plan d'exécution Phase 5 : Tests et Validation (E2E, unitaires, intégration)
+
 ## [6.2.8] - 2026-01-23
 
 ### Added
