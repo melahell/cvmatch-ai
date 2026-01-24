@@ -11,9 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Eye, Download, Check, Loader2, Plus, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, Download, Check, Loader2, Plus, Trash2, ChevronDown, ChevronUp, Sparkles, History, GitCompare } from "lucide-react";
 import Link from "next/link";
 import { normalizeRAGToCV } from "@/components/cv/normalizeData";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DiffViewer } from "@/components/cv/DiffViewer";
+import { getCVVersions, type CVVersion } from "@/lib/cv/cv-history";
+import { toast } from "sonner";
 
 export default function CVEditorPage() {
     const { id } = useParams();
@@ -31,6 +35,12 @@ export default function CVEditorPage() {
         langues: false
     });
     const [consolidating, setConsolidating] = useState(false);
+    const [activeTab, setActiveTab] = useState("edit");
+    const [versions, setVersions] = useState<CVVersion[]>([]);
+    const [loadingVersions, setLoadingVersions] = useState(false);
+    const [selectedVersion, setSelectedVersion] = useState<number | null>(null);
+    const [modificationCount, setModificationCount] = useState(0);
+    const [lastSavedVersion, setLastSavedVersion] = useState<any>(null);
 
     const supabase = createSupabaseClient();
 
@@ -56,8 +66,8 @@ export default function CVEditorPage() {
         fetchCV();
     }, [id, supabase]);
 
-    // Debounced auto-save
-    const saveCV = useCallback(async (data: any) => {
+    // Debounced auto-save with versioning
+    const saveCV = useCallback(async (data: any, description?: string) => {
         if (!id) return;
         if (!userId) return;
         setSaving(true);
@@ -72,16 +82,103 @@ export default function CVEditorPage() {
         setSaving(false);
         if (!error) {
             setSaved(true);
+            setLastSavedVersion(data);
+            setModificationCount(0);
             setTimeout(() => setSaved(false), 2000);
-        }
-    }, [id, supabase, userId]);
 
-    // Auto-save on change with debounce
+            // Sauvegarder version (toutes les 30s ou après 5 modifications significatives)
+            try {
+                const authHeaders = await getSupabaseAuthHeader();
+                await fetch(`/api/cv/${id}/versions`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", ...authHeaders },
+                    body: JSON.stringify({
+                        cv_data: data,
+                        description: description || (modificationCount >= 5 ? "Modifications multiples" : "Auto-save"),
+                    }),
+                });
+            } catch (versionError) {
+                // Non-blocking, continue même si versioning échoue
+                console.error("Versioning error:", versionError);
+            }
+        }
+    }, [id, supabase, userId, modificationCount]);
+
+    // Auto-save on change with debounce and versioning
     useEffect(() => {
         if (!cvData || loading) return;
-        const timer = setTimeout(() => saveCV(cvData), 1500);
+        
+        // Incrémenter compteur modifications
+        setModificationCount((prev) => prev + 1);
+        
+        const timer = setTimeout(() => {
+            saveCV(cvData);
+        }, 1500);
         return () => clearTimeout(timer);
     }, [cvData, loading, saveCV]);
+
+    // Charger versions au montage
+    useEffect(() => {
+        async function loadVersions() {
+            if (!id || !userId) return;
+            setLoadingVersions(true);
+            try {
+                const authHeaders = await getSupabaseAuthHeader();
+                const res = await fetch(`/api/cv/${id}/versions`, {
+                    headers: authHeaders,
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setVersions(data.versions || []);
+                }
+            } catch (error) {
+                console.error("Error loading versions:", error);
+            } finally {
+                setLoadingVersions(false);
+            }
+        }
+        loadVersions();
+    }, [id, userId]);
+
+    // Rollback handler
+    const handleRollback = async (versionNumber: number) => {
+        if (!id || !userId) return;
+        try {
+            const authHeaders = await getSupabaseAuthHeader();
+            const res = await fetch(`/api/cv/${id}/rollback`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                body: JSON.stringify({ version_number: versionNumber }),
+            });
+            if (res.ok) {
+                toast.success(`CV restauré à la version ${versionNumber}`);
+                // Recharger CV
+                const { data } = await supabase
+                    .from("cv_generations")
+                    .select("cv_data")
+                    .eq("id", id)
+                    .eq("user_id", userId)
+                    .single();
+                if (data) {
+                    const normalized = normalizeRAGToCV(data.cv_data);
+                    setCvData(normalized);
+                    setLastSavedVersion(normalized);
+                }
+                // Recharger versions
+                const versionsRes = await fetch(`/api/cv/${id}/versions`, {
+                    headers: authHeaders,
+                });
+                if (versionsRes.ok) {
+                    const versionsData = await versionsRes.json();
+                    setVersions(versionsData.versions || []);
+                }
+            } else {
+                toast.error("Erreur lors du rollback");
+            }
+        } catch (error) {
+            toast.error("Erreur lors du rollback");
+        }
+    };
 
     const updateField = (path: (string | number)[], value: any) => {
         setCvData((prev: any) => {
@@ -182,6 +279,11 @@ export default function CVEditorPage() {
                         </Link>
                         <h1 className="font-bold text-base sm:text-lg">Éditer le CV</h1>
                         <div className="flex items-center gap-2 text-sm hidden sm:flex">
+                            {modificationCount > 0 && !saved && (
+                                <Badge variant="warning" className="text-xs">
+                                    {modificationCount} modification{modificationCount > 1 ? "s" : ""} non sauvegardée{modificationCount > 1 ? "s" : ""}
+                                </Badge>
+                            )}
                             {saving && (
                                 <span className="text-slate-600 flex items-center gap-1">
                                     <Loader2 className="w-3 h-3 animate-spin" /> Sauvegarde...
@@ -228,8 +330,58 @@ export default function CVEditorPage() {
                 </div>
             </div>
 
-            {/* Editor */}
-            <div className="container mx-auto py-6 px-4 max-w-3xl space-y-4">
+            {/* Tabs */}
+            <div className="container mx-auto px-4 max-w-3xl">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="mb-4">
+                        <TabsTrigger value="edit">Édition</TabsTrigger>
+                        <TabsTrigger value="preview">Preview</TabsTrigger>
+                        <TabsTrigger value="history">
+                            <History className="w-4 h-4 mr-2" />
+                            Historique
+                        </TabsTrigger>
+                        <TabsTrigger value="diff">
+                            <GitCompare className="w-4 h-4 mr-2" />
+                            Diff
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="edit" className="space-y-4">
+                        {renderEditorContent()}
+                    </TabsContent>
+
+                    <TabsContent value="preview">
+                        <div className="bg-white p-6 rounded-lg border">
+                            <Link href={`/dashboard/cv/${id}`} target="_blank">
+                                <Button variant="outline" className="mb-4">
+                                    <Eye className="w-4 h-4 mr-2" />
+                                    Ouvrir en plein écran
+                                </Button>
+                            </Link>
+                            <iframe
+                                src={`/dashboard/cv/${id}`}
+                                className="w-full h-[800px] border rounded"
+                                title="CV Preview"
+                            />
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="history">
+                        {renderHistoryContent()}
+                    </TabsContent>
+
+                    <TabsContent value="diff">
+                        {renderDiffContent()}
+                    </TabsContent>
+                </Tabs>
+            </div>
+        </div>
+    );
+
+    function renderEditorContent() {
+        const { profil, experiences, competences, formations, langues } = cvData;
+        return (
+            <>
 
                 {/* PROFIL */}
                 <Card>
@@ -584,8 +736,118 @@ export default function CVEditorPage() {
                         </CardContent>
                     )}
                 </Card>
+            </>
+        );
+    }
 
+    function renderHistoryContent() {
+        return (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Historique des Versions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {loadingVersions ? (
+                        <div className="flex items-center justify-center p-8">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                        </div>
+                    ) : versions.length === 0 ? (
+                        <div className="text-center p-8 text-slate-500">
+                            Aucune version sauvegardée
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {versions.map((version) => (
+                                <div
+                                    key={version.id}
+                                    className="border rounded-lg p-4 hover:bg-slate-50 cursor-pointer"
+                                    onClick={() => setSelectedVersion(version.version_number)}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="font-semibold">
+                                                Version {version.version_number}
+                                            </div>
+                                            <div className="text-sm text-slate-500">
+                                                {new Date(version.metadata.created_at).toLocaleString("fr-FR")}
+                                            </div>
+                                            {version.metadata.change_description && (
+                                                <div className="text-sm text-slate-600 mt-1">
+                                                    {version.metadata.change_description}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {version.version_number !== versions[0]?.version_number && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRollback(version.version_number);
+                                                    }}
+                                                >
+                                                    Restaurer
+                                                </Button>
+                                            )}
+                                            {version.metadata.is_current && (
+                                                <Badge variant="success">Actuelle</Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    }
+
+    function renderDiffContent() {
+        if (!lastSavedVersion || !cvData) {
+            return (
+                <Card>
+                    <CardContent className="p-8 text-center text-slate-500">
+                        Aucune version précédente disponible pour comparaison
+                    </CardContent>
+                </Card>
+            );
+        }
+
+        if (selectedVersion !== null) {
+            // Comparer avec version sélectionnée
+            const version = versions.find((v) => v.version_number === selectedVersion);
+            if (version) {
+                return (
+                    <DiffViewer
+                        oldVersion={version.cv_data}
+                        newVersion={cvData}
+                        viewMode="unified"
+                    />
+                );
+            }
+        }
+
+        // Comparer avec dernière version sauvegardée
+        return (
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">Comparaison avec dernière version sauvegardée</h3>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            if (versions.length > 0) {
+                                setSelectedVersion(versions[0].version_number);
+                            }
+                        }}
+                    >
+                        Comparer avec version précédente
+                    </Button>
+                </div>
+                <DiffViewer oldVersion={lastSavedVersion} newVersion={cvData} viewMode="unified" />
             </div>
-        </div>
-    );
+        );
+    }
 }

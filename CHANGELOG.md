@@ -5,6 +5,42 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [6.4.0] - 2026-01-24
+
+### Added
+- Phase 6 complète : Features Utilisateur Avancées
+  - Système de versioning CV : historique complet avec rollback
+    - Table `cv_versions` avec RLS policies
+    - Auto-save versioning (toutes les 30s ou après 5 modifications)
+    - API complète pour gestion versions (GET/POST/DELETE)
+    - Rollback à version précédente
+  - Diff Viewer : comparaison visuelle avant/après avec highlighting
+    - Vue unifiée et split view
+    - Diff par section (profil, expériences, compétences, formations)
+    - Highlighting changements (ajouts vert, suppressions rouge, modifications jaune)
+  - Export multi-formats : Word (.docx), Markdown (.md), JSON structuré
+    - Export Word avec formatage préservé (titres, listes, sections)
+    - Export Markdown compatible GitHub/GitLab
+    - Export JSON avec widgets + métadonnées complètes
+  - Interface Contexte Enrichi : validation/rejet des déductions IA
+    - Viewer avec stats globales (validées/rejetées/en attente)
+    - Editor avec ajustement confidence score (slider 60-100)
+    - API validation (POST/PUT/DELETE) pour contexte enrichi
+    - Filtres et recherche dans les déductions
+
+### Improved
+- Page édition CV : tabs Historique et Diff ajoutés
+- ExportMenu : dropdown unifié pour tous les formats (PDF/Word/Markdown/JSON)
+- Contexte enrichi : interface complète de validation utilisateur
+- Auto-save : versioning automatique avec compteur modifications
+
+### Technical
+- Migration DB : `migrations/07_cv_versions.sql` créée
+- Dépendances ajoutées : `docx`, `@types/docx`, `@radix-ui/react-slider`
+- Nouveaux modules : `lib/cv/cv-history.ts`, `lib/cv/export-word.ts`, `lib/cv/export-markdown.ts`, `lib/cv/export-json.ts`
+- Nouveaux composants : `components/cv/DiffViewer.tsx`, `components/cv/ExportMenu.tsx`, `components/profile/ContexteEnrichiViewer.tsx`, `components/profile/ContexteEnrichiEditor.tsx`, `components/profile/ContexteEnrichiTab.tsx`
+- Nouveaux endpoints API : `app/api/cv/[id]/versions/route.ts`, `app/api/cv/[id]/rollback/route.ts`, `app/api/rag/validate-contexte/route.ts`
+
 ## [6.3.0] - 2026-01-24
 
 ### Added

@@ -8,8 +8,14 @@ ${existingRAGContext ? `${existingRAGContext}\n\n` : ""}NOUVEAU DOCUMENT À TRAI
 ${extractedText}
 
 ══════════════════════════════════════════════════════════════════════════════
-MISSION CRITIQUE: Enrichis le RAG existant avec les informations du nouveau document.
+MISSION CRITIQUE: Extrais et structure les informations ESSENTIELLES avec RIGUEUR MAXIMALE.
 ══════════════════════════════════════════════════════════════════════════════
+
+⚠️  RÈGLE DE CONSOLIDATION (CRITIQUE):
+- Identifie les réalisations similaires ou redondantes
+- FUSIONNE-LES intelligemment en gardant TOUS les impacts quantifiés
+- LIMITE: Maximum 8-12 réalisations PAR expérience (garde les + impactantes)
+- Priorise: Réalisations avec impacts quantifiés > non quantifiés
 
 ${existingRAGContext ? `⚠️ CONTEXTE ACCUMULÉ: Tu as déjà un RAG avec des expériences, compétences, formations, etc.
 ⚠️ TA MISSION: Enrichis ce RAG existant avec les nouvelles informations du document ci-dessus.
@@ -23,7 +29,8 @@ ${existingRAGContext ? `⚠️ CONTEXTE ACCUMULÉ: Tu as déjà un RAG avec des 
   * Si le nouveau document contredit le RAG existant → PRIORITÉ au document le plus détaillé et récent
   * Si un document est plus riche qu'un autre → Utilise le document riche pour enrichir le document pauvre
 ` : `⚠️ PREMIER DOCUMENT: C'est le premier document, crée le RAG de base.
-⚠️ Extrais TOUTES les informations présentes dans le document.
+⚠️ Extrais les informations ESSENTIELLES présentes dans le document.
+⚠️ Applique la RÈGLE DE CONSOLIDATION ci-dessus pour limiter à 8-12 réalisations max par expérience.
 `}
 
 RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES - CRITIQUES)
@@ -1029,3 +1036,90 @@ export const getCVOptimizationPrompt = (profile: any, jobDescription: string, cu
 
   return getCVOptimizationPromptV2(context);
 };
+
+/**
+ * Prompt pour générer le contexte enrichi (responsabilités implicites, compétences tacites)
+ */
+export const getContexteEnrichiPrompt = (ragData: any): string => `
+Tu es un expert en analyse de profils professionnels et en déduction contextuelle.
+
+Analyse le profil RAG suivant et identifie les éléments implicites qui ne sont pas explicitement mentionnés mais qui sont logiquement induits par les expériences et compétences décrites.
+
+PROFIL RAG À ANALYSER:
+${JSON.stringify(ragData, null, 2)}
+
+══════════════════════════════════════════════════════════════════════════════
+MISSION: Identifie les éléments implicites avec justifications précises
+══════════════════════════════════════════════════════════════════════════════
+
+1. RESPONSABILITÉS IMPLICITES :
+   - Pour chaque expérience, déduis les responsabilités logiquement induites par le poste et les réalisations
+   - Exemples :
+     * PMO → reporting, gouvernance, coordination inter-équipes, suivi budgétaire
+     * Dev Lead → code review, mentoring, architecture decisions, gestion technique
+     * Product Manager → roadmap, prioritization, stakeholder management, métriques
+   - Pour chaque responsabilité implicite :
+     * Description claire et concise
+     * Justification : phrase source du RAG qui justifie cette déduction (copie exacte)
+     * Confidence : 60-100 (60 = faible confiance, 100 = très forte confiance)
+
+2. COMPÉTENCES TACITES :
+   - Identifie les compétences non explicitement mentionnées mais logiquement nécessaires
+   - Types de compétences :
+     * "technique" : outils, technologies, méthodes techniques
+     * "soft_skill" : leadership, communication, organisation, etc.
+     * "methodologie" : Agile, Scrum, ITIL, etc.
+   - Exemples :
+     * Gestion équipe → leadership, communication, gestion de conflits
+     * Coordination projets → organisation, planification, gestion du temps
+     * Reporting → analyse de données, présentation, Excel/BI tools
+   - Pour chaque compétence tacite :
+     * Nom de la compétence
+     * Type (technique/soft_skill/methodologie)
+     * Justification : phrase source qui justifie
+     * Confidence : 60-100
+
+3. ENVIRONNEMENT TRAVAIL :
+   - Dédus la taille d'équipe, contexte projet, outils standards utilisés
+   - Exemples :
+     * Startup → équipe réduite (2-10 personnes), polyvalence, outils légers
+     * Grande entreprise → processus structurés, outils enterprise, équipes importantes
+     * PMO → gouvernance multi-projets, reporting hiérarchique, outils PPM
+   - Champs à déduire :
+     * taille_equipe : estimation (ex: "5-10 personnes", "équipe internationale")
+     * contexte_projet : type de projets (ex: "transformation digitale", "projets internationaux")
+     * outils_standards : outils typiques du contexte (ex: ["Jira", "Confluence", "SharePoint"])
+
+RÈGLES CRITIQUES :
+- ⛔ N'invente JAMAIS de responsabilités ou compétences sans justification claire
+- ✅ Chaque déduction DOIT avoir une phrase source du RAG qui la justifie
+- ✅ Confidence doit être réaliste : 60-70 = faible, 80-90 = moyen, 95-100 = très fort
+- ✅ Sois conservateur : mieux vaut moins de déductions mais plus précises
+- ✅ Priorise les déductions avec confidence > 80
+
+FORMAT DE RÉPONSE (JSON uniquement) :
+{
+  "responsabilites_implicites": [
+    {
+      "description": "string (responsabilité déduite)",
+      "justification": "string (phrase source exacte du RAG)",
+      "confidence": number (60-100)
+    }
+  ],
+  "competences_tacites": [
+    {
+      "nom": "string (nom compétence)",
+      "type": "technique" | "soft_skill" | "methodologie",
+      "justification": "string (phrase source exacte)",
+      "confidence": number (60-100)
+    }
+  ],
+  "environnement_travail": {
+    "taille_equipe": "string (optionnel)",
+    "contexte_projet": "string (optionnel)",
+    "outils_standards": ["string"] (optionnel)
+  }
+}
+
+Génère UNIQUEMENT le JSON, sans texte avant ou après.
+`;

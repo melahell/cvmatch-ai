@@ -33,6 +33,7 @@ import { TEMPLATES } from "@/components/cv/templates";
 import { ValidationWarnings } from "@/components/cv/ValidationWarnings";
 import { MultiTemplatePreview } from "@/components/cv/MultiTemplatePreview";
 import { PDFExportButton } from "@/components/cv/PDFExportButton";
+import { ExportMenu } from "@/components/cv/ExportMenu";
 import { DraggableCV } from "@/components/cv/DraggableCV";
 import { ExperienceEditor } from "@/components/cv/ExperienceEditor";
 import { WidgetScoreVisualizer } from "@/components/cv/WidgetScoreVisualizer";
@@ -528,6 +529,17 @@ function CVBuilderContent() {
                                 {showEditor ? "Masquer éditeur" : "Éditer ordre"}
                             </Button>
                             {cvData && (
+                                <ExportMenu
+                                    cvData={reorderedCV || cvData || {} as RendererResumeSchema}
+                                    template={templateId}
+                                    filename="CV"
+                                    onPDFExport={() => {
+                                        const element = document.getElementById("cv-preview-container");
+                                        if (element) {
+                                            window.print();
+                                        }
+                                    }}
+                                />
                                 <PDFExportButton
                                     elementId="cv-preview-container"
                                     filename={`CV_${cvData.profil.prenom}_${cvData.profil.nom}`}

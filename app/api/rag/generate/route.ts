@@ -226,14 +226,8 @@ export async function POST(req: Request) {
         // Step 3: Contextual Enrichment - Deduce implicit responsibilities & tacit skills
         try {
             logger.info("RAG enrichment start");
-            const contexteEnrichi = await generateContexteEnrichi(
-                ragData,
-                async (p: string) => {
-                    const { result: r } = await generateGemini(p);
-                    return r;
-                }
-            );
-            if (contexteEnrichi) {
+            const contexteEnrichi = await generateContexteEnrichi(ragData);
+            if (contexteEnrichi && (contexteEnrichi.responsabilites_implicites.length > 0 || contexteEnrichi.competences_tacites.length > 0)) {
                 ragData.contexte_enrichi = contexteEnrichi;
                 logger.info("RAG enrichment success", {
                     responsabilites: contexteEnrichi.responsabilites_implicites?.length || 0,

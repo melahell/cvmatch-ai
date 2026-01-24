@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info, Sparkles } from "lucide-react";
+import { ExportMenu } from "@/components/cv/ExportMenu";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
 import { TemplateSelector } from "@/components/cv/TemplateSelector";

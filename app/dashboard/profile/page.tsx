@@ -18,12 +18,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2, Upload, ExternalLink, AlertTriangle, PlusCircle, Trash2 } from "lucide-react";
+import { Eye, Target, FileText, Settings, Save, RefreshCw, Loader2, Upload, ExternalLink, AlertTriangle, PlusCircle, Trash2, Sparkles } from "lucide-react";
 import { ValidationWarnings } from "@/components/profile/ValidationWarnings";
 import { OverviewTab } from "@/components/profile/OverviewTab";
 import { WeightTab } from "@/components/profile/WeightTab";
 import { AdvancedTab } from "@/components/profile/AdvancedTab";
 import { DocumentsTab } from "@/components/profile/DocumentsTab";
+import { ContexteEnrichiTab } from "@/components/profile/ContexteEnrichiTab";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
@@ -457,7 +458,7 @@ function ProfileContent() {
 
                     {/* Tabs */}
                     <Tabs defaultValue={activeTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 mb-6">
+                        <TabsList className="grid w-full grid-cols-4 mb-6">
                             <TabsTrigger value="vue" className="flex items-center gap-2">
                                 <Eye className="w-4 h-4" />
                                 <span className="hidden sm:inline">Vue & Pondération</span>
@@ -471,6 +472,11 @@ function ProfileContent() {
                             <TabsTrigger value="avance" className="flex items-center gap-2">
                                 <Settings className="w-4 h-4" />
                                 <span className="hidden sm:inline">Avancé</span>
+                            </TabsTrigger>
+                            <TabsTrigger value="context-enrichi" className="flex items-center gap-2">
+                                <Sparkles className="w-4 h-4" />
+                                <span className="hidden sm:inline">Contexte Enrichi</span>
+                                <span className="sm:hidden">Contexte</span>
                             </TabsTrigger>
                         </TabsList>
 
@@ -497,6 +503,14 @@ function ProfileContent() {
                                 customNotes={customNotes}
                                 onNotesChange={setCustomNotes}
                                 onReset={handleReset}
+                            />
+                        </TabsContent>
+
+                        <TabsContent value="context-enrichi">
+                            <ContexteEnrichiTab
+                                ragData={ragData}
+                                userId={userId || ""}
+                                onRefetch={refetch}
                             />
                         </TabsContent>
                     </Tabs>

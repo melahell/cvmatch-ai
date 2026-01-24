@@ -31,7 +31,7 @@ function areExperiencesSimilar(exp1: any, exp2: any): boolean {
     if (!exp1 || !exp2) return false;
 
     // Utiliser fuzzy matching amélioré
-    return fuzzyAreExperiencesSimilar(exp1, exp2, 0.85, 0.7);
+    return fuzzyAreExperiencesSimilar(exp1, exp2, 0.75, 0.7);
 }
 
 /**
@@ -232,9 +232,9 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
                     (a, b) => {
                         const nameA = typeof a === 'string' ? a : (a.name || a.nom || '');
                         const nameB = typeof b === 'string' ? b : (b.name || b.nom || '');
-                        return areSkillsSimilar(nameA, nameB, 0.85);
+                        return areSkillsSimilar(nameA, nameB, 0.75);
                     },
-                    0.85
+                    0.75
                 );
             };
 

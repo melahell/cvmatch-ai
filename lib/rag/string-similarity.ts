@@ -128,17 +128,48 @@ export function wordSimilarity(str1: string | undefined, str2: string | undefine
 
 /**
  * Combined similarity score using both Levenshtein and word-based methods
+ * Uses adaptive weights based on string length
  * 
  * @param str1 - First string
  * @param str2 - Second string
  * @returns Combined similarity score (0-1)
  */
 export function combinedSimilarity(str1: string | undefined, str2: string | undefined): number {
+    if (!str1 || !str2) return 0;
+
     const levenshtein = stringSimilarity(str1, str2);
     const jaccard = wordSimilarity(str1, str2);
 
-    // Weighted average: 40% Levenshtein, 60% Jaccard (word order matters less for job titles)
-    return 0.4 * levenshtein + 0.6 * jaccard;
+    // Adaptive weights: Jaccard more important for longer strings (better for reformulations)
+    const maxLen = Math.max(str1.length, str2.length);
+    const jaccardWeight = maxLen > 20 ? 0.6 : 0.4; // Jaccard more important for long strings
+    const levenshteinWeight = 1 - jaccardWeight;
+
+    return levenshteinWeight * levenshtein + jaccardWeight * jaccard;
+}
+
+/**
+ * Calculate string similarity with normalization (accents, case, punctuation)
+ * 
+ * @param str1 - First string
+ * @param str2 - Second string
+ * @returns Similarity score (0-1)
+ */
+export function calculateStringSimilarity(str1: string, str2: string): number {
+    // Normalize: remove accents, lowercase, remove punctuation
+    const normalize = (s: string) => s
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") // Remove accents
+        .replace(/[^\w\s]/g, " ") // Replace punctuation with space
+        .replace(/\s+/g, " ") // Normalize whitespace
+        .trim();
+
+    const n1 = normalize(str1);
+    const n2 = normalize(str2);
+
+    // Use combined similarity on normalized strings
+    return combinedSimilarity(n1, n2);
 }
 
 export default stringSimilarity;

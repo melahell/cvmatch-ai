@@ -97,16 +97,20 @@ export function normalizeCompanyName(name: string | undefined | null): string {
         .replace(/\s+/g, " ")
         .trim();
 
-    // Check for known aliases
+    // Check for known aliases (exact match)
     if (COMPANY_ALIASES[normalized]) {
         return COMPANY_ALIASES[normalized];
     }
 
-    // Check if any alias is contained in the name
+    // Check if any alias is contained in the name (improved matching)
     for (const [alias, canonical] of Object.entries(COMPANY_ALIASES)) {
-        // Only match if alias is at start of name or is a whole word
-        const regex = new RegExp(`^${alias}\\b|\\b${alias}$`, "i");
+        // Match if alias is at start of name, is a whole word, or is contained (for acronyms)
+        const regex = new RegExp(`^${alias}\\b|\\b${alias}\\b|\\b${alias}$`, "i");
         if (regex.test(normalized)) {
+            return canonical;
+        }
+        // Also check if normalized contains the alias as substring (for partial matches)
+        if (normalized.includes(alias) && alias.length >= 3) {
             return canonical;
         }
     }
