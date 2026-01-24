@@ -181,7 +181,17 @@ function buildExperiences(experienceWidgets: AIWidget[], opts: Required<ConvertO
         };
     });
 
-    return experiences;
+    // Correction 1: Filtrer "Expérience clé" sans contexte (pas d'entreprise ni dates)
+    const filteredExperiences = experiences.filter((exp) => {
+        // Si c'est "Expérience clé" sans entreprise ni dates, masquer
+        if (exp.poste === "Expérience clé" && (!exp.entreprise || exp.entreprise === "—" || !exp.date_debut || exp.date_debut.trim() === "")) {
+            return false;
+        }
+        // Sinon, garder
+        return true;
+    });
+
+    return filteredExperiences;
 }
 
 function buildCompetences(skillsWidgets: AIWidget[]): RendererResumeSchema["competences"] {

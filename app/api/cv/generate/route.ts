@@ -973,36 +973,56 @@ export async function POST(req: Request) {
             includePhoto
         });
 
-        if (includePhoto && photoRef) {
-            // Si c'est déjà une URL HTTP(S), utiliser directement
-            if (photoRef.startsWith('http://') || photoRef.startsWith('https://')) {
-                photoValue = photoRef;
+        if (includePhoto) {
+            if (photoRef) {
+                // Si c'est déjà une URL HTTP(S), utiliser directement
+                if (photoRef.startsWith('http://') || photoRef.startsWith('https://')) {
+                    photoValue = photoRef;
+                } else {
+                    // Sinon, convertir storage ref en signed URL
+                    try {
+                        // Solution 1.3: Parser le storage ref (format: "storage:bucket:path" ou juste "bucket/path")
+                        let parsedRef = photoRef;
+                        if (!photoRef.startsWith('storage:') && !photoRef.startsWith('http://') && !photoRef.startsWith('https://')) {
+                            // Si c'est juste un chemin, essayer de deviner le bucket
+                            if (photoRef.includes('avatars/')) {
+                                parsedRef = `storage:profile-photos:${photoRef}`;
+                            } else if (photoRef.includes('photos/')) {
+                                parsedRef = `storage:documents:${photoRef}`;
+                            } else {
+                                // Par défaut, essayer profile-photos
+                                parsedRef = `storage:profile-photos:${photoRef}`;
+                            }
+                        }
+                        
+                        const admin = createSupabaseAdminClient();
+                        const signedUrl = await createSignedUrl(admin, parsedRef, { expiresIn: 3600 }); // 1h expiration
+                        photoValue = signedUrl;
+                        // Phase 1 Diagnostic: Log après conversion réussie
+                        logger.debug("Photo signed URL created", { signedUrl, photoRef, parsedRef });
+                    } catch (error) {
+                        // Phase 1 Diagnostic: Log en cas d'erreur
+                        logger.error("Photo conversion failed", { error, photoRef, stack: (error as Error).stack });
+                        photoValue = null;
+                    }
+                }
             } else {
-                // Sinon, convertir storage ref en signed URL
+                // Correction 4: Fallback vers API photo si photoRef absent
                 try {
-                    // Solution 1.3: Parser le storage ref (format: "storage:bucket:path" ou juste "bucket/path")
-                    let parsedRef = photoRef;
-                    if (!photoRef.startsWith('storage:') && !photoRef.startsWith('http://') && !photoRef.startsWith('https://')) {
-                        // Si c'est juste un chemin, essayer de deviner le bucket
-                        if (photoRef.includes('avatars/')) {
-                            parsedRef = `storage:profile-photos:${photoRef}`;
-                        } else if (photoRef.includes('photos/')) {
-                            parsedRef = `storage:documents:${photoRef}`;
-                        } else {
-                            // Par défaut, essayer profile-photos
-                            parsedRef = `storage:profile-photos:${photoRef}`;
+                    const photoResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/profile/photo`, {
+                        headers: {
+                            'Cookie': req.headers.get('cookie') || '',
+                        },
+                    });
+                    if (photoResponse.ok) {
+                        const photoData = await photoResponse.json();
+                        if (photoData.photo_url) {
+                            photoValue = photoData.photo_url;
+                            logger.debug("Photo retrieved from API fallback", { photoValue });
                         }
                     }
-                    
-                    const admin = createSupabaseAdminClient();
-                    const signedUrl = await createSignedUrl(admin, parsedRef, { expiresIn: 3600 }); // 1h expiration
-                    photoValue = signedUrl;
-                    // Phase 1 Diagnostic: Log après conversion réussie
-                    logger.debug("Photo signed URL created", { signedUrl, photoRef, parsedRef });
                 } catch (error) {
-                    // Phase 1 Diagnostic: Log en cas d'erreur
-                    logger.error("Photo conversion failed", { error, photoRef, stack: (error as Error).stack });
-                    photoValue = null;
+                    logger.warn("Photo API fallback failed", { error });
                 }
             }
         }

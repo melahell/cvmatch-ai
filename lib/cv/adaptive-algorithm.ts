@@ -112,7 +112,8 @@ function applyExperienceFormat(exp: CVData["experiences"][number], format: Exper
 
     if (format === "compact") {
         const first = bullets[0];
-        const compactLine = typeof first === "string" ? sliceText(first, 110) : "";
+        // Correction 2: Augmenter limite de 110 à 250 caractères pour éviter troncature excessive
+        const compactLine = typeof first === "string" ? sliceText(first, 250) : "";
         const result = { ...exp, realisations: compactLine ? [compactLine] : [] };
         if (expIndex !== undefined) {
             console.log(`[adaptCVToThemeUnits] Exp ${expIndex}: ${result.realisations.length} realisations after format ${format}`);

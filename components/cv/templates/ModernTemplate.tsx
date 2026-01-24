@@ -366,9 +366,9 @@ export default function ModernTemplate({
                                 )}
                                 {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                 {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
+                                    <ul className="text-slate-700 space-y-0.5 list-disc list-outside pl-5 text-[8pt] leading-relaxed">
                                         {exp.realisations.map((r, j) => (
-                                            <li key={j}>{renderRealisation(r)}</li>
+                                            <li key={j} className="pl-1">{renderRealisation(r)}</li>
                                         ))}
                                     </ul>
                                 )}
