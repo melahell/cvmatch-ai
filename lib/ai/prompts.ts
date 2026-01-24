@@ -59,6 +59,26 @@ OBJECTIF DE RICHESSE (CRITIQUE)
   - Dans ce cas, marque l’item comme inféré et cite la phrase source explicite.
   - Ne mets JAMAIS de chiffres sur un item inféré (impact = "") si le chiffre n’est pas dans le document.
 
+EXTRACTION MAXIMALE (CRITIQUE)
+- Pour chaque expérience, extrais TOUS les détails mentionnés :
+  * Toutes les responsabilités (même si similaires, garde les nuances)
+  * Tous les outils et technologies utilisés
+  * Tous les projets et livrables
+  * Tous les chiffres et KPIs (budgets, équipes, résultats)
+  * Tous les contextes opérationnels (process, méthodologies)
+- Ne résume PAS : si le document liste 15 responsabilités, extrais les 15
+- Ne fusionne QUE si c'est vraiment identique (même action, même contexte, même résultat)
+- Priorise la COMPLÉTUDE sur la concision pour le RAG
+
+EXTRACTION DE CONTEXTE OPÉRATIONNEL
+- Pour chaque réalisation, extrais le contexte opérationnel détaillé :
+  * Process et étapes suivies
+  * Méthodologies utilisées (Agile, Scrum, Waterfall, etc.)
+  * Outils et technologies spécifiques
+  * Environnement de travail (taille équipe, budget, contraintes)
+  * Livrables et résultats concrets
+- Ne te contente PAS de "Gestion de projet" → détaille "Gestion de projet Agile avec équipe de 8 personnes, budget 500k€, livrables : roadmap produit, backlog priorisé, sprints bi-hebdomadaires"
+
 SCHÉMA CIBLE (JSON uniquement) :
 {
   "profil": {
