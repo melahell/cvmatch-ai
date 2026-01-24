@@ -1,5 +1,6 @@
 
 import { UserProfile, JobAnalysis } from "@/types";
+import { SeniorityLevel, SENIORITY_RULES, SectorProfile, SECTOR_PROFILES } from '@/types/cv-optimized';
 
 export const getRAGExtractionPrompt = (extractedText: string, existingRAGContext?: string) => `
 Tu es un expert en extraction et structuration de données professionnelles.
@@ -650,12 +651,11 @@ RÈGLES POUR LE COACHING :
 - preparation_checklist : actions concrètes (ex: "Préparer un portfolio de 3 projets similaires", "Rechercher l'équipe sur LinkedIn")
 - interview_focus : anticiper les questions probables du recruteur selon les gaps identifiés
 `;
+}
 
 /**
  * Nouveau système de prompting CV en 4 blocs - CDC CV Parfait
  */
-
-import { SeniorityLevel, SENIORITY_RULES, SectorProfile, SECTOR_PROFILES } from '@/types/cv-optimized';
 
 interface CVPromptContext {
   profile: any;
@@ -715,11 +715,7 @@ ${context.matchReport.coaching_tips ? `- Boosters sélectionnés : ${JSON.string
 OFFRE D'EMPLOI CIBLÉE :
 ${context.jobDescription}
 
-${context.customNotes ? `
-NOTES PERSONNELLES DU CANDIDAT :
-${context.customNotes}
-(Intègre ces informations de manière professionnelle si pertinentes pour l'offre)
-` : ''}
+${context.customNotes ? 'NOTES PERSONNELLES DU CANDIDAT :\n' + context.customNotes + '\n(Intègre ces informations de manière professionnelle si pertinentes pour l\'offre)\n' : ''}
 `;
 }
 
@@ -739,7 +735,7 @@ BLOC 3 : RÈGLES D'OPTIMISATION
 
 1. STRUCTURE DU CV :
    - Pages max : ${rules.maxPages}
-   - Elevator pitch : ${rules.elevatorPitchRequired ? `OBLIGATOIRE (max ${rules.elevatorPitchMaxChars} caractères)` : 'OPTIONNEL'}
+   - Elevator pitch : ${rules.elevatorPitchRequired ? 'OBLIGATOIRE (max ' + rules.elevatorPitchMaxChars + ' caractères)' : 'OPTIONNEL'}
    - Formation en premier : ${rules.formationFirstPosition ? 'OUI' : 'NON (expériences d\'abord)'}
 
 2. EXPÉRIENCES (PRIORITÉ : COMPLÉTUDE) :
@@ -764,16 +760,7 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    ⚠️ IMPORTANT : Si le profil source contient des références clients (dans "references.clients" ou "experiences[].clients_references"), 
    elles DOIVENT TOUTES apparaître dans le CV généré.
    
-   ${rules.showClientReferences ? `
-   OBLIGATOIRE : Ajouter une section clients_references avec TOUS les clients :
-   - Extraire TOUS les clients mentionnés dans les expériences (ex: Cartier, Dreamworks, SNCF, Servier, Ipsen, Engie, Total, Renault, PSA, Safran, Société Générale, BNP Paribas, CNP Assurances, Arval, Logista, McDonalds, Quick, Flunch, Cube Creative, Dreamworks, Naïa Thalassa...)
-   - Extraire AUSSI les clients depuis "references.clients" si présent dans le profil source
-   - Les grouper par secteur (Luxe, Finance, Industrie, Santé, Énergie, Transport, Retail, Autre...)
-   - Format attendu : "clients_references": { "included": true, "groupes": [{ "secteur": "Luxe", "clients": ["Cartier", "Chanel"] }, { "secteur": "Finance", "clients": ["Société Générale", "BNP Paribas"] }] }
-   - Ne JAMAIS inventer de clients
-   - Si le profil contient 20 clients, le CV doit en afficher 20 (ou au moins les plus pertinents pour l'offre, mais TOUS si possible)
-   - Prioriser les clients pertinents pour l'offre, mais ne pas exclure les autres sans raison valide
-   ` : 'Non applicable - mais si des références sont présentes dans le profil source, elles doivent être incluses'}
+   ${rules.showClientReferences ? 'OBLIGATOIRE : Ajouter une section clients_references avec TOUS les clients :\n   - Extraire TOUS les clients mentionnés dans les expériences (ex: Cartier, Dreamworks, SNCF, Servier, Ipsen, Engie, Total, Renault, PSA, Safran, Société Générale, BNP Paribas, CNP Assurances, Arval, Logista, McDonalds, Quick, Flunch, Cube Creative, Dreamworks, Naïa Thalassa...)\n   - Extraire AUSSI les clients depuis "references.clients" si présent dans le profil source\n   - Les grouper par secteur (Luxe, Finance, Industrie, Santé, Énergie, Transport, Retail, Autre...)\n   - Format attendu : "clients_references": { "included": true, "groupes": [{ "secteur": "Luxe", "clients": ["Cartier", "Chanel"] }, { "secteur": "Finance", "clients": ["Société Générale", "BNP Paribas"] }] }\n   - Ne JAMAIS inventer de clients\n   - Si le profil contient 20 clients, le CV doit en afficher 20 (ou au moins les plus pertinents pour l\'offre, mais TOUS si possible)\n   - Prioriser les clients pertinents pour l\'offre, mais ne pas exclure les autres sans raison valide' : 'Non applicable - mais si des références sont présentes dans le profil source, elles doivent être incluses'}
 
 5. PERTINENCE_SCORE PAR EXPÉRIENCE :
    Pour CHAQUE expérience, calcule un score 0-100 basé sur :
@@ -819,9 +806,9 @@ BLOC 3 : RÈGLES D'OPTIMISATION
    - Utiliser un niveau cohérent (CECRL A1-A2-B1-B2-C1-C2 ou \"Natif\") si présent dans la source
 
 11. TONALITÉ "${sectorConfig.tone.toUpperCase()}" :
-   ${sectorConfig.tone === 'formal' ? '- Vocabulaire professionnel strict\n   - Phrases factuelles\n   - Pas de superlatifs' : ''}
-   ${sectorConfig.tone === 'dynamic' ? '- Vocabulaire dynamique et moderne\n   - Orienté résultats et innovation\n   - Action verbs forts' : ''}
-   ${sectorConfig.tone === 'executive' ? '- Vision stratégique mise en avant\n   - Leadership et impact organisationnel\n   - Références C-level si possible' : ''}
+   ${sectorConfig.tone === 'formal' ? '- Vocabulaire professionnel strict\\n   - Phrases factuelles\\n   - Pas de superlatifs' : ''}
+   ${sectorConfig.tone === 'dynamic' ? '- Vocabulaire dynamique et moderne\\n   - Orienté résultats et innovation\\n   - Action verbs forts' : ''}
+   ${sectorConfig.tone === 'executive' ? '- Vision stratégique mise en avant\\n   - Leadership et impact organisationnel\\n   - Références C-level si possible' : ''}
 
 12. FORMATAGE STRICT (OBLIGATOIRE) :
    ESPACES OBLIGATOIRES :

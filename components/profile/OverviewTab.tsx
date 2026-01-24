@@ -117,11 +117,11 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                 onRefetch?.();
             } else {
                 const error = await response.json();
-                logger.error("Failed to delete item", { error, itemId: id });
+                logger.error("Failed to delete item", { error, itemId: deletingItem });
                 alert(`Erreur: ${error.error || "Suppression échouée"}`);
             }
         } catch (error) {
-            logger.error("Delete error", { error, section });
+            logger.error("Delete error", { error });
         } finally {
             setDeletingItem(null);
         }
@@ -269,7 +269,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                 // Trigger refetch to update UI
                 onRefetch?.();
             } else {
-                logger.error("Failed to add skill", { skillName });
+                logger.error("Failed to add skill", { skillName: skill?.name || "unknown" });
             }
         } catch (error) {
             console.error("Error adding skill:", error);
@@ -298,10 +298,10 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
             if (response.ok) {
                 onRefetch?.();
             } else {
-                logger.error("Failed to reject skill", { skillName });
+                logger.error("Failed to reject skill", { skillName: skill?.name || "unknown" });
             }
         } catch (error) {
-            logger.error("Error rejecting skill", { error, skillName });
+            logger.error("Error rejecting skill", { error, skillName: skill?.name || "unknown" });
         } finally {
             setRejectingSkill(null);
         }

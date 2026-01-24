@@ -93,7 +93,7 @@ export default function SettingsPage() {
                     setSubscriptionStatus(data.subscriptionStatus || "inactive");
                 }
             } catch (error) {
-                logger.error("Error loading settings", { error, userId });
+                logger.error("Error loading settings", { error });
             } finally {
                 setLoading(false);
             }

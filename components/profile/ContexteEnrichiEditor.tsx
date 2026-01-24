@@ -218,7 +218,7 @@ export function ContexteEnrichiEditor({
                     <div className="flex gap-2">
                         <Button
                             size="sm"
-                            variant="success"
+                            variant="primary"
                             onClick={() => handleValidate(item, type)}
                             disabled={isProcessing}
                         >

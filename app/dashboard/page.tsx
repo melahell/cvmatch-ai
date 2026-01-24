@@ -24,6 +24,7 @@ import { getWelcomeMessage, shouldShowOnboardingCTA, shouldShowCompletionTips, g
 import Link from "next/link";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { toast } from "sonner";
+import { logger } from "@/lib/utils/logger";
 
 // Lazy load DashboardCharts (uses Recharts which is heavy)
 const DashboardCharts = dynamic(

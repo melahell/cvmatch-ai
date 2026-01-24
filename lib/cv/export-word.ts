@@ -110,7 +110,7 @@ export async function exportCVToWord(
             // Réalisations
             if (exp.realisations && exp.realisations.length > 0) {
                 for (const real of exp.realisations) {
-                    const realText = typeof real === "string" ? real : real.description || "";
+                    const realText = typeof real === "string" ? real : (real as any).description || "";
                     if (realText) {
                         sections.push(
                             new Paragraph({
@@ -183,7 +183,7 @@ export async function exportCVToWord(
         );
 
         for (const form of cvData.formations) {
-            const formText = `${form.diplome || ""}${form.ecole ? ` - ${form.ecole}` : ""}${form.annee ? ` (${form.annee})` : ""}`;
+            const formText = `${form.diplome || ""}${form.etablissement ? ` - ${form.etablissement}` : ""}${form.annee ? ` (${form.annee})` : ""}`;
             if (formText.trim()) {
                 sections.push(
                     new Paragraph({

@@ -194,7 +194,7 @@ export async function PUT(request: NextRequest) {
                     ...metadata,
                     completeness_details: {
                         ...completenessDetails,
-                        contexte_enrichi,
+                        contexte_enrichi: contexteEnrichi,
                     },
                 },
             })
@@ -280,7 +280,7 @@ export async function DELETE(request: NextRequest) {
                     ...metadata,
                     completeness_details: {
                         ...completenessDetails,
-                        contexte_enrichi,
+                        contexte_enrichi: contexteEnrichi,
                     },
                 },
             })

@@ -26,23 +26,43 @@ interface ExperienceItemProps {
     showActions?: boolean;
 }
 
-export function ExperienceItem({
+export const ExperienceItem = React.memo(function ExperienceItem({
     experience,
     onEdit,
     onDelete,
     onWeightChange,
     showActions = true
 }: ExperienceItemProps) {
-    const formatDate = (dateStr: string) => {
+    const formatDate = useCallback((dateStr: string) => {
         if (!dateStr) return '';
         try {
             return format(new Date(dateStr), 'MMM yyyy', { locale: fr });
         } catch {
             return dateStr;
         }
-    };
+    }, []);
 
-    const isCurrentPosition = !experience.date_fin || experience.date_fin === '';
+    const isCurrentPosition = useMemo(() => {
+        return !experience.date_fin || experience.date_fin === '';
+    }, [experience.date_fin]);
+
+    const formattedStartDate = useMemo(() => formatDate(experience.date_debut), [experience.date_debut, formatDate]);
+    const formattedEndDate = useMemo(() => {
+        if (isCurrentPosition) return "Aujourd'hui";
+        return formatDate(experience.date_fin || '');
+    }, [experience.date_fin, isCurrentPosition, formatDate]);
+
+    const handleEdit = useCallback(() => {
+        if (experience.id) onEdit?.(experience.id);
+    }, [experience.id, onEdit]);
+
+    const handleDelete = useCallback(() => {
+        if (experience.id) onDelete?.(experience.id);
+    }, [experience.id, onDelete]);
+
+    const handleWeightChange = useCallback((weight: Weight) => {
+        if (experience.id) onWeightChange?.(experience.id, weight);
+    }, [experience.id, onWeightChange]);
 
     return (
         <Card className="p-4">
@@ -89,7 +109,7 @@ export function ExperienceItem({
                         {onWeightChange && experience.id && (
                             <WeightSelector
                                 value={experience.weight || 'inclus'}
-                                onChange={(weight) => onWeightChange(experience.id!, weight)}
+                                onChange={handleWeightChange}
                             />
                         )}
                         <div className="flex gap-1">
@@ -97,7 +117,7 @@ export function ExperienceItem({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => onEdit(experience.id!)}
+                                    onClick={handleEdit}
                                 >
                                     <Edit className="w-4 h-4" />
                                 </Button>
@@ -106,7 +126,7 @@ export function ExperienceItem({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => onDelete(experience.id!)}
+                                    onClick={handleDelete}
                                     className="text-red-600 hover:text-red-700"
                                 >
                                     <Trash2 className="w-4 h-4" />

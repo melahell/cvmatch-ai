@@ -71,7 +71,7 @@ export function exportCVToMarkdown(cvData: RendererResumeSchema): string {
             // Réalisations
             if (exp.realisations && exp.realisations.length > 0) {
                 for (const real of exp.realisations) {
-                    const realText = typeof real === "string" ? real : real.description || "";
+                    const realText = typeof real === "string" ? real : (real as any).description || "";
                     if (realText) {
                         lines.push(`- ${realText}`);
                     }
@@ -111,7 +111,7 @@ export function exportCVToMarkdown(cvData: RendererResumeSchema): string {
         lines.push("");
 
         for (const form of cvData.formations) {
-            const formText = `**${form.diplome || ""}**${form.ecole ? ` - ${form.ecole}` : ""}${form.annee ? ` (${form.annee})` : ""}`;
+            const formText = `**${form.diplome || ""}**${form.etablissement ? ` - ${form.etablissement}` : ""}${form.annee ? ` (${form.annee})` : ""}`;
             if (formText.trim()) {
                 lines.push(`- ${formText.trim()}`);
             }

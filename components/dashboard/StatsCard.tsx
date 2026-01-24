@@ -23,7 +23,7 @@ interface StatsCardProps {
     children?: React.ReactNode;
 }
 
-export function StatsCard({
+export const StatsCard = React.memo(function StatsCard({
     value,
     label,
     color = "primary",

@@ -78,28 +78,28 @@ export function ContexteEnrichiTab({
                     </div>
                     <div className="flex gap-2">
                         <Button
-                            variant={filter === "all" ? "default" : "outline"}
+                            variant={filter === "all" ? "primary" : "outline"}
                             size="sm"
                             onClick={() => setFilter("all")}
                         >
                             Tous
                         </Button>
                         <Button
-                            variant={filter === "validated" ? "default" : "outline"}
+                            variant={filter === "validated" ? "primary" : "outline"}
                             size="sm"
                             onClick={() => setFilter("validated")}
                         >
                             Validés
                         </Button>
                         <Button
-                            variant={filter === "rejected" ? "default" : "outline"}
+                            variant={filter === "rejected" ? "primary" : "outline"}
                             size="sm"
                             onClick={() => setFilter("rejected")}
                         >
                             Rejetés
                         </Button>
                         <Button
-                            variant={filter === "pending" ? "default" : "outline"}
+                            variant={filter === "pending" ? "primary" : "outline"}
                             size="sm"
                             onClick={() => setFilter("pending")}
                         >

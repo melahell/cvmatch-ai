@@ -321,7 +321,7 @@ export default function AnalyzePage() {
             router.push(`/dashboard/analyze/${data.analysis_id}`);
 
         } catch (error: any) {
-            logger.error("Analyze error", { error, jobUrl });
+            logger.error("Analyze error", { error, url: activeInput === 'url' ? url : undefined });
             if (error instanceof TypeError) {
                 toast.error('Erreur de connexion. Vérifiez votre internet.');
             } else {

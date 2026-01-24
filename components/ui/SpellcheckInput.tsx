@@ -57,7 +57,7 @@ export function SpellcheckInput({
                 }
             }
         } catch (error) {
-            logger.error("Spellcheck error", { error, text });
+            logger.error("Spellcheck error", { error });
         } finally {
             setIsChecking(false);
         }

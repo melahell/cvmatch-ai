@@ -179,15 +179,15 @@ export function DiffViewer({
         return (
             <div className="space-y-2">
                 {diff.added.map((item, idx) =>
-                    renderDiffItem("added", item.key || `Item ${item.index}`, null, item.value)
+                    renderDiffItem("added", ('key' in item ? item.key : `Item ${item.index}`), null, item.value)
                 )}
                 {diff.removed.map((item, idx) =>
-                    renderDiffItem("removed", item.key || `Item ${item.index}`, item.value)
+                    renderDiffItem("removed", ('key' in item ? item.key : `Item ${item.index}`), item.value, null)
                 )}
                 {diff.modified.map((item, idx) =>
                     renderDiffItem(
                         "modified",
-                        item.key || `Item ${item.index}`,
+                        ('key' in item ? item.key : `Item ${item.index}`),
                         item.oldValue,
                         item.newValue
                     )

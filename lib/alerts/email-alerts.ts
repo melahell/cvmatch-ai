@@ -56,9 +56,9 @@ export async function sendPerformanceAlert(
     if (latency > threshold) {
         await sendCriticalAlert("warning", `High latency detected: ${endpoint}`, {
             endpoint,
-            latency,
-            threshold,
-        });
+            latency_ms: latency,
+            threshold_ms: threshold,
+        } as any);
     }
 }
 
@@ -72,9 +72,12 @@ export async function sendQualityAlert(
 ): Promise<void> {
     if (score < threshold) {
         await sendCriticalAlert("warning", `Low quality score detected`, {
-            score,
-            threshold,
             ...context,
+            metadata: {
+                ...context?.metadata,
+                score,
+                threshold,
+            },
         });
     }
 }

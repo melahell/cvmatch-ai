@@ -42,9 +42,13 @@ export function ExportMenu({
     const [exporting, setExporting] = useState<string | null>(null);
 
     const downloadBlob = (blob: Blob | Buffer, filename: string, mimeType: string) => {
-        const url = URL.createObjectURL(
-            blob instanceof Buffer ? new Blob([blob], { type: mimeType }) : blob
-        );
+        let blobToUse: Blob;
+        if (typeof Buffer !== 'undefined' && blob instanceof Buffer) {
+            blobToUse = new Blob([new Uint8Array(blob)], { type: mimeType });
+        } else {
+            blobToUse = blob as Blob;
+        }
+        const url = URL.createObjectURL(blobToUse);
         const link = document.createElement("a");
         link.href = url;
         link.download = filename;

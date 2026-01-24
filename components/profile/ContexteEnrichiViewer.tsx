@@ -109,14 +109,14 @@ export function ContexteEnrichiViewer({
                                             </p>
                                         )}
                                     </div>
-                                    <Badge className={getConfidenceColor(resp.confidence || resp.confidence_score)}>
-                                        {(resp.confidence || resp.confidence_score)}% - {getConfidenceLabel(resp.confidence || resp.confidence_score)}
+                                    <Badge className={getConfidenceColor(resp.confidence)}>
+                                        {resp.confidence}% - {getConfidenceLabel(resp.confidence)}
                                     </Badge>
                                 </div>
-                                {resp.impact_match_score && (
+                                {(resp as any).impact_match_score && (
                                     <div className="flex items-center gap-2 mt-2 text-sm text-green-600">
                                         <TrendingUp className="w-4 h-4" />
-                                        <span>Impact: +{resp.impact_match_score}% sur match scores</span>
+                                        <span>Impact: +{(resp as any).impact_match_score}% sur match scores</span>
                                     </div>
                                 )}
                             </div>
@@ -146,14 +146,14 @@ export function ContexteEnrichiViewer({
                                             </p>
                                         )}
                                     </div>
-                                    <Badge className={getConfidenceColor(comp.confidence_score)}>
-                                        {comp.confidence_score}% - {getConfidenceLabel(comp.confidence_score)}
+                                    <Badge className={getConfidenceColor(comp.confidence)}>
+                                        {comp.confidence}% - {getConfidenceLabel(comp.confidence)}
                                     </Badge>
                                 </div>
-                                {comp.impact_match_score && (
+                                {(comp as any).impact_match_score && (
                                     <div className="flex items-center gap-2 mt-2 text-sm text-green-600">
                                         <TrendingUp className="w-4 h-4" />
-                                        <span>Impact: +{comp.impact_match_score}% sur match scores</span>
+                                        <span>Impact: +{(comp as any).impact_match_score}% sur match scores</span>
                                     </div>
                                 )}
                             </div>
@@ -173,17 +173,20 @@ export function ContexteEnrichiViewer({
                             <div className="flex items-start justify-between mb-2">
                                 <div className="flex-1">
                                     <p className="font-medium text-slate-900">
-                                        {contexteEnrichi.environnement_travail.description}
+                                        {(contexteEnrichi.environnement_travail as any).description || 
+                                         `Équipe: ${contexteEnrichi.environnement_travail.taille_equipe || 'N/A'}, Contexte: ${contexteEnrichi.environnement_travail.contexte_projet || 'N/A'}`}
                                     </p>
-                                    {contexteEnrichi.environnement_travail.justification && (
+                                    {(contexteEnrichi.environnement_travail as any).justification && (
                                         <p className="text-sm text-slate-600 mt-1 italic">
-                                            "{contexteEnrichi.environnement_travail.justification}"
+                                            "{(contexteEnrichi.environnement_travail as any).justification}"
                                         </p>
                                     )}
                                 </div>
-                                <Badge className={getConfidenceColor(contexteEnrichi.environnement_travail.confidence || (contexteEnrichi.environnement_travail as any).confidence_score)}>
-                                    {(contexteEnrichi.environnement_travail.confidence || (contexteEnrichi.environnement_travail as any).confidence_score)}% - {getConfidenceLabel(contexteEnrichi.environnement_travail.confidence || (contexteEnrichi.environnement_travail as any).confidence_score)}
-                                </Badge>
+                                {(contexteEnrichi.environnement_travail as any).confidence && (
+                                    <Badge className={getConfidenceColor((contexteEnrichi.environnement_travail as any).confidence)}>
+                                        {(contexteEnrichi.environnement_travail as any).confidence}% - {getConfidenceLabel((contexteEnrichi.environnement_travail as any).confidence)}
+                                    </Badge>
+                                )}
                             </div>
                         </div>
                     </CardContent>

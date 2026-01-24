@@ -5,7 +5,7 @@ import { formatRAGForPrompt } from "@/lib/rag/format-rag-for-prompt";
 import { getDocumentProxy, extractText } from "unpdf";
 import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore } from "@/lib/rag/quality-scoring";
-import { mergeRAGData } from "@/lib/rag/merge-simple";
+import { mergeRAGData, type MergeResult } from "@/lib/rag/merge-simple";
 import { validateRAGData } from "@/lib/rag/validation";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
@@ -293,6 +293,7 @@ export async function POST(req: Request) {
         // IMPORTANT: Since Gemini already saw the existing RAG context, newRAGData should already be enriched
         // But we still do a light merge to handle edge cases and conflicts
         let mergedRAG;
+        let mergeResult: MergeResult | null = null;
 
         if (mode === "regeneration" && isFirstDocument) {
             // REGENERATION MODE - First document: Start fresh, don't merge with old RAG
@@ -307,7 +308,7 @@ export async function POST(req: Request) {
             // Gemini already saw the context, so newRAGData should be enriched
             // But do a light merge to handle any edge cases
             logger.info("Light merge after context-aware extraction", { filename: doc.filename, mode: mode || "completion" });
-            const mergeResult = mergeRAGData(existingRagForMerge.completeness_details, newRAGData);
+            mergeResult = mergeRAGData(existingRagForMerge.completeness_details, newRAGData);
             mergedRAG = mergeResult.merged;
             logger.info("Light merge complete", {
                 itemsAdded: mergeResult.stats.itemsAdded,
@@ -333,13 +334,7 @@ export async function POST(req: Request) {
             if (remainingBudgetMs > 8000) {
                 try {
                     logger.info("Starting contextual enrichment", { remainingBudgetMs });
-                    const contexteEnrichi = await generateContexteEnrichi(mergedRAG, async (prompt: string) => {
-                        const cascade = await callWithTimeout(
-                            callWithRetry(() => generateWithCascade(prompt)),
-                            Math.min(15000, Math.max(9000, remainingBudgetMs - 1000))
-                        );
-                        return cascade.result;
-                    });
+                    const contexteEnrichi = await generateContexteEnrichi(mergedRAG);
                     if (contexteEnrichi) {
                         mergedRAG.contexte_enrichi = contexteEnrichi;
                         logger.info("Contextual enrichment completed", {
@@ -362,13 +357,7 @@ export async function POST(req: Request) {
                 // Seulement si on a beaucoup de temps disponible
                 try {
                     logger.info("Light contextual enrichment for intermediate document", { remainingBudgetMs });
-                    const contexteEnrichi = await generateContexteEnrichi(mergedRAG, async (prompt: string) => {
-                        const cascade = await callWithTimeout(
-                            callWithRetry(() => generateWithCascade(prompt)),
-                            Math.min(8000, Math.max(5000, remainingBudgetMs - 2000))
-                        );
-                        return cascade.result;
-                    });
+                    const contexteEnrichi = await generateContexteEnrichi(mergedRAG);
                     if (contexteEnrichi) {
                         // Merge avec enrichissement existant si présent
                         if (mergedRAG.contexte_enrichi) {
@@ -380,10 +369,6 @@ export async function POST(req: Request) {
                                 competences_tacites: [
                                     ...(mergedRAG.contexte_enrichi.competences_tacites || []),
                                     ...(contexteEnrichi.competences_tacites || [])
-                                ],
-                                soft_skills_deduites: [
-                                    ...(mergedRAG.contexte_enrichi.soft_skills_deduites || []),
-                                    ...(contexteEnrichi.soft_skills_deduites || [])
                                 ],
                                 environnement_travail: contexteEnrichi.environnement_travail || mergedRAG.contexte_enrichi.environnement_travail
                             };

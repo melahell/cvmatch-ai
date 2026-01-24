@@ -529,23 +529,25 @@ function CVBuilderContent() {
                                 {showEditor ? "Masquer éditeur" : "Éditer ordre"}
                             </Button>
                             {cvData && (
-                                <ExportMenu
-                                    cvData={reorderedCV || cvData || {} as RendererResumeSchema}
-                                    template={templateId}
-                                    filename="CV"
-                                    onPDFExport={() => {
-                                        const element = document.getElementById("cv-preview-container");
-                                        if (element) {
-                                            window.print();
-                                        }
-                                    }}
-                                />
-                                <PDFExportButton
-                                    elementId="cv-preview-container"
-                                    filename={`CV_${cvData.profil.prenom}_${cvData.profil.nom}`}
-                                    variant="primary"
-                                    size="sm"
-                                />
+                                <>
+                                    <ExportMenu
+                                        cvData={reorderedCV || cvData || {} as RendererResumeSchema}
+                                        template={templateId}
+                                        filename="CV"
+                                        onPDFExport={() => {
+                                            const element = document.getElementById("cv-preview-container");
+                                            if (element) {
+                                                window.print();
+                                            }
+                                        }}
+                                    />
+                                    <PDFExportButton
+                                        elementId="cv-preview-container"
+                                        filename={`CV_${cvData.profil.prenom}_${cvData.profil.nom}`}
+                                        variant="primary"
+                                        size="sm"
+                                    />
+                                </>
                             )}
                             {state.widgets && (
                                 <TooltipProvider>

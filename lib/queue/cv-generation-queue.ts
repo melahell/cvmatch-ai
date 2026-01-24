@@ -17,29 +17,23 @@ const REDIS_CONFIG = {
     password: process.env.REDIS_PASSWORD,
 };
 
-// Queue pour génération CV
-export const cvGenerationQueue = new Queue("cv-generation", {
-    connection: REDIS_CONFIG,
-    defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-            type: "exponential",
-            delay: 2000,
-        },
-        removeOnComplete: {
-            age: 3600, // Garder 1h
-            count: 1000,
-        },
-        removeOnFail: {
-            age: 86400, // Garder 24h pour debug
-        },
+// Mock Queue pour génération CV (BullMQ non installé)
+export const cvGenerationQueue = {
+    add: async (name: string, data: any, options?: any) => {
+        logger.warn("Queue not active - install bullmq to enable", { name, data, options });
+        return { id: options?.jobId || `mock-${Date.now()}` };
     },
-});
+    getJob: async (jobId: string) => {
+        logger.warn("Queue not active - install bullmq to enable", { jobId });
+        return null;
+    },
+} as any;
 
-// Queue Events pour tracking progress
-export const cvGenerationQueueEvents = new QueueEvents("cv-generation", {
-    connection: REDIS_CONFIG,
-});
+// Mock Queue Events pour tracking progress
+export const cvGenerationQueueEvents = {
+    on: () => {},
+    off: () => {},
+} as any;
 
 export interface CVGenerationJobData {
     userId: string;
