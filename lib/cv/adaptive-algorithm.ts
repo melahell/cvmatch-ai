@@ -63,36 +63,77 @@ function computeSkillLines(cvData: CVData) {
 
 function sliceText(text: string, maxChars: number) {
     if (text.length <= maxChars) return text;
-    const sliced = text.slice(0, Math.max(0, maxChars - 3)).trimEnd();
+    
+    // Solution 4.2: Couper au dernier espace avant maxChars pour éviter de couper les mots
+    const truncated = text.slice(0, Math.max(0, maxChars - 3));
+    const lastSpace = truncated.lastIndexOf(' ');
+    const lastPeriod = truncated.lastIndexOf('.');
+    const breakPoint = Math.max(lastSpace, lastPeriod);
+    
+    if (breakPoint > maxChars * 0.7) {
+        // Si on trouve un bon point de rupture (dans les 70% de la limite)
+        const sliced = text.slice(0, breakPoint + 1).trimEnd();
+        // Phase 4 Diagnostic: Log sliceText
+        const before = text.substring(0, 50);
+        const after = sliced.substring(0, 50);
+        console.log(`[sliceText] Truncated at word boundary "${before}..." to "${after}..." (maxChars: ${maxChars})`);
+        return sliced ? sliced + "..." : "";
+    }
+    
+    // Sinon, couper au caractère mais essayer de garder les mots complets
+    const sliced = truncated.trimEnd();
+    // Phase 4 Diagnostic: Log sliceText
+    const before = text.substring(0, 50);
+    const after = sliced.substring(0, 50);
+    console.log(`[sliceText] Truncated "${before}..." to "${after}..." (maxChars: ${maxChars})`);
     return sliced ? sliced + "..." : "";
 }
 
-function applyExperienceFormat(exp: CVData["experiences"][number], format: ExperienceFormat, maxBullets: number) {
+function applyExperienceFormat(exp: CVData["experiences"][number], format: ExperienceFormat, maxBullets: number, expIndex?: number) {
     const bullets = Array.isArray(exp.realisations) ? exp.realisations : [];
 
-    // CDC format limits: detailed=5, standard=3, compact=1, minimal=0
+    // CDC format limits: Solution 2.2 - Augmenté pour garder plus de réalisations
+    // detailed=12, standard=8, compact=3, minimal=0
     // Note: maxBullets from theme is used as fallback but CDC takes priority
     const formatLimits: Record<ExperienceFormat, number> = {
-        detailed: 5,
-        standard: 3,
-        compact: 1,
+        detailed: 12,   // Augmenté de 5 à 12
+        standard: 8,    // Augmenté de 3 à 8
+        compact: 3,     // Augmenté de 1 à 3
         minimal: 0,
     };
 
     const limit = formatLimits[format] ?? 3;
     const effectiveLimit = Math.min(limit, bullets.length);
 
+    // Phase 2 Diagnostic: Log dans adaptive algorithm
+    if (expIndex !== undefined) {
+        console.log(`[adaptCVToThemeUnits] Exp ${expIndex}: ${bullets.length} bullets, format: ${format}, limit: ${limit}, effectiveLimit: ${effectiveLimit}`);
+    }
+
     if (format === "compact") {
         const first = bullets[0];
         const compactLine = typeof first === "string" ? sliceText(first, 110) : "";
-        return { ...exp, realisations: compactLine ? [compactLine] : [] };
+        const result = { ...exp, realisations: compactLine ? [compactLine] : [] };
+        if (expIndex !== undefined) {
+            console.log(`[adaptCVToThemeUnits] Exp ${expIndex}: ${result.realisations.length} realisations after format ${format}`);
+        }
+        return result;
     }
 
     if (format === "minimal") {
-        return { ...exp, realisations: [] };
+        const result = { ...exp, realisations: [] };
+        if (expIndex !== undefined) {
+            console.log(`[adaptCVToThemeUnits] Exp ${expIndex}: ${result.realisations.length} realisations after format ${format}`);
+        }
+        return result;
     }
 
-    return { ...exp, realisations: bullets.slice(0, effectiveLimit) };
+    const result = { ...exp, realisations: bullets.slice(0, effectiveLimit) };
+    // Phase 2 Diagnostic: Log après format
+    if (expIndex !== undefined) {
+        console.log(`[adaptCVToThemeUnits] Exp ${expIndex}: ${result.realisations.length} realisations after format ${format}`);
+    }
+    return result;
 }
 
 export function adaptCVToThemeUnits(params: {
@@ -348,7 +389,7 @@ export function adaptCVToThemeUnits(params: {
     // Enrich each experience with format and relevance metadata for templates
     next.experiences = sortedExperiences.map((exp, idx) => {
         const format = experienceFormats[idx] || "standard";
-        const baseExp = applyExperienceFormat(exp, format, maxBullets);
+        const baseExp = applyExperienceFormat(exp, format, maxBullets, idx);
         return {
             ...baseExp,
             _format: format,

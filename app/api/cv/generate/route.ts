@@ -942,6 +942,15 @@ export async function POST(req: Request) {
         const ragProfile = normalizeRAGData(ragData.completeness_details);
         const ragProfileForPrompt = buildRAGForCVPrompt(ragProfile);
         const customNotes = ragData.custom_notes || "";
+
+        // Phase 2 Diagnostic: Log après extraction RAG
+        const ragExpCounts = (ragProfile as any)?.experiences?.map((exp: any, i: number) => ({
+            index: i,
+            poste: exp.poste,
+            realisationsCount: exp.realisations?.length || 0,
+            realisations: exp.realisations?.slice(0, 3) // Preview
+        }));
+        logger.debug("RAG experiences realisations", { ragExpCounts });
         const jobDescription = analysisData.job_description;
         const selectedMatchReport = buildSelectedMatchReportForCV(analysisData, selection);
         const boosterTrace = hasSelectionOrExtra ? buildBoosterTrace(analysisData, selection) : null;
@@ -949,8 +958,20 @@ export async function POST(req: Request) {
         const ragProfil = (ragProfile as any)?.profil || {};
         const ragContact = ragProfil?.contact || {};
 
-        const photoRef = ragProfil?.photo_url as string | undefined;
+        // Solution 1.1: Récupération explicite de la photo depuis RAG (support flat et nested)
+        const rawCompleteness = ragData.completeness_details as any;
+        const photoRefFromRAG = rawCompleteness?.profil?.photo_url || rawCompleteness?.photo_url || ragProfil?.photo_url;
+        const photoRef = photoRefFromRAG as string | undefined;
         let photoValue: string | null = null;
+
+        // Phase 1 Diagnostic: Log avant conversion
+        logger.debug("Photo check", { 
+            photoRef, 
+            hasPhotoRef: !!photoRef,
+            photoRefType: typeof photoRef,
+            ragProfilPhoto: ragProfil?.photo_url,
+            includePhoto
+        });
 
         if (includePhoto && photoRef) {
             // Si c'est déjà une URL HTTP(S), utiliser directement
@@ -959,11 +980,28 @@ export async function POST(req: Request) {
             } else {
                 // Sinon, convertir storage ref en signed URL
                 try {
+                    // Solution 1.3: Parser le storage ref (format: "storage:bucket:path" ou juste "bucket/path")
+                    let parsedRef = photoRef;
+                    if (!photoRef.startsWith('storage:') && !photoRef.startsWith('http://') && !photoRef.startsWith('https://')) {
+                        // Si c'est juste un chemin, essayer de deviner le bucket
+                        if (photoRef.includes('avatars/')) {
+                            parsedRef = `storage:profile-photos:${photoRef}`;
+                        } else if (photoRef.includes('photos/')) {
+                            parsedRef = `storage:documents:${photoRef}`;
+                        } else {
+                            // Par défaut, essayer profile-photos
+                            parsedRef = `storage:profile-photos:${photoRef}`;
+                        }
+                    }
+                    
                     const admin = createSupabaseAdminClient();
-                    const signedUrl = await createSignedUrl(admin, photoRef, { expiresIn: 3600 }); // 1h expiration
+                    const signedUrl = await createSignedUrl(admin, parsedRef, { expiresIn: 3600 }); // 1h expiration
                     photoValue = signedUrl;
+                    // Phase 1 Diagnostic: Log après conversion réussie
+                    logger.debug("Photo signed URL created", { signedUrl, photoRef, parsedRef });
                 } catch (error) {
-                    logger.warn("Failed to create signed URL for photo", { error, photoRef });
+                    // Phase 1 Diagnostic: Log en cas d'erreur
+                    logger.error("Photo conversion failed", { error, photoRef, stack: (error as Error).stack });
                     photoValue = null;
                 }
             }
@@ -1076,7 +1114,11 @@ export async function POST(req: Request) {
                     ragContact?.linkedinUrl
                 ),
                 elevator_pitch: safeOptimizedPitchText || ragProfil?.elevator_pitch || "",
-                photo_url: photoValue || undefined,
+                photo_url: (() => {
+                    // Phase 1 Diagnostic: Log avant assignation
+                    logger.debug("Photo value before assign", { photoValue, willBeUndefined: !photoValue });
+                    return photoValue || undefined;
+                })(),
             },
         };
 

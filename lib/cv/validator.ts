@@ -205,10 +205,18 @@ export function autoCompressCV(cvData: any): any {
 
     // 2. Limit bullets per experience to 4
     if (compressed.experiences) {
-        compressed.experiences = compressed.experiences.map((exp: any) => ({
-            ...exp,
-            realisations: (exp.realisations || []).slice(0, 4),
-        }));
+        compressed.experiences = compressed.experiences.map((exp: any, i: number) => {
+            const beforeCount = (exp.realisations || []).length;
+            const afterCount = (exp.realisations || []).slice(0, 4).length;
+            // Phase 2 Diagnostic: Log auto-compress
+            if (beforeCount > 4) {
+                console.log(`[autoCompressCV] Exp ${i}: ${beforeCount} -> ${afterCount} realisations (limited to 4)`);
+            }
+            return {
+                ...exp,
+                realisations: (exp.realisations || []).slice(0, 4),
+            };
+        });
     }
 
     // 3. Limit technical skills to 12

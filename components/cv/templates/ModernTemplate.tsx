@@ -50,6 +50,15 @@ export default function ModernTemplate({
         typeof profil?.photo_url === "string" &&
         (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
 
+    // Phase 1 Diagnostic: Log dans template
+    if (typeof window !== 'undefined') {
+        console.log("[ModernTemplate] Photo check", { 
+            photoUrl: profil?.photo_url, 
+            hasHttpPhoto,
+            includePhoto 
+        });
+    }
+
     const renderRealisation = (r: string): string => sanitizeText(r);
     const renderSkill = (s: string): string => sanitizeText(s);
 
@@ -159,6 +168,13 @@ export default function ModernTemplate({
                     <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
                         Compétences
                     </h3>
+                    {(() => {
+                        // Phase 5 Diagnostic: Log dans template
+                        if (typeof window !== 'undefined') {
+                            console.log(`[ModernTemplate] Rendering ${limitedSkills.length} skills`);
+                        }
+                        return null;
+                    })()}
                     <div className="space-y-2">
                         {limitedSkills.map((skill, i) => {
                             const percent = 95 - (i * 8); // Décroissant pour effet visuel
@@ -286,7 +302,26 @@ export default function ModernTemplate({
                         Expériences Professionnelles
                     </h2>
                     <div className="space-y-1.5">
-                        {limitedExperiences.map((exp, i) => (
+                        {limitedExperiences
+                            .filter((exp) => {
+                                // Solution 3.2: Ne pas afficher si moins de 2 champs essentiels
+                                const hasPoste = !!(exp.poste && exp.poste.trim());
+                                const hasEntreprise = !!(exp.entreprise && exp.entreprise.trim());
+                                const hasDate = !!(exp.date_debut && exp.date_debut.trim());
+                                const essentialFieldsCount = [hasPoste, hasEntreprise, hasDate].filter(Boolean).length;
+                                
+                                if (essentialFieldsCount < 2 && typeof window !== 'undefined') {
+                                    console.warn(`[ModernTemplate] Filtering out incomplete experience`, {
+                                        poste: exp.poste,
+                                        entreprise: exp.entreprise,
+                                        date_debut: exp.date_debut
+                                    });
+                                }
+                                
+                                return essentialFieldsCount >= 2;
+                            })
+                            .map((exp, i) => {
+                            return (
                             <div
                                 key={i}
                                 className="relative pl-5 pr-3 py-3 border-l-[3px] border-l-neon-purple group rounded-r-lg bg-gradient-to-r from-neon-purple/5 to-transparent"
@@ -313,6 +348,22 @@ export default function ModernTemplate({
                                     {sanitizeText(exp.entreprise)}
                                     {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
                                 </p>
+                                {/* Solution 6.2: Afficher contexte opérationnel */}
+                                {(exp as any).contexte && (
+                                    <p className="text-slate-600 text-[7pt] italic mb-1">
+                                        {sanitizeText((exp as any).contexte)}
+                                    </p>
+                                )}
+                                {/* Solution 6.2: Afficher technologies */}
+                                {(exp as any).technologies && Array.isArray((exp as any).technologies) && (exp as any).technologies.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-1">
+                                        {(exp as any).technologies.map((tech: string, idx: number) => (
+                                            <span key={idx} className="text-[6pt] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">
+                                                {sanitizeText(tech)}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
                                 {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-slate-700 space-y-0.5 list-disc list-inside text-[8pt] leading-relaxed">
@@ -322,7 +373,8 @@ export default function ModernTemplate({
                                     </ul>
                                 )}
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </section>
 

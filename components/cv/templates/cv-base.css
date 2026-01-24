@@ -311,3 +311,25 @@
     background: #e2e8f0;
     margin: 3mm 0;
 }
+
+/* Solution 4.1: Prevent word breaking - amélioré */
+.cv-page {
+    word-break: normal;
+    overflow-wrap: break-word;
+    hyphens: none;
+}
+
+/* Pour les éléments avec truncate, permettre le retour à la ligne */
+.cv-page .truncate {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+/* Pour les réalisations et textes longs */
+.cv-page ul li,
+.cv-page p {
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto; /* Permet la césure automatique si nécessaire */
+}
