@@ -2,9 +2,12 @@
  * CV Generation Queue System
  * Utilise BullMQ pour traitement asynchrone des générations CV
  * Alternative: Inngest si pas de Redis disponible
+ * 
+ * NOTE: BullMQ nécessite Redis. Pour l'instant, structure préparée mais non activée.
+ * Pour activer: npm install bullmq ioredis
  */
 
-import { Queue, Worker, QueueEvents } from "bullmq";
+// import { Queue, Worker, QueueEvents } from "bullmq";
 import { logger } from "@/lib/utils/logger";
 
 // Configuration Redis (optionnel - peut utiliser Inngest à la place)
@@ -102,39 +105,9 @@ export async function getJobStatus(jobId: string) {
 /**
  * Worker pour traiter les jobs (à démarrer dans un processus séparé)
  * Usage: node workers/cv-generation-worker.ts
+ * TODO: Activer quand BullMQ installé
  */
 export function createCVGenerationWorker() {
-    return new Worker<CVGenerationJobData>(
-        "cv-generation",
-        async (job) => {
-            const { userId, analysisId, template, options } = job.data;
-
-            logger.info("Processing CV generation job", {
-                jobId: job.id,
-                userId,
-                analysisId,
-            });
-
-            // Update progress
-            await job.updateProgress(10);
-
-            // Appeler la logique de génération existante
-            // TODO: Importer et appeler la fonction de génération CV
-            // const cvResult = await generateCV({ userId, analysisId, template, options });
-
-            await job.updateProgress(50);
-            // ... traitement ...
-            await job.updateProgress(100);
-
-            return {
-                success: true,
-                cvId: "generated-cv-id",
-                // cvResult,
-            };
-        },
-        {
-            connection: REDIS_CONFIG,
-            concurrency: 5, // Traiter 5 jobs en parallèle
-        }
-    );
+    logger.warn("Worker not active - install bullmq to enable");
+    return null;
 }

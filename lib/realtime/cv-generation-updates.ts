@@ -78,6 +78,8 @@ export async function emitCVGenerationProgress(
     status: string,
     data?: any
 ) {
+    // Import dynamique pour éviter erreur si admin client appelé côté client
+    const { createSupabaseAdminClient } = await import("@/lib/supabase");
     const supabase = createSupabaseAdminClient();
 
     await supabase.channel(`cv-generation:${jobId}`).send({
