@@ -5,6 +5,11 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [6.2.8] - 2026-01-23
+
+### Added
+- Plan Post Phase 4 : Stratégie long terme pour phases 5-8 (Tests, Features, UX, Monitoring)
+
 ## [6.2.7] - 2026-01-23
 
 ### Added
