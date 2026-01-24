@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { logger } from "@/lib/utils/logger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Maximum execution time for Vercel
@@ -46,7 +47,7 @@ export async function GET(
         }
 
         // PDF caching removed (pdf-cache.ts deleted in cleanup)
-        console.log(`Generating PDF for CV ${id} (${format})...`);
+        logger.debug("Generating PDF", { cvId: id, format, userId: auth.user.id });
 
         // Determine if running locally or on Vercel
         const isLocal = process.env.NODE_ENV === "development";
@@ -87,7 +88,7 @@ export async function GET(
         )}&photo=${includePhoto ? "true" : "false"}`;
 
         // Navigate to the print page
-        console.log(`📄 Navigating to print page: ${printUrl}`);
+        logger.debug("Navigating to print page", { printUrl, cvId: id });
 
         await page.goto(printUrl, {
             waitUntil: "networkidle0",
@@ -100,16 +101,16 @@ export async function GET(
                 () => (window as any).__CV_RENDER_COMPLETE__ === true,
                 { timeout: 10000 }
             );
-            console.log('✅ CV render complete signal received');
+            logger.debug("CV render complete signal received", { cvId: id });
         } catch (timeoutError) {
-            console.warn('⚠️ CV render timeout - proceeding anyway after 10s');
+            logger.warn("CV render timeout - proceeding anyway", { cvId: id, timeout: 10000 });
         }
 
         // Additional safety delay for final layout
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Generate PDF with optimized settings
-        console.log('📸 Generating PDF...');
+        logger.debug("Generating PDF buffer", { cvId: id, format });
 
         const pdfBuffer = await page.pdf({
             format: format === "Letter" ? "Letter" : "A4",
@@ -127,7 +128,7 @@ export async function GET(
             scale: 1,
         });
 
-        console.log(`✅ PDF generated: ${pdfBuffer.length} bytes`);
+        logger.info("PDF generated successfully", { cvId: id, sizeBytes: pdfBuffer.length, format });
 
         await browser.close();
 
@@ -149,7 +150,7 @@ export async function GET(
         });
 
     } catch (error: any) {
-        console.error("PDF Generation Error:", error);
+        logger.error("PDF generation error", { error: error.message, stack: error.stack, cvId: params?.id });
         return NextResponse.json(
             {
                 error: "Failed to generate PDF",

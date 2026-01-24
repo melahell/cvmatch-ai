@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { X, Command } from "lucide-react";
 
 interface KeyboardShortcutsModalProps {
@@ -33,11 +33,26 @@ const shortcuts = [
 ];
 
 export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsModalProps) {
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const firstFocusableRef = useRef<HTMLButtonElement>(null);
+
+    // Focus management
+    useEffect(() => {
+        if (isOpen && firstFocusableRef.current) {
+            firstFocusableRef.current.focus();
+        }
+    }, [isOpen]);
+
+    const handleClose = () => {
+        onClose();
+        setTimeout(() => closeButtonRef.current?.focus(), 0);
+    };
+
     // Close on Escape
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
-                onClose();
+                handleClose();
             }
         };
 
@@ -57,7 +72,7 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
             {/* Backdrop */}
             <div
                 className="fixed inset-0 bg-black/50 z-50"
-                onClick={onClose}
+                onClick={handleClose}
             />
 
             {/* Modal */}
@@ -70,8 +85,10 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
                             Raccourcis clavier
                         </h2>
                         <button
-                            onClick={onClose}
+                            ref={closeButtonRef}
+                            onClick={handleClose}
                             className="text-slate-600 hover:text-slate-600 dark:hover:text-slate-300"
+                            aria-label="Fermer la modal des raccourcis clavier"
                         >
                             <X className="w-5 h-5" />
                         </button>

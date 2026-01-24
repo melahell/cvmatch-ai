@@ -15,8 +15,9 @@ MISSION CRITIQUE: Extrais et structure les informations ESSENTIELLES avec RIGUEU
 ⚠️  RÈGLE DE CONSOLIDATION (CRITIQUE):
 - Identifie les réalisations similaires ou redondantes
 - FUSIONNE-LES intelligemment en gardant TOUS les impacts quantifiés
-- LIMITE: Maximum 8-12 réalisations PAR expérience (garde les + impactantes)
+- LIMITE: Maximum 15-20 réalisations PAR expérience (garde les + impactantes et détaillées)
 - Priorise: Réalisations avec impacts quantifiés > non quantifiés
+- IMPORTANT: Le RAG doit être COMPLET - ne limite que si vraiment nécessaire pour éviter redondance
 
 ${existingRAGContext ? `⚠️ CONTEXTE ACCUMULÉ: Tu as déjà un RAG avec des expériences, compétences, formations, etc.
 ⚠️ TA MISSION: Enrichis ce RAG existant avec les nouvelles informations du document ci-dessus.
@@ -30,8 +31,8 @@ ${existingRAGContext ? `⚠️ CONTEXTE ACCUMULÉ: Tu as déjà un RAG avec des 
   * Si le nouveau document contredit le RAG existant → PRIORITÉ au document le plus détaillé et récent
   * Si un document est plus riche qu'un autre → Utilise le document riche pour enrichir le document pauvre
 ` : `⚠️ PREMIER DOCUMENT: C'est le premier document, crée le RAG de base.
-⚠️ Extrais les informations ESSENTIELLES présentes dans le document.
-⚠️ Applique la RÈGLE DE CONSOLIDATION ci-dessus pour limiter à 8-12 réalisations max par expérience.
+⚠️ Extrais TOUTES les informations présentes dans le document (pas seulement l'essentiel).
+⚠️ Applique la RÈGLE DE CONSOLIDATION ci-dessus pour limiter à 15-20 réalisations max par expérience UNIQUEMENT si vraiment nécessaire.
 `}
 
 RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES - CRITIQUES)
@@ -51,7 +52,8 @@ RÈGLES ANTI-HALLUCINATION (OBLIGATOIRES - CRITIQUES)
 OBJECTIF DE RICHESSE (CRITIQUE)
 - Le RAG est une base de connaissance COMPLÈTE (pas un CV 1 page).
 - Pour CHAQUE expérience, extrais un maximum de détails actionnables (missions, responsabilités, process, outils, livrables).
-- Si une phrase contient une responsabilité (“reporting”, “pilotage”, “suivi”, “coordination”, “gouvernance”, “budget”, “qualité”), transforme-la en 4 à 8 réalisations CONCRÈTES.
+- Si une phrase contient une responsabilité (“reporting”, “pilotage”, “suivi”, “coordination”, “gouvernance”, “budget”, “qualité”), transforme-la en 6 à 12 réalisations CONCRÈTES et détaillées.
+- Chaque réalisation doit être spécifique : ACTION + CONTEXTE + RÉSULTAT/IMPACT
 - Si plusieurs sources mentionnent la même responsabilité, combine TOUS les détails de toutes les sources (union complète, ne perds rien).
 - Tu peux ajouter des éléments “logiquement induits” UNIQUEMENT s’ils sont directement supportés par une mention explicite dans le texte :
   - Dans ce cas, marque l’item comme inféré et cite la phrase source explicite.
@@ -133,6 +135,14 @@ SCHÉMA CIBLE (JSON uniquement) :
       ]
     }
   },
+  
+EXTRACTION COMPLÈTE DES COMPÉTENCES
+- Extrais TOUTES les compétences mentionnées (même indirectement)
+- Si un outil est mentionné dans une réalisation, ajoute-le aux compétences techniques
+- Si une méthodologie est mentionnée, ajoute-la aux compétences
+- Ne limite PAS le nombre de compétences - le RAG doit être exhaustif
+- Les compétences inférées doivent avoir une justification solide (min 50 caractères)
+  
   "formations": [
     { "diplome": "string", "ecole": "string", "annee": "YYYY" }
   ],

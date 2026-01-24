@@ -11,6 +11,7 @@ import {
     logMatchAnalysisError,
     logEnrichmentMissing
 } from "@/lib/logging/match-analysis-logger";
+import { logger } from "@/lib/utils/logger";
 import {
     startMatchAnalysisTrace,
     recordMatchAnalysisSuccess,
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
                 const { result, modelUsed } = await callWithRetry(() =>
                     generateWithCascade(extractionPrompt)
                 );
-                console.log(`File extraction with: ${modelUsed}`);
+                logger.debug("File extraction completed", { modelUsed });
                 fullJobText = result.response.text();
 
                 if (fullJobText.length < 50) {
@@ -175,7 +176,7 @@ export async function POST(req: Request) {
             );
             result = cascadeResult.result;
             modelUsed = cascadeResult.modelUsed;
-            console.log(`Match analysis with: ${modelUsed}`);
+            logger.debug("Match analysis completed", { modelUsed, userId });
         } catch (err: any) {
             logMatchAnalysisError(userId, err, 'analysis', { modelUsed });
 
@@ -184,7 +185,7 @@ export async function POST(req: Request) {
                 recordMatchAnalysisError(span, err, 'analysis', { userId, source, modelUsed });
             }
 
-            console.error("All models failed:", err.message);
+            logger.error("All models failed", { error: err.message, userId });
             return NextResponse.json({
                 error: "Tous les modèles IA sont surchargés. Réessayez dans quelques minutes."
             }, { status: 503 });
@@ -197,7 +198,7 @@ export async function POST(req: Request) {
         try {
             matchData = JSON.parse(jsonString);
         } catch (parseError) {
-            console.error("❌ JSON parsing failed:", parseError);
+            logger.error("JSON parsing failed", { error: parseError, userId, responseText: responseText.substring(0, 200) });
             return NextResponse.json({
                 error: "Erreur d'analyse. Réessayez avec moins de texte."
             }, { status: 500 });
@@ -255,7 +256,7 @@ export async function POST(req: Request) {
             if (!matchData.salary_estimate) missingFields.push('salary_estimate');
             if (!matchData.coaching_tips) missingFields.push('coaching_tips');
 
-            console.warn("⚠️ Continuing with partial data (enrichment may be missing)");
+            logger.warn("Continuing with partial data", { missingFields, userId, modelUsed });
         }
 
         // Utiliser données validées si disponibles, sinon fallback sur données brutes
@@ -278,7 +279,14 @@ export async function POST(req: Request) {
 
         const hasEnrichment = !!(validatedData.salary_estimate || validatedData.coaching_tips);
 
-        console.log(`📊 Match Analysis - job_title: "${extractedJobTitle}", company: "${extractedCompany}", score: ${validatedData.match_score}, enrichment: ${hasEnrichment}`);
+        logger.info("Match analysis completed", {
+            jobTitle: extractedJobTitle,
+            company: extractedCompany,
+            score: validatedData.match_score,
+            hasEnrichment,
+            userId,
+            modelUsed
+        });
 
         // 4. Save to DB
         const { data: insertData, error: insertError } = await supabase
@@ -366,7 +374,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("Analyze Error:", error);
+        logger.error("Analyze error", { error: error.message, stack: error.stack, userId, jobUrl, source: jobUrl ? 'url' : fileData ? 'file' : 'text' });
 
         // 🔭 Record telemetry error if span exists
         if (span) {

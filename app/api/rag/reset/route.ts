@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export async function DELETE(req: Request) {
             );
         }
 
-        console.log(`[RAG RESET] User ${userId} requested RAG profile reset`);
+        logger.info("RAG RESET: User requested RAG profile reset", { userId });
 
         // 1. Supprimer les fichiers uploadés dans Storage
         try {
@@ -33,11 +34,11 @@ export async function DELETE(req: Request) {
                     .remove(filePaths);
 
                 if (storageError) {
-                    console.warn(`[RAG RESET] Storage deletion warning:`, storageError);
+                    logger.warn("RAG RESET: Storage deletion warning", { userId, error: storageError });
                 }
             }
         } catch (storageError) {
-            console.warn(`[RAG RESET] Storage deletion failed:`, storageError);
+            logger.warn("RAG RESET: Storage deletion failed", { userId, error: storageError });
         }
 
         // 2. Supprimer les documents uploadés dans la table
@@ -53,7 +54,7 @@ export async function DELETE(req: Request) {
             .eq("user_id", userId);
 
         if (ragError) {
-            console.error(`[RAG RESET] Error deleting RAG metadata:`, ragError);
+            logger.error("RAG RESET: Error deleting RAG metadata", { userId, error: ragError.message });
             return NextResponse.json(
                 { error: "Failed to reset RAG profile", details: ragError.message },
                 { status: 500 }
@@ -63,7 +64,7 @@ export async function DELETE(req: Request) {
         // Note: On garde les job_analyses, cv_generations et le compte utilisateur
         // L'utilisateur peut refaire un onboarding avec de nouveaux documents
 
-        console.log(`[RAG RESET] ✅ User ${userId} RAG profile successfully reset`);
+        logger.info("RAG RESET: User RAG profile successfully reset", { userId });
 
         return NextResponse.json({
             success: true,
@@ -71,7 +72,7 @@ export async function DELETE(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("[RAG RESET] Error:", error);
+        logger.error("RAG RESET: Error", { error: error.message, stack: error.stack });
         return NextResponse.json(
             { error: error.message },
             { status: 500 }

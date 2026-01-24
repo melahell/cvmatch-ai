@@ -1,5 +1,6 @@
 import { createSupabaseClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/utils/logger";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,7 @@ export async function DELETE(req: Request) {
         }
 
         // Log de l'action pour audit RGPD
-        console.log(`[GDPR] User ${userId} requested account deletion (Article 17 - Right to erasure)`);
+        logger.info("GDPR: User requested account deletion", { userId, article: "Article 17 - Right to erasure" });
 
         // 1. Supprimer les fichiers dans Supabase Storage
         try {
@@ -34,11 +35,11 @@ export async function DELETE(req: Request) {
                     .remove(filePaths);
 
                 if (storageError) {
-                    console.warn(`[GDPR] Storage deletion warning for user ${userId}:`, storageError);
+                    logger.warn("GDPR: Storage deletion warning", { userId, error: storageError });
                 }
             }
         } catch (storageError) {
-            console.warn(`[GDPR] Storage deletion failed for user ${userId}:`, storageError);
+            logger.warn("GDPR: Storage deletion failed", { userId, error: storageError });
             // Continue même si le storage échoue
         }
 
@@ -54,14 +55,14 @@ export async function DELETE(req: Request) {
             .eq("id", userId);
 
         if (error) {
-            console.error(`[GDPR] Delete error for user ${userId}:`, error);
+            logger.error("GDPR: Delete error", { userId, error: error.message });
             return NextResponse.json(
                 { error: "Failed to delete account", details: error.message },
                 { status: 500 }
             );
         }
 
-        console.log(`[GDPR] ✅ User ${userId} successfully deleted - All data removed`);
+        logger.info("GDPR: User successfully deleted", { userId });
 
         return NextResponse.json({
             success: true,
@@ -69,7 +70,7 @@ export async function DELETE(req: Request) {
         });
 
     } catch (error: any) {
-        console.error("[GDPR] Delete Error:", error);
+        logger.error("GDPR: Delete error", { error: error.message, stack: error.stack });
         return NextResponse.json(
             { error: error.message },
             { status: 500 }

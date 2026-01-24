@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, FileJson, FileText, Loader2, X, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,20 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
     const { userId } = useAuth();
     const [exporting, setExporting] = useState(false);
     const [format, setFormat] = useState<"json" | "txt">("json");
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const firstFocusableRef = useRef<HTMLButtonElement>(null);
+
+    // Focus management
+    useEffect(() => {
+        if (isOpen && firstFocusableRef.current) {
+            firstFocusableRef.current.focus();
+        }
+    }, [isOpen]);
+
+    const handleClose = () => {
+        onClose();
+        setTimeout(() => closeButtonRef.current?.focus(), 0);
+    };
 
     if (!isOpen) return null;
 
@@ -114,8 +128,10 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                             Exporter mes données
                         </h2>
                         <button
-                            onClick={onClose}
+                            ref={closeButtonRef}
+                            onClick={handleClose}
                             className="text-slate-600 hover:text-slate-600 dark:hover:text-slate-300"
+                            aria-label="Fermer la modal d'export"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -182,7 +198,7 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                     <div className="flex gap-3">
                         <Button
                             variant="outline"
-                            onClick={onClose}
+                            onClick={handleClose}
                             className="flex-1 dark:border-slate-700 dark:text-slate-300"
                         >
                             Annuler

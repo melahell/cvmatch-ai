@@ -1,4 +1,4 @@
-import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { createSupabaseAdminClient, createSupabaseUserClient, requireSupabaseUser, createSignedUrl } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { generateWithCascade, callWithRetry } from "@/lib/ai/gemini";
 import { getCVOptimizationPrompt } from "@/lib/ai/prompts";
@@ -702,7 +702,8 @@ const mergeAIOptimizationsIntoProfile = (params: {
             if (text.includes("[object Object]")) continue;
             if (!isNumbersGroundedInText(text, sourceText)) continue;
             filteredRealisations.push(text);
-            if (filteredRealisations.length >= 8) break;
+            // Enlever la limite de 8 - garder toutes les réalisations validées
+            // Le système adaptatif limitera ensuite selon l'espace disponible dans le template
         }
 
         if (filteredRealisations.length > 0) {
@@ -949,7 +950,24 @@ export async function POST(req: Request) {
         const ragContact = ragProfil?.contact || {};
 
         const photoRef = ragProfil?.photo_url as string | undefined;
-        const photoValue = includePhoto && photoRef ? photoRef : null;
+        let photoValue: string | null = null;
+
+        if (includePhoto && photoRef) {
+            // Si c'est déjà une URL HTTP(S), utiliser directement
+            if (photoRef.startsWith('http://') || photoRef.startsWith('https://')) {
+                photoValue = photoRef;
+            } else {
+                // Sinon, convertir storage ref en signed URL
+                try {
+                    const admin = createSupabaseAdminClient();
+                    const signedUrl = await createSignedUrl(admin, photoRef, { expiresIn: 3600 }); // 1h expiration
+                    photoValue = signedUrl;
+                } catch (error) {
+                    logger.warn("Failed to create signed URL for photo", { error, photoRef });
+                    photoValue = null;
+                }
+            }
+        }
 
         // 2. Generate CV with AI (with retry logic)
         const extraNotes = selection.extraInstructions ? `Instructions utilisateur pour ce CV:\n${selection.extraInstructions}` : "";
@@ -1058,7 +1076,7 @@ export async function POST(req: Request) {
                     ragContact?.linkedinUrl
                 ),
                 elevator_pitch: safeOptimizedPitchText || ragProfil?.elevator_pitch || "",
-                photo_url: includePhoto && photoValue ? photoValue : undefined,
+                photo_url: photoValue || undefined,
             },
         };
 

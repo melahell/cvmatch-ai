@@ -64,7 +64,7 @@ export function truncateToTokens(text: string, maxTokens: number): {
 }
 
 /**
- * Truncate text for RAG extraction (50k tokens max)
+ * Truncate text for RAG extraction (100k tokens max)
  * This leaves plenty of room for the prompt itself
  */
 export function truncateForRAGExtraction(text: string): {
@@ -76,10 +76,10 @@ export function truncateForRAGExtraction(text: string): {
         truncatedPercentage?: number;
     };
 } {
-    const MAX_TOKENS = 50000; // Conservative limit
+    const MAX_TOKENS = 100000; // Increased limit for richer extraction (Gemini Pro supports 1M tokens)
 
     const base = truncateToTokens(text, MAX_TOKENS);
-    const truncatedText = base.wasTruncated ? smartTruncate(text, MAX_TOKENS, { beginning: 65, end: 35 }) : base.truncated;
+    const truncatedText = base.wasTruncated ? smartTruncate(text, MAX_TOKENS, { beginning: 70, end: 30 }) : base.truncated;
     const finalTokens = estimateTokenCount(truncatedText);
 
     return {

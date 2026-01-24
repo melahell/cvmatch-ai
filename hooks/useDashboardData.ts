@@ -28,9 +28,6 @@ export function useDashboardData(userId: string | null) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Mémoïser les stats calculées pour éviter recalculs
-    const computedStats = useMemo(() => stats, [stats]);
-
     const fetchDashboardData = useCallback(async () => {
         if (!userId) {
             setLoading(false);
@@ -101,7 +98,7 @@ export function useDashboardData(userId: string | null) {
         fetchDashboardData();
     }, [fetchDashboardData]);
 
-    // Mémoïser les stats pour éviter recalculs
+    // Mémoïser les stats et docs pour éviter recalculs
     const memoizedStats = useMemo(() => stats, [stats]);
     const memoizedDocs = useMemo(() => uploadedDocs, [uploadedDocs]);
 
