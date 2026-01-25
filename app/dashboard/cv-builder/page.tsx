@@ -329,17 +329,22 @@ function CVBuilderContent() {
         (widgets: AIWidgetsEnvelope, template: string, options: ConvertOptions, jobContext?: JobOfferContext | null) => {
             if (!analysisId) return;
 
-            // Normaliser options
-            const normalizedOptions: ConvertOptions = {
+            // Normaliser options pour le cache (sans ragProfile)
+            const cacheOptions = {
                 minScore: options.minScore ?? 50,
                 maxExperiences: options.maxExperiences ?? 6,
                 maxBulletsPerExperience: options.maxBulletsPerExperience ?? 6,
+            };
+
+            // Options complètes pour la conversion (avec ragProfile)
+            const convertOptions: ConvertOptions = {
+                ...cacheOptions,
                 ragProfile: options.ragProfile ?? ragData,
             };
 
             // Vérifier cache CVData d'abord (sans validation pour performance)
             const cached = getCVDataFromCache(analysisId, template);
-            if (cached && JSON.stringify(cached.options) === JSON.stringify(normalizedOptions)) {
+            if (cached && JSON.stringify(cached.options) === JSON.stringify(cacheOptions)) {
                 setCvData(cached.cvData);
                 // Toujours valider même si en cache (pour afficher warnings)
                 if (ragData) {
@@ -350,12 +355,12 @@ function CVBuilderContent() {
                                 widgets,
                                 ragData,
                                 jobContext,
-                                normalizedOptions,
+                                convertOptions,
                                 true
                             );
                             setValidationResult(validation);
                         } else {
-                            const { validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
+                            const { validation } = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
                             setValidationResult(validation);
                         }
                     } catch (error) {
@@ -374,26 +379,26 @@ function CVBuilderContent() {
                             widgets,
                             ragData,
                             jobContext,
-                            normalizedOptions,
+                            convertOptions,
                             true
                         );
                         setCvData(cv);
                         setValidationResult(validation);
                         // Sauvegarder dans cache
-                        saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                        saveCVDataToCache(analysisId, template, cv, cacheOptions);
                     } else {
                         // Fallback avec validation simple si pas de jobContext
-                        const { cvData: cv, validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
+                        const { cvData: cv, validation } = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
                         setCvData(cv);
                         setValidationResult(validation);
-                        saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                        saveCVDataToCache(analysisId, template, cv, cacheOptions);
                     }
                 } else {
                     // Fallback sans validation si RAG non disponible
-                    const cv = convertWidgetsToCV(widgets, normalizedOptions);
+                    const cv = convertWidgetsToCV(widgets, convertOptions);
                     setCvData(cv);
                     setValidationResult(null);
-                    saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                    saveCVDataToCache(analysisId, template, cv, cacheOptions);
                 }
             } catch (error: any) {
                 logger.error("Erreur conversion widgets", { error });

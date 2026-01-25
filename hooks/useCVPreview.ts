@@ -52,7 +52,8 @@ export function useCVPreview({
             }
 
             // Normaliser options
-            const normalizedOptions: Required<ConvertOptions> = {
+            // Options pour le cache (sans ragProfile)
+            const cacheOptions = {
                 minScore: convertOptions.minScore ?? 50,
                 maxExperiences: convertOptions.maxExperiences ?? 6,
                 maxBulletsPerExperience: convertOptions.maxBulletsPerExperience ?? 6,
@@ -60,7 +61,7 @@ export function useCVPreview({
 
             // Vérifier cache sessionStorage
             const cached = getCVDataFromCache(analysisId, templateId);
-            if (cached && JSON.stringify(cached.options) === JSON.stringify(normalizedOptions)) {
+            if (cached && JSON.stringify(cached.options) === JSON.stringify(cacheOptions)) {
                 setPreviewCache((prev) => ({
                     ...prev,
                     [templateId]: cached.cvData,
@@ -70,10 +71,10 @@ export function useCVPreview({
 
             // Convertir (instantané côté client)
             try {
-                const cvData = convertWidgetsToCV(widgets, normalizedOptions);
-                
+                const cvData = convertWidgetsToCV(widgets, cacheOptions);
+
                 // Sauvegarder dans caches
-                saveCVDataToCache(analysisId, templateId, cvData, normalizedOptions);
+                saveCVDataToCache(analysisId, templateId, cvData, cacheOptions);
                 setPreviewCache((prev) => ({
                     ...prev,
                     [templateId]: cvData,
@@ -101,8 +102,8 @@ export function useCVPreview({
 
                 setLoadingTemplates((prev) => new Set(prev).add(templateId));
 
-                // Normaliser options
-                const normalizedOptions: Required<ConvertOptions> = {
+                // Options pour le cache (sans ragProfile)
+                const cacheOpts = {
                     minScore: convertOptions.minScore ?? 50,
                     maxExperiences: convertOptions.maxExperiences ?? 6,
                     maxBulletsPerExperience: convertOptions.maxBulletsPerExperience ?? 6,
@@ -110,8 +111,8 @@ export function useCVPreview({
 
                 // Conversion synchrone mais rapide (<10ms)
                 try {
-                    const cvData = convertWidgetsToCV(widgets, normalizedOptions);
-                    saveCVDataToCache(analysisId, templateId, cvData, normalizedOptions);
+                    const cvData = convertWidgetsToCV(widgets, cacheOpts);
+                    saveCVDataToCache(analysisId, templateId, cvData, cacheOpts);
                     setPreviewCache((prev) => ({
                         ...prev,
                         [templateId]: cvData,
