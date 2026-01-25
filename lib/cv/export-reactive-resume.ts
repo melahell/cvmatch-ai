@@ -306,10 +306,10 @@ export function convertToReactiveResume(
                 company: exp.entreprise || "",
                 position: exp.poste || "",
                 location: exp.lieu || "",
-                date: formatDateRange(exp.date_debut, exp.date_fin, exp.actuel),
+                date: formatDateRange(exp.date_debut, exp.date_fin, !exp.date_fin),
                 summary: (exp.realisations || [])
                     .map((r) => {
-                        const text = typeof r === "string" ? r : r.description || "";
+                        const text = typeof r === "string" ? r : (r as { description?: string }).description ?? "";
                         return `• ${text}`;
                     })
                     .join("\n"),
@@ -343,7 +343,7 @@ export function convertToReactiveResume(
                 ...(cvData.competences?.techniques || []).map((skill) => ({
                     id: uuidv4(),
                     visible: true,
-                    name: typeof skill === "string" ? skill : skill.nom || "",
+                    name: typeof skill === "string" ? skill : (skill as { nom?: string }).nom ?? "",
                     description: "",
                     level: 3,
                     keywords: [],
@@ -352,7 +352,7 @@ export function convertToReactiveResume(
                 ...(cvData.competences?.soft_skills || []).map((skill) => ({
                     id: uuidv4(),
                     visible: true,
-                    name: typeof skill === "string" ? skill : skill.nom || "",
+                    name: typeof skill === "string" ? skill : (skill as { nom?: string }).nom ?? "",
                     description: "Soft skill",
                     level: 3,
                     keywords: [],
@@ -380,7 +380,7 @@ export function convertToReactiveResume(
             visible: (cvData.certifications?.length || 0) > 0,
             id: "certifications",
             items: (cvData.certifications || []).map((cert) => {
-                const certStr = typeof cert === "string" ? cert : cert.nom || "";
+                const certStr = typeof cert === "string" ? cert : (cert as { nom?: string }).nom ?? "";
                 return {
                     id: uuidv4(),
                     visible: true,
@@ -401,13 +401,16 @@ export function convertToReactiveResume(
             separateLinks: true,
             visible: true,
             id: "references",
-            items: cvData.clients_references.clients.map((client) => ({
-                id: uuidv4(),
-                visible: true,
-                name: typeof client === "string" ? client : client.nom || "",
-                description: typeof client === "object" && client.secteur ? client.secteur : "",
-                summary: "",
-            })),
+            items: cvData.clients_references.clients.map((client) => {
+                const c = client as string | { nom?: string; secteur?: string };
+                return {
+                    id: uuidv4(),
+                    visible: true,
+                    name: typeof c === "string" ? c : c.nom ?? "",
+                    description: typeof c === "object" && c.secteur ? c.secteur : "",
+                    summary: "",
+                };
+            }),
         };
     }
 
