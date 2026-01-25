@@ -15,6 +15,7 @@ import { buildRAGForCVPrompt, calculateRAGCompletenessScore } from "./rag-transf
 import { detectSector, getSectorPromptInstructions, applySectorScoringBoost, type Sector } from "./sector-customization";
 import { getSmartCachedWidgets, saveToSmartCache, hashFullContext } from "./smart-widget-cache";
 import { compressRAGProfile, estimateTokens } from "@/lib/ai/prompt-optimization";
+import { detectLanguage, getTranslationPromptInstructions } from "./multi-language";
 import { logger } from "@/lib/utils/logger";
 
 export interface GenerateWidgetsParams {
@@ -49,7 +50,16 @@ export async function generateWidgetsFromRAGAndMatch(
     try {
         // [INTÉGRATION] Détection du secteur pour personnaliser les prompts
         const sector = detectSector(params.jobDescription, params.matchAnalysis?.company);
-        logger.debug("[generate-widgets] Secteur détecté", { sector });
+
+        // [INTÉGRATION] Détection de la langue de l'offre
+        const langDetection = detectLanguage(params.jobDescription);
+        const detectedLanguage = langDetection.language;
+
+        logger.debug("[generate-widgets] Contexte détecté", {
+            sector,
+            language: detectedLanguage,
+            languageConfidence: langDetection.confidence,
+        });
 
         // [INTÉGRATION] Vérifier le cache si userId fourni
         if (params.userId && !params.skipCache) {
@@ -117,14 +127,18 @@ export async function generateWidgetsFromRAGAndMatch(
             sector,
         });
 
-        // [INTÉGRATION] Ajouter les instructions sectorielles au prompt
+        // [INTÉGRATION] Ajouter les instructions sectorielles et linguistiques au prompt
         const sectorInstructions = getSectorPromptInstructions(sector);
+        const languageInstructions = detectedLanguage !== "fr"
+            ? getTranslationPromptInstructions(detectedLanguage, "fr")
+            : "";
 
         const prompt = getAIWidgetsGenerationPrompt(
             finalRAG,
             params.matchAnalysis,
             params.jobDescription
-        ) + (sectorInstructions ? `\n\n${sectorInstructions}` : "");
+        ) + (sectorInstructions ? `\n\n${sectorInstructions}` : "")
+          + (languageInstructions ? `\n\n${languageInstructions}` : "");
 
         const response = await generateWithGemini({
             prompt,
@@ -161,6 +175,7 @@ export async function generateWidgetsFromRAGAndMatch(
                 ...validation.data.meta,
                 model: GEMINI_MODELS.principal,
                 sector,
+                language: detectedLanguage,
                 fromCache: false,
                 generationTimeMs: Date.now() - startTime,
             },
