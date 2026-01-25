@@ -302,25 +302,7 @@ export default function ModernTemplate({
                         Expériences Professionnelles
                     </h2>
                     <div className="space-y-1.5">
-                        {limitedExperiences
-                            .filter((exp) => {
-                                // Solution 3.2: Ne pas afficher si moins de 2 champs essentiels
-                                const hasPoste = !!(exp.poste && exp.poste.trim());
-                                const hasEntreprise = !!(exp.entreprise && exp.entreprise.trim());
-                                const hasDate = !!(exp.date_debut && exp.date_debut.trim());
-                                const essentialFieldsCount = [hasPoste, hasEntreprise, hasDate].filter(Boolean).length;
-                                
-                                if (essentialFieldsCount < 2 && typeof window !== 'undefined') {
-                                    console.warn(`[ModernTemplate] Filtering out incomplete experience`, {
-                                        poste: exp.poste,
-                                        entreprise: exp.entreprise,
-                                        date_debut: exp.date_debut
-                                    });
-                                }
-                                
-                                return essentialFieldsCount >= 2;
-                            })
-                            .map((exp, i) => {
+                        {limitedExperiences.map((exp, i) => {
                             return (
                             <div
                                 key={i}
