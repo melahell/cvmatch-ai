@@ -323,38 +323,48 @@ alerting.setThreshold("gemini_rate_limit_count", {
 
 export function trackCVGeneration(params: {
     userId: string;
-    cvId: string;
-    variant: "v1" | "v2";
+    cvId?: string;
+    variant?: "v1" | "v2";
     durationMs: number;
     success: boolean;
     groundingScore?: number;
     cacheHit?: boolean;
+    fromCache?: boolean;  // Alias pour cacheHit
     hadFallback?: boolean;
     errorType?: string;
+    // Nouveaux paramètres intégrés
+    sector?: string;
+    templateName?: string;
+    widgetCount?: number;
+    qualityScore?: number;
 }): void {
+    const variant = params.variant || "v2";
+    const cacheHit = params.cacheHit ?? params.fromCache;
+
     const labels = {
-        variant: params.variant,
+        variant,
         success: String(params.success),
+        sector: params.sector || "unknown",
     };
 
     // Compteurs
     metrics.increment("cv_generation_total", 1, labels);
 
     if (params.success) {
-        metrics.increment("cv_generation_success", 1, { variant: params.variant });
+        metrics.increment("cv_generation_success", 1, { variant, sector: params.sector || "unknown" });
     } else {
         metrics.increment("cv_generation_error", 1, {
-            variant: params.variant,
+            variant,
             error_type: params.errorType || "unknown",
         });
     }
 
     // Durée
-    metrics.observe("cv_generation_duration_ms", params.durationMs, { variant: params.variant });
+    metrics.observe("cv_generation_duration_ms", params.durationMs, { variant });
 
     // Cache
-    if (params.cacheHit !== undefined) {
-        metrics.increment("cv_generation_cache", 1, { hit: String(params.cacheHit) });
+    if (cacheHit !== undefined) {
+        metrics.increment("cv_generation_cache", 1, { hit: String(cacheHit) });
     }
 
     // Fallback
@@ -364,7 +374,22 @@ export function trackCVGeneration(params: {
 
     // Grounding
     if (params.groundingScore !== undefined) {
-        metrics.observe("cv_generation_grounding_score", params.groundingScore, { variant: params.variant });
+        metrics.observe("cv_generation_grounding_score", params.groundingScore, { variant });
+    }
+
+    // Quality score (nouveau)
+    if (params.qualityScore !== undefined) {
+        metrics.observe("cv_generation_quality_score", params.qualityScore, { variant, sector: params.sector || "unknown" });
+    }
+
+    // Widget count (nouveau)
+    if (params.widgetCount !== undefined) {
+        metrics.observe("cv_generation_widget_count", params.widgetCount, { variant });
+    }
+
+    // Template usage (nouveau)
+    if (params.templateName) {
+        metrics.increment("cv_template_usage", 1, { template: params.templateName });
     }
 
     // Vérifier les seuils d'alerte
