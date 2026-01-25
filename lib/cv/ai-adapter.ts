@@ -259,14 +259,16 @@ function buildExperiences(
             bullets: [],
         };
 
+        // Traiter selon le type de widget
         if (widget.type === "experience_header") {
-            // Utilisé principalement pour le titre de l'expérience
+            // Widget header : utilisé pour le titre de l'expérience
             if (widget.relevance_score > existing.bestScore) {
                 existing.headerText = widget.text;
                 existing.bestScore = widget.relevance_score;
             }
-        } else if (widget.type === "experience_bullet") {
-            const text = widget.text.trim();
+        } else {
+            // TOUT AUTRE TYPE (experience_bullet ou autre) : traiter comme bullet
+            const text = widget.text?.trim();
             if (text && !existing.bullets.includes(text)) {
                 existing.bullets.push(text);
             }
