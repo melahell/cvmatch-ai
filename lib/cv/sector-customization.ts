@@ -607,7 +607,7 @@ export function getSectorPromptInstructions(sector: Sector): string {
 ## CONTEXTE SECTEUR : ${config.name}
 
 ### TONALITÉ
-${config.tone}
+${config.prompt.tone}
 
 ### FOCUS (PRIORITÉS)
 ${config.prompt.focus.map(f => `- ${f}`).join("\n")}
