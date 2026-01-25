@@ -330,10 +330,11 @@ function CVBuilderContent() {
             if (!analysisId) return;
 
             // Normaliser options
-            const normalizedOptions: Required<ConvertOptions> = {
+            const normalizedOptions: ConvertOptions = {
                 minScore: options.minScore ?? 50,
                 maxExperiences: options.maxExperiences ?? 6,
                 maxBulletsPerExperience: options.maxBulletsPerExperience ?? 6,
+                ragProfile: options.ragProfile ?? ragData,
             };
 
             // Vérifier cache CVData d'abord (sans validation pour performance)
