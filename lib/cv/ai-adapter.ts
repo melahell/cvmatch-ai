@@ -279,8 +279,9 @@ function buildExperiences(
     });
 
     // Transformer en tableau et trier par bestScore
+    // NOTE: On n'exige plus bullets > 0 - une expérience peut n'avoir qu'un header
     const accs = Array.from(byExpId.values())
-        .filter((acc) => acc.bullets.length > 0)
+        .filter((acc) => acc.headerText || acc.bullets.length > 0) // Au moins un header OU des bullets
         .sort((a, b) => b.bestScore - a.bestScore)
         .slice(0, opts.maxExperiences);
 
@@ -336,20 +337,9 @@ function buildExperiences(
         } as any;
     });
 
-    // Filtrer "Expérience clé" sans contexte suffisant
-    const filteredExperiences = experiences.filter((exp) => {
-        // Si c'est "Expérience clé" sans entreprise valide et sans dates, masquer
-        if (
-            exp.poste === "Expérience clé" &&
-            (!exp.entreprise || exp.entreprise === "—") &&
-            (!exp.date_debut || exp.date_debut.trim() === "")
-        ) {
-            return false;
-        }
-        return true;
-    });
-
-    return filteredExperiences;
+    // NOTE: Plus de filtrage "Expérience clé" - on garde tout
+    // L'utilisateur peut masquer via l'UI si besoin
+    return experiences;
 }
 
 function buildCompetences(skillsWidgets: AIWidget[]): RendererResumeSchema["competences"] {
