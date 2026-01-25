@@ -1,11 +1,16 @@
 /**
  * Helper pour générer AI_WIDGETS_SCHEMA depuis RAG + match analysis
  * Utilise le prompt Gemini pour produire des widgets scorés
+ *
+ * [AUDIT FIX CRITIQUE-1] : Utilise buildRAGForCVPrompt pour optimiser le contexte
+ * envoyé à Gemini, réduisant les tokens et améliorant la qualité.
  */
 
 import { generateWithGemini, GEMINI_MODELS } from "@/lib/ai/gemini";
 import { getAIWidgetsGenerationPrompt } from "@/lib/ai/prompts";
 import { validateAIWidgetsEnvelope, AIWidgetsEnvelope } from "./ai-widgets";
+import { buildRAGForCVPrompt, calculateRAGCompletenessScore } from "./rag-transform";
+import { logger } from "@/lib/utils/logger";
 
 export interface GenerateWidgetsParams {
     ragProfile: any;
@@ -13,16 +18,35 @@ export interface GenerateWidgetsParams {
     jobDescription: string;
 }
 
+export interface GenerateWidgetsResult {
+    envelope: AIWidgetsEnvelope;
+    ragCompletenessScore: number;
+    optimizedRAGUsed: boolean;
+}
+
 /**
  * Génère des widgets scorés depuis RAG + match analysis
  * @returns AIWidgetsEnvelope validé ou null si erreur
+ *
+ * [AUDIT FIX CRITIQUE-1] : Le RAG est maintenant optimisé avant d'être passé au prompt
  */
 export async function generateWidgetsFromRAGAndMatch(
     params: GenerateWidgetsParams
 ): Promise<AIWidgetsEnvelope | null> {
     try {
+        // [AUDIT FIX CRITIQUE-1] : Optimiser le RAG pour réduire les tokens
+        const ragCompletenessScore = calculateRAGCompletenessScore(params.ragProfile);
+        const optimizedRAG = buildRAGForCVPrompt(params.ragProfile);
+
+        logger.debug("[generate-widgets] RAG optimisé pour prompt", {
+            originalSize: JSON.stringify(params.ragProfile).length,
+            optimizedSize: JSON.stringify(optimizedRAG).length,
+            reduction: `${Math.round((1 - JSON.stringify(optimizedRAG).length / JSON.stringify(params.ragProfile).length) * 100)}%`,
+            ragCompletenessScore,
+        });
+
         const prompt = getAIWidgetsGenerationPrompt(
-            params.ragProfile,
+            optimizedRAG, // [AUDIT FIX] Utiliser le RAG optimisé au lieu du brut
             params.matchAnalysis,
             params.jobDescription
         );

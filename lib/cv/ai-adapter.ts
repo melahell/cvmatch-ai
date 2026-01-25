@@ -1,3 +1,10 @@
+/**
+ * AI Adapter (Bridge) - Convertit AI_WIDGETS_SCHEMA en RendererResumeSchema
+ *
+ * [AUDIT FIX IMPORTANT-6] : Enrichissement des expériences avec dates/lieux depuis RAG
+ * [AUDIT FIX CRITIQUE-3] : Propagation des infos de contact et photo depuis RAG
+ */
+
 import { aiWidgetsEnvelopeSchema, AIWidgetsEnvelope, AIWidget } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
 
@@ -17,13 +24,72 @@ export interface ConvertOptions {
      * Par défaut: 6.
      */
     maxBulletsPerExperience?: number;
+    /**
+     * [AUDIT FIX IMPORTANT-6] : Profil RAG source pour enrichir les données manquantes
+     * (dates, lieux, contact, photo)
+     */
+    ragProfile?: any;
 }
 
-const DEFAULT_OPTIONS: Required<ConvertOptions> = {
+const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile'>> & { ragProfile?: any } = {
     minScore: 50,
     maxExperiences: 6,
     maxBulletsPerExperience: 6,
+    ragProfile: undefined,
 };
+
+/**
+ * [AUDIT FIX IMPORTANT-6] : Trouve l'expérience RAG correspondante
+ */
+function findRAGExperience(expId: string, ragProfile: any): any | null {
+    if (!ragProfile?.experiences || !Array.isArray(ragProfile.experiences)) {
+        return null;
+    }
+
+    // Format exp_0, exp_1, etc.
+    const numericMatch = expId.match(/^exp_(\d+)$/);
+    if (numericMatch) {
+        const index = parseInt(numericMatch[1], 10);
+        if (index >= 0 && index < ragProfile.experiences.length) {
+            return ragProfile.experiences[index];
+        }
+    }
+
+    // Recherche par ID personnalisé
+    for (const exp of ragProfile.experiences) {
+        if (exp.id === expId) {
+            return exp;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * [AUDIT FIX IMPORTANT-6] : Normalise et formate une date pour affichage
+ */
+function formatDate(dateStr: string | undefined): string {
+    if (!dateStr) return "";
+
+    // Si déjà au format "YYYY-MM", retourner tel quel
+    if (/^\d{4}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+    }
+
+    // Si format ISO, extraire YYYY-MM
+    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})/);
+    if (isoMatch) {
+        return `${isoMatch[1]}-${isoMatch[2]}`;
+    }
+
+    // Si juste une année
+    const yearMatch = dateStr.match(/^(\d{4})$/);
+    if (yearMatch) {
+        return `${yearMatch[1]}-01`;
+    }
+
+    return dateStr;
+}
 
 /**
  * Fonction principale : convertit un payload AI_WIDGETS_SCHEMA
@@ -32,10 +98,12 @@ const DEFAULT_OPTIONS: Required<ConvertOptions> = {
  * Cette fonction est 100% déterministe :
  * - même entrée → même CV,
  * - filtres et tris explicites (pas d'aléatoire).
+ *
+ * [AUDIT FIX IMPORTANT-6] : Enrichit les expériences avec les données du RAG source
  */
 export function convertAndSort(input: unknown, options?: ConvertOptions): RendererResumeSchema {
     const parsed = aiWidgetsEnvelopeSchema.parse(input) as AIWidgetsEnvelope;
-    const opts: Required<ConvertOptions> = { ...DEFAULT_OPTIONS, ...(options || {}) };
+    const opts = { ...DEFAULT_OPTIONS, ...(options || {}) };
 
     // 1) Filtrer + trier globalement les widgets par score de pertinence
     const sortedWidgets = [...parsed.widgets]
@@ -52,22 +120,28 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     const referenceWidgets = sortedWidgets.filter((w) => w.section === "references");
 
     // 3) Construire le header / profil
-    const profil = buildProfil(parsed, headerWidgets);
+    // [AUDIT FIX CRITIQUE-3] : Passer le ragProfile pour enrichir le profil
+    const profil = buildProfil(parsed, headerWidgets, opts.ragProfile);
 
     // 4) Construire les expériences
-    const experiences = buildExperiences(experienceWidgets, opts);
+    // [AUDIT FIX IMPORTANT-6] : Passer le ragProfile pour enrichir les dates/lieux
+    const experiences = buildExperiences(experienceWidgets, opts, opts.ragProfile);
 
     // 5) Construire les compétences
     const competences = buildCompetences(skillsWidgets);
 
-    // 6) Formations
-    const formations = buildFormations(educationWidgets);
+    // 6) Formations - [AUDIT FIX] : Enrichir depuis RAG si disponible
+    const formations = buildFormations(educationWidgets, opts.ragProfile);
 
-    // 7) Langues
-    const langues = buildLangues(languageWidgets);
+    // 7) Langues - [AUDIT FIX] : Enrichir depuis RAG si disponible
+    const langues = buildLangues(languageWidgets, opts.ragProfile);
 
-    // 8) Certifications et références projet / clients (optionnel)
-    const { certifications, clients_references } = buildCertificationsAndReferences(projectWidgets, referenceWidgets);
+    // 8) Certifications et références projet / clients
+    const { certifications, clients_references } = buildCertificationsAndReferences(
+        projectWidgets,
+        referenceWidgets,
+        opts.ragProfile
+    );
 
     const cv: RendererResumeSchema = {
         profil,
@@ -82,30 +156,48 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     return cv;
 }
 
-function buildProfil(payload: AIWidgetsEnvelope, headerWidgets: AIWidget[]): RendererResumeSchema["profil"] {
+/**
+ * [AUDIT FIX CRITIQUE-3] : Construit le profil en enrichissant depuis le RAG
+ */
+function buildProfil(
+    payload: AIWidgetsEnvelope,
+    headerWidgets: AIWidget[],
+    ragProfile?: any
+): RendererResumeSchema["profil"] {
     const base = payload.profil_summary || {};
     const job = payload.job_context || {};
+    const ragProfil = ragProfile?.profil || {};
+    const ragContact = ragProfil?.contact || {};
 
     // Chercher un éventuel bloc de résumé prioritaire
     const summaryWidget = headerWidgets.find((w) => w.type === "summary_block");
-    const elevator_pitch = summaryWidget?.text || base.elevator_pitch;
+    const elevator_pitch = summaryWidget?.text || base.elevator_pitch || ragProfil.elevator_pitch;
 
     return {
-        prenom: base.prenom || "",
-        nom: base.nom || "",
-        titre_principal: base.titre_principal || (job.job_title || "").trim() || "Profil",
-        email: undefined,
-        telephone: undefined,
-        localisation: base.localisation,
-        linkedin: undefined,
-        github: undefined,
-        portfolio: undefined,
+        prenom: base.prenom || ragProfil.prenom || "",
+        nom: base.nom || ragProfil.nom || "",
+        titre_principal: base.titre_principal || ragProfil.titre_principal || (job.job_title || "").trim() || "Profil",
+        // [AUDIT FIX CRITIQUE-3] : Enrichir les contacts depuis RAG
+        email: ragContact.email || ragProfil.email || undefined,
+        telephone: ragContact.telephone || ragProfil.telephone || undefined,
+        localisation: base.localisation || ragProfil.localisation || undefined,
+        linkedin: ragContact.linkedin || ragProfil.linkedin || undefined,
+        github: ragContact.github || ragProfil.github || undefined,
+        portfolio: ragContact.portfolio || ragProfil.portfolio || undefined,
         elevator_pitch: elevator_pitch,
-        photo_url: undefined,
+        // [AUDIT FIX CRITIQUE-3] : Propager photo depuis RAG
+        photo_url: ragProfil.photo_url || undefined,
     };
 }
 
-function buildExperiences(experienceWidgets: AIWidget[], opts: Required<ConvertOptions>): RendererResumeSchema["experiences"] {
+/**
+ * [AUDIT FIX IMPORTANT-6] : Construit les expériences en enrichissant depuis le RAG
+ */
+function buildExperiences(
+    experienceWidgets: AIWidget[],
+    opts: typeof DEFAULT_OPTIONS,
+    ragProfile?: any
+): RendererResumeSchema["experiences"] {
     type ExperienceAccumulator = {
         id: string;
         bestScore: number;
@@ -153,7 +245,7 @@ function buildExperiences(experienceWidgets: AIWidget[], opts: Required<ConvertO
         .slice(0, opts.maxExperiences);
 
     // Construire les expériences au format RendererResumeSchema
-    const experiences: RendererResumeSchema["experiences"] = accs.map((acc, index) => {
+    const experiences: RendererResumeSchema["experiences"] = accs.map((acc) => {
         const header = acc.headerText || "";
 
         // Heuristique simple : séparer poste / entreprise si possible
@@ -165,29 +257,55 @@ function buildExperiences(experienceWidgets: AIWidget[], opts: Required<ConvertO
             entreprise = header.slice(separatorIndex + 3).trim();
         }
 
+        // [AUDIT FIX IMPORTANT-6] : Enrichir depuis le RAG source
+        const ragExp = findRAGExperience(acc.id, ragProfile);
+
+        if (ragExp) {
+            // Si on a trouvé l'expérience RAG, utiliser ses données
+            if (!poste || poste === "Expérience clé") {
+                poste = ragExp.poste || poste;
+            }
+            if (!entreprise || entreprise === "—") {
+                entreprise = ragExp.entreprise || entreprise;
+            }
+        }
+
         if (!poste) {
             poste = "Expérience clé";
         }
 
         const realisations = acc.bullets.slice(0, opts.maxBulletsPerExperience);
 
+        // [AUDIT FIX IMPORTANT-6] : Récupérer dates et lieu depuis RAG
+        const date_debut = ragExp ? formatDate(ragExp.debut || ragExp.date_debut) : "";
+        const date_fin = ragExp ? formatDate(ragExp.fin || ragExp.date_fin) : undefined;
+        const lieu = ragExp?.lieu || undefined;
+        const actuel = ragExp?.actuel || false;
+
         return {
             poste,
             entreprise: entreprise || "—",
-            date_debut: "",
-            date_fin: undefined,
-            lieu: undefined,
+            date_debut,
+            date_fin: actuel ? undefined : date_fin,
+            actuel,
+            lieu,
             realisations,
-        };
+            // Métadonnées pour scoring
+            _relevance_score: acc.bestScore,
+            _rag_experience_id: acc.id,
+        } as any;
     });
 
-    // Correction 1: Filtrer "Expérience clé" sans contexte (pas d'entreprise ni dates)
+    // Filtrer "Expérience clé" sans contexte suffisant
     const filteredExperiences = experiences.filter((exp) => {
-        // Si c'est "Expérience clé" sans entreprise ni dates, masquer
-        if (exp.poste === "Expérience clé" && (!exp.entreprise || exp.entreprise === "—" || !exp.date_debut || exp.date_debut.trim() === "")) {
+        // Si c'est "Expérience clé" sans entreprise valide et sans dates, masquer
+        if (
+            exp.poste === "Expérience clé" &&
+            (!exp.entreprise || exp.entreprise === "—") &&
+            (!exp.date_debut || exp.date_debut.trim() === "")
+        ) {
             return false;
         }
-        // Sinon, garder
         return true;
     });
 
@@ -208,7 +326,9 @@ function buildCompetences(skillsWidgets: AIWidget[]): RendererResumeSchema["comp
             lower.includes("management") ||
             lower.includes("leadership") ||
             lower.includes("soft") ||
-            lower.includes("relationnel");
+            lower.includes("relationnel") ||
+            lower.includes("team") ||
+            lower.includes("collaboration");
 
         if (isSoft) {
             softSkillsSet.add(text);
@@ -223,9 +343,16 @@ function buildCompetences(skillsWidgets: AIWidget[]): RendererResumeSchema["comp
     };
 }
 
-function buildFormations(educationWidgets: AIWidget[]): RendererResumeSchema["formations"] {
+/**
+ * [AUDIT FIX] : Enrichit les formations depuis le RAG si widgets insuffisants
+ */
+function buildFormations(
+    educationWidgets: AIWidget[],
+    ragProfile?: any
+): RendererResumeSchema["formations"] {
     const formations: RendererResumeSchema["formations"] = [];
 
+    // D'abord, construire depuis les widgets
     educationWidgets.forEach((widget) => {
         const text = widget.text.trim();
         if (!text) return;
@@ -253,12 +380,31 @@ function buildFormations(educationWidgets: AIWidget[]): RendererResumeSchema["fo
         });
     });
 
+    // [AUDIT FIX] : Si aucune formation depuis widgets, utiliser le RAG
+    if (formations.length === 0 && ragProfile?.formations) {
+        const ragFormations = Array.isArray(ragProfile.formations) ? ragProfile.formations : [];
+        ragFormations.forEach((f: any) => {
+            formations.push({
+                diplome: f.titre || f.diplome || "Formation",
+                etablissement: f.organisme || f.ecole || f.etablissement || "",
+                annee: f.annee,
+            });
+        });
+    }
+
     return formations;
 }
 
-function buildLangues(languageWidgets: AIWidget[]): RendererResumeSchema["langues"] {
+/**
+ * [AUDIT FIX] : Enrichit les langues depuis le RAG si widgets insuffisants
+ */
+function buildLangues(
+    languageWidgets: AIWidget[],
+    ragProfile?: any
+): RendererResumeSchema["langues"] {
     const langues: NonNullable<RendererResumeSchema["langues"]> = [];
 
+    // D'abord, construire depuis les widgets
     languageWidgets.forEach((widget) => {
         const text = widget.text.trim();
         if (!text) return;
@@ -280,10 +426,36 @@ function buildLangues(languageWidgets: AIWidget[]): RendererResumeSchema["langue
         langues.push({ langue, niveau });
     });
 
+    // [AUDIT FIX] : Si aucune langue depuis widgets, utiliser le RAG
+    if (langues.length === 0 && ragProfile?.langues) {
+        if (Array.isArray(ragProfile.langues)) {
+            ragProfile.langues.forEach((l: any) => {
+                langues.push({
+                    langue: l.langue || l.name || "",
+                    niveau: l.niveau || l.level || "Professionnel",
+                });
+            });
+        } else if (typeof ragProfile.langues === "object") {
+            Object.entries(ragProfile.langues).forEach(([langue, niveau]) => {
+                langues.push({
+                    langue,
+                    niveau: String(niveau),
+                });
+            });
+        }
+    }
+
     return langues.length > 0 ? langues : undefined;
 }
 
-function buildCertificationsAndReferences(projectWidgets: AIWidget[], referenceWidgets: AIWidget[]) {
+/**
+ * [AUDIT FIX] : Enrichit les certifications et clients depuis le RAG
+ */
+function buildCertificationsAndReferences(
+    projectWidgets: AIWidget[],
+    referenceWidgets: AIWidget[],
+    ragProfile?: any
+) {
     const certifications: string[] = [];
     const clients: string[] = [];
 
@@ -299,6 +471,24 @@ function buildCertificationsAndReferences(projectWidgets: AIWidget[], referenceW
         clients.push(text);
     });
 
+    // [AUDIT FIX] : Enrichir depuis RAG si vide
+    if (certifications.length === 0 && ragProfile?.certifications) {
+        const ragCerts = Array.isArray(ragProfile.certifications) ? ragProfile.certifications : [];
+        ragCerts.forEach((c: any) => {
+            const certName = typeof c === "string" ? c : c.nom;
+            if (certName) certifications.push(certName);
+        });
+    }
+
+    // [AUDIT FIX] : Enrichir clients depuis RAG
+    if (clients.length === 0 && ragProfile?.references?.clients) {
+        const ragClients = Array.isArray(ragProfile.references.clients) ? ragProfile.references.clients : [];
+        ragClients.forEach((c: any) => {
+            const clientName = typeof c === "string" ? c : c.nom;
+            if (clientName) clients.push(clientName);
+        });
+    }
+
     const clients_references =
         clients.length > 0
             ? {
@@ -312,4 +502,3 @@ function buildCertificationsAndReferences(projectWidgets: AIWidget[], referenceW
         clients_references,
     };
 }
-
