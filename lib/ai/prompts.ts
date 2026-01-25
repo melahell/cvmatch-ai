@@ -371,47 +371,33 @@ OUTPUT (JSON Array) :
  * Convertit RAG + match analysis en widgets scorés prêts pour le bridge AIAdapter
  */
 /**
- * Options de limites dynamiques pour la génération de widgets.
- * Calculées en fonction de la richesse du RAG.
+ * Génère le prompt pour créer des widgets CV scorés.
+ *
+ * PHILOSOPHIE : Générer des widgets pour TOUT le contenu du RAG,
+ * scorer selon pertinence avec l'offre, mais NE PAS FILTRER.
+ * L'utilisateur décide ce qu'il affiche via l'UI.
  */
-export interface DynamicLimitsOptions {
-    minExperiences?: number;
-    maxExperiences?: number;
-    minBulletsPerExperience?: number;
-    maxBulletsPerExperience?: number;
-    maxWidgets?: number;
-    promptHint?: string;
-}
-
 export const getAIWidgetsGenerationPrompt = (
     ragProfile: any,
     matchAnalysis: any,
     jobDescription: string,
-    dynamicLimits?: DynamicLimitsOptions
+    _dynamicLimits?: any // Ignoré - on génère tout maintenant
 ) => {
-    // Valeurs par défaut si pas de limites dynamiques fournies
-    const limits = {
-        minExperiences: dynamicLimits?.minExperiences ?? 3,
-        maxExperiences: dynamicLimits?.maxExperiences ?? 6,
-        minBulletsPerExperience: dynamicLimits?.minBulletsPerExperience ?? 3,
-        maxBulletsPerExperience: dynamicLimits?.maxBulletsPerExperience ?? 6,
-        maxWidgets: dynamicLimits?.maxWidgets ?? 50,
-        promptHint: dynamicLimits?.promptHint ?? "",
-    };
-
-    const dynamicHintSection = limits.promptHint ? `
-⚠️ ADAPTATION AU PROFIL :
-${limits.promptHint}
-` : "";
+    // Compter les expériences pour informer le prompt
+    const nbExperiences = ragProfile?.experiences?.length || 0;
 
     return `
 Tu es un expert en génération de contenu CV optimisé pour ATS et recruteurs.
 
 ═══════════════════════════════════════════════════════════════
-MISSION : Générer des widgets scorés (AI_WIDGETS_SCHEMA)
+MISSION : Générer des widgets scorés pour TOUT le profil
 ═══════════════════════════════════════════════════════════════
 
-PROFIL RAG COMPLET :
+⚠️ IMPORTANT : Tu dois générer des widgets pour TOUTES les expériences
+et TOUTES les réalisations du RAG. Ne filtre rien. Score tout.
+L'utilisateur choisira ce qu'il affiche.
+
+PROFIL RAG COMPLET (${nbExperiences} expériences) :
 ${JSON.stringify(ragProfile, null, 2)}
 
 ANALYSE DE MATCH AVEC L'OFFRE :
@@ -427,26 +413,28 @@ RÈGLES CRITIQUES
 1. ANTI-HALLUCINATION STRICTE :
    - ⛔ INTERDICTION d'inventer : postes, entreprises, dates, chiffres, clients, certifications
    - ✅ UNIQUEMENT des informations présentes dans le RAG fourni
-   - ✅ Pour chaque widget, inclure "sources.rag_experience_id" ou "sources.rag_path" si disponible
+   - ✅ Pour chaque widget, inclure "sources.rag_experience_id" ou "sources.rag_path"
 
-2. SCORING DE PERTINENCE (relevance_score 0-100) :
+2. REFORMULATION ORIENTÉE OFFRE :
+   - Reformuler chaque réalisation pour mettre en avant les aspects qui matchent l'offre
+   - Utiliser le vocabulaire de l'offre quand c'est pertinent (sans dénaturer)
+   - Mettre en avant les compétences transférables même si le contexte diffère
+
+3. SCORING DE PERTINENCE (relevance_score 0-100) :
    - 90-100 : Directement aligné avec l'offre (mots-clés match, expérience exacte)
    - 70-89 : Très pertinent (compétences alignées, secteur similaire)
-   - 50-69 : Pertinent mais générique (compétences transférables)
-   - < 50 : Peu pertinent (ne pas inclure dans le CV final)
-
-3. PRIORISATION SELON MATCH ANALYSIS :
-   - Boost les widgets liés aux "strengths" identifiés
-   - Boost les widgets contenant les "missing_keywords" (si présents dans le RAG)
-   - Boost les widgets alignés avec "key_selling_points"
+   - 50-69 : Pertinent (compétences transférables)
+   - 30-49 : Peu aligné mais peut enrichir le profil
+   - 0-29 : Hors sujet mais fait partie du parcours
+   ⚠️ SCORER TOUT, même les widgets peu pertinents. Ne rien omettre.
 
 4. QUANTIFICATION OBLIGATOIRE :
-   - Si le RAG contient des chiffres (budgets, volumes, %, délais) → INCLURE dans le widget
-   - Si pas de chiffres → widget sans quantification (mais toujours factuel)
+   - Si le RAG contient des chiffres (budgets, volumes, %, délais) → INCLURE
+   - Si pas de chiffres → widget sans quantification (mais factuel)
 
 5. STRUCTURE DES WIDGETS :
-   - Chaque widget = unité atomique (1 bullet, 1 compétence, 1 formation, etc.)
-   - Pas de widgets composites (pas de "3 bullets en 1")
+   - Chaque widget = unité atomique (1 bullet, 1 compétence, 1 formation)
+   - Pas de widgets composites
    - Chaque widget a un "type" et une "section" claire
 
 ═══════════════════════════════════════════════════════════════
@@ -578,26 +566,33 @@ WIDGET 4 - Skill Item :
 }
 
 ═══════════════════════════════════════════════════════════════
-STRATÉGIE DE SÉLECTION
+STRATÉGIE DE GÉNÉRATION COMPLÈTE
 ═══════════════════════════════════════════════════════════════
-${dynamicHintSection}
-1. EXPÉRIENCES :
-   - Sélectionner les ${limits.minExperiences}-${limits.maxExperiences} expériences les plus pertinentes (selon match_score)
-   - Pour chaque expérience sélectionnée :
-     * 1 widget "experience_header" (score = pertinence globale de l'expérience)
-     * ${limits.minBulletsPerExperience}-${limits.maxBulletsPerExperience} widgets "experience_bullet" (sélectionner les meilleures réalisations, scorer selon alignement offre)
 
-2. COMPÉTENCES :
-   - Extraire les compétences techniques ET soft skills du RAG
-   - Scorer selon présence dans l'offre / match analysis
-   - Inclure les "missing_keywords" si présents dans le RAG comme compétences
+⚠️ GÉNÈRE TOUT. NE FILTRE RIEN. L'UTILISATEUR CHOISIT.
 
-3. FORMATIONS / LANGUES :
-   - Inclure toutes les formations pertinentes (score selon niveau / secteur)
-   - Inclure toutes les langues (score élevé si mentionnées dans l'offre)
+1. EXPÉRIENCES (TOUTES) :
+   - Pour CHAQUE expérience du RAG (${nbExperiences} au total) :
+     * 1 widget "experience_header" (score = pertinence globale)
+     * 1 widget "experience_bullet" pour CHAQUE réalisation listée
+   - Reformuler les bullets pour matcher le vocabulaire de l'offre
+   - Scorer selon alignement avec l'offre
 
-4. SUMMARY :
-   - 1 seul widget "summary_block" (le meilleur pitch depuis RAG.profil.elevator_pitch)
+2. COMPÉTENCES (TOUTES) :
+   - 1 widget par compétence technique du RAG
+   - 1 widget par soft skill du RAG
+   - Scorer selon présence dans l'offre (90+ si mentionné, 50+ si transférable)
+
+3. FORMATIONS (TOUTES) :
+   - 1 widget par formation
+   - Score élevé si niveau/domaine pertinent pour l'offre
+
+4. LANGUES (TOUTES) :
+   - 1 widget par langue
+   - Score élevé si mentionnée dans l'offre
+
+5. SUMMARY :
+   - 1 widget "summary_block" reformulé pour l'offre
 
 ═══════════════════════════════════════════════════════════════
 OUTPUT FINAL
@@ -609,11 +604,11 @@ Génère UNIQUEMENT le JSON conforme au schéma AI_WIDGETS_SCHEMA.
 ❌ PAS d'explications
 
 Vérifie avant de répondre :
-✅ Tous les widgets ont un relevance_score 0-100
+✅ TOUS les widgets du RAG sont présents (expériences, compétences, formations, langues)
+✅ Tous les widgets ont un relevance_score 0-100 (même les moins pertinents)
 ✅ Tous les widgets sont grounded (traçables dans le RAG)
 ✅ Les widgets d'expérience ont rag_experience_id ou rag_path
-✅ Les widgets avec chiffres ont has_numbers: true
-✅ Le nombre total de widgets est raisonnable (${Math.round(limits.maxWidgets * 0.5)}-${limits.maxWidgets} widgets max)
+✅ Les bullets sont reformulés pour matcher l'offre
 
 JSON uniquement ↓
 `;

@@ -16,7 +16,6 @@ import { detectSector, getSectorPromptInstructions, applySectorScoringBoost, typ
 import { getSmartCachedWidgets, saveToSmartCache, hashFullContext } from "./smart-widget-cache";
 import { compressRAGProfile, estimateTokens } from "@/lib/ai/prompt-optimization";
 import { detectLanguage, getTranslationPromptInstructions } from "./multi-language";
-import { calculateDynamicLimits } from "./ai-adapter";
 import { logger } from "@/lib/utils/logger";
 
 export interface GenerateWidgetsParams {
@@ -131,14 +130,8 @@ export async function generateWidgetsFromRAGAndMatch(
             sector,
         });
 
-        // [INTÉGRATION] Calculer les limites dynamiques selon la richesse du RAG
-        const dynamicLimits = calculateDynamicLimits(params.ragProfile);
-        logger.info("[generate-widgets] Limites dynamiques calculées", {
+        logger.info("[generate-widgets] Génération complète (sans filtrage)", {
             nbExperiencesRAG: params.ragProfile?.experiences?.length || 0,
-            minExperiences: dynamicLimits.minExperiences,
-            maxExperiences: dynamicLimits.maxExperiences,
-            maxWidgets: dynamicLimits.maxWidgets,
-            minScore: dynamicLimits.minScore,
         });
 
         // [INTÉGRATION] Ajouter les instructions sectorielles et linguistiques au prompt
@@ -147,11 +140,11 @@ export async function generateWidgetsFromRAGAndMatch(
             ? getTranslationPromptInstructions(detectedLanguage, "fr", [])
             : "";
 
+        // Le prompt génère TOUT le contenu du RAG, scoré mais non filtré
         const prompt = getAIWidgetsGenerationPrompt(
             finalRAG,
             params.matchAnalysis,
-            params.jobDescription,
-            dynamicLimits  // Passer les limites dynamiques au prompt
+            params.jobDescription
         ) + (sectorInstructions ? `\n\n${sectorInstructions}` : "")
           + (languageInstructions ? `\n\n${languageInstructions}` : "");
 

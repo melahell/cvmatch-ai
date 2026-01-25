@@ -10,36 +10,44 @@ import type { RendererResumeSchema } from "./renderer-schema";
 
 export interface ConvertOptions {
     /**
-     * Score minimum pour qu'un widget soit pris en compte.
-     * Par défaut: 50.
+     * Score minimum pour qu'un widget soit inclus.
+     * Par défaut: 0 (tout inclure, pas de filtrage).
+     * L'utilisateur peut ajuster via l'UI.
      */
     minScore?: number;
     /**
-     * Nombre maximum d'expériences rendues.
-     * Par défaut: 6.
+     * Nombre maximum d'expériences à inclure.
+     * Par défaut: 999 (pas de limite).
+     * L'utilisateur peut ajuster via l'UI.
      */
     maxExperiences?: number;
     /**
      * Nombre maximum de réalisations par expérience.
-     * Par défaut: 6.
+     * Par défaut: 999 (pas de limite).
+     * L'utilisateur peut ajuster via l'UI.
      */
     maxBulletsPerExperience?: number;
     /**
-     * [AUDIT FIX IMPORTANT-6] : Profil RAG source pour enrichir les données manquantes
+     * Profil RAG source pour enrichir les données manquantes
      * (dates, lieux, contact, photo)
      */
     ragProfile?: any;
 }
 
+/**
+ * Options par défaut : PAS DE FILTRAGE.
+ * On génère tout, on trie par score, l'utilisateur décide via l'UI.
+ */
 const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile'>> & { ragProfile?: any } = {
-    minScore: 50,
-    maxExperiences: 6,
-    maxBulletsPerExperience: 6,
+    minScore: 0,           // Pas de filtrage par score
+    maxExperiences: 999,   // Pas de limite d'expériences
+    maxBulletsPerExperience: 999, // Pas de limite de bullets
     ragProfile: undefined,
 };
 
 /**
- * Limites dynamiques calculées selon la richesse du RAG
+ * @deprecated Plus utilisé - on génère tout maintenant
+ * Gardé pour compatibilité avec le code existant
  */
 export interface DynamicLimits {
     minExperiences: number;
@@ -48,92 +56,24 @@ export interface DynamicLimits {
     maxBulletsPerExperience: number;
     minScore: number;
     maxWidgets: number;
-    /** Pour le prompt Gemini */
     promptHint: string;
 }
 
 /**
- * Calcule les limites dynamiques selon la richesse du profil RAG.
- *
- * Plus le RAG est riche, plus on peut être sélectif (minScore élevé)
- * mais on garde plus d'expériences pour montrer l'étendue du profil.
+ * @deprecated Plus utilisé - on génère tout maintenant
+ * Retourne des limites "sans limite" pour compatibilité
  */
-export function calculateDynamicLimits(ragProfile: any): DynamicLimits {
-    // Compter les éléments du RAG
-    const experiences = ragProfile?.experiences || [];
-    const nbExperiences = Array.isArray(experiences) ? experiences.length : 0;
-
-    // Compter le nombre total de réalisations
-    let nbRealisations = 0;
-    if (Array.isArray(experiences)) {
-        experiences.forEach((exp: any) => {
-            if (Array.isArray(exp.realisations)) {
-                nbRealisations += exp.realisations.length;
-            }
-        });
-    }
-
-    // Compter les compétences
-    const competences = ragProfile?.competences || {};
-    const nbCompetences = (competences.techniques?.length || 0) + (competences.soft_skills?.length || 0);
-
-    // Logique adaptative
-    let limits: DynamicLimits;
-
-    if (nbExperiences <= 3) {
-        // Profil junior/débutant : inclure presque tout
-        limits = {
-            minExperiences: Math.max(1, nbExperiences - 1),
-            maxExperiences: nbExperiences,
-            minBulletsPerExperience: 3,
-            maxBulletsPerExperience: 6,
-            minScore: 35,  // Seuil bas pour ne rien perdre
-            maxWidgets: 40,
-            promptHint: `Ce profil a ${nbExperiences} expériences - inclure TOUTES ou presque toutes les expériences (${Math.max(1, nbExperiences - 1)}-${nbExperiences}).`
-        };
-    } else if (nbExperiences <= 6) {
-        // Profil intermédiaire : garder la majorité
-        limits = {
-            minExperiences: Math.max(3, nbExperiences - 2),
-            maxExperiences: nbExperiences,
-            minBulletsPerExperience: 3,
-            maxBulletsPerExperience: 5,
-            minScore: 40,
-            maxWidgets: 55,
-            promptHint: `Ce profil a ${nbExperiences} expériences - sélectionner ${Math.max(3, nbExperiences - 2)}-${nbExperiences} expériences les plus pertinentes.`
-        };
-    } else if (nbExperiences <= 10) {
-        // Profil senior : sélection plus stricte mais large
-        limits = {
-            minExperiences: 5,
-            maxExperiences: 8,
-            minBulletsPerExperience: 3,
-            maxBulletsPerExperience: 5,
-            minScore: 45,
-            maxWidgets: 70,
-            promptHint: `Ce profil riche a ${nbExperiences} expériences - sélectionner 5-8 expériences les plus pertinentes pour l'offre.`
-        };
-    } else {
-        // Profil très expérimenté (11+) : être sélectif
-        limits = {
-            minExperiences: 6,
-            maxExperiences: 10,
-            minBulletsPerExperience: 2,
-            maxBulletsPerExperience: 4,
-            minScore: 50,
-            maxWidgets: 80,
-            promptHint: `Ce profil très riche a ${nbExperiences} expériences - sélectionner 6-10 expériences les plus stratégiques pour l'offre.`
-        };
-    }
-
-    // Bonus si beaucoup de réalisations : augmenter maxWidgets
-    if (nbRealisations > 30) {
-        limits.maxWidgets = Math.min(100, limits.maxWidgets + 20);
-    }
-
-    console.log(`[DynamicLimits] RAG: ${nbExperiences} exp, ${nbRealisations} réalisations, ${nbCompetences} compétences → maxExp=${limits.maxExperiences}, minScore=${limits.minScore}`);
-
-    return limits;
+export function calculateDynamicLimits(_ragProfile: any): DynamicLimits {
+    // Plus de filtrage - on génère tout
+    return {
+        minExperiences: 1,
+        maxExperiences: 999,
+        minBulletsPerExperience: 1,
+        maxBulletsPerExperience: 999,
+        minScore: 0,
+        maxWidgets: 999,
+        promptHint: "",
+    };
 }
 
 /**
@@ -202,21 +142,8 @@ function formatDate(dateStr: string | undefined): string {
 export function convertAndSort(input: unknown, options?: ConvertOptions): RendererResumeSchema {
     const parsed = aiWidgetsEnvelopeSchema.parse(input) as AIWidgetsEnvelope;
 
-    // Si ragProfile est fourni et que les limites ne sont pas explicitement définies,
-    // calculer les limites dynamiques selon la richesse du profil
-    let effectiveOptions = { ...DEFAULT_OPTIONS, ...(options || {}) };
-    if (options?.ragProfile && !options?.maxExperiences) {
-        const dynamicLimits = calculateDynamicLimits(options.ragProfile);
-        effectiveOptions = {
-            ...effectiveOptions,
-            minScore: options?.minScore ?? dynamicLimits.minScore,
-            maxExperiences: dynamicLimits.maxExperiences,
-            maxBulletsPerExperience: dynamicLimits.maxBulletsPerExperience,
-        };
-        console.log(`[ai-adapter] Limites dynamiques appliquées: maxExp=${effectiveOptions.maxExperiences}, minScore=${effectiveOptions.minScore}`);
-    }
-
-    const opts = effectiveOptions;
+    // Fusionner options avec défauts (pas de filtrage par défaut)
+    const opts = { ...DEFAULT_OPTIONS, ...(options || {}) };
 
     // 1) Filtrer + trier globalement les widgets par score de pertinence
     const sortedWidgets = [...parsed.widgets]
