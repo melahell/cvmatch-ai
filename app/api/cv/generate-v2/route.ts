@@ -114,7 +114,7 @@ async function getPhotoUrl(
         const admin = createSupabaseAdminClient();
         const signedUrl = await createSignedUrl(admin, parsedRef, { expiresIn: 3600 });
         logger.debug("[generate-v2] Photo signed URL créée", { signedUrl: signedUrl?.substring(0, 50) });
-        return signedUrl;
+        return signedUrl ?? undefined;
     } catch (error) {
         logger.error("[generate-v2] Photo conversion failed", { error, photoRef });
         return undefined;

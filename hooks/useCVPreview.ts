@@ -51,12 +51,12 @@ export function useCVPreview({
                 return previewCache[templateId];
             }
 
-            // Normaliser options
-            const normalizedOptions: Required<ConvertOptions> = {
+            // Normaliser options (compatibles ConvertOptions + cache)
+            const normalizedOptions = {
                 minScore: convertOptions.minScore ?? 50,
                 maxExperiences: convertOptions.maxExperiences ?? 6,
                 maxBulletsPerExperience: convertOptions.maxBulletsPerExperience ?? 6,
-            };
+            } as ConvertOptions & { minScore: number; maxExperiences: number; maxBulletsPerExperience: number };
 
             // Vérifier cache sessionStorage
             const cached = getCVDataFromCache(analysisId, templateId);
@@ -101,12 +101,12 @@ export function useCVPreview({
 
                 setLoadingTemplates((prev) => new Set(prev).add(templateId));
 
-                // Normaliser options
-                const normalizedOptions: Required<ConvertOptions> = {
+                // Normaliser options (compatibles ConvertOptions + cache)
+                const normalizedOptions = {
                     minScore: convertOptions.minScore ?? 50,
                     maxExperiences: convertOptions.maxExperiences ?? 6,
                     maxBulletsPerExperience: convertOptions.maxBulletsPerExperience ?? 6,
-                };
+                } as ConvertOptions & { minScore: number; maxExperiences: number; maxBulletsPerExperience: number };
 
                 // Conversion synchrone mais rapide (<10ms)
                 try {

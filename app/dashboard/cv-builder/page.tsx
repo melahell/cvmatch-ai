@@ -329,12 +329,13 @@ function CVBuilderContent() {
         (widgets: AIWidgetsEnvelope, template: string, options: ConvertOptions, jobContext?: JobOfferContext | null) => {
             if (!analysisId) return;
 
-            // Normaliser options
-            const normalizedOptions: Required<ConvertOptions> = {
+            // Normaliser options (ragProfile passé séparément aux convert*)
+            // Type compatible ConvertOptions + cache (minScore etc. requis pour saveCVDataToCache)
+            const normalizedOptions = {
                 minScore: options.minScore ?? 50,
                 maxExperiences: options.maxExperiences ?? 6,
                 maxBulletsPerExperience: options.maxBulletsPerExperience ?? 6,
-            };
+            } as ConvertOptions & { minScore: number; maxExperiences: number; maxBulletsPerExperience: number };
 
             // Vérifier cache CVData d'abord (sans validation pour performance)
             const cached = getCVDataFromCache(analysisId, template);
