@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { generateWidgetsFromRAGAndMatch } from "@/lib/cv/generate-widgets";
-import { convertAndSort, ConvertOptions } from "@/lib/cv/ai-adapter";
+import { convertAndSort, ConvertOptions, calculateDynamicLimits } from "@/lib/cv/ai-adapter";
 import { fitCVToTemplate } from "@/lib/cv/validator";
 import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { calculateOptimalMinScore } from "@/lib/cv/widget-cache";
@@ -285,13 +285,24 @@ export async function POST(req: Request) {
         });
 
         // 5. Convert widgets to CVData via bridge (AIAdapter)
-        // [AUDIT FIX CRITIQUE-4] : Utiliser optimalMinScore au lieu de 50 fixe
+        // [AUDIT FIX CRITIQUE-4] : Utiliser limites dynamiques selon richesse du RAG
         let cvData;
         try {
+            // Calculer les limites dynamiques selon la richesse du profil
+            const dynamicLimits = calculateDynamicLimits(ragProfile);
+            logger.debug("[generate-v2] Limites dynamiques pour conversion", {
+                nbExperiencesRAG: ragProfile?.experiences?.length || 0,
+                maxExperiences: dynamicLimits.maxExperiences,
+                maxBulletsPerExperience: dynamicLimits.maxBulletsPerExperience,
+                minScore: dynamicLimits.minScore,
+            });
+
             const convertOptions: ConvertOptions = {
-                minScore: optimalMinScore,
-                maxExperiences: 6,
-                maxBulletsPerExperience: 6,
+                // Utiliser le min entre optimalMinScore et dynamicLimits.minScore
+                // pour ne pas perdre de widgets si le RAG est peu fourni
+                minScore: Math.min(optimalMinScore, dynamicLimits.minScore),
+                maxExperiences: dynamicLimits.maxExperiences,
+                maxBulletsPerExperience: dynamicLimits.maxBulletsPerExperience,
                 // [AUDIT FIX CRITIQUE-3 & IMPORTANT-6] : Passer le RAG pour enrichir les données
                 ragProfile,
             };

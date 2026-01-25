@@ -370,11 +370,41 @@ OUTPUT (JSON Array) :
  * Prompt pour générer AI_WIDGETS_SCHEMA (nouveau système V2)
  * Convertit RAG + match analysis en widgets scorés prêts pour le bridge AIAdapter
  */
+/**
+ * Options de limites dynamiques pour la génération de widgets.
+ * Calculées en fonction de la richesse du RAG.
+ */
+export interface DynamicLimitsOptions {
+    minExperiences?: number;
+    maxExperiences?: number;
+    minBulletsPerExperience?: number;
+    maxBulletsPerExperience?: number;
+    maxWidgets?: number;
+    promptHint?: string;
+}
+
 export const getAIWidgetsGenerationPrompt = (
     ragProfile: any,
     matchAnalysis: any,
-    jobDescription: string
-) => `
+    jobDescription: string,
+    dynamicLimits?: DynamicLimitsOptions
+) => {
+    // Valeurs par défaut si pas de limites dynamiques fournies
+    const limits = {
+        minExperiences: dynamicLimits?.minExperiences ?? 3,
+        maxExperiences: dynamicLimits?.maxExperiences ?? 6,
+        minBulletsPerExperience: dynamicLimits?.minBulletsPerExperience ?? 3,
+        maxBulletsPerExperience: dynamicLimits?.maxBulletsPerExperience ?? 6,
+        maxWidgets: dynamicLimits?.maxWidgets ?? 50,
+        promptHint: dynamicLimits?.promptHint ?? "",
+    };
+
+    const dynamicHintSection = limits.promptHint ? `
+⚠️ ADAPTATION AU PROFIL :
+${limits.promptHint}
+` : "";
+
+    return `
 Tu es un expert en génération de contenu CV optimisé pour ATS et recruteurs.
 
 ═══════════════════════════════════════════════════════════════
@@ -550,12 +580,12 @@ WIDGET 4 - Skill Item :
 ═══════════════════════════════════════════════════════════════
 STRATÉGIE DE SÉLECTION
 ═══════════════════════════════════════════════════════════════
-
+${dynamicHintSection}
 1. EXPÉRIENCES :
-   - Sélectionner les 3-6 expériences les plus pertinentes (selon match_score)
+   - Sélectionner les ${limits.minExperiences}-${limits.maxExperiences} expériences les plus pertinentes (selon match_score)
    - Pour chaque expérience sélectionnée :
      * 1 widget "experience_header" (score = pertinence globale de l'expérience)
-     * 3-6 widgets "experience_bullet" (sélectionner les meilleures réalisations, scorer selon alignement offre)
+     * ${limits.minBulletsPerExperience}-${limits.maxBulletsPerExperience} widgets "experience_bullet" (sélectionner les meilleures réalisations, scorer selon alignement offre)
 
 2. COMPÉTENCES :
    - Extraire les compétences techniques ET soft skills du RAG
@@ -583,10 +613,11 @@ Vérifie avant de répondre :
 ✅ Tous les widgets sont grounded (traçables dans le RAG)
 ✅ Les widgets d'expérience ont rag_experience_id ou rag_path
 ✅ Les widgets avec chiffres ont has_numbers: true
-✅ Le nombre total de widgets est raisonnable (20-50 widgets max)
+✅ Le nombre total de widgets est raisonnable (${Math.round(limits.maxWidgets * 0.5)}-${limits.maxWidgets} widgets max)
 
 JSON uniquement ↓
 `;
+};
 
 export const getMatchAnalysisPrompt = (userProfile: any, jobText: string) => {
     const contexteEnrichi = userProfile?.contexte_enrichi;
