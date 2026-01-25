@@ -133,7 +133,7 @@ export async function generateWidgetsFromRAGAndMatch(
         // [INTÉGRATION] Ajouter les instructions sectorielles et linguistiques au prompt
         const sectorInstructions = getSectorPromptInstructions(sector);
         const languageInstructions = detectedLanguage !== "fr"
-            ? getTranslationPromptInstructions(detectedLanguage, "fr")
+            ? getTranslationPromptInstructions(detectedLanguage, "fr", [])
             : "";
 
         const prompt = getAIWidgetsGenerationPrompt(
