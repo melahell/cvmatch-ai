@@ -173,15 +173,18 @@ export function validateWidgetsAgainstRAG(
         }
 
         // 2. Vérifier expérience référencée (si présente)
-        if (widget.sources?.rag_experience_id) {
-            const expId = widget.sources.rag_experience_id;
-            if (!experienceIds.has(expId)) {
-                isValid = false;
-                warningType = "experience_not_found";
-                warningMessage = `Expérience référencée introuvable: ${expId}`;
-                stats.filteredByExperience++;
-            }
-        }
+        // NOTE: On ne filtre plus sur rag_experience_id car les IDs peuvent différer
+        // entre le RAG original et le RAG transformé (missions aplaties).
+        // La validation des expériences se fait via le texte/chiffres.
+        // if (widget.sources?.rag_experience_id) {
+        //     const expId = widget.sources.rag_experience_id;
+        //     if (!experienceIds.has(expId)) {
+        //         isValid = false;
+        //         warningType = "experience_not_found";
+        //         warningMessage = `Expérience référencée introuvable: ${expId}`;
+        //         stats.filteredByExperience++;
+        //     }
+        // }
 
         // 3. Vérifier compétences (pour widgets de type skill)
         if (widget.section === "skills" && widget.type === "skill_item") {
