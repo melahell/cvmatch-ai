@@ -379,8 +379,8 @@ function buildExperiences(
         experiences.push(experience);
     }
 
-    // Trier par score décroissant
-    experiences.sort((a, b) => (b._relevance_score || 0) - (a._relevance_score || 0));
+    // Trier par score décroissant (cast pour accéder aux métadonnées)
+    (experiences as any[]).sort((a, b) => (b._relevance_score || 0) - (a._relevance_score || 0));
 
     // Appliquer la limite max (mais par défaut = 999, donc pas de limite)
     const limited = experiences.slice(0, opts.maxExperiences);
@@ -391,7 +391,7 @@ function buildExperiences(
             poste: e.poste,
             entreprise: e.entreprise,
             nbRealisations: e.realisations?.length || 0,
-            score: e._relevance_score,
+            score: (e as any)._relevance_score,
         })),
     });
 
