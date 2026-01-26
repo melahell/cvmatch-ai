@@ -91,10 +91,11 @@ function CVBuilderContent() {
     const [showWidgetEditor, setShowWidgetEditor] = useState<boolean>(false);
     const [loadingStep, setLoadingStep] = useState<string | null>(null);
     const [errorAction, setErrorAction] = useState<{ action?: string; actionLabel?: string } | null>(null);
+    // DEFAULTS: PAS DE FILTRAGE - l'utilisateur contrôle via sliders UI
     const [convertOptions, setConvertOptions] = useState<ConvertOptions>({
-        minScore: 50,
-        maxExperiences: 6,
-        maxBulletsPerExperience: 6,
+        minScore: 0,                  // Afficher tout par défaut
+        maxExperiences: 10,           // 10 expériences par défaut (ajustable)
+        maxBulletsPerExperience: 10,  // 10 bullets par expérience (ajustable)
     });
 
     // Récupérer RAG profile pour validation
@@ -330,10 +331,11 @@ function CVBuilderContent() {
             if (!analysisId) return;
 
             // Normaliser options pour le cache (sans ragProfile)
+            // DEFAULTS: PAS DE FILTRAGE - l'utilisateur contrôle via UI
             const cacheOptions = {
-                minScore: options.minScore ?? 50,
-                maxExperiences: options.maxExperiences ?? 6,
-                maxBulletsPerExperience: options.maxBulletsPerExperience ?? 6,
+                minScore: options.minScore ?? 0,               // Pas de filtrage par score
+                maxExperiences: options.maxExperiences ?? 99,  // Pas de limite
+                maxBulletsPerExperience: options.maxBulletsPerExperience ?? 99, // Pas de limite
             };
 
             // Options complètes pour la conversion (avec ragProfile)
