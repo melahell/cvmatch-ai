@@ -35,70 +35,22 @@ export interface CVContentLimits {
 }
 
 const DEFAULT_LIMITS: CVContentLimits = {
-    maxExperiences: 3,
-    maxBulletsPerExperience: 4,
-    maxTotalBullets: 12,
-    maxTechnicalSkills: 12,
-    maxSoftSkills: 6,
-    maxFormations: 2,
-    maxLanguages: 3,
-    maxCertifications: 4,
-    maxClients: 8,
-    maxClientSectors: 4,
-    maxElevatorPitchChars: 250,
+    maxExperiences: 99,           // Pas de limite - utilisateur contrôle via UI
+    maxBulletsPerExperience: 99,  // Pas de limite
+    maxTotalBullets: 999,         // Pas de limite
+    maxTechnicalSkills: 99,       // Pas de limite
+    maxSoftSkills: 99,            // Pas de limite
+    maxFormations: 99,            // Pas de limite
+    maxLanguages: 99,             // Pas de limite
+    maxCertifications: 99,        // Pas de limite
+    maxClients: 99,               // Pas de limite
+    maxClientSectors: 99,         // Pas de limite
+    maxElevatorPitchChars: 9999,  // Pas de limite
 };
 
 function getLimitsForTemplate(templateName: string, includePhoto: boolean): CVContentLimits {
-    const template = (templateName || "").toLowerCase();
-
-    if (template === "classic") {
-        return {
-            maxExperiences: includePhoto ? 3 : 4,
-            maxBulletsPerExperience: 4,
-            maxTotalBullets: 14,
-            maxTechnicalSkills: 14,
-            maxSoftSkills: 8,
-            maxFormations: 3,
-            maxLanguages: 4,
-            maxCertifications: 6,
-            maxClients: 10,
-            maxClientSectors: 5,
-            maxElevatorPitchChars: 280,
-        };
-    }
-
-    if (template === "creative") {
-        return {
-            maxExperiences: 3,
-            maxBulletsPerExperience: 3,
-            maxTotalBullets: 10,
-            maxTechnicalSkills: 12,
-            maxSoftSkills: 7,
-            maxFormations: 2,
-            maxLanguages: 3,
-            maxCertifications: 4,
-            maxClients: 8,
-            maxClientSectors: 4,
-            maxElevatorPitchChars: 240,
-        };
-    }
-
-    if (template === "tech") {
-        return {
-            maxExperiences: 3,
-            maxBulletsPerExperience: 3,
-            maxTotalBullets: 10,
-            maxTechnicalSkills: 14,
-            maxSoftSkills: 6,
-            maxFormations: 2,
-            maxLanguages: 3,
-            maxCertifications: 4,
-            maxClients: 8,
-            maxClientSectors: 4,
-            maxElevatorPitchChars: 220,
-        };
-    }
-
+    // Plus de limites par template - l'utilisateur contrôle via l'UI
+    // Tous les templates retournent les mêmes limites permissives
     return DEFAULT_LIMITS;
 }
 
