@@ -250,131 +250,152 @@ function buildProfil(
 }
 
 /**
- * [AUDIT FIX IMPORTANT-6] : Construit les expériences en enrichissant depuis le RAG
+ * [RÉÉCRITURE COMPLÈTE] Construit les expériences depuis les widgets
+ *
+ * LOGIQUE SIMPLIFIÉE:
+ * 1. On prend TOUS les widgets section="experiences"
+ * 2. Chaque widget avec un rag_experience_id UNIQUE devient une expérience
+ * 3. Les widgets sans rag_experience_id deviennent chacun une expérience
+ * 4. On enrichit depuis le RAG pour les métadonnées (dates, entreprise, etc.)
+ * 5. AUCUN FILTRAGE - tout est retourné, l'UI filtre via sliders
  */
 function buildExperiences(
     experienceWidgets: AIWidget[],
     opts: typeof DEFAULT_OPTIONS,
     ragProfile?: any
 ): RendererResumeSchema["experiences"] {
-    // DEBUG: Log pour comprendre le problème
-    console.log("[buildExperiences] INPUT:", {
-        nbExperienceWidgets: experienceWidgets.length,
-        widgetTypes: experienceWidgets.map(w => w.type),
-        widgetSections: experienceWidgets.map(w => w.section),
-        firstWidget: experienceWidgets[0] ? {
-            id: experienceWidgets[0].id,
-            type: experienceWidgets[0].type,
-            section: experienceWidgets[0].section,
-            text: experienceWidgets[0].text?.substring(0, 50),
-            sources: experienceWidgets[0].sources,
-        } : "AUCUN WIDGET"
+    console.log("[buildExperiences] RÉÉCRITURE - INPUT:", {
+        nbWidgets: experienceWidgets.length,
+        widgets: experienceWidgets.map(w => ({
+            id: w.id,
+            type: w.type,
+            score: w.relevance_score,
+            ragExpId: w.sources?.rag_experience_id,
+            textPreview: w.text?.substring(0, 60),
+        })),
     });
 
-    type ExperienceAccumulator = {
-        id: string;
-        bestScore: number;
-        headerText?: string;
-        bullets: string[];
-    };
+    // Si aucun widget, retourner tableau vide
+    if (experienceWidgets.length === 0) {
+        console.log("[buildExperiences] AUCUN WIDGET - retourne []");
+        return [];
+    }
 
-    const byExpId = new Map<string, ExperienceAccumulator>();
+    // ÉTAPE 1: Grouper les widgets par rag_experience_id
+    // Les widgets sans rag_experience_id sont groupés individuellement
+    const grouped = new Map<string, AIWidget[]>();
+    let orphanCounter = 0;
 
-    experienceWidgets.forEach((widget, idx) => {
-        const expId =
-            widget.sources?.rag_experience_id ||
-            `exp_${idx}`;
+    for (const widget of experienceWidgets) {
+        const expId = widget.sources?.rag_experience_id || `orphan_${orphanCounter++}`;
+        const existing = grouped.get(expId) || [];
+        existing.push(widget);
+        grouped.set(expId, existing);
+    }
 
-        const existing = byExpId.get(expId) || {
-            id: expId,
-            bestScore: -1,
-            headerText: undefined,
-            bullets: [],
-        };
+    console.log("[buildExperiences] Groupes créés:", {
+        nbGroupes: grouped.size,
+        groupeIds: Array.from(grouped.keys()),
+    });
 
-        // Traiter selon le type de widget
-        if (widget.type === "experience_header") {
-            // Widget header : utilisé pour le titre de l'expérience
-            if (widget.relevance_score > existing.bestScore) {
-                existing.headerText = widget.text;
-                existing.bestScore = widget.relevance_score;
-            }
-        } else {
-            // TOUT AUTRE TYPE (experience_bullet ou autre) : traiter comme bullet
+    // ÉTAPE 2: Construire une expérience par groupe
+    const experiences: RendererResumeSchema["experiences"] = [];
+
+    for (const [expId, widgets] of grouped.entries()) {
+        // Calculer le meilleur score du groupe
+        const bestScore = Math.max(...widgets.map(w => w.relevance_score));
+
+        // Collecter tous les textes (headers et bullets)
+        const allTexts: string[] = [];
+        let headerText: string | undefined;
+
+        for (const widget of widgets) {
             const text = widget.text?.trim();
-            if (text && !existing.bullets.includes(text)) {
-                existing.bullets.push(text);
-            }
-            if (widget.relevance_score > existing.bestScore) {
-                existing.bestScore = widget.relevance_score;
+            if (!text) continue;
+
+            // Le premier widget de type header ou le texte le plus long = header
+            if (widget.type === "experience_header" && !headerText) {
+                headerText = text;
+            } else {
+                allTexts.push(text);
             }
         }
 
-        byExpId.set(expId, existing);
-    });
+        // Si pas de header explicite, utiliser le premier texte comme header
+        if (!headerText && allTexts.length > 0) {
+            headerText = allTexts.shift();
+        }
 
-    // Transformer en tableau et trier par bestScore
-    // NOTE: On n'exige plus bullets > 0 - une expérience peut n'avoir qu'un header
-    const accs = Array.from(byExpId.values())
-        .filter((acc) => acc.headerText || acc.bullets.length > 0) // Au moins un header OU des bullets
-        .sort((a, b) => b.bestScore - a.bestScore)
-        .slice(0, opts.maxExperiences);
+        // Essayer de trouver l'expérience RAG correspondante
+        const ragExp = findRAGExperience(expId, ragProfile);
 
-    // Construire les expériences au format RendererResumeSchema
-    const experiences: RendererResumeSchema["experiences"] = accs.map((acc) => {
-        const header = acc.headerText || "";
-
-        // Heuristique simple : séparer poste / entreprise si possible
-        let poste = header;
+        // Déterminer poste et entreprise
+        let poste = "";
         let entreprise = "";
-        const separatorIndex = header.indexOf(" - ");
-        if (separatorIndex !== -1) {
-            poste = header.slice(0, separatorIndex).trim();
-            entreprise = header.slice(separatorIndex + 3).trim();
+
+        if (headerText) {
+            // Essayer de parser "Poste - Entreprise" depuis le header
+            const separatorIndex = headerText.indexOf(" - ");
+            if (separatorIndex !== -1) {
+                poste = headerText.slice(0, separatorIndex).trim();
+                entreprise = headerText.slice(separatorIndex + 3).trim();
+            } else {
+                poste = headerText;
+            }
         }
 
-        // [AUDIT FIX IMPORTANT-6] : Enrichir depuis le RAG source
-        const ragExp = findRAGExperience(acc.id, ragProfile);
-
+        // Enrichir depuis RAG si disponible
         if (ragExp) {
-            // Si on a trouvé l'expérience RAG, utiliser ses données
-            if (!poste || poste === "Expérience clé") {
-                poste = ragExp.poste || poste;
-            }
-            if (!entreprise || entreprise === "—") {
-                entreprise = ragExp.entreprise || entreprise;
-            }
+            if (!poste) poste = ragExp.poste || ragExp.titre || "";
+            if (!entreprise) entreprise = ragExp.entreprise || ragExp.client || "";
         }
 
-        if (!poste) {
-            poste = "Expérience clé";
-        }
+        // Fallback si toujours vide
+        if (!poste) poste = "Expérience";
+        if (!entreprise) entreprise = "—";
 
-        const realisations = acc.bullets.slice(0, opts.maxBulletsPerExperience);
+        // Réalisations = tous les textes restants
+        const realisations = allTexts.slice(0, opts.maxBulletsPerExperience);
 
-        // [AUDIT FIX IMPORTANT-6] : Récupérer dates et lieu depuis RAG
-        const date_debut = ragExp ? formatDate(ragExp.debut || ragExp.date_debut) : "";
-        const date_fin = ragExp ? formatDate(ragExp.fin || ragExp.date_fin) : undefined;
-        const lieu = ragExp?.lieu || undefined;
-        const actuel = ragExp?.actuel || false;
+        // Métadonnées depuis RAG
+        const date_debut = ragExp ? formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date) : "";
+        const date_fin = ragExp ? formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date) : undefined;
+        const lieu = ragExp?.lieu || ragExp?.location || undefined;
+        const actuel = ragExp?.actuel || ragExp?.current || false;
 
-        return {
+        const experience = {
             poste,
-            entreprise: entreprise || "—",
+            entreprise,
             date_debut,
             date_fin: actuel ? undefined : date_fin,
             actuel,
             lieu,
             realisations,
-            // Métadonnées pour scoring
-            _relevance_score: acc.bestScore,
-            _rag_experience_id: acc.id,
+            // Métadonnées pour l'UI
+            _relevance_score: bestScore,
+            _rag_experience_id: expId,
         } as any;
+
+        experiences.push(experience);
+    }
+
+    // Trier par score décroissant
+    experiences.sort((a, b) => (b._relevance_score || 0) - (a._relevance_score || 0));
+
+    // Appliquer la limite max (mais par défaut = 999, donc pas de limite)
+    const limited = experiences.slice(0, opts.maxExperiences);
+
+    console.log("[buildExperiences] OUTPUT:", {
+        nbExperiences: limited.length,
+        experiences: limited.map(e => ({
+            poste: e.poste,
+            entreprise: e.entreprise,
+            nbRealisations: e.realisations?.length || 0,
+            score: e._relevance_score,
+        })),
     });
 
-    // NOTE: Plus de filtrage "Expérience clé" - on garde tout
-    // L'utilisateur peut masquer via l'UI si besoin
-    return experiences;
+    return limited;
 }
 
 function buildCompetences(skillsWidgets: AIWidget[]): RendererResumeSchema["competences"] {
