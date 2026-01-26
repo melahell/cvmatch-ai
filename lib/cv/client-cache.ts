@@ -1,20 +1,27 @@
 /**
  * Client-Side Cache pour widgets et CVData
- * 
+ *
  * Gestion du cache multi-niveaux :
  * 1. Cache widgets : localStorage (widgets générés, persistants)
  * 2. Cache CVData : sessionStorage (CV converti, session uniquement)
  * 3. Cache preview : mémoire React (preview thèmes, non persisté)
+ *
+ * IMPORTANT: Incrémenter CACHE_VERSION quand la logique de conversion change
+ * pour invalider automatiquement les anciens caches.
  */
 
 import type { AIWidgetsEnvelope } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
+
+// VERSION DU CACHE - Incrémenter pour invalider les anciens caches
+const CACHE_VERSION = 2; // v2: Suppression filtrage, nouveaux defaults
 
 const WIDGETS_CACHE_PREFIX = "cv_widgets:";
 const CVDATA_CACHE_PREFIX = "cv_data:";
 const MAX_CACHE_SIZE = 5 * 1024 * 1024; // 5MB max
 
 interface CachedWidgets {
+    version?: number; // Version du cache
     widgets: AIWidgetsEnvelope;
     metadata: {
         analysisId: string;
@@ -27,6 +34,7 @@ interface CachedWidgets {
 }
 
 interface CachedCVData {
+    version?: number; // Version du cache
     cvData: RendererResumeSchema;
     templateId: string;
     options: {
@@ -48,6 +56,7 @@ export function saveWidgetsToCache(
     try {
         const key = `${WIDGETS_CACHE_PREFIX}${analysisId}`;
         const cached: CachedWidgets = {
+            version: CACHE_VERSION,
             widgets,
             metadata,
             timestamp: Date.now(),
@@ -90,11 +99,18 @@ export function getWidgetsFromCache(analysisId: string): CachedWidgets | null {
     try {
         const key = `${WIDGETS_CACHE_PREFIX}${analysisId}`;
         const cached = localStorage.getItem(key);
-        
+
         if (!cached) return null;
 
         const parsed: CachedWidgets = JSON.parse(cached);
-        
+
+        // Vérifier VERSION - invalider si ancienne version
+        if (parsed.version !== CACHE_VERSION) {
+            console.log(`[client-cache] Cache invalidé: version ${parsed.version} != ${CACHE_VERSION}`);
+            localStorage.removeItem(key);
+            return null;
+        }
+
         // Vérifier expiration (24h)
         const maxAge = 24 * 60 * 60 * 1000; // 24h
         if (Date.now() - parsed.timestamp > maxAge) {
@@ -121,6 +137,7 @@ export function saveCVDataToCache(
     try {
         const key = `${CVDATA_CACHE_PREFIX}${analysisId}:${templateId}`;
         const cached: CachedCVData = {
+            version: CACHE_VERSION,
             cvData,
             templateId,
             options,
@@ -143,11 +160,18 @@ export function getCVDataFromCache(
     try {
         const key = `${CVDATA_CACHE_PREFIX}${analysisId}:${templateId}`;
         const cached = sessionStorage.getItem(key);
-        
+
         if (!cached) return null;
 
         const parsed: CachedCVData = JSON.parse(cached);
-        
+
+        // Vérifier VERSION - invalider si ancienne version
+        if (parsed.version !== CACHE_VERSION) {
+            console.log(`[client-cache] CVData invalidé: version ${parsed.version} != ${CACHE_VERSION}`);
+            sessionStorage.removeItem(key);
+            return null;
+        }
+
         // Vérifier expiration (1h pour sessionStorage)
         const maxAge = 60 * 60 * 1000; // 1h
         if (Date.now() - parsed.timestamp > maxAge) {
