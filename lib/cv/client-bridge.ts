@@ -86,8 +86,21 @@ export function convertWidgetsToCVWithAdvancedScoring(
     cvData: RendererResumeSchema;
     validation: ValidationResult;
 } {
+    // DEBUG: Log entrée
+    console.log("[convertWidgetsToCVWithAdvancedScoring] INPUT:", {
+        nbWidgetsEnvelope: envelope.widgets.length,
+        experienceWidgetsCount: envelope.widgets.filter(w => w.section === "experiences").length,
+    });
+
     // 1. Valider widgets contre RAG source
     const validation = validateWidgetsEnvelope(envelope, ragProfile);
+
+    // DEBUG: Log après validation
+    console.log("[convertWidgetsToCVWithAdvancedScoring] POST-VALIDATION:", {
+        nbValidWidgets: validation.validWidgets.length,
+        experienceWidgetsValides: validation.validWidgets.filter(w => w.section === "experiences").length,
+        stats: validation.stats,
+    });
 
     // 2. Re-scorer avec scoring avancé si activé
     let widgetsToConvert = validation.validWidgets;

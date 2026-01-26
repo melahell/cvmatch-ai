@@ -142,6 +142,14 @@ function formatDate(dateStr: string | undefined): string {
 export function convertAndSort(input: unknown, options?: ConvertOptions): RendererResumeSchema {
     const parsed = aiWidgetsEnvelopeSchema.parse(input) as AIWidgetsEnvelope;
 
+    // DEBUG: Log entrée
+    console.log("[convertAndSort] INPUT:", {
+        nbWidgetsTotal: parsed.widgets.length,
+        options: options,
+        sections: [...new Set(parsed.widgets.map(w => w.section))],
+        types: [...new Set(parsed.widgets.map(w => w.type))],
+    });
+
     // Fusionner options avec défauts (pas de filtrage par défaut)
     const opts = { ...DEFAULT_OPTIONS, ...(options || {}) };
 
@@ -150,9 +158,20 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
         .filter((w) => w.relevance_score >= opts.minScore)
         .sort((a, b) => b.relevance_score - a.relevance_score);
 
+    console.log("[convertAndSort] Après filtre minScore:", {
+        minScore: opts.minScore,
+        nbWidgetsAvant: parsed.widgets.length,
+        nbWidgetsApres: sortedWidgets.length,
+    });
+
     // 2) Partition par section
     const headerWidgets = sortedWidgets.filter((w) => w.section === "header" || w.section === "summary");
     const experienceWidgets = sortedWidgets.filter((w) => w.section === "experiences");
+
+    console.log("[convertAndSort] Partition:", {
+        headerWidgets: headerWidgets.length,
+        experienceWidgets: experienceWidgets.length,
+    });
     const skillsWidgets = sortedWidgets.filter((w) => w.section === "skills");
     const educationWidgets = sortedWidgets.filter((w) => w.section === "education");
     const languageWidgets = sortedWidgets.filter((w) => w.section === "languages");
@@ -238,6 +257,20 @@ function buildExperiences(
     opts: typeof DEFAULT_OPTIONS,
     ragProfile?: any
 ): RendererResumeSchema["experiences"] {
+    // DEBUG: Log pour comprendre le problème
+    console.log("[buildExperiences] INPUT:", {
+        nbExperienceWidgets: experienceWidgets.length,
+        widgetTypes: experienceWidgets.map(w => w.type),
+        widgetSections: experienceWidgets.map(w => w.section),
+        firstWidget: experienceWidgets[0] ? {
+            id: experienceWidgets[0].id,
+            type: experienceWidgets[0].type,
+            section: experienceWidgets[0].section,
+            text: experienceWidgets[0].text?.substring(0, 50),
+            sources: experienceWidgets[0].sources,
+        } : "AUCUN WIDGET"
+    });
+
     type ExperienceAccumulator = {
         id: string;
         bestScore: number;
