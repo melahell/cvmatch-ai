@@ -94,7 +94,7 @@ function CVBuilderContent() {
     // DEFAULTS: PAS DE FILTRAGE - l'utilisateur contrôle via sliders UI
     const [convertOptions, setConvertOptions] = useState<ConvertOptions>({
         minScore: 0,                  // Afficher tout par défaut
-        maxExperiences: 10,           // 10 expériences par défaut (ajustable)
+        maxExperiences: 20,           // 20 expériences par défaut (slider max=20)
         maxBulletsPerExperience: 10,  // 10 bullets par expérience (ajustable)
     });
 
@@ -865,7 +865,7 @@ function CVBuilderContent() {
                                                 <input
                                                     type="range"
                                                     min="1"
-                                                    max="10"
+                                                    max="20"
                                                     value={convertOptions.maxExperiences}
                                                     onChange={(e) =>
                                                         setConvertOptions((prev) => ({
@@ -876,7 +876,7 @@ function CVBuilderContent() {
                                                     className="w-full"
                                                 />
                                                 <p className="text-slate-500 mt-1">
-                                                    {cvData && `Affichera ${Math.min(convertOptions.maxExperiences ?? 6, cvData.experiences.length)} expérience(s) sur ${cvData.experiences.length} disponible(s)`}
+                                                    {cvData && `Affichera ${Math.min(convertOptions.maxExperiences ?? 10, cvData.experiences.length)} expérience(s) sur ${cvData.experiences.length} disponible(s)`}
                                                 </p>
                                             </div>
                                             <div>

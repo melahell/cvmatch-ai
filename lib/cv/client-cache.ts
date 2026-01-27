@@ -14,7 +14,7 @@ import type { AIWidgetsEnvelope } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
 
 // VERSION DU CACHE - Incrémenter pour invalider les anciens caches
-const CACHE_VERSION = 2; // v2: Suppression filtrage, nouveaux defaults
+const CACHE_VERSION = 3; // v3: Slider max=20, default maxExperiences=20
 
 const WIDGETS_CACHE_PREFIX = "cv_widgets:";
 const CVDATA_CACHE_PREFIX = "cv_data:";
