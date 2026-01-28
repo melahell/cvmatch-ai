@@ -130,8 +130,19 @@ export async function generateWidgetsFromRAGAndMatch(
             sector,
         });
 
+        // DEBUG: Comparer expériences original vs transformé
+        const nbExpOriginal = params.ragProfile?.experiences?.length || 0;
+        const nbExpTransformed = finalRAG?.experiences?.length || 0;
+        console.log("[generate-widgets] COMPARAISON EXPERIENCES:", {
+            original: nbExpOriginal,
+            transformé: nbExpTransformed,
+            delta: nbExpTransformed - nbExpOriginal,
+            expIdsTransformed: (finalRAG?.experiences || []).map((e: any) => e.id),
+        });
+
         logger.info("[generate-widgets] Génération complète (sans filtrage)", {
             nbExperiencesRAG: params.ragProfile?.experiences?.length || 0,
+            nbExperiencesTransformed: finalRAG?.experiences?.length || 0,
         });
 
         // [INTÉGRATION] Ajouter les instructions sectorielles et linguistiques au prompt
