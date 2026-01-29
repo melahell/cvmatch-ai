@@ -406,15 +406,31 @@ function buildExperiences(
 
     // ÉTAPE 3: FALLBACK - Vérifier si des expériences RAG n'ont pas été couvertes par Gemini
     // C'est le filet de sécurité: si Gemini omet une expérience, on la crée depuis le RAG
+    //
+    // IMPORTANT: On ne peut PAS comparer par ID car:
+    // - Gemini utilise des IDs séquentiels (exp_0, exp_1...) assignés par buildRAGForCVPrompt
+    // - Le ragProfile ici vient de useRAGData() avec des IDs hash (exp_a7f3b2)
+    // → On compare par poste+entreprise normalisés (robuste et indépendant des IDs)
     if (ragProfile?.experiences && Array.isArray(ragProfile.experiences)) {
-        const coveredExpIds = new Set(Array.from(grouped.keys()).filter(k => !k.startsWith("orphan_")));
+        // Construire un Set des expériences déjà couvertes (poste|entreprise normalisés)
+        const normalizeKey = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
+        const coveredKeys = new Set(
+            experiences.map(e => `${normalizeKey(e.poste)}|${normalizeKey(e.entreprise)}`)
+        );
+
+        console.log("[buildExperiences] FALLBACK check:", {
+            coveredKeys: Array.from(coveredKeys),
+            ragExperiences: ragProfile.experiences.map((e: any) => `${normalizeKey(e.poste || e.titre || "")}|${normalizeKey(e.entreprise || e.client || "")}`),
+        });
 
         for (let i = 0; i < ragProfile.experiences.length; i++) {
             const ragExp = ragProfile.experiences[i];
-            const ragExpId = ragExp.id || `exp_${i}`;
+            const ragPoste = normalizeKey(ragExp.poste || ragExp.titre || "");
+            const ragEntreprise = normalizeKey(ragExp.entreprise || ragExp.client || "");
+            const ragKey = `${ragPoste}|${ragEntreprise}`;
 
-            if (!coveredExpIds.has(ragExpId)) {
-                console.log(`[buildExperiences] FALLBACK: exp RAG "${ragExpId}" non couverte par Gemini, création depuis RAG`);
+            if (!coveredKeys.has(ragKey) && (ragPoste || ragEntreprise)) {
+                console.log(`[buildExperiences] FALLBACK: exp RAG "${ragPoste} @ ${ragEntreprise}" non couverte par Gemini, création depuis RAG`);
 
                 const poste = ragExp.poste || ragExp.titre || "Expérience";
                 const entreprise = ragExp.entreprise || ragExp.client || "—";
@@ -444,9 +460,11 @@ function buildExperiences(
                     lieu,
                     realisations: realisations.slice(0, opts.maxBulletsPerExperience),
                     _relevance_score: 10, // Score bas car non traité par Gemini
-                    _rag_experience_id: ragExpId,
+                    _rag_experience_id: ragExp.id || `exp_${i}`,
                     _from_fallback: true, // Marqueur pour debug
                 } as any);
+
+                coveredKeys.add(ragKey); // Éviter les doublons
             }
         }
     }

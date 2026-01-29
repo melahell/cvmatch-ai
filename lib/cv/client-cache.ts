@@ -14,7 +14,7 @@ import type { AIWidgetsEnvelope } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
 
 // VERSION DU CACHE - Incrémenter pour invalider les anciens caches
-const CACHE_VERSION = 4; // v4: Fallback expériences manquantes + prompt IDs explicites
+const CACHE_VERSION = 5; // v5: Fix fallback matching par poste+entreprise (pas IDs)
 
 const WIDGETS_CACHE_PREFIX = "cv_widgets:";
 const CVDATA_CACHE_PREFIX = "cv_data:";
