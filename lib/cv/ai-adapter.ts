@@ -231,7 +231,7 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     const experiences = buildExperiences(experienceWidgets, opts, opts.ragProfile);
 
     // 5) Construire les compétences
-    const competences = buildCompetences(skillsWidgets);
+    const competences = buildCompetences(skillsWidgets, opts.ragProfile);
 
     // 6) Formations - [AUDIT FIX] : Enrichir depuis RAG si disponible
     const formations = buildFormations(educationWidgets, opts.ragProfile);
@@ -431,6 +431,12 @@ function buildExperiences(
         const date_fin = ragExp ? formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date) : undefined;
         const lieu = ragExp?.lieu || ragExp?.location || undefined;
         const actuel = ragExp?.actuel || ragExp?.current || false;
+        const clientsRaw =
+            (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
+            (Array.isArray(ragExp?.clients) && ragExp.clients) ||
+            (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
+            [];
+        const clients = Array.isArray(clientsRaw) ? clientsRaw.filter(Boolean) : undefined;
 
         const experience = {
             poste,
@@ -440,6 +446,7 @@ function buildExperiences(
             actuel,
             lieu,
             realisations,
+            clients: clients && clients.length > 0 ? clients : undefined,
             // Métadonnées pour l'UI
             _relevance_score: bestScore,
             _rag_experience_id: expId,
@@ -494,6 +501,12 @@ function buildExperiences(
                 const date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
                 const lieu = ragExp.lieu || ragExp.location || undefined;
                 const actuel = ragExp.actuel || ragExp.current || false;
+                const clientsRaw =
+                    (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
+                    (Array.isArray(ragExp?.clients) && ragExp.clients) ||
+                    (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
+                    [];
+                const clients = Array.isArray(clientsRaw) ? clientsRaw.filter(Boolean) : undefined;
 
                 experiences.push({
                     poste,
@@ -503,6 +516,7 @@ function buildExperiences(
                     actuel,
                     lieu,
                     realisations: realisations.slice(0, opts.maxBulletsPerExperience),
+                    clients: clients && clients.length > 0 ? clients : undefined,
                     _relevance_score: 10, // Score bas car non traité par Gemini
                     _rag_experience_id: ragExp.id || `exp_${i}`,
                     _from_fallback: true, // Marqueur pour debug
@@ -535,7 +549,7 @@ function buildExperiences(
     return limited;
 }
 
-function buildCompetences(skillsWidgets: AIWidget[]): RendererResumeSchema["competences"] {
+function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any): RendererResumeSchema["competences"] {
     const techniquesSet = new Set<string>();
     const softSkillsSet = new Set<string>();
 
@@ -559,6 +573,19 @@ function buildCompetences(skillsWidgets: AIWidget[]): RendererResumeSchema["comp
             techniquesSet.add(text);
         }
     });
+
+    const contexte = ragProfile?.contexte_enrichi;
+    const tacites = Array.isArray(contexte?.competences_tacites) ? contexte.competences_tacites : [];
+    for (const item of tacites) {
+        const name = typeof item === "string" ? item : item?.nom || item?.name;
+        if (name && String(name).trim()) techniquesSet.add(String(name).trim());
+    }
+
+    const softDeduites = Array.isArray(contexte?.soft_skills_deduites) ? contexte.soft_skills_deduites : [];
+    for (const item of softDeduites) {
+        const name = typeof item === "string" ? item : item?.nom || item?.name;
+        if (name && String(name).trim()) softSkillsSet.add(String(name).trim());
+    }
 
     return {
         techniques: Array.from(techniquesSet),
@@ -704,18 +731,31 @@ function buildCertificationsAndReferences(
     }
 
     // [AUDIT FIX] : Enrichir clients depuis RAG
-    if (clients.length === 0 && ragProfile?.references?.clients) {
-        const ragClients = Array.isArray(ragProfile.references.clients) ? ragProfile.references.clients : [];
-        ragClients.forEach((c: any) => {
+    const ragClientsFromReferences = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
+    ragClientsFromReferences.forEach((c: any) => {
+        const clientName = typeof c === "string" ? c : c.nom;
+        if (clientName) clients.push(clientName);
+    });
+
+    const ragClientsFromExperiences = Array.isArray(ragProfile?.experiences) ? ragProfile.experiences : [];
+    ragClientsFromExperiences.forEach((exp: any) => {
+        const expClients =
+            (Array.isArray(exp?.clients_references) && exp.clients_references) ||
+            (Array.isArray(exp?.clients) && exp.clients) ||
+            (Array.isArray(exp?.clientsReferences) && exp.clientsReferences) ||
+            [];
+        expClients.forEach((c: any) => {
             const clientName = typeof c === "string" ? c : c.nom;
             if (clientName) clients.push(clientName);
         });
-    }
+    });
+
+    const uniqueClients = Array.from(new Set(clients.map((c) => String(c).trim()).filter(Boolean)));
 
     const clients_references =
-        clients.length > 0
+        uniqueClients.length > 0
             ? {
-                  clients,
+                  clients: uniqueClients,
                   secteurs: undefined,
               }
             : undefined;

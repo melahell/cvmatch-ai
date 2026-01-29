@@ -108,6 +108,7 @@ export interface RAGMetadata {
     projets?: Projet[];
     certifications?: string[];
     references?: References;
+    contexte_enrichi?: any;
 
     // Computed fields
     score?: number;

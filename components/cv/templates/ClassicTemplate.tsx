@@ -195,6 +195,11 @@ export default function ClassicTemplate({
                                 <p className="text-[9pt] italic text-slate-600 mb-2">
                                     {exp.entreprise}{exp.lieu && `, ${exp.lieu}`}
                                 </p>
+                                {exp.clients && exp.clients.length > 0 && (
+                                    <p className="text-[8pt] text-slate-600 mb-2">
+                                        Clients : {exp.clients.join(", ")}
+                                    </p>
+                                )}
                                 {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-[8pt] text-slate-700 space-y-1 list-disc list-inside">

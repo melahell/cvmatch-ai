@@ -16,7 +16,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw, Download, FileJson, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw, Download, FileJson, ChevronDown, ChevronUp, SlidersHorizontal, Info } from "lucide-react";
 import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions } from "@/lib/cv/client-bridge";
 import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { validateAIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
@@ -442,6 +442,62 @@ function CVBuilderContent() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [templateId, convertOptions, state.widgets, state.jobOfferContext, advancedFiltersEnabled, advancedMinScoreBySection]);
 
+    useEffect(() => {
+        if (!cvData) return;
+        const currentPhoto = cvData?.profil?.photo_url as string | undefined;
+        const isLikelySignedUrl = (value: string) => {
+            try {
+                const url = new URL(value);
+                return url.searchParams.has("token") || url.searchParams.has("X-Amz-Signature");
+            } catch {
+                return false;
+            }
+        };
+        const hasHttpPhoto =
+            typeof currentPhoto === "string" &&
+            (currentPhoto.startsWith("http://") || currentPhoto.startsWith("https://"));
+        if (hasHttpPhoto && !isLikelySignedUrl(currentPhoto)) return;
+
+        let cancelled = false;
+
+        const loadPhoto = async () => {
+            try {
+                const authHeaders = await getSupabaseAuthHeader();
+                const init: RequestInit = {
+                    method: "GET",
+                    credentials: "include",
+                };
+                if (Object.keys(authHeaders).length > 0) {
+                    init.headers = authHeaders;
+                }
+                const res = await fetch("/api/profile/photo", init);
+                if (!res.ok) return;
+                const payload = await res.json();
+                const photoUrl = payload?.photo_url as string | null | undefined;
+                if (!photoUrl) return;
+                if (cancelled) return;
+
+                setCvData((prev) => {
+                    if (!prev) return prev;
+                    const prevPhoto = prev?.profil?.photo_url as string | undefined;
+                    const prevHasHttp =
+                        typeof prevPhoto === "string" &&
+                        (prevPhoto.startsWith("http://") || prevPhoto.startsWith("https://"));
+                    if (prevHasHttp && !isLikelySignedUrl(prevPhoto)) return prev;
+                    return { ...prev, profil: { ...(prev.profil || {}), photo_url: photoUrl } };
+                });
+            } catch {
+                return;
+            }
+        };
+
+        loadPhoto();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [cvData?.profil?.photo_url, cvData]);
+
     const handleTemplateChange = (newTemplate: string) => {
         setTemplateId(newTemplate);
         setViewMode("single"); // Basculer en vue single quand on sélectionne un template
@@ -779,6 +835,50 @@ function CVBuilderContent() {
                                             </CardHeader>
                                             <CardContent>
                                                 <WidgetScoreVisualizer widgets={state.widgets} showDetails={true} />
+                                            </CardContent>
+                                        </Card>
+                                    )}
+
+                                    {ragData?.contexte_enrichi && (
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="text-sm flex items-center gap-2">
+                                                    <Info className="w-4 h-4 text-slate-500" />
+                                                    <span>Contexte enrichi</span>
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="text-xs space-y-2">
+                                                <div className="text-slate-600">
+                                                    Présent: <span className="font-medium text-slate-900">Oui</span>
+                                                </div>
+                                                <div className="text-slate-600">
+                                                    Compétences tacites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites.length : 0}</span>
+                                                </div>
+                                                <div className="text-slate-600">
+                                                    Soft skills déduites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites.length : 0}</span>
+                                                </div>
+                                                <div className="text-slate-600">
+                                                    Injectées dans le CV (skills):{" "}
+                                                    <span className="font-medium text-slate-900">
+                                                        {(() => {
+                                                            const cvSkills = new Set<string>([
+                                                                ...((cvData as any)?.competences?.techniques || []),
+                                                                ...((cvData as any)?.competences?.soft_skills || []),
+                                                            ].map((s: any) => String(s || "").toLowerCase().trim()).filter(Boolean));
+                                                            const tac = Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites : [];
+                                                            const soft = Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites : [];
+                                                            const all = [...tac, ...soft].map((x: any) => String(typeof x === "string" ? x : x?.nom || x?.name || "").toLowerCase().trim()).filter(Boolean);
+                                                            let matched = 0;
+                                                            for (const item of all) {
+                                                                if (cvSkills.has(item)) matched++;
+                                                            }
+                                                            return matched;
+                                                        })()}
+                                                    </span>
+                                                </div>
+                                                <p className="text-slate-500">
+                                                    Preuve: le compteur compare les items du contexte enrichi et les compétences réellement présentes dans le CV rendu.
+                                                </p>
                                             </CardContent>
                                         </Card>
                                     )}

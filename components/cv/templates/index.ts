@@ -21,6 +21,7 @@ export interface CVData {
         date_fin?: string;
         lieu?: string;
         realisations: string[];
+        clients?: string[];
     }>;
     competences: {
         techniques: string[];

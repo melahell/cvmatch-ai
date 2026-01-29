@@ -213,6 +213,116 @@ describe("convertAndSort", () => {
         expect(allSkills.length).toBeGreaterThan(0);
     });
 
+    it("should propagate clients per experience from RAG", () => {
+        const widgets = [
+            createMockWidget({
+                type: "experience_header",
+                text: "Chef de projet - Entreprise X",
+                relevance_score: 0,
+                sources: { rag_experience_id: "exp-1" },
+            }),
+            createMockWidget({
+                text: "Pilotage de projet",
+                relevance_score: 80,
+                sources: { rag_experience_id: "exp-1" },
+            }),
+        ];
+
+        const envelope = createMockEnvelope(widgets);
+        const ragProfile = {
+            profil: { prenom: "Jean", nom: "Dupont" },
+            experiences: [
+                {
+                    id: "exp-1",
+                    poste: "Chef de projet",
+                    entreprise: "Entreprise X",
+                    debut: "2020-01",
+                    fin: "2021-01",
+                    clients_references: ["BNP Paribas", "Société Générale"],
+                    realisations: [{ description: "Pilotage de projet" }],
+                },
+            ],
+        };
+
+        const result = convertAndSort(envelope, { ragProfile });
+        expect(result.experiences[0].clients).toEqual(["BNP Paribas", "Société Générale"]);
+    });
+
+    it("should build global clients_references from experience clients when references are missing", () => {
+        const widgets = [
+            createMockWidget({
+                type: "experience_header",
+                text: "PMO - Entreprise Y",
+                relevance_score: 0,
+                sources: { rag_experience_id: "exp-2" },
+            }),
+            createMockWidget({
+                text: "PMO sur un portefeuille",
+                relevance_score: 80,
+                sources: { rag_experience_id: "exp-2" },
+            }),
+        ];
+
+        const envelope = createMockEnvelope(widgets);
+        const ragProfile = {
+            profil: { prenom: "Jean", nom: "Dupont" },
+            experiences: [
+                {
+                    id: "exp-2",
+                    poste: "PMO",
+                    entreprise: "Entreprise Y",
+                    debut: "2021-01",
+                    fin: "2022-01",
+                    clients_references: ["Total", "Carrefour"],
+                    realisations: [{ description: "PMO sur un portefeuille" }],
+                },
+            ],
+            references: { clients: [] },
+        };
+
+        const result = convertAndSort(envelope, { ragProfile });
+        expect(result.clients_references?.clients).toEqual(["Total", "Carrefour"]);
+    });
+
+    it("should inject contexte_enrichi into competences when skills widgets are missing", () => {
+        const envelope = createMockEnvelope([
+            createMockWidget({
+                type: "experience_header",
+                text: "Dev - Entreprise Z",
+                relevance_score: 0,
+                sources: { rag_experience_id: "exp-3" },
+            }),
+            createMockWidget({
+                text: "Livraison",
+                relevance_score: 60,
+                sources: { rag_experience_id: "exp-3" },
+            }),
+        ]);
+
+        const ragProfile = {
+            profil: { prenom: "Jean", nom: "Dupont" },
+            experiences: [
+                {
+                    id: "exp-3",
+                    poste: "Dev",
+                    entreprise: "Entreprise Z",
+                    debut: "2022-01",
+                    fin: null,
+                    actuel: true,
+                    realisations: [{ description: "Livraison" }],
+                },
+            ],
+            contexte_enrichi: {
+                competences_tacites: [{ nom: "Jira" }, { nom: "Agile" }],
+                soft_skills_deduites: ["Leadership"],
+            },
+        };
+
+        const result = convertAndSort(envelope, { ragProfile });
+        expect(result.competences.techniques).toEqual(expect.arrayContaining(["Jira", "Agile"]));
+        expect(result.competences.soft_skills).toEqual(expect.arrayContaining(["Leadership"]));
+    });
+
     it("should handle empty widgets", () => {
         const envelope = createMockEnvelope([]);
         

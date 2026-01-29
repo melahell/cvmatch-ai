@@ -330,6 +330,11 @@ export default function ModernTemplate({
                                     {sanitizeText(exp.entreprise)}
                                     {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
                                 </p>
+                                {exp.clients && exp.clients.length > 0 && (
+                                    <p className="text-slate-500 text-[7pt] mb-1">
+                                        Clients : {exp.clients.map(sanitizeText).join(", ")}
+                                    </p>
+                                )}
                                 {/* Solution 6.2: Afficher contexte opérationnel */}
                                 {(exp as any).contexte && (
                                     <p className="text-slate-600 text-[7pt] italic mb-1">

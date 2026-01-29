@@ -360,6 +360,11 @@ export default function TechTemplate({
                                 <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
                                     @ {exp.entreprise}
                                 </p>
+                                {exp.clients && exp.clients.length > 0 && (
+                                    <p className="text-[7pt] text-slate-600 mt-0.5">
+                                        Clients : {exp.clients.join(", ")}
+                                    </p>
+                                )}
                                 {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="mt-1.5 space-y-0.5 text-[8pt] text-slate-700">
