@@ -281,7 +281,53 @@ describe("convertAndSort", () => {
         };
 
         const result = convertAndSort(envelope, { ragProfile });
-        expect(result.clients_references?.clients).toEqual(["Total", "Carrefour"]);
+        expect((result.clients_references?.clients || []).slice().sort()).toEqual(["Carrefour", "Total"]);
+    });
+
+    it("should clean and deduplicate clients list", () => {
+        const widgets = [
+            createMockWidget({
+                type: "experience_header",
+                text: "PMO - Entreprise Y",
+                relevance_score: 0,
+                sources: { rag_experience_id: "exp-2" },
+            }),
+            createMockWidget({
+                text: "PMO sur un portefeuille",
+                relevance_score: 80,
+                sources: { rag_experience_id: "exp-2" },
+            }),
+        ];
+
+        const envelope = createMockEnvelope(widgets);
+        const ragProfile = {
+            profil: { prenom: "Jean", nom: "Dupont" },
+            experiences: [
+                {
+                    id: "exp-2",
+                    poste: "PMO",
+                    entreprise: "Entreprise Y",
+                    debut: "2021-01",
+                    fin: "2022-01",
+                    clients_references: [
+                        "  total  ",
+                        "TOTAL",
+                        "client",
+                        "Client 12",
+                        "confidentiel",
+                        "SOCIÉTÉ GÉNÉRALE",
+                        "Société générale",
+                        "Entreprise Y",
+                    ],
+                    realisations: [{ description: "PMO sur un portefeuille" }],
+                },
+            ],
+            references: { clients: [] },
+        };
+
+        const result = convertAndSort(envelope, { ragProfile });
+        expect(result.clients_references?.clients).toEqual(["Société Générale", "Total"]);
+        expect(result.experiences[0].clients).toEqual(["Société Générale", "Total"]);
     });
 
     it("should inject contexte_enrichi into competences when skills widgets are missing", () => {

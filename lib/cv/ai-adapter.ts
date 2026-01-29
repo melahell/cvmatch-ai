@@ -152,6 +152,79 @@ function formatDate(dateStr: string | undefined): string {
     return dateStr;
 }
 
+const normalizeKey = (value: unknown) =>
+    String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .replace(/[^\p{L}\p{N}\s&'’.\-]/gu, "");
+
+const normalizeClientName = (value: unknown): string => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    const cleaned = raw
+        .replace(/[\u00A0]/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(/^[-–—•·\s]+|[-–—•·\s]+$/g, "")
+        .replace(/\s*\((confidentiel|n\/a|na|nc)\)\s*/gi, "")
+        .trim();
+    if (!cleaned) return "";
+
+    const upper = cleaned.toUpperCase();
+    const isAcronym =
+        cleaned.length <= 10 &&
+        /[A-Z]/.test(cleaned) &&
+        cleaned === upper &&
+        !/[a-z]/.test(cleaned);
+    if (isAcronym) return cleaned;
+
+    const words = cleaned.split(" ");
+    const cased = words
+        .map((w) => {
+            if (!w) return w;
+            if (/^[A-Z0-9&'’.\-]{2,}$/.test(w) && !/[a-z]/.test(w)) return w;
+            const head = w[0]?.toUpperCase() ?? "";
+            return head + w.slice(1).toLowerCase();
+        })
+        .join(" ");
+    return cased;
+};
+
+const isBadClientName = (name: string): boolean => {
+    const key = normalizeKey(name);
+    if (!key) return true;
+    if (key.length < 2) return true;
+    if (key === "client" || key === "clients" || key === "references") return true;
+    if (key.includes("confidentiel") || key.includes("nda") || key.includes("n a")) return true;
+    if (key.startsWith("entreprise ") || key.startsWith("societe ") || key.startsWith("company ")) return true;
+    if (/^client\s*\d+$/.test(key)) return true;
+    if (/[<>]/.test(name)) return true;
+    const digits = (name.match(/\d/g) || []).length;
+    if (digits >= 5) return true;
+    return false;
+};
+
+const cleanClientList = (items: unknown[], options?: { exclude?: string[]; max?: number }) => {
+    const excludeKeys = new Set((options?.exclude || []).map(normalizeKey).filter(Boolean));
+    const counts = new Map<string, { label: string; count: number }>();
+    for (const item of items) {
+        const label = normalizeClientName(typeof item === "string" ? item : (item as any)?.nom ?? (item as any)?.name);
+        if (!label) continue;
+        if (isBadClientName(label)) continue;
+        const key = normalizeKey(label);
+        if (!key) continue;
+        if (excludeKeys.has(key)) continue;
+        const prev = counts.get(key);
+        if (!prev) counts.set(key, { label, count: 1 });
+        else counts.set(key, { label: prev.label.length >= label.length ? prev.label : label, count: prev.count + 1 });
+    }
+    const sorted = Array.from(counts.values())
+        .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "fr"))
+        .map((x) => x.label);
+    const max = options?.max ?? 30;
+    return sorted.slice(0, max);
+};
+
 /**
  * Fonction principale : convertit un payload AI_WIDGETS_SCHEMA
  * en schéma de CV consommable par le renderer (`RendererResumeSchema` / `CVData`).
@@ -436,7 +509,7 @@ function buildExperiences(
             (Array.isArray(ragExp?.clients) && ragExp.clients) ||
             (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
             [];
-        const clients = Array.isArray(clientsRaw) ? clientsRaw.filter(Boolean) : undefined;
+        const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: 6 });
 
         const experience = {
             poste,
@@ -446,7 +519,7 @@ function buildExperiences(
             actuel,
             lieu,
             realisations,
-            clients: clients && clients.length > 0 ? clients : undefined,
+            clients: clients.length > 0 ? clients : undefined,
             // Métadonnées pour l'UI
             _relevance_score: bestScore,
             _rag_experience_id: expId,
@@ -464,7 +537,6 @@ function buildExperiences(
     // → On compare par poste+entreprise normalisés (robuste et indépendant des IDs)
     if (ragProfile?.experiences && Array.isArray(ragProfile.experiences)) {
         // Construire un Set des expériences déjà couvertes (poste|entreprise normalisés)
-        const normalizeKey = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
         const coveredKeys = new Set(
             experiences.map(e => `${normalizeKey(e.poste)}|${normalizeKey(e.entreprise)}`)
         );
@@ -506,7 +578,7 @@ function buildExperiences(
                     (Array.isArray(ragExp?.clients) && ragExp.clients) ||
                     (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
                     [];
-                const clients = Array.isArray(clientsRaw) ? clientsRaw.filter(Boolean) : undefined;
+                const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: 6 });
 
                 experiences.push({
                     poste,
@@ -516,7 +588,7 @@ function buildExperiences(
                     actuel,
                     lieu,
                     realisations: realisations.slice(0, opts.maxBulletsPerExperience),
-                    clients: clients && clients.length > 0 ? clients : undefined,
+                    clients: clients.length > 0 ? clients : undefined,
                     _relevance_score: 10, // Score bas car non traité par Gemini
                     _rag_experience_id: ragExp.id || `exp_${i}`,
                     _from_fallback: true, // Marqueur pour debug
@@ -707,7 +779,7 @@ function buildCertificationsAndReferences(
     ragProfile?: any
 ) {
     const certifications: string[] = [];
-    const clients: string[] = [];
+    const clientsRaw: unknown[] = [];
 
     certificationWidgets.forEach((widget) => {
         const text = widget.text.trim();
@@ -718,7 +790,7 @@ function buildCertificationsAndReferences(
     referenceWidgets.forEach((widget) => {
         const text = widget.text.trim();
         if (!text) return;
-        clients.push(text);
+        clientsRaw.push(text);
     });
 
     // [AUDIT FIX] : Enrichir depuis RAG si vide
@@ -734,7 +806,7 @@ function buildCertificationsAndReferences(
     const ragClientsFromReferences = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
     ragClientsFromReferences.forEach((c: any) => {
         const clientName = typeof c === "string" ? c : c.nom;
-        if (clientName) clients.push(clientName);
+        if (clientName) clientsRaw.push(clientName);
     });
 
     const ragClientsFromExperiences = Array.isArray(ragProfile?.experiences) ? ragProfile.experiences : [];
@@ -746,11 +818,13 @@ function buildCertificationsAndReferences(
             [];
         expClients.forEach((c: any) => {
             const clientName = typeof c === "string" ? c : c.nom;
-            if (clientName) clients.push(clientName);
+            if (clientName) clientsRaw.push(clientName);
         });
     });
-
-    const uniqueClients = Array.from(new Set(clients.map((c) => String(c).trim()).filter(Boolean)));
+    const excludeCompanies = Array.isArray(ragProfile?.experiences)
+        ? ragProfile.experiences.map((e: any) => e?.entreprise || e?.client).filter(Boolean)
+        : [];
+    const uniqueClients = cleanClientList(clientsRaw, { exclude: excludeCompanies, max: 25 });
 
     const clients_references =
         uniqueClients.length > 0
