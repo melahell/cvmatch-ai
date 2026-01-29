@@ -130,10 +130,9 @@ export async function generateWidgetsFromRAGAndMatch(
             sector,
         });
 
-        // DEBUG: Comparer expériences original vs transformé
         const nbExpOriginal = params.ragProfile?.experiences?.length || 0;
         const nbExpTransformed = finalRAG?.experiences?.length || 0;
-        console.log("[generate-widgets] COMPARAISON EXPERIENCES:", {
+        logger.debug("[generate-widgets] Comparaison expériences (original vs transformé)", {
             original: nbExpOriginal,
             transformé: nbExpTransformed,
             delta: nbExpTransformed - nbExpOriginal,
