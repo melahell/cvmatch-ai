@@ -91,10 +91,11 @@ function CVBuilderContent() {
     const [showWidgetEditor, setShowWidgetEditor] = useState<boolean>(false);
     const [loadingStep, setLoadingStep] = useState<string | null>(null);
     const [errorAction, setErrorAction] = useState<{ action?: string; actionLabel?: string } | null>(null);
+    // DEFAULTS: PAS DE FILTRAGE - l'utilisateur contrôle via sliders UI
     const [convertOptions, setConvertOptions] = useState<ConvertOptions>({
-        minScore: 50,
-        maxExperiences: 6,
-        maxBulletsPerExperience: 6,
+        minScore: 0,                  // Afficher tout par défaut
+        maxExperiences: 20,           // 20 expériences par défaut (slider max=20)
+        maxBulletsPerExperience: 10,  // 10 bullets par expérience (ajustable)
     });
 
     // Récupérer RAG profile pour validation
@@ -328,18 +329,23 @@ function CVBuilderContent() {
     const convertWidgetsToCVData = useCallback(
         (widgets: AIWidgetsEnvelope, template: string, options: ConvertOptions, jobContext?: JobOfferContext | null) => {
             if (!analysisId) return;
+            // Normaliser options pour le cache (sans ragProfile)
+            // DEFAULTS: PAS DE FILTRAGE - l'utilisateur contrôle via UI
+            const cacheOptions = {
+                minScore: options.minScore ?? 0,
+                maxExperiences: options.maxExperiences ?? 99,
+                maxBulletsPerExperience: options.maxBulletsPerExperience ?? 99,
+            };
 
-            // Normaliser options (ragProfile passé séparément aux convert*)
-            // Type compatible ConvertOptions + cache (minScore etc. requis pour saveCVDataToCache)
-            const normalizedOptions = {
-                minScore: options.minScore ?? 50,
-                maxExperiences: options.maxExperiences ?? 6,
-                maxBulletsPerExperience: options.maxBulletsPerExperience ?? 6,
-            } as ConvertOptions & { minScore: number; maxExperiences: number; maxBulletsPerExperience: number };
+            // Options complètes pour la conversion (avec ragProfile)
+            const convertOptions: ConvertOptions = {
+                ...cacheOptions,
+                ragProfile: options.ragProfile ?? ragData,
+            };
 
             // Vérifier cache CVData d'abord (sans validation pour performance)
             const cached = getCVDataFromCache(analysisId, template);
-            if (cached && JSON.stringify(cached.options) === JSON.stringify(normalizedOptions)) {
+            if (cached && JSON.stringify(cached.options) === JSON.stringify(cacheOptions)) {
                 setCvData(cached.cvData);
                 // Toujours valider même si en cache (pour afficher warnings)
                 if (ragData) {
@@ -350,12 +356,12 @@ function CVBuilderContent() {
                                 widgets,
                                 ragData,
                                 jobContext,
-                                normalizedOptions,
+                                convertOptions,
                                 true
                             );
                             setValidationResult(validation);
                         } else {
-                            const { validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
+                            const { validation } = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
                             setValidationResult(validation);
                         }
                     } catch (error) {
@@ -374,26 +380,26 @@ function CVBuilderContent() {
                             widgets,
                             ragData,
                             jobContext,
-                            normalizedOptions,
+                            convertOptions,
                             true
                         );
                         setCvData(cv);
                         setValidationResult(validation);
                         // Sauvegarder dans cache
-                        saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                        saveCVDataToCache(analysisId, template, cv, cacheOptions);
                     } else {
                         // Fallback avec validation simple si pas de jobContext
-                        const { cvData: cv, validation } = convertWidgetsToCVWithValidation(widgets, ragData, normalizedOptions);
+                        const { cvData: cv, validation } = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
                         setCvData(cv);
                         setValidationResult(validation);
-                        saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                        saveCVDataToCache(analysisId, template, cv, cacheOptions);
                     }
                 } else {
                     // Fallback sans validation si RAG non disponible
-                    const cv = convertWidgetsToCV(widgets, normalizedOptions);
+                    const cv = convertWidgetsToCV(widgets, convertOptions);
                     setCvData(cv);
                     setValidationResult(null);
-                    saveCVDataToCache(analysisId, template, cv, normalizedOptions);
+                    saveCVDataToCache(analysisId, template, cv, cacheOptions);
                 }
             } catch (error: any) {
                 logger.error("Erreur conversion widgets", { error });
@@ -858,7 +864,7 @@ function CVBuilderContent() {
                                                 <input
                                                     type="range"
                                                     min="1"
-                                                    max="10"
+                                                    max="20"
                                                     value={convertOptions.maxExperiences}
                                                     onChange={(e) =>
                                                         setConvertOptions((prev) => ({
@@ -869,7 +875,7 @@ function CVBuilderContent() {
                                                     className="w-full"
                                                 />
                                                 <p className="text-slate-500 mt-1">
-                                                    {cvData && `Affichera ${Math.min(convertOptions.maxExperiences ?? 6, cvData.experiences.length)} expérience(s) sur ${cvData.experiences.length} disponible(s)`}
+                                                    {cvData && `Affichera ${Math.min(convertOptions.maxExperiences ?? 10, cvData.experiences.length)} expérience(s) sur ${cvData.experiences.length} disponible(s)`}
                                                 </p>
                                             </div>
                                             <div>

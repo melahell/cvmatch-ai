@@ -116,6 +116,12 @@ export const aiWidgetsEnvelopeSchema = z.object({
         created_at: z.string().optional(),     // ISO date
         locale: z.string().optional(),         // ex: "fr-FR"
         version: z.string().optional(),        // version interne du schema / prompt
+        // [AUDIT] Champs ajoutés pour tracking
+        fromCache: z.boolean().optional(),     // widgets provenant du cache
+        cacheLevel: z.number().optional(),     // niveau de cache (1, 2, 3)
+        sector: z.string().optional(),         // secteur détecté (tech, finance, etc.)
+        language: z.string().optional(),       // langue détectée de l'offre
+        generationTimeMs: z.number().optional(), // temps de génération en ms
     }).optional(),
 });
 

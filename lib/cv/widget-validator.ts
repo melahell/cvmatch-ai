@@ -125,91 +125,67 @@ function buildSourceSkillSet(ragProfile: any): Set<string> {
 
 /**
  * Valide les widgets contre le RAG source
+ *
+ * IMPORTANT: Cette fonction NE FILTRE PLUS les widgets.
+ * Elle génère des warnings informatifs mais retourne TOUS les widgets.
+ * L'utilisateur contrôle le filtrage via l'UI (sliders score/max).
  */
 export function validateWidgetsAgainstRAG(
     widgets: AIWidget[],
     ragProfile: any
 ): ValidationResult {
-    const validWidgets: AIWidget[] = [];
     const warnings: ValidationWarning[] = [];
-    
+
     const stats = {
         total: widgets.length,
-        valid: 0,
+        valid: widgets.length, // TOUS sont valides maintenant
         filtered: 0,
         filteredByNumbers: 0,
         filteredByExperience: 0,
         filteredBySkill: 0,
     };
 
-    // Construire source text pour validation chiffres
+    // Construire source text pour validation chiffres (pour warnings)
     const sourceText = JSON.stringify(ragProfile).toLowerCase();
-    
-    // Construire source skill set pour validation compétences
+
+    // Construire source skill set pour validation compétences (pour warnings)
     const sourceSkillSet = buildSourceSkillSet(ragProfile);
-    
-    // Récupérer liste des expériences
-    const experiences = Array.isArray(ragProfile?.experiences) ? ragProfile.experiences : [];
-    const experienceIds = new Set<string>();
-    experiences.forEach((exp: any, idx: number) => {
-        experienceIds.add(`exp_${idx}`);
-        if (exp.id) experienceIds.add(exp.id);
-    });
 
     for (const widget of widgets) {
-        let isValid = true;
-        let warningType: ValidationWarning["type"] | null = null;
-        let warningMessage = "";
-
-        // 1. Vérifier chiffres (si présents)
+        // 1. Vérifier chiffres (WARNING ONLY - pas de filtrage)
         const numbers = extractNumbers(widget.text);
         if (numbers.length > 0) {
             if (!isNumbersGroundedInText(widget.text, sourceText)) {
-                isValid = false;
-                warningType = "numbers_not_grounded";
-                warningMessage = `Chiffres non présents dans le RAG source: ${numbers.join(", ")}`;
-                stats.filteredByNumbers++;
+                // WARNING seulement - on ne filtre plus
+                warnings.push({
+                    widgetId: widget.id,
+                    type: "numbers_not_grounded",
+                    message: `Chiffres potentiellement inventés: ${numbers.join(", ")}`,
+                    severity: "low", // Réduit à low car on ne filtre plus
+                });
+                stats.filteredByNumbers++; // Pour stats seulement
             }
         }
 
-        // 2. Vérifier expérience référencée (si présente)
-        if (widget.sources?.rag_experience_id) {
-            const expId = widget.sources.rag_experience_id;
-            if (!experienceIds.has(expId)) {
-                isValid = false;
-                warningType = "experience_not_found";
-                warningMessage = `Expérience référencée introuvable: ${expId}`;
-                stats.filteredByExperience++;
-            }
-        }
-
-        // 3. Vérifier compétences (pour widgets de type skill)
+        // 2. Vérifier compétences (WARNING ONLY pour widgets de type skill)
         if (widget.section === "skills" && widget.type === "skill_item") {
             const normalizedSkill = normalizeForMatch(widget.text);
             if (!sourceSkillSet.has(normalizedSkill)) {
-                isValid = false;
-                warningType = "skill_not_found";
-                warningMessage = `Compétence non présente dans le RAG: ${widget.text}`;
-                stats.filteredBySkill++;
+                // WARNING seulement - on ne filtre plus
+                warnings.push({
+                    widgetId: widget.id,
+                    type: "skill_not_found",
+                    message: `Compétence non explicite dans le RAG: ${widget.text}`,
+                    severity: "low",
+                });
+                stats.filteredBySkill++; // Pour stats seulement
             }
-        }
-
-        if (isValid) {
-            validWidgets.push(widget);
-            stats.valid++;
-        } else {
-            stats.filtered++;
-            warnings.push({
-                widgetId: widget.id,
-                type: warningType || "generic_warning",
-                message: warningMessage || "Widget non validé",
-                severity: warningType === "numbers_not_grounded" ? "high" : "medium",
-            });
         }
     }
 
+    // RETOURNER TOUS LES WIDGETS - pas de filtrage
     return {
-        validWidgets,
+        validWidgets: widgets, // TOUS les widgets passent
         warnings,
         stats,
     };

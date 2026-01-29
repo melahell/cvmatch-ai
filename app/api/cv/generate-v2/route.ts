@@ -10,6 +10,8 @@ import { calculateOptimalMinScore } from "@/lib/cv/widget-cache";
 import { calculateRAGCompletenessScore } from "@/lib/cv/rag-transform";
 import { rescoreWidgetsWithAdvanced } from "@/lib/cv/advanced-scoring";
 import { checkNumbersGrounding } from "@/lib/cv/rag-grounding";
+import { trackCVGeneration } from "@/lib/cv/observability";
+import { detectSector } from "@/lib/cv/sector-customization";
 import packageJson from "@/package.json";
 import { logger } from "@/lib/utils/logger";
 
@@ -218,14 +220,20 @@ export async function POST(req: Request) {
             coaching_tips: analysisData.analysis_result?.match_report?.coaching_tips || {},
         };
 
+        // [INTÉGRATION] Détecter le secteur pour les métriques
+        const detectedSector = detectSector(jobDescription, analysisData.company_name);
+
         // 4. Generate widgets from RAG + match analysis (CERVEAU IA)
         let widgetsEnvelope;
+        let fromCache = false;
         try {
             widgetsEnvelope = await generateWidgetsFromRAGAndMatch({
                 ragProfile,
                 matchAnalysis,
                 jobDescription,
+                userId, // [INTÉGRATION] Passer userId pour le cache
             });
+            fromCache = widgetsEnvelope?.meta?.fromCache || false;
 
             if (!widgetsEnvelope) {
                 return NextResponse.json(
@@ -277,16 +285,21 @@ export async function POST(req: Request) {
         });
 
         // 5. Convert widgets to CVData via bridge (AIAdapter)
-        // [AUDIT FIX CRITIQUE-4] : Utiliser optimalMinScore au lieu de 50 fixe
+        // PAS DE FILTRAGE : on inclut tout, l'utilisateur contrôle via l'UI
         let cvData;
         try {
             const convertOptions: ConvertOptions = {
-                minScore: optimalMinScore,
-                maxExperiences: 6,
-                maxBulletsPerExperience: 6,
-                // [AUDIT FIX CRITIQUE-3 & IMPORTANT-6] : Passer le RAG pour enrichir les données
+                // Pas de filtrage par défaut - tout est inclus
+                // L'utilisateur peut ajuster minScore via l'UI
+                minScore: 0,
+                // Passer le RAG pour enrichir les données (dates, lieux, contact)
                 ragProfile,
             };
+
+            logger.debug("[generate-v2] Conversion sans filtrage", {
+                nbWidgets: widgetsEnvelope.widgets.length,
+                nbExperiencesRAG: ragProfile?.experiences?.length || 0,
+            });
 
             cvData = convertAndSort(widgetsEnvelope, convertOptions);
         } catch (conversionError: any) {
@@ -393,6 +406,22 @@ export async function POST(req: Request) {
             ],
         };
 
+        // [INTÉGRATION] Tracking observabilité
+        trackCVGeneration({
+            userId,
+            success: true,
+            durationMs: generationTime,
+            sector: detectedSector,
+            templateName: template || "modern",
+            widgetCount: widgetsTotal,
+            fromCache,
+            qualityScore: Math.round(
+                (ragCompletenessScore * 0.3) +
+                (groundingValidation.groundedPercentage * 0.4) +
+                (analysisData.match_score || 50) * 0.3
+            ),
+        });
+
         // 8. Save Generated CV
         const { data: cvGen, error: cvError } = await supabase
             .from("cv_generations")
@@ -401,7 +430,7 @@ export async function POST(req: Request) {
                 job_analysis_id: analysisId,
                 template_name: template || "modern",
                 cv_data: finalCV,
-                optimizations_applied: ["advanced_scoring", "optimal_min_score", "grounding_validation"],
+                optimizations_applied: ["advanced_scoring", "optimal_min_score", "grounding_validation", "sector_detection", "smart_cache"],
                 generation_duration_ms: generationTime,
             })
             .select("id")
@@ -428,17 +457,36 @@ export async function POST(req: Request) {
             generatorVersion: "v2",
             widgetsTotal,
             widgetsFiltered,
+            // [INTÉGRATION] Nouvelles métriques
+            fromCache,
+            sector: detectedSector,
             // [AUDIT FIX] : Métriques de qualité exposées
             qualityMetrics: {
                 ragCompletenessScore,
                 minScoreUsed: optimalMinScore,
                 groundingPercentage: groundingValidation.groundedPercentage,
                 advancedScoringApplied: true,
+                sectorDetected: detectedSector,
+                cachedWidgets: fromCache,
             },
         });
 
     } catch (error: any) {
         logger.error("CV Generation V2 Error", { error });
+
+        // [INTÉGRATION] Tracking observabilité pour les erreurs
+        trackCVGeneration({
+            userId: "unknown",
+            success: false,
+            durationMs: Date.now(),
+            sector: "other",
+            templateName: "unknown",
+            widgetCount: 0,
+            fromCache: false,
+            qualityScore: 0,
+            errorType: error.name || "UnknownError",
+        });
+
         return NextResponse.json(
             {
                 error: "Erreur inattendue lors de la génération du CV V2",

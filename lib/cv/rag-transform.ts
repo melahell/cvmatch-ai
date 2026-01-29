@@ -164,6 +164,8 @@ export function stripInferredRAGForCV(profile: any): any {
  *
  * Cette fonction réduit considérablement le nombre de tokens tout en conservant
  * l'information essentielle pour la génération de CV.
+ *
+ * IMPORTANT: Gère les expériences avec missions imbriquées (ex: Freelance)
  */
 export function buildRAGForCVPrompt(profile: any): any {
     if (!profile || typeof profile !== "object") return profile;
@@ -175,33 +177,105 @@ export function buildRAGForCVPrompt(profile: any): any {
     const skillMap = buildSkillMap(base);
 
     // Transformer les expériences : convertir réalisations en texte narratif
-    const experiences = (base.experiences || []).map((exp: any, idx: number) => {
-        const transformed: any = {
-            id: `exp_${idx}`,
-            poste: exp.poste,
-            entreprise: exp.entreprise,
-            debut: exp.debut || exp.date_debut,
-            fin: exp.fin || exp.date_fin,
-            actuel: exp.actuel,
-            lieu: exp.lieu,
-            secteur: exp.secteur,
-            contexte: exp.contexte,
-        };
+    // ET aplatir les missions imbriquées en expériences séparées
+    const experiences: any[] = [];
+    let expIndex = 0;
 
-        // Convertir réalisations en texte narratif
-        if (Array.isArray(exp.realisations)) {
-            transformed.realisations = exp.realisations
-                .map(convertRealisationToNarrative)
-                .filter((r: string) => r.length > 0);
+    (base.experiences || []).forEach((exp: any) => {
+        // Vérifier si c'est une expérience avec missions imbriquées
+        const hasMissions = Array.isArray(exp.missions) && exp.missions.length > 0;
+        const hasActivites = Array.isArray(exp.activites) && exp.activites.length > 0;
+        const hasProjects = Array.isArray(exp.projects) && exp.projects.length > 0;
+
+        // Si expérience avec missions/activités imbriquées, les aplatir
+        const nestedItems = exp.missions || exp.activites || exp.projects || [];
+
+        if (nestedItems.length > 0) {
+            // Aplatir chaque mission/activité en une expérience séparée
+            nestedItems.forEach((mission: any, missionIdx: number) => {
+                const transformed: any = {
+                    id: `exp_${expIndex}`,
+                    // Utiliser le client/titre de la mission ou combiner avec l'expérience parent
+                    poste: mission.poste || mission.role || mission.titre || exp.poste || "Consultant",
+                    entreprise: mission.client || mission.entreprise || mission.nom || exp.entreprise,
+                    debut: mission.debut || mission.date_debut || mission.start,
+                    fin: mission.fin || mission.date_fin || mission.end,
+                    actuel: mission.actuel || mission.current,
+                    lieu: mission.lieu || exp.lieu,
+                    secteur: mission.secteur || exp.secteur,
+                    contexte: mission.contexte || mission.description || exp.contexte,
+                    // Marquer comme sous-mission pour référence
+                    _parent_type: exp.poste || "Freelance",
+                };
+
+                // Convertir réalisations de la mission
+                const realisations = mission.realisations || mission.achievements || mission.bullets || [];
+                if (Array.isArray(realisations)) {
+                    transformed.realisations = realisations
+                        .map(convertRealisationToNarrative)
+                        .filter((r: string) => r.length > 0);
+                }
+
+                // Technologies/outils de la mission
+                if (mission.technologies) transformed.technologies = mission.technologies;
+                if (mission.outils) transformed.outils = mission.outils;
+                if (mission.stack) transformed.technologies = mission.stack;
+
+                experiences.push(transformed);
+                expIndex++;
+            });
+
+            // Ajouter aussi les réalisations directes de l'expérience parent (si existantes)
+            if (Array.isArray(exp.realisations) && exp.realisations.length > 0) {
+                const parentTransformed: any = {
+                    id: `exp_${expIndex}`,
+                    poste: exp.poste,
+                    entreprise: exp.entreprise,
+                    debut: exp.debut || exp.date_debut,
+                    fin: exp.fin || exp.date_fin,
+                    actuel: exp.actuel,
+                    lieu: exp.lieu,
+                    secteur: exp.secteur,
+                    contexte: exp.contexte,
+                };
+                parentTransformed.realisations = exp.realisations
+                    .map(convertRealisationToNarrative)
+                    .filter((r: string) => r.length > 0);
+                if (parentTransformed.realisations.length > 0) {
+                    experiences.push(parentTransformed);
+                    expIndex++;
+                }
+            }
+        } else {
+            // Expérience standard sans missions imbriquées
+            const transformed: any = {
+                id: `exp_${expIndex}`,
+                poste: exp.poste,
+                entreprise: exp.entreprise,
+                debut: exp.debut || exp.date_debut,
+                fin: exp.fin || exp.date_fin,
+                actuel: exp.actuel,
+                lieu: exp.lieu,
+                secteur: exp.secteur,
+                contexte: exp.contexte,
+            };
+
+            // Convertir réalisations en texte narratif
+            if (Array.isArray(exp.realisations)) {
+                transformed.realisations = exp.realisations
+                    .map(convertRealisationToNarrative)
+                    .filter((r: string) => r.length > 0);
+            }
+
+            // Technologies/outils (référencés dans skill_map)
+            if (exp.technologies) transformed.technologies = exp.technologies;
+            if (exp.outils) transformed.outils = exp.outils;
+            if (exp.methodologies) transformed.methodologies = exp.methodologies;
+            if (exp.clients_references) transformed.clients_references = exp.clients_references;
+
+            experiences.push(transformed);
+            expIndex++;
         }
-
-        // Technologies/outils (référencés dans skill_map)
-        if (exp.technologies) transformed.technologies = exp.technologies;
-        if (exp.outils) transformed.outils = exp.outils;
-        if (exp.methodologies) transformed.methodologies = exp.methodologies;
-        if (exp.clients_references) transformed.clients_references = exp.clients_references;
-
-        return transformed;
     });
 
     // Construire le profil simplifié
