@@ -110,7 +110,16 @@ export function normalizeRAGData(data: any): any {
             const entreprise = stableKey(exp?.entreprise);
             const debut = stableKey(getStart(exp));
             const fin = stableKey(getEnd(exp) ?? (exp?.actuel ? "present" : ""));
-            const key = `${poste}|${entreprise}|${debut}|${fin}`;
+            const baseKey = `${poste}|${entreprise}|${debut}|${fin}`;
+            const hasTime = Boolean(debut) || Boolean(fin);
+            const realSig = Array.isArray(exp?.realisations)
+                ? exp.realisations
+                      .map((r: any) => stableKey(typeof r === "string" ? r : r?.description))
+                      .filter(Boolean)
+                      .sort()
+                      .join("|")
+                : "";
+            const key = hasTime ? baseKey : `${poste}|${entreprise}|no_dates|${stableHash(realSig)}`;
 
             const existing = mergedByKey.get(key);
             if (!existing) {

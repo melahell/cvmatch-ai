@@ -57,5 +57,28 @@ describe("normalizeRAGData", () => {
         expect(out.experiences[0].technologies.sort()).toEqual(["Orchestra", "Planisware"].sort());
         expect(out.experiences[0].realisations.length).toBe(2);
     });
-});
 
+    it("ne fusionne pas des expériences distinctes quand les dates manquent", () => {
+        const input = {
+            profil: { prenom: "Gilles", nom: "Gozlan" },
+            experiences: [
+                {
+                    poste: "Consultant",
+                    entreprise: "Entreprise X",
+                    realisations: [{ description: "Mission A", impact: "" }],
+                },
+                {
+                    poste: "Consultant",
+                    entreprise: "Entreprise X",
+                    realisations: [{ description: "Mission B", impact: "" }],
+                },
+            ],
+        };
+
+        const out = normalizeRAGData(input);
+        expect(out.experiences.length).toBe(2);
+        const allDescriptions = out.experiences.flatMap((e: any) => (e.realisations || []).map((r: any) => r.description));
+        expect(allDescriptions).toContain("Mission A");
+        expect(allDescriptions).toContain("Mission B");
+    });
+});
