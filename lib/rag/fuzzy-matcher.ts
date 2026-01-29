@@ -7,24 +7,9 @@
  * - Déduplication par similarité pour compétences/expériences
  */
 
-/**
- * Normalise un nom d'entreprise pour comparaison
- * Gère les variations courantes (SA, SAS, Ltd, etc.)
- */
-export function normalizeCompanyName(name: string): string {
-    if (!name) return "";
-    
-    return name
-        .toLowerCase()
-        .trim()
-        // Supprimer formes juridiques
-        .replace(/\b(sa|sas|sarl|sci|eurl|ltd|llc|inc|corp|gmbh|ag)\b/gi, "")
-        // Supprimer ponctuation
-        .replace(/[.,;:!?()[\]{}]/g, "")
-        // Normaliser espaces
-        .replace(/\s+/g, " ")
-        .trim();
-}
+import { normalizeCompanyName } from "./normalize-company";
+
+export { normalizeCompanyName };
 
 /**
  * Calcule la similarité entre deux chaînes (0-1)
@@ -121,6 +106,25 @@ export function areExperiencesSimilar(
     }
 
     return true;
+}
+
+export function fuzzyAreExperiencesSimilar(
+    exp1: { entreprise?: string; poste?: string; debut?: string },
+    exp2: { entreprise?: string; poste?: string; debut?: string },
+    companyThreshold: number = 0.85,
+    positionThreshold: number = 0.7
+): boolean {
+    return areExperiencesSimilar(exp1, exp2, companyThreshold, positionThreshold);
+}
+
+export function fuzzyMatchCompany(
+    company1: string,
+    company2: string,
+    threshold: number = 0.85
+): boolean {
+    const c1 = normalizeCompanyName(company1 || "");
+    const c2 = normalizeCompanyName(company2 || "");
+    return calculateStringSimilarity(c1, c2) >= threshold;
 }
 
 /**

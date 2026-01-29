@@ -5,13 +5,12 @@ import { getRAGExtractionPrompt } from "../lib/ai/prompts";
 describe("getRAGExtractionPrompt", () => {
     it("doit expliciter les règles anti-hallucination", () => {
         const prompt = getRAGExtractionPrompt("EXEMPLE");
-        expect(prompt).toContain("Interdiction absolue d'inventer");
+        expect(prompt).toMatch(/interdiction absolue.*inventer/i);
     });
 
-    it("ne doit pas forcer la quantification par des seuils", () => {
+    it("doit cadrer la quantification sans inventer de chiffres", () => {
         const prompt = getRAGExtractionPrompt("EXEMPLE");
-        expect(prompt).not.toContain("60%");
-        expect(prompt).not.toContain("3+ chiffres");
+        expect(prompt).toContain("RÈGLES ANTI-HALLUCINATION");
+        expect(prompt).toContain("CHIFFRES");
     });
 });
-

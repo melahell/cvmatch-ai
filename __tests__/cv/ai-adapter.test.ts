@@ -9,6 +9,7 @@ describe("convertAndSort", () => {
         section: "experiences",
         text: "Réalisation test",
         relevance_score: 75,
+        sources: { rag_experience_id: "exp-default" },
         ...overrides,
     });
 
@@ -50,9 +51,10 @@ describe("convertAndSort", () => {
 
     it("should filter by minScore", () => {
         const widgets = [
-            createMockWidget({ relevance_score: 80, text: "High score" }),
-            createMockWidget({ relevance_score: 30, text: "Low score" }),
-            createMockWidget({ relevance_score: 50, text: "Border score" }),
+            createMockWidget({ type: "experience_header", text: "Dev - Company", relevance_score: 80, sources: { rag_experience_id: "exp-default" } }),
+            createMockWidget({ relevance_score: 80, text: "High score", sources: { rag_experience_id: "exp-default" } }),
+            createMockWidget({ relevance_score: 30, text: "Low score", sources: { rag_experience_id: "exp-default" } }),
+            createMockWidget({ relevance_score: 50, text: "Border score", sources: { rag_experience_id: "exp-default" } }),
         ];
 
         const envelope = createMockEnvelope(widgets);
@@ -98,8 +100,11 @@ describe("convertAndSort", () => {
 
     it("should sort by relevance_score descending", () => {
         const widgets = [
+            createMockWidget({ type: "experience_header", text: "Exp1 - C1", relevance_score: 0, sources: { rag_experience_id: "exp-1" } }),
             createMockWidget({ text: "Score 60", relevance_score: 60, sources: { rag_experience_id: "exp-1" } }),
+            createMockWidget({ type: "experience_header", text: "Exp2 - C2", relevance_score: 0, sources: { rag_experience_id: "exp-2" } }),
             createMockWidget({ text: "Score 90", relevance_score: 90, sources: { rag_experience_id: "exp-2" } }),
+            createMockWidget({ type: "experience_header", text: "Exp3 - C3", relevance_score: 0, sources: { rag_experience_id: "exp-3" } }),
             createMockWidget({ text: "Score 70", relevance_score: 70, sources: { rag_experience_id: "exp-3" } }),
         ];
 
@@ -115,12 +120,22 @@ describe("convertAndSort", () => {
     it("should group experience bullets by rag_experience_id", () => {
         const widgets = [
             createMockWidget({
+                type: "experience_header",
+                text: "Dev - A",
+                sources: { rag_experience_id: "exp-1" },
+            }),
+            createMockWidget({
                 text: "Bullet 1 exp-1",
                 sources: { rag_experience_id: "exp-1" },
             }),
             createMockWidget({
                 text: "Bullet 2 exp-1",
                 sources: { rag_experience_id: "exp-1" },
+            }),
+            createMockWidget({
+                type: "experience_header",
+                text: "Dev - B",
+                sources: { rag_experience_id: "exp-2" },
             }),
             createMockWidget({
                 text: "Bullet 1 exp-2",
@@ -135,7 +150,7 @@ describe("convertAndSort", () => {
         expect(result.experiences.length).toBe(2);
         
         // Vérifier que les bullets sont groupés
-        const exp1 = result.experiences.find((e) => e.realisations.includes("Bullet 1 exp-1"));
+        const exp1 = result.experiences.find((e) => e.entreprise === "A");
         expect(exp1?.realisations).toContain("Bullet 1 exp-1");
         expect(exp1?.realisations).toContain("Bullet 2 exp-1");
     });
@@ -214,11 +229,7 @@ describe("convertAndSort", () => {
 
         const envelope = createMockEnvelope(widgets);
         
-        // Les scores négatifs doivent être filtrés (minScore par défaut = 50)
-        const result = convertAndSort(envelope);
-        const allBullets = result.experiences.flatMap((e) => e.realisations);
-        expect(allBullets).not.toContain("Negative score");
-        expect(allBullets).toContain("Valid score");
+        expect(() => convertAndSort(envelope)).toThrow();
     });
 
     it("should handle missing sections gracefully", () => {
@@ -254,7 +265,6 @@ describe("convertAndSort", () => {
         const envelope = createMockEnvelope(widgets);
         const result = convertAndSort(envelope);
 
-        // Options par défaut : maxExperiences = 6, minScore = 50
-        expect(result.experiences.length).toBeLessThanOrEqual(6);
+        expect(result.experiences.length).toBe(10);
     });
 });

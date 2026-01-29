@@ -2,7 +2,7 @@
  * TESTS UNITAIRES - ALGORITHME ADAPTATIF
  */
 
-import { describe, it, expect } from "@jest/globals";
+import { describe, it, expect } from "vitest";
 import { generateAdaptiveCV, recommendTheme } from "../adaptive-algorithm";
 import { getTheme } from "../theme-configs";
 import { juniorProfile, seniorProfile, techLeadJobOffer, fullStackJobOffer } from "./fixtures";

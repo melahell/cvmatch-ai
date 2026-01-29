@@ -3,6 +3,8 @@
  * Removes semantic duplicates from RAG data
  */
 
+import { normalizeCompanyName } from "./normalize-company";
+
 interface Experience {
     poste: string;
     entreprise: string;
@@ -87,8 +89,11 @@ function calculateSimilarity(str1: string, str2: string): number {
  * Check if two experiences are duplicates (same job, same company, overlapping dates)
  */
 function areExperiencesDuplicates(exp1: Experience, exp2: Experience): boolean {
-    // Same company
-    if (exp1.entreprise !== exp2.entreprise) return false;
+    const company1 = normalizeCompanyName(exp1.entreprise);
+    const company2 = normalizeCompanyName(exp2.entreprise);
+    if (!company1 || !company2) return false;
+
+    if (company1 !== company2 && calculateSimilarity(company1, company2) < 0.85) return false;
 
     // Similar job title (>80% similarity)
     const titleSimilarity = calculateSimilarity(exp1.poste, exp2.poste);
@@ -245,10 +250,7 @@ export function deduplicateExperiences(experiences: Experience[]): Experience[] 
     }
 
     // Merge each group
-    return groups.map(group => {
-        if (group.length === 1) return group[0];
-        return mergeExperiences(group);
-    });
+    return groups.map(group => mergeExperiences(group));
 }
 
 /**

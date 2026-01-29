@@ -16,21 +16,21 @@ describe('Button Component', () => {
 
     it('renders with different variants', () => {
       const { rerender } = render(<Button variant="destructive">Delete</Button>);
-      expect(screen.getByRole('button')).toHaveClass('bg-destructive');
+      expect(screen.getByRole('button')).toHaveClass('bg-semantic-error');
 
       rerender(<Button variant="outline">Outline</Button>);
-      expect(screen.getByRole('button')).toHaveClass('border');
+      expect(screen.getByRole('button')).toHaveClass('border-2');
 
       rerender(<Button variant="ghost">Ghost</Button>);
-      expect(screen.getByRole('button')).toHaveClass('hover:bg-accent');
+      expect(screen.getByRole('button')).toHaveClass('hover:bg-surface-secondary');
     });
 
     it('renders with different sizes', () => {
       const { rerender } = render(<Button size="sm">Small</Button>);
-      expect(screen.getByRole('button')).toHaveClass('h-8');
+      expect(screen.getByRole('button')).toHaveClass('h-9');
 
       rerender(<Button size="lg">Large</Button>);
-      expect(screen.getByRole('button')).toHaveClass('h-10');
+      expect(screen.getByRole('button')).toHaveClass('h-12');
     });
 
     it('renders as disabled', () => {
@@ -97,7 +97,7 @@ describe('Button Component', () => {
     it('has visible focus indicator', () => {
       render(<Button>Focus me</Button>);
       const button = screen.getByRole('button');
-      expect(button).toHaveClass('focus-visible:outline-none', 'focus-visible:ring-1');
+      expect(button).toHaveClass('focus-visible:outline-none', 'focus-visible:ring-2');
     });
   });
 

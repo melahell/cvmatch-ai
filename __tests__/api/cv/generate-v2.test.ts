@@ -16,15 +16,17 @@ vi.mock("@/lib/utils/rate-limit");
 describe("POST /api/cv/generate-v2", () => {
     const mockUserId = "user-123";
     const mockAnalysisId = "analysis-456";
-    const mockRequest = new Request("http://localhost/api/cv/generate-v2", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            analysisId: mockAnalysisId,
-            template: "modern",
-            includePhoto: true,
-        }),
-    });
+    const makeRequest = (overrides?: Partial<{ analysisId: string; template: string; includePhoto: boolean }>) =>
+        new Request("http://localhost/api/cv/generate-v2", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                analysisId: mockAnalysisId,
+                template: "modern",
+                includePhoto: true,
+                ...overrides,
+            }),
+        });
 
     const mockAuth = {
         user: { id: mockUserId },
@@ -97,39 +99,43 @@ describe("POST /api/cv/generate-v2", () => {
     it("should generate CV successfully end-to-end", async () => {
         // Mock authentification
         vi.spyOn(supabaseModule, "requireSupabaseUser").mockResolvedValue(mockAuth as any);
-        vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue({
-            from: vi.fn(() => ({
-                select: vi.fn(() => ({
-                    eq: vi.fn(() => ({
-                        single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro", subscription_status: "active" } }),
-                    })),
-                })),
-            })),
-        }) as any);
 
         // Mock rate limiting
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({ success: true });
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+            success: true,
+            remaining: 9,
+            resetAt: Date.now() + 60000,
+        });
         vi.spyOn(rateLimitModule, "getRateLimitConfig").mockReturnValue({ maxRequests: 10, windowMs: 60000 });
 
         // Mock Supabase queries
         const mockSupabaseClient = {
             from: vi.fn((table: string) => {
-                if (table === "job_analyses") {
+                if (table === "users") {
                     return {
                         select: vi.fn(() => ({
                             eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: mockAnalysisData, error: null }),
+                                single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro", subscription_status: "active" }, error: null }),
                             })),
                         })),
                     };
                 }
-                if (table === "rag_metadata") {
+                if (table === "job_analyses") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: mockAnalysisData, error: null }),
+                    };
                     return {
-                        select: vi.fn(() => ({
-                            eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: mockRAGMetadata, error: null }),
-                            })),
-                        })),
+                        select: vi.fn(() => query),
+                    };
+                }
+                if (table === "rag_metadata") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: mockRAGMetadata, error: null }),
+                    };
+                    return {
+                        select: vi.fn(() => query),
                     };
                 }
                 if (table === "cv_generations") {
@@ -162,14 +168,14 @@ describe("POST /api/cv/generate-v2", () => {
         // Mock template fitting
         vi.spyOn(validatorModule, "fitCVToTemplate").mockReturnValue(mockFittedCV as any);
 
-        const response = await POST(mockRequest);
+        const response = await POST(makeRequest());
         const data = await response.json();
 
         expect(response.status).toBe(200);
         expect(data.success).toBe(true);
         expect(data.cvId).toBe("cv-789");
         expect(data.generatorVersion).toBe("v2");
-        expect(data.widgetsUsed).toBe(1);
+        expect(data.widgetsTotal).toBe(1);
     });
 
     it("should return 401 if not authenticated", async () => {
@@ -179,7 +185,7 @@ describe("POST /api/cv/generate-v2", () => {
             error: "Non autorisé",
         } as any);
 
-        const response = await POST(mockRequest);
+        const response = await POST(makeRequest());
         const data = await response.json();
 
         expect(response.status).toBe(401);
@@ -188,7 +194,7 @@ describe("POST /api/cv/generate-v2", () => {
 
     it("should return 429 if rate limit exceeded", async () => {
         vi.spyOn(supabaseModule, "requireSupabaseUser").mockResolvedValue(mockAuth as any);
-        vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue({
+        vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(({
             from: vi.fn(() => ({
                 select: vi.fn(() => ({
                     eq: vi.fn(() => ({
@@ -196,12 +202,14 @@ describe("POST /api/cv/generate-v2", () => {
                     })),
                 })),
             })),
-        }) as any);
+        } as any));
+        vi.spyOn(supabaseModule, "createSupabaseUserClient").mockReturnValue({} as any);
 
         vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
             success: false,
             remaining: 0,
-            resetAt: new Date().toISOString(),
+            resetAt: Date.now() + 60000,
+            retryAfter: 60,
         });
         vi.spyOn(rateLimitModule, "getRateLimitConfig").mockReturnValue({ maxRequests: 5, windowMs: 60000 });
         vi.spyOn(rateLimitModule, "createRateLimitError").mockReturnValue({
@@ -210,7 +218,7 @@ describe("POST /api/cv/generate-v2", () => {
             retryAfter: 60,
         } as any);
 
-        const response = await POST(mockRequest);
+        const response = await POST(makeRequest());
         const data = await response.json();
 
         expect(response.status).toBe(429);
@@ -222,19 +230,19 @@ describe("POST /api/cv/generate-v2", () => {
         const mockSupabaseClient = {
             from: vi.fn((table: string) => {
                 if (table === "job_analyses") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
+                    };
                     return {
-                        select: vi.fn(() => ({
-                            eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
-                            })),
-                        })),
+                        select: vi.fn(() => query),
                     };
                 }
                 if (table === "users") {
                     return {
                         select: vi.fn(() => ({
                             eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro" } }),
+                                single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro", subscription_status: "active" } }),
                             })),
                         })),
                     };
@@ -244,10 +252,14 @@ describe("POST /api/cv/generate-v2", () => {
         };
 
         vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(mockSupabaseClient as any);
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({ success: true });
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+            success: true,
+            remaining: 9,
+            resetAt: Date.now() + 60000,
+        });
         vi.spyOn(rateLimitModule, "getRateLimitConfig").mockReturnValue({ maxRequests: 10, windowMs: 60000 });
 
-        const response = await POST(mockRequest);
+        const response = await POST(makeRequest());
         const data = await response.json();
 
         expect(response.status).toBe(404);
@@ -259,28 +271,28 @@ describe("POST /api/cv/generate-v2", () => {
         const mockSupabaseClient = {
             from: vi.fn((table: string) => {
                 if (table === "job_analyses") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: mockAnalysisData, error: null }),
+                    };
                     return {
-                        select: vi.fn(() => ({
-                            eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: mockAnalysisData, error: null }),
-                            })),
-                        })),
+                        select: vi.fn(() => query),
                     };
                 }
                 if (table === "rag_metadata") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
+                    };
                     return {
-                        select: vi.fn(() => ({
-                            eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: null, error: { message: "Not found" } }),
-                            })),
-                        })),
+                        select: vi.fn(() => query),
                     };
                 }
                 if (table === "users") {
                     return {
                         select: vi.fn(() => ({
                             eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro" } }),
+                                single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro", subscription_status: "active" } }),
                             })),
                         })),
                     };
@@ -290,10 +302,14 @@ describe("POST /api/cv/generate-v2", () => {
         };
 
         vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(mockSupabaseClient as any);
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({ success: true });
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+            success: true,
+            remaining: 9,
+            resetAt: Date.now() + 60000,
+        });
         vi.spyOn(rateLimitModule, "getRateLimitConfig").mockReturnValue({ maxRequests: 10, windowMs: 60000 });
 
-        const response = await POST(mockRequest);
+        const response = await POST(makeRequest());
         const data = await response.json();
 
         expect(response.status).toBe(404);
@@ -305,21 +321,21 @@ describe("POST /api/cv/generate-v2", () => {
         const mockSupabaseClient = {
             from: vi.fn((table: string) => {
                 if (table === "job_analyses") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: mockAnalysisData, error: null }),
+                    };
                     return {
-                        select: vi.fn(() => ({
-                            eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: mockAnalysisData, error: null }),
-                            })),
-                        })),
+                        select: vi.fn(() => query),
                     };
                 }
                 if (table === "rag_metadata") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: mockRAGMetadata, error: null }),
+                    };
                     return {
-                        select: vi.fn(() => ({
-                            eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: mockRAGMetadata, error: null }),
-                            })),
-                        })),
+                        select: vi.fn(() => query),
                     };
                 }
                 if (table === "cv_generations") {
@@ -335,7 +351,7 @@ describe("POST /api/cv/generate-v2", () => {
                     return {
                         select: vi.fn(() => ({
                             eq: vi.fn(() => ({
-                                single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro" } }),
+                                single: vi.fn().mockResolvedValue({ data: { subscription_tier: "pro", subscription_status: "active" } }),
                             })),
                         })),
                     };
@@ -345,13 +361,17 @@ describe("POST /api/cv/generate-v2", () => {
         };
 
         vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(mockSupabaseClient as any);
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({ success: true });
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+            success: true,
+            remaining: 9,
+            resetAt: Date.now() + 60000,
+        });
         vi.spyOn(rateLimitModule, "getRateLimitConfig").mockReturnValue({ maxRequests: 10, windowMs: 60000 });
         vi.spyOn(generateWidgetsModule, "generateWidgetsFromRAGAndMatch").mockResolvedValue(mockWidgetsEnvelope as any);
         vi.spyOn(aiAdapterModule, "convertAndSort").mockReturnValue(mockCVData as any);
         vi.spyOn(validatorModule, "fitCVToTemplate").mockReturnValue(mockFittedCV as any);
 
-        const response = await POST(mockRequest);
+        const response = await POST(makeRequest());
         const data = await response.json();
 
         expect(response.status).toBe(200);

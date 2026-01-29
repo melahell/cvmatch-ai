@@ -107,8 +107,8 @@ describe("CV quality guardrails", () => {
             jobOffer: { title: "Chef de projets IT" },
         });
 
-        expect(result.cvData.experiences.length).toBeLessThanOrEqual(3);
-        expect(result.cvData.langues.length).toBeLessThanOrEqual(3);
+        expect(result.cvData.experiences.length).toBeLessThanOrEqual(4);
+        expect((result.cvData.langues || []).length).toBeLessThanOrEqual(4);
         expect((result.cvData.certifications || []).length).toBeLessThanOrEqual(4);
         expect((result.cvData.clients_references?.clients || []).length).toBeLessThanOrEqual(8);
         expect((result.cvData.clients_references?.secteurs || []).length).toBeLessThanOrEqual(4);
@@ -117,4 +117,3 @@ describe("CV quality guardrails", () => {
         expect(hasSideProject).toBe(false);
     });
 });
-

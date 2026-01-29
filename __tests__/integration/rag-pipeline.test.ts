@@ -9,6 +9,11 @@ import { validateRAGData } from "../../lib/rag/validation";
 describe("RAG Pipeline Integration", () => {
     it("devrait valider le pipeline complet avec contraintes qualité", () => {
         const ragData = {
+            profil: {
+                prenom: "Test",
+                nom: "User",
+                elevator_pitch: "10 projets livrés en 12 mois, 3 pays couverts, budget 2M€.".padEnd(220, "x"),
+            },
             experiences: [
                 {
                     poste: "PMO",
@@ -53,6 +58,7 @@ describe("RAG Pipeline Integration", () => {
             profil: {
                 nom: "Test",
                 prenom: "User",
+                elevator_pitch: "10 projets livrés en 12 mois, 3 pays couverts, budget 2M€.".padEnd(220, "x"),
             },
             experiences: [
                 {

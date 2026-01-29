@@ -152,7 +152,6 @@ export function CVPreviewModal({
                     scale: 2,
                     useCORS: true,
                     letterRendering: true,
-                    backgroundColor: '#ffffff'
                 },
                 jsPDF: {
                     unit: 'mm' as const,
@@ -295,7 +294,7 @@ export function CVPreviewModal({
                                             initial={{ top: 0 }}
                                             animate={{ top: "100%" }}
                                             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                                            className="absolute left-0 right-0 h-1 bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.8)] z-50"
+                                            className="absolute left-0 right-0 h-1 bg-green-500 shadow-level-3 z-50"
                                         />
                                         <div className="absolute center top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-6 py-3 rounded-full font-bold backdrop-blur-md shadow-2xl flex items-center gap-3">
                                             <Loader2 className="h-5 w-5 animate-spin text-green-400" />

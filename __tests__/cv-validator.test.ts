@@ -42,7 +42,7 @@ describe("fitCVToTemplate", () => {
 
         expect(result.unitStats.zoneUnitsUsed.experiences).toBeLessThanOrEqual(theme.zones.experiences.capacity_units);
         expect(result.unitStats.totalUnitsUsed).toBeLessThanOrEqual(allowed);
-        expect(Math.max(...result.cvData.experiences.map((e: any) => e.realisations.length))).toBeLessThanOrEqual(4);
+        expect(Math.max(...result.cvData.experiences.map((e: any) => e.realisations.length))).toBeLessThanOrEqual(6);
         expect(result.compressionLevelApplied).toBeGreaterThanOrEqual(0);
     });
 

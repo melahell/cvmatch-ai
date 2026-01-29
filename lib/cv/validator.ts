@@ -335,12 +335,12 @@ function selectExperiencesForTemplate(cvData: any, limits: CVContentLimits, jobO
         else kept.push(exp);
     }
     const primary = kept.slice(0, max);
-    if (primary.length >= max) {
+    if (primary.length > 0) {
         next.experiences = primary;
         return next;
     }
-    const fill = lowPriority.slice(0, max - primary.length);
-    next.experiences = [...primary, ...fill];
+
+    next.experiences = lowPriority.slice(0, max);
     return next;
 }
 

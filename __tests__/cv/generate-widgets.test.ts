@@ -106,8 +106,8 @@ describe("generateWidgetsFromRAGAndMatch", () => {
         expect(result?.widgets[0].relevance_score).toBe(90);
         expect(result?.profil_summary?.prenom).toBe("Jean");
         expect(geminiModule.generateWithGemini).toHaveBeenCalledWith({
-            prompt: "Mock prompt",
-            model: expect.any(String),
+            prompt: expect.stringContaining("Mock prompt"),
+            model: "gemini-3-pro-preview",
         });
     });
 
