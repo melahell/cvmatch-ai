@@ -81,7 +81,10 @@ export async function generateWidgetsFromRAGAndMatch(
                     // Appliquer le boost sectoriel même sur les widgets cachés
                     const boostedWidgets = cacheResult.widgets.map((widget: any) => ({
                         ...widget,
-                        relevance_score: (widget.relevance_score || 50) + applySectorScoringBoost(widget, sector, params.ragProfile),
+                        relevance_score: Math.max(
+                            0,
+                            Math.min(100, (widget.relevance_score || 50) + applySectorScoringBoost(widget, sector, params.ragProfile))
+                        ),
                     }));
 
                     return {
@@ -187,7 +190,10 @@ export async function generateWidgetsFromRAGAndMatch(
         // [INTÉGRATION] Appliquer le boost sectoriel aux scores
         const boostedWidgets = validation.data.widgets.map((widget: any) => ({
             ...widget,
-            relevance_score: (widget.relevance_score || 50) + applySectorScoringBoost(widget, sector, params.ragProfile),
+            relevance_score: Math.max(
+                0,
+                Math.min(100, (widget.relevance_score || 50) + applySectorScoringBoost(widget, sector, params.ragProfile))
+            ),
         }));
         const envelope: AIWidgetsEnvelope = {
             ...validation.data,

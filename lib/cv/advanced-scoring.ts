@@ -211,7 +211,7 @@ export function calculateAdvancedScore(
         recencyScore * weights.recency +
         seniorityScore * weights.seniority;
     
-    return Math.round(compositeScore);
+    return Math.max(0, Math.min(100, Math.round(compositeScore)));
 }
 
 /**
@@ -259,7 +259,7 @@ export function rescoreWidgetsWithAdvanced(
         
         return {
             ...widget,
-            relevance_score: advancedScore,
+            relevance_score: Math.max(0, Math.min(100, advancedScore)),
         };
     });
     

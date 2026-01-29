@@ -374,6 +374,34 @@ describe("convertAndSort", () => {
         expect(result.clients_references?.clients?.length).toBe(2);
     });
 
+    it("should clamp invalid relevance_score values and still convert", () => {
+        const widgets = [
+            createMockWidget({
+                type: "summary_block",
+                section: "summary",
+                text: "Résumé",
+                relevance_score: 115 as any,
+            }),
+            createMockWidget({
+                type: "experience_header",
+                section: "experiences",
+                text: "Dev - Entreprise X",
+                relevance_score: 0,
+                sources: { rag_experience_id: "exp-1" },
+            }),
+            createMockWidget({
+                section: "experiences",
+                text: "Réalisation",
+                relevance_score: 101 as any,
+                sources: { rag_experience_id: "exp-1" },
+            }),
+        ];
+
+        const envelope = createMockEnvelope(widgets);
+        const result = convertAndSort(envelope);
+        expect(result.experiences.length).toBeGreaterThan(0);
+    });
+
     it("should inject contexte_enrichi into competences when skills widgets are missing", () => {
         const envelope = createMockEnvelope([
             createMockWidget({
@@ -428,8 +456,7 @@ describe("convertAndSort", () => {
         ];
 
         const envelope = createMockEnvelope(widgets);
-        
-        expect(() => convertAndSort(envelope)).toThrow();
+        expect(() => convertAndSort(envelope)).not.toThrow();
     });
 
     it("should handle missing sections gracefully", () => {

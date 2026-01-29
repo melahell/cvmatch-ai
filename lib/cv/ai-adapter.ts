@@ -241,7 +241,24 @@ const cleanClientList = (items: unknown[], options?: { exclude?: string[]; max?:
  * [AUDIT FIX IMPORTANT-6] : Enrichit les expériences avec les données du RAG source
  */
 export function convertAndSort(input: unknown, options?: ConvertOptions): RendererResumeSchema {
-    const parsed = aiWidgetsEnvelopeSchema.parse(input) as AIWidgetsEnvelope;
+    const clampScore = (value: any) => {
+        const n = typeof value === "number" ? value : Number(value);
+        if (!Number.isFinite(n)) return 0;
+        return Math.max(0, Math.min(100, n));
+    };
+
+    const sanitizedInput =
+        input && typeof input === "object" && Array.isArray((input as any).widgets)
+            ? {
+                  ...(input as any),
+                  widgets: (input as any).widgets.map((w: any) => ({
+                      ...w,
+                      relevance_score: clampScore(w?.relevance_score),
+                  })),
+              }
+            : input;
+
+    const parsed = aiWidgetsEnvelopeSchema.parse(sanitizedInput) as AIWidgetsEnvelope;
 
     // DEBUG: Log entrée
     console.log("[convertAndSort] INPUT:", {
