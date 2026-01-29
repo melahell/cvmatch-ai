@@ -44,7 +44,7 @@ export default function ClassicTemplate({
     jobContext,
     dense = false
 }: TemplateProps) {
-    const { profil, experiences, competences, formations, langues, certifications } = data;
+    const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
     const hasHttpPhoto =
         typeof profil?.photo_url === "string" &&
         (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
@@ -259,6 +259,16 @@ export default function ClassicTemplate({
                         <div className="text-[9pt] text-slate-700 leading-relaxed">
                             {limitedSkills.join(' • ')}
                         </div>
+
+                        {/* Clients */}
+                        {clients_references?.clients && clients_references.clients.length > 0 && (
+                            <div className="mt-4 pt-3 border-t border-slate-200">
+                                <h3 className="text-[10pt] uppercase tracking-wider text-slate-700 mb-2">Clients</h3>
+                                <div className="text-[8pt] text-slate-600 leading-relaxed">
+                                    {clients_references.clients.join(' • ')}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Certifications */}
                         {certifications && certifications.length > 0 && (

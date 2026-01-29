@@ -16,7 +16,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw, Download, FileJson } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw, Download, FileJson, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
 import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions } from "@/lib/cv/client-bridge";
 import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { validateAIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
@@ -47,6 +47,7 @@ import { HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { logger } from "@/lib/utils/logger";
+import { Switch } from "@/components/ui/switch";
 
 // Lazy load CVRenderer (heavy component with templates)
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
@@ -91,6 +92,18 @@ function CVBuilderContent() {
     const [showWidgetEditor, setShowWidgetEditor] = useState<boolean>(false);
     const [loadingStep, setLoadingStep] = useState<string | null>(null);
     const [errorAction, setErrorAction] = useState<{ action?: string; actionLabel?: string } | null>(null);
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
+    const [advancedFiltersEnabled, setAdvancedFiltersEnabled] = useState<boolean>(false);
+    const [advancedMinScoreBySection, setAdvancedMinScoreBySection] = useState<Record<string, number>>({
+        header: 0,
+        summary: 0,
+        experiences: 0,
+        skills: 0,
+        education: 0,
+        languages: 0,
+        references: 0,
+        projects: 0,
+    });
     // DEFAULTS: PAS DE FILTRAGE - l'utilisateur contrôle via sliders UI
     const [convertOptions, setConvertOptions] = useState<ConvertOptions>({
         minScore: 0,                  // Afficher tout par défaut
@@ -335,6 +348,8 @@ function CVBuilderContent() {
                 minScore: options.minScore ?? 0,
                 maxExperiences: options.maxExperiences ?? 99,
                 maxBulletsPerExperience: options.maxBulletsPerExperience ?? 99,
+                advancedFilteringEnabled: advancedFiltersEnabled,
+                minScoreBySection: advancedFiltersEnabled ? advancedMinScoreBySection : undefined,
             };
 
             // Options complètes pour la conversion (avec ragProfile)
@@ -409,7 +424,7 @@ function CVBuilderContent() {
                 }));
             }
         },
-        [analysisId, ragData]
+        [analysisId, ragData, advancedFiltersEnabled, advancedMinScoreBySection]
     );
 
     // Charger au montage
@@ -425,7 +440,7 @@ function CVBuilderContent() {
             convertWidgetsToCVData(state.widgets, templateId, convertOptions, state.jobOfferContext);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [templateId, convertOptions, state.widgets, state.jobOfferContext]);
+    }, [templateId, convertOptions, state.widgets, state.jobOfferContext, advancedFiltersEnabled, advancedMinScoreBySection]);
 
     const handleTemplateChange = (newTemplate: string) => {
         setTemplateId(newTemplate);
@@ -770,30 +785,54 @@ function CVBuilderContent() {
 
                                     <Card>
                                         <CardHeader>
-                                            <CardTitle className="text-sm flex items-center gap-2">
-                                                <span>Options de Filtrage</span>
-                                                <TooltipProvider>
-                                                    <Tooltip>
-                                                        <TooltipTrigger asChild>
-                                                            <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                        </TooltipTrigger>
-                                                        <TooltipContent side="right" className="max-w-xs">
-                                                            <div className="space-y-2 text-xs">
-                                                                <p className="font-semibold">Options de filtrage</p>
-                                                                <p className="text-slate-600">
-                                                                    Ajustez ces paramètres pour contrôler quels éléments apparaissent dans votre CV et en quelle quantité.
-                                                                </p>
-                                                            </div>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                </TooltipProvider>
+                                            <CardTitle className="text-sm flex items-center justify-between gap-2">
+                                                <span className="flex items-center gap-2">
+                                                    <span>Options de Filtrage</span>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="right" className="max-w-xs">
+                                                                <div className="space-y-2 text-xs">
+                                                                    <p className="font-semibold">Options de filtrage</p>
+                                                                    <p className="text-slate-600">
+                                                                        Le score global s'applique à toutes les sections. Les filtres avancés permettent de définir des seuils distincts par section (expériences, compétences, etc.).
+                                                                    </p>
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </span>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 px-2"
+                                                    onClick={() => setShowAdvancedFilters((v) => !v)}
+                                                >
+                                                    <SlidersHorizontal className="w-3 h-3 mr-1" />
+                                                    {showAdvancedFilters ? "Masquer" : "Avancé"}
+                                                    {showAdvancedFilters ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                                                </Button>
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-4 text-xs">
+                                            {showAdvancedFilters && (
+                                                <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-slate-800 font-medium">Filtres avancés</p>
+                                                        <p className="text-slate-500">Seuils distincts par section (au lieu d'un seul filtre global).</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-slate-600">{advancedFiltersEnabled ? "Activés" : "Désactivés"}</span>
+                                                        <Switch checked={advancedFiltersEnabled} onCheckedChange={setAdvancedFiltersEnabled} />
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
                                                     <label className="block text-slate-600">
-                                                        Score minimum: {convertOptions.minScore}
+                                                        Score global minimum: {convertOptions.minScore}
                                                     </label>
                                                     <TooltipProvider>
                                                         <Tooltip>
@@ -835,6 +874,40 @@ function CVBuilderContent() {
                                                      "Affiche uniquement les éléments très pertinents"}
                                                 </p>
                                             </div>
+                                            {showAdvancedFilters && (
+                                                <div className={`space-y-3 rounded-md border px-3 py-3 ${advancedFiltersEnabled ? "border-indigo-200 bg-indigo-50" : "border-slate-200 bg-slate-50"}`}>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {[
+                                                            { key: "experiences", label: "Expériences" },
+                                                            { key: "skills", label: "Compétences" },
+                                                            { key: "education", label: "Formations" },
+                                                            { key: "languages", label: "Langues" },
+                                                            { key: "references", label: "Clients / Références" },
+                                                            { key: "projects", label: "Projets" },
+                                                        ].map((row) => (
+                                                            <div key={row.key}>
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <label className="block text-slate-700">
+                                                                        Seuil {row.label}: {advancedMinScoreBySection[row.key] ?? 0}
+                                                                    </label>
+                                                                </div>
+                                                                <input
+                                                                    type="range"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    value={advancedMinScoreBySection[row.key] ?? 0}
+                                                                    onChange={(e) => {
+                                                                        const value = Number(e.target.value);
+                                                                        setAdvancedMinScoreBySection((prev) => ({ ...prev, [row.key]: value }));
+                                                                    }}
+                                                                    className="w-full"
+                                                                    disabled={!advancedFiltersEnabled}
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div>
                                                 <div className="flex items-center justify-between mb-1">
                                                     <label className="block text-slate-600">

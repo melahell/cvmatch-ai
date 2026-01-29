@@ -54,7 +54,7 @@ export default function CreativeTemplate({
     jobContext,
     dense = false
 }: TemplateProps) {
-    const { profil, experiences, competences, formations, langues } = data;
+    const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
     const hasHttpPhoto =
         typeof profil?.photo_url === "string" &&
         (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
@@ -78,6 +78,8 @@ export default function CreativeTemplate({
     const rawSoftSkills = competences?.soft_skills || [];
     const limitedSoftSkills = rawSoftSkills.map(safeString);
     const limitedFormations = formations || [];
+    const limitedCertifications = (certifications || []).map(safeString);
+    const limitedClients = (clients_references?.clients || []).map(safeString);
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
@@ -359,6 +361,52 @@ export default function CreativeTemplate({
                                     <span className="text-slate-600"> – {lang.niveau}</span>
                                 </div>
                             ))}
+                        </section>
+                    )}
+
+                    {/* Certifications */}
+                    {limitedCertifications.length > 0 && (
+                        <section className="mt-5">
+                            <h3
+                                className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
+                                style={{ color: COLORS.primary }}
+                            >
+                                ✅ Certifications
+                            </h3>
+                            <div className="space-y-1.5">
+                                {limitedCertifications.map((cert, i) => (
+                                    <div
+                                        key={i}
+                                        className="text-[8pt] text-slate-700 flex items-center gap-2"
+                                    >
+                                        <span style={{ color: COLORS.primary }}>●</span>
+                                        {cert}
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Clients */}
+                    {limitedClients.length > 0 && (
+                        <section className="mt-5">
+                            <h3
+                                className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
+                                style={{ color: COLORS.secondary }}
+                            >
+                                🏢 Clients
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5">
+                                {limitedClients.map((client, i) => (
+                                    <span
+                                        key={i}
+                                        className="px-2 py-1 text-[7pt] rounded-md text-white font-medium"
+                                        style={{ background: COLORS.secondary }}
+                                    >
+                                        {client}
+                                    </span>
+                                ))}
+                            </div>
                         </section>
                     )}
                 </aside>

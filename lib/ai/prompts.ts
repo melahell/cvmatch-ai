@@ -475,8 +475,8 @@ SCHÉMA DE SORTIE (JSON uniquement)
   "widgets": [
     {
       "id": "string (unique, ex: 'w1', 'w2')",
-      "type": "summary_block" | "experience_header" | "experience_bullet" | "skill_item" | "skill_group" | "education_item" | "project_item" | "language_item",
-      "section": "header" | "summary" | "experiences" | "skills" | "education" | "projects" | "languages" | "references",
+      "type": "summary_block" | "experience_header" | "experience_bullet" | "skill_item" | "skill_group" | "education_item" | "certification_item" | "project_item" | "language_item" | "reference_item",
+      "section": "header" | "summary" | "experiences" | "skills" | "education" | "certifications" | "projects" | "languages" | "references",
       "text": "string (texte brut à afficher, max 300 caractères pour bullets, max 200 pour summary)",
       "relevance_score": number (0-100),
       "sub_type": "string (optionnel, ex: 'lead_bullet', 'secondary_bullet')",
@@ -611,6 +611,18 @@ STRATÉGIE DE GÉNÉRATION COMPLÈTE
 5. SUMMARY :
    - 1 widget "summary_block" reformulé pour l'offre
 
+6. CERTIFICATIONS (TOUTES, si présentes dans le RAG) :
+   - 1 widget "certification_item" par certification
+   - section = "certifications"
+
+7. CLIENTS / RÉFÉRENCES (TOUS, si présents dans le RAG) :
+   - 1 widget "reference_item" par client / référence
+   - section = "references"
+
+8. CONTEXTE ENRICHI (SI PRÉSENT) :
+   - Si RAG.contexte_enrichi existe, générer des widgets "skill_item" (section="skills")
+     à partir des compétences tacites et soft skills déduites (sans inventer, uniquement depuis contexte_enrichi)
+
 ═══════════════════════════════════════════════════════════════
 OUTPUT FINAL
 ═══════════════════════════════════════════════════════════════
@@ -625,7 +637,7 @@ Vérifie avant de répondre :
 ✅ Les rag_experience_id utilisent le format exact "exp_0", "exp_1", etc. (PAS de format custom)
 ✅ Tous les widgets ont un relevance_score 0-100 (même les moins pertinents)
 ✅ Tous les widgets sont grounded (traçables dans le RAG)
-✅ Les compétences, formations et langues du RAG sont toutes présentes
+✅ Les compétences, formations et langues du RAG sont toutes présentes (et les certifs/clients si disponibles)
 ✅ Les bullets sont reformulés pour matcher l'offre
 
 JSON uniquement ↓

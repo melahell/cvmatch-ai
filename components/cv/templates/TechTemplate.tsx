@@ -54,7 +54,7 @@ export default function TechTemplate({
     jobContext,
     dense = false
 }: TemplateProps) {
-    const { profil, experiences, competences, formations, langues, certifications } = data;
+    const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
     const hasHttpPhoto =
         typeof profil?.photo_url === "string" &&
         (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
@@ -375,6 +375,28 @@ export default function TechTemplate({
                         ))}
                     </div>
                 </section>
+
+                {/* Clients */}
+                {clients_references?.clients && clients_references.clients.length > 0 && (
+                    <section className="mb-4">
+                        <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
+                            <span className="text-emerald-500 font-mono">{'<'}</span>
+                            Clients
+                            <span className="text-emerald-500 font-mono">{'/>'}</span>
+                        </h2>
+                        <div className="flex flex-wrap gap-2">
+                            {clients_references.clients.map((client, i) => (
+                                <div
+                                    key={i}
+                                    className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded border border-slate-200"
+                                >
+                                    <span className="text-emerald-500 text-[8pt]">◆</span>
+                                    <span className="text-[7pt] font-medium text-slate-700">{client}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* Certifications */}
                 {certifications && certifications.length > 0 && (

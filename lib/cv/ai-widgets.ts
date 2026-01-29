@@ -16,8 +16,10 @@ export const aiWidgetTypeSchema = z.enum([
     "skill_item",          // compétence individuelle
     "skill_group",         // groupe de compétences
     "education_item",      // formation / diplôme
+    "certification_item",  // certification
     "project_item",        // projet marquant
     "language_item",       // langue
+    "reference_item",      // client / référence
     "meta_note"            // note de contexte / recommandation non rendue telle quelle
 ]);
 
@@ -29,6 +31,7 @@ export const aiWidgetSectionSchema = z.enum([
     "experiences",
     "skills",
     "education",
+    "certifications",
     "projects",
     "languages",
     "references",
@@ -134,4 +137,3 @@ export type AIWidgetsEnvelope = z.infer<typeof aiWidgetsEnvelopeSchema>;
 export function validateAIWidgetsEnvelope(payload: unknown) {
     return aiWidgetsEnvelopeSchema.safeParse(payload);
 }
-

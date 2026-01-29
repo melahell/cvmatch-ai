@@ -5,7 +5,7 @@
  * [AUDIT FIX CRITIQUE-3] : Propagation des infos de contact et photo depuis RAG
  */
 
-import { aiWidgetsEnvelopeSchema, AIWidgetsEnvelope, AIWidget } from "./ai-widgets";
+import { aiWidgetsEnvelopeSchema, AIWidgetsEnvelope, AIWidget, type AIWidgetSection } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
 
 export interface ConvertOptions {
@@ -15,6 +15,15 @@ export interface ConvertOptions {
      * L'utilisateur peut ajuster via l'UI.
      */
     minScore?: number;
+    /**
+     * Active les filtres avancés (seuils par section).
+     */
+    advancedFilteringEnabled?: boolean;
+    /**
+     * Seuils par section (si advancedFilteringEnabled=true).
+     * Chaque section peut avoir son seuil spécifique, sinon fallback sur minScore.
+     */
+    minScoreBySection?: Partial<Record<AIWidgetSection, number>>;
     /**
      * Nombre maximum d'expériences à inclure.
      * Par défaut: 999 (pas de limite).
@@ -28,6 +37,17 @@ export interface ConvertOptions {
      */
     maxBulletsPerExperience?: number;
     /**
+     * Quotas par section (si besoin).
+     */
+    limitsBySection?: {
+        maxSkills?: number;
+        maxFormations?: number;
+        maxLanguages?: number;
+        maxProjects?: number;
+        maxReferences?: number;
+        maxCertifications?: number;
+    };
+    /**
      * Profil RAG source pour enrichir les données manquantes
      * (dates, lieux, contact, photo)
      */
@@ -40,8 +60,11 @@ export interface ConvertOptions {
  */
 const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile'>> & { ragProfile?: any } = {
     minScore: 0,           // Pas de filtrage par score
+    advancedFilteringEnabled: false,
+    minScoreBySection: {},
     maxExperiences: 999,   // Pas de limite d'expériences
     maxBulletsPerExperience: 999, // Pas de limite de bullets
+    limitsBySection: {},
     ragProfile: undefined,
 };
 
@@ -153,13 +176,21 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     // Fusionner options avec défauts (pas de filtrage par défaut)
     const opts = { ...DEFAULT_OPTIONS, ...(options || {}) };
 
-    // 1) Filtrer + trier globalement les widgets par score de pertinence
+    const getMinScoreForWidget = (w: AIWidget) => {
+        if (!opts.advancedFilteringEnabled) return opts.minScore;
+        const bySection = opts.minScoreBySection || {};
+        const perSection = typeof bySection[w.section] === "number" ? (bySection[w.section] as number) : undefined;
+        return perSection ?? opts.minScore;
+    };
+
+    // 1) Filtrer + trier les widgets par score de pertinence (global ou par section)
     const sortedWidgets = [...parsed.widgets]
-        .filter((w) => w.relevance_score >= opts.minScore)
+        .filter((w) => w.relevance_score >= getMinScoreForWidget(w))
         .sort((a, b) => b.relevance_score - a.relevance_score);
 
     console.log("[convertAndSort] Après filtre minScore:", {
         minScore: opts.minScore,
+        advancedFilteringEnabled: opts.advancedFilteringEnabled,
         nbWidgetsAvant: parsed.widgets.length,
         nbWidgetsApres: sortedWidgets.length,
     });
@@ -172,11 +203,24 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
         headerWidgets: headerWidgets.length,
         experienceWidgets: experienceWidgets.length,
     });
-    const skillsWidgets = sortedWidgets.filter((w) => w.section === "skills");
-    const educationWidgets = sortedWidgets.filter((w) => w.section === "education");
-    const languageWidgets = sortedWidgets.filter((w) => w.section === "languages");
-    const projectWidgets = sortedWidgets.filter((w) => w.section === "projects");
-    const referenceWidgets = sortedWidgets.filter((w) => w.section === "references");
+    const skillsWidgets = sortedWidgets
+        .filter((w) => w.section === "skills")
+        .slice(0, opts.limitsBySection?.maxSkills ?? 999);
+    const educationWidgets = sortedWidgets
+        .filter((w) => w.section === "education")
+        .slice(0, opts.limitsBySection?.maxFormations ?? 999);
+    const certificationWidgets = sortedWidgets
+        .filter((w) => w.section === "certifications")
+        .slice(0, opts.limitsBySection?.maxCertifications ?? 999);
+    const languageWidgets = sortedWidgets
+        .filter((w) => w.section === "languages")
+        .slice(0, opts.limitsBySection?.maxLanguages ?? 999);
+    const projectWidgets = sortedWidgets
+        .filter((w) => w.section === "projects")
+        .slice(0, opts.limitsBySection?.maxProjects ?? 999);
+    const referenceWidgets = sortedWidgets
+        .filter((w) => w.section === "references")
+        .slice(0, opts.limitsBySection?.maxReferences ?? 999);
 
     // 3) Construire le header / profil
     // [AUDIT FIX CRITIQUE-3] : Passer le ragProfile pour enrichir le profil
@@ -197,7 +241,7 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
 
     // 8) Certifications et références projet / clients
     const { certifications, clients_references } = buildCertificationsAndReferences(
-        projectWidgets,
+        certificationWidgets,
         referenceWidgets,
         opts.ragProfile
     );
@@ -631,14 +675,14 @@ function buildLangues(
  * [AUDIT FIX] : Enrichit les certifications et clients depuis le RAG
  */
 function buildCertificationsAndReferences(
-    projectWidgets: AIWidget[],
+    certificationWidgets: AIWidget[],
     referenceWidgets: AIWidget[],
     ragProfile?: any
 ) {
     const certifications: string[] = [];
     const clients: string[] = [];
 
-    projectWidgets.forEach((widget) => {
+    certificationWidgets.forEach((widget) => {
         const text = widget.text.trim();
         if (!text) return;
         certifications.push(text);

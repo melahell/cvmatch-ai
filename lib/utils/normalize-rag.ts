@@ -35,7 +35,10 @@ export function normalizeRAGData(data: any): any {
             competences: data.competences || { techniques: [], soft_skills: [] },
             formations: data.formations || [],
             langues: data.langues || {},
-            projets: data.projets || []
+            projets: data.projets || [],
+            certifications: data.certifications || [],
+            references: data.references || {},
+            contexte_enrichi: data.contexte_enrichi
         };
     }
 
