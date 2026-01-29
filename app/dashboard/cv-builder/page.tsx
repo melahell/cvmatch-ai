@@ -109,6 +109,10 @@ function CVBuilderContent() {
         minScore: 0,                  // Afficher tout par défaut
         maxExperiences: 20,           // 20 expériences par défaut (slider max=20)
         maxBulletsPerExperience: 10,  // 10 bullets par expérience (ajustable)
+        limitsBySection: {
+            maxClientsPerExperience: 6,
+            maxClientsReferences: 25,
+        },
     });
 
     // Récupérer RAG profile pour validation
@@ -350,6 +354,16 @@ function CVBuilderContent() {
                 maxBulletsPerExperience: options.maxBulletsPerExperience ?? 99,
                 advancedFilteringEnabled: advancedFiltersEnabled,
                 minScoreBySection: advancedFiltersEnabled ? advancedMinScoreBySection : undefined,
+                limitsBySection: {
+                    maxSkills: options.limitsBySection?.maxSkills,
+                    maxFormations: options.limitsBySection?.maxFormations,
+                    maxLanguages: options.limitsBySection?.maxLanguages,
+                    maxProjects: options.limitsBySection?.maxProjects,
+                    maxReferences: options.limitsBySection?.maxReferences,
+                    maxCertifications: options.limitsBySection?.maxCertifications,
+                    maxClientsPerExperience: options.limitsBySection?.maxClientsPerExperience ?? 6,
+                    maxClientsReferences: options.limitsBySection?.maxClientsReferences ?? 25,
+                },
             };
 
             // Options complètes pour la conversion (avec ragProfile)
@@ -1095,6 +1109,88 @@ function CVBuilderContent() {
                                                      (convertOptions.maxBulletsPerExperience ?? 6) <= 6 ? "CV détaillé avec contexte" :
                                                      "CV très détaillé"}
                                                 </p>
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="block text-slate-600">
+                                                        Max clients/exp: {convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                    </label>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="right" className="max-w-xs">
+                                                                <div className="space-y-1 text-xs">
+                                                                    <p className="font-semibold">Clients par expérience</p>
+                                                                    <p className="text-slate-600">
+                                                                        Limite le nombre de clients affichés sous chaque expérience.
+                                                                    </p>
+                                                                    <p className="text-slate-600">
+                                                                        Mets 0 pour masquer complètement les clients dans les expériences.
+                                                                    </p>
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="10"
+                                                    value={convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                    onChange={(e) =>
+                                                        setConvertOptions((prev) => ({
+                                                            ...prev,
+                                                            limitsBySection: {
+                                                                ...(prev.limitsBySection || {}),
+                                                                maxClientsPerExperience: Number(e.target.value),
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <label className="block text-slate-600">
+                                                        Max clients (références): {convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                    </label>
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="right" className="max-w-xs">
+                                                                <div className="space-y-1 text-xs">
+                                                                    <p className="font-semibold">Clients & Références</p>
+                                                                    <p className="text-slate-600">
+                                                                        Limite le nombre de clients affichés dans la zone globale “Clients & Références”.
+                                                                    </p>
+                                                                    <p className="text-slate-600">
+                                                                        Mets 0 pour masquer complètement la zone clients (références).
+                                                                    </p>
+                                                                </div>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="30"
+                                                    value={convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                    onChange={(e) =>
+                                                        setConvertOptions((prev) => ({
+                                                            ...prev,
+                                                            limitsBySection: {
+                                                                ...(prev.limitsBySection || {}),
+                                                                maxClientsReferences: Number(e.target.value),
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="w-full"
+                                                />
                                             </div>
                                         </CardContent>
                                     </Card>

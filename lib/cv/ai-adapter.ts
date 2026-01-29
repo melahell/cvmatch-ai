@@ -46,6 +46,8 @@ export interface ConvertOptions {
         maxProjects?: number;
         maxReferences?: number;
         maxCertifications?: number;
+        maxClientsPerExperience?: number;
+        maxClientsReferences?: number;
     };
     /**
      * Profil RAG source pour enrichir les données manquantes
@@ -64,7 +66,10 @@ const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile'>> & { ragProfi
     minScoreBySection: {},
     maxExperiences: 999,   // Pas de limite d'expériences
     maxBulletsPerExperience: 999, // Pas de limite de bullets
-    limitsBySection: {},
+    limitsBySection: {
+        maxClientsPerExperience: 6,
+        maxClientsReferences: 25,
+    },
     ragProfile: undefined,
 };
 
@@ -246,8 +251,12 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
         types: [...new Set(parsed.widgets.map(w => w.type))],
     });
 
-    // Fusionner options avec défauts (pas de filtrage par défaut)
-    const opts = { ...DEFAULT_OPTIONS, ...(options || {}) };
+    const opts = {
+        ...DEFAULT_OPTIONS,
+        ...(options || {}),
+        minScoreBySection: { ...(DEFAULT_OPTIONS.minScoreBySection || {}), ...(options?.minScoreBySection || {}) },
+        limitsBySection: { ...(DEFAULT_OPTIONS.limitsBySection || {}), ...(options?.limitsBySection || {}) },
+    };
 
     const getMinScoreForWidget = (w: AIWidget) => {
         if (!opts.advancedFilteringEnabled) return opts.minScore;
@@ -312,11 +321,11 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     // 7) Langues - [AUDIT FIX] : Enrichir depuis RAG si disponible
     const langues = buildLangues(languageWidgets, opts.ragProfile);
 
-    // 8) Certifications et références projet / clients
     const { certifications, clients_references } = buildCertificationsAndReferences(
         certificationWidgets,
         referenceWidgets,
-        opts.ragProfile
+        opts.ragProfile,
+        opts
     );
 
     const cv: RendererResumeSchema = {
@@ -509,7 +518,8 @@ function buildExperiences(
             (Array.isArray(ragExp?.clients) && ragExp.clients) ||
             (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
             [];
-        const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: 6 });
+        const maxClientsPerExperience = opts.limitsBySection?.maxClientsPerExperience ?? 6;
+        const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
 
         const experience = {
             poste,
@@ -578,7 +588,8 @@ function buildExperiences(
                     (Array.isArray(ragExp?.clients) && ragExp.clients) ||
                     (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
                     [];
-                const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: 6 });
+                const maxClientsPerExperience = opts.limitsBySection?.maxClientsPerExperience ?? 6;
+                const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
 
                 experiences.push({
                     poste,
@@ -776,7 +787,8 @@ function buildLangues(
 function buildCertificationsAndReferences(
     certificationWidgets: AIWidget[],
     referenceWidgets: AIWidget[],
-    ragProfile?: any
+    ragProfile?: any,
+    opts?: typeof DEFAULT_OPTIONS
 ) {
     const certifications: string[] = [];
     const clientsRaw: unknown[] = [];
@@ -824,7 +836,8 @@ function buildCertificationsAndReferences(
     const excludeCompanies = Array.isArray(ragProfile?.experiences)
         ? ragProfile.experiences.map((e: any) => e?.entreprise || e?.client).filter(Boolean)
         : [];
-    const uniqueClients = cleanClientList(clientsRaw, { exclude: excludeCompanies, max: 25 });
+    const maxClientsReferences = opts?.limitsBySection?.maxClientsReferences ?? 25;
+    const uniqueClients = cleanClientList(clientsRaw, { exclude: excludeCompanies, max: maxClientsReferences });
 
     const clients_references =
         uniqueClients.length > 0

@@ -330,6 +330,50 @@ describe("convertAndSort", () => {
         expect(result.experiences[0].clients).toEqual(["Société Générale", "Total"]);
     });
 
+    it("should allow different limits for clients per experience and references", () => {
+        const widgets = [
+            createMockWidget({
+                type: "experience_header",
+                text: "PMO - Entreprise Y",
+                relevance_score: 0,
+                sources: { rag_experience_id: "exp-2" },
+            }),
+            createMockWidget({
+                text: "PMO sur un portefeuille",
+                relevance_score: 80,
+                sources: { rag_experience_id: "exp-2" },
+            }),
+        ];
+
+        const envelope = createMockEnvelope(widgets);
+        const ragProfile = {
+            profil: { prenom: "Jean", nom: "Dupont" },
+            experiences: [
+                {
+                    id: "exp-2",
+                    poste: "PMO",
+                    entreprise: "Entreprise Y",
+                    debut: "2021-01",
+                    fin: "2022-01",
+                    clients_references: ["Total", "Carrefour", "Société Générale"],
+                    realisations: [{ description: "PMO sur un portefeuille" }],
+                },
+            ],
+            references: { clients: ["Total", "Carrefour", "Société Générale"] },
+        };
+
+        const result = convertAndSort(envelope, {
+            ragProfile,
+            limitsBySection: {
+                maxClientsPerExperience: 1,
+                maxClientsReferences: 2,
+            },
+        });
+
+        expect(result.experiences[0].clients?.length).toBe(1);
+        expect(result.clients_references?.clients?.length).toBe(2);
+    });
+
     it("should inject contexte_enrichi into competences when skills widgets are missing", () => {
         const envelope = createMockEnvelope([
             createMockWidget({
