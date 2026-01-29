@@ -384,7 +384,17 @@ export const getAIWidgetsGenerationPrompt = (
     _dynamicLimits?: any // Ignoré - on génère tout maintenant
 ) => {
     // Compter les expériences pour informer le prompt
-    const nbExperiences = ragProfile?.experiences?.length || 0;
+    const experiences = Array.isArray(ragProfile?.experiences) ? ragProfile.experiences : [];
+    const nbExperiences = experiences.length;
+
+    // Construire la liste explicite des IDs d'expériences que Gemini DOIT couvrir
+    const experienceIdList = experiences.map((exp: any, idx: number) => {
+        const id = exp.id || `exp_${idx}`;
+        const poste = exp.poste || "Poste inconnu";
+        const entreprise = exp.entreprise || "Entreprise inconnue";
+        const nbReal = Array.isArray(exp.realisations) ? exp.realisations.length : 0;
+        return `  - "${id}" : ${poste} @ ${entreprise} (${nbReal} réalisations)`;
+    }).join("\n");
 
     return `
 Tu es un expert en génération de contenu CV optimisé pour ATS et recruteurs.
@@ -396,6 +406,13 @@ MISSION : Générer des widgets scorés pour TOUT le profil
 ⚠️ IMPORTANT : Tu dois générer des widgets pour TOUTES les expériences
 et TOUTES les réalisations du RAG. Ne filtre rien. Score tout.
 L'utilisateur choisira ce qu'il affiche.
+
+⚠️ LISTE OBLIGATOIRE DES EXPÉRIENCES À COUVRIR (${nbExperiences} au total) :
+${experienceIdList}
+→ Tu DOIS générer au minimum 1 widget "experience_header" + 1 widget "experience_bullet"
+  pour CHACUN de ces ${nbExperiences} IDs. Aucune expérience ne doit être omise.
+→ Le champ "sources.rag_experience_id" DOIT correspondre EXACTEMENT à l'un des IDs ci-dessus
+  (format: "exp_0", "exp_1", "exp_2", etc.)
 
 PROFIL RAG COMPLET (${nbExperiences} expériences) :
 ${JSON.stringify(ragProfile, null, 2)}
@@ -516,7 +533,7 @@ WIDGET 2 - Experience Header :
   "text": "Senior Full-Stack Engineer - ScalePay",
   "relevance_score": 90,
   "sources": {
-    "rag_experience_id": "exp_scalepay",
+    "rag_experience_id": "exp_0",
     "rag_path": "experiences[0]"
   },
   "quality": {
@@ -536,7 +553,7 @@ WIDGET 3 - Experience Bullet (avec quantification) :
   "tags": ["api", "fintech", "scalability"],
   "offer_keywords": ["API", "production", "scalabilité"],
   "sources": {
-    "rag_experience_id": "exp_scalepay",
+    "rag_experience_id": "exp_0",
     "rag_realisation_id": "real_api_payment",
     "rag_path": "experiences[0].realisations[2]"
   },
@@ -604,10 +621,11 @@ Génère UNIQUEMENT le JSON conforme au schéma AI_WIDGETS_SCHEMA.
 ❌ PAS d'explications
 
 Vérifie avant de répondre :
-✅ TOUS les widgets du RAG sont présents (expériences, compétences, formations, langues)
+✅ TOUTES les ${nbExperiences} expériences ont au moins 1 experience_header + 1 experience_bullet
+✅ Les rag_experience_id utilisent le format exact "exp_0", "exp_1", etc. (PAS de format custom)
 ✅ Tous les widgets ont un relevance_score 0-100 (même les moins pertinents)
 ✅ Tous les widgets sont grounded (traçables dans le RAG)
-✅ Les widgets d'expérience ont rag_experience_id ou rag_path
+✅ Les compétences, formations et langues du RAG sont toutes présentes
 ✅ Les bullets sont reformulés pour matcher l'offre
 
 JSON uniquement ↓

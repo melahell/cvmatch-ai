@@ -283,11 +283,36 @@ function buildExperiences(
 
     // ÉTAPE 1: Grouper les widgets par rag_experience_id
     // Les widgets sans rag_experience_id sont groupés individuellement
+    // Normalisation: exp_0, exp_1, etc. sont les IDs canoniques
     const grouped = new Map<string, AIWidget[]>();
     let orphanCounter = 0;
 
+    // Construire une map de normalisation des IDs d'expérience
+    // Gemini peut utiliser exp_0, exp_scalepay, ou d'autres formats
+    const normalizeExpId = (rawId: string | undefined): string => {
+        if (!rawId) return `orphan_${orphanCounter++}`;
+        // Déjà au format canonique exp_N
+        if (/^exp_\d+$/.test(rawId)) return rawId;
+        // Format numérique brut "0", "1", etc.
+        if (/^\d+$/.test(rawId)) return `exp_${rawId}`;
+        // Autre format custom (exp_scalepay, etc.) - chercher dans le RAG par correspondance
+        if (ragProfile?.experiences && Array.isArray(ragProfile.experiences)) {
+            for (let i = 0; i < ragProfile.experiences.length; i++) {
+                const ragExp = ragProfile.experiences[i];
+                const ragId = ragExp.id || `exp_${i}`;
+                if (ragId === rawId) return rawId; // ID valide trouvé dans RAG
+                // Correspondance par nom d'entreprise dans l'ID custom
+                const entreprise = (ragExp.entreprise || ragExp.client || "").toLowerCase().replace(/\s+/g, "_");
+                if (entreprise && rawId.toLowerCase().includes(entreprise)) {
+                    return ragId; // Normaliser vers l'ID canonique
+                }
+            }
+        }
+        return rawId; // Retourner tel quel si pas de normalisation possible
+    };
+
     for (const widget of experienceWidgets) {
-        const expId = widget.sources?.rag_experience_id || `orphan_${orphanCounter++}`;
+        const expId = normalizeExpId(widget.sources?.rag_experience_id);
         const existing = grouped.get(expId) || [];
         existing.push(widget);
         grouped.set(expId, existing);
@@ -379,6 +404,53 @@ function buildExperiences(
         experiences.push(experience);
     }
 
+    // ÉTAPE 3: FALLBACK - Vérifier si des expériences RAG n'ont pas été couvertes par Gemini
+    // C'est le filet de sécurité: si Gemini omet une expérience, on la crée depuis le RAG
+    if (ragProfile?.experiences && Array.isArray(ragProfile.experiences)) {
+        const coveredExpIds = new Set(Array.from(grouped.keys()).filter(k => !k.startsWith("orphan_")));
+
+        for (let i = 0; i < ragProfile.experiences.length; i++) {
+            const ragExp = ragProfile.experiences[i];
+            const ragExpId = ragExp.id || `exp_${i}`;
+
+            if (!coveredExpIds.has(ragExpId)) {
+                console.log(`[buildExperiences] FALLBACK: exp RAG "${ragExpId}" non couverte par Gemini, création depuis RAG`);
+
+                const poste = ragExp.poste || ragExp.titre || "Expérience";
+                const entreprise = ragExp.entreprise || ragExp.client || "—";
+                const realisations: string[] = [];
+
+                if (Array.isArray(ragExp.realisations)) {
+                    for (const r of ragExp.realisations) {
+                        if (typeof r === "string" && r.trim()) {
+                            realisations.push(r.trim());
+                        } else if (r && typeof r === "object" && r.description) {
+                            realisations.push(r.description);
+                        }
+                    }
+                }
+
+                const date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date || "");
+                const date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
+                const lieu = ragExp.lieu || ragExp.location || undefined;
+                const actuel = ragExp.actuel || ragExp.current || false;
+
+                experiences.push({
+                    poste,
+                    entreprise,
+                    date_debut,
+                    date_fin: actuel ? undefined : date_fin,
+                    actuel,
+                    lieu,
+                    realisations: realisations.slice(0, opts.maxBulletsPerExperience),
+                    _relevance_score: 10, // Score bas car non traité par Gemini
+                    _rag_experience_id: ragExpId,
+                    _from_fallback: true, // Marqueur pour debug
+                } as any);
+            }
+        }
+    }
+
     // Trier par score décroissant (cast pour accéder aux métadonnées)
     (experiences as any[]).sort((a, b) => (b._relevance_score || 0) - (a._relevance_score || 0));
 
@@ -387,11 +459,14 @@ function buildExperiences(
 
     console.log("[buildExperiences] OUTPUT:", {
         nbExperiences: limited.length,
+        fromGemini: limited.filter((e: any) => !e._from_fallback).length,
+        fromFallback: limited.filter((e: any) => e._from_fallback).length,
         experiences: limited.map(e => ({
             poste: e.poste,
             entreprise: e.entreprise,
             nbRealisations: e.realisations?.length || 0,
             score: (e as any)._relevance_score,
+            fallback: (e as any)._from_fallback || false,
         })),
     });
 
