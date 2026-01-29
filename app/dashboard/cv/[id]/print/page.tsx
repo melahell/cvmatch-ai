@@ -62,10 +62,18 @@ export default function CVPrintPage() {
         if (!cvData) return;
 
         const currentPhoto = cvData?.profil?.photo_url as string | undefined;
+        const isLikelySignedUrl = (value: string) => {
+            try {
+                const url = new URL(value);
+                return url.searchParams.has("token") || url.searchParams.has("X-Amz-Signature");
+            } catch {
+                return false;
+            }
+        };
         const hasHttpPhoto =
             typeof currentPhoto === "string" &&
             (currentPhoto.startsWith("http://") || currentPhoto.startsWith("https://"));
-        if (hasHttpPhoto) return;
+        if (hasHttpPhoto && !isLikelySignedUrl(currentPhoto)) return;
 
         let cancelled = false;
 

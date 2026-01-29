@@ -1,6 +1,7 @@
 import {
     createSignedUrl,
     createSupabaseAdminClient,
+  createSupabaseUserClient,
     parseStorageRef,
     requireSupabaseUser,
 } from '@/lib/supabase';
@@ -25,13 +26,23 @@ const getRequestUserId = async (request: Request): Promise<string | null> => {
 
 export async function GET(request: Request) {
     try {
-        const userId = await getRequestUserId(request);
+    const auth = await requireSupabaseUser(request);
+    const userId = auth.user?.id ?? getCookieUserId();
         if (!userId) {
             return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
         }
 
-        const admin = createSupabaseAdminClient();
-        const { data: ragRow, error: ragRowError } = await admin
+    let client;
+    try {
+      client = createSupabaseAdminClient();
+    } catch {
+      if (!auth.token) {
+        return NextResponse.json({ error: 'Non autorisé', message: 'Non autorisé' }, { status: 401 });
+      }
+      client = createSupabaseUserClient(auth.token);
+    }
+
+    const { data: ragRow, error: ragRowError } = await client
             .from('rag_metadata')
             .select('completeness_details')
             .eq('user_id', userId)
@@ -69,7 +80,7 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Chemin photo invalide', message: 'Chemin photo invalide' }, { status: 400 });
         }
 
-        const signedUrl = await createSignedUrl(admin, `storage:${parsed.bucket}:${path}`);
+    const signedUrl = await createSignedUrl(client, `storage:${parsed.bucket}:${path}`);
         return NextResponse.json({ photo_url: signedUrl });
     } catch (error: any) {
         logger.error('Photo get error', { error: error?.message });
