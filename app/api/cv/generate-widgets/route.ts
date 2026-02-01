@@ -170,7 +170,7 @@ export async function POST(req: Request) {
             if (analysisData.company_name) {
                 jobOfferContext.company = analysisData.company_name;
             }
-            const matchReport = (analysisData.analysis_result || {}).match_report || {};
+            const matchReport = analysisData.match_report || (analysisData.analysis_result || {}).match_report || {};
             if (matchReport.missing_keywords && Array.isArray(matchReport.missing_keywords)) {
                 (jobOfferContext as any).missing_keywords = matchReport.missing_keywords;
             }
@@ -189,8 +189,7 @@ export async function POST(req: Request) {
         logger.debug("[generate-widgets] Cache MISS", { cacheKey });
 
         // 6. Build match analysis context
-        const analysisResult = analysisData.analysis_result || {};
-        const matchReport = analysisResult.match_report || {};
+        const matchReport = analysisData.match_report || (analysisData.analysis_result || {}).match_report || {};
         
         const matchAnalysis = {
             company: analysisData.company_name,

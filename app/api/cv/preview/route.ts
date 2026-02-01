@@ -107,6 +107,26 @@ export async function GET(req: NextRequest) {
         .single();
 
       if (!jobError && jobAnalysis) {
+        const matchReport = jobAnalysis.match_report || jobAnalysis.analysis_result?.match_report;
+        const matchAnalysis =
+          matchReport && typeof matchReport === "object"
+            ? {
+                match_score: (matchReport as any).match_score ?? jobAnalysis.match_score ?? 0,
+                strengths: Array.isArray((matchReport as any).strengths)
+                  ? (matchReport as any).strengths
+                      .map((s: any) => (typeof s === "string" ? s : s?.point))
+                      .filter(Boolean)
+                  : [],
+                gaps: Array.isArray((matchReport as any).gaps)
+                  ? (matchReport as any).gaps
+                      .map((g: any) => (typeof g === "string" ? g : g?.point))
+                      .filter(Boolean)
+                  : [],
+                missing_keywords: Array.isArray((matchReport as any).missing_keywords)
+                  ? (matchReport as any).missing_keywords
+                  : [],
+              }
+            : undefined;
         jobOffer = {
           id: jobAnalysis.id,
           title: jobAnalysis.job_title || "Unknown",
@@ -114,7 +134,7 @@ export async function GET(req: NextRequest) {
           description: jobAnalysis.job_description || "",
           required_skills: jobAnalysis.required_skills || [],
           secteur: jobAnalysis.secteur,
-          match_analysis: jobAnalysis.analysis_result
+          match_analysis: matchAnalysis
         };
       }
     }

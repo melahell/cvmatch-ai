@@ -194,7 +194,7 @@ Utilise les templates existants (`ModernTemplate`, `TechTemplate`, etc.) pour af
 
 ```typescript
 // 1. Depuis le dashboard
-// Bouton "Générer avec V2 (Widgets)" dans /dashboard/analyze/[id]
+// Bouton "Générer mon CV" dans /dashboard/analyze/[id]
 
 // 2. Via l'API
 POST /api/cv/generate-v2
@@ -237,7 +237,7 @@ if (widgets) {
 ### Pour les utilisateurs
 
 1. **Analyser une offre** : `/dashboard/analyze`
-2. **Générer CV V2** : Cliquer sur "Générer avec V2 (Widgets)" dans la page d'analyse
+2. **Générer le CV** : Cliquer sur "Générer mon CV" dans la page d'analyse
 3. **Visualiser** : Le CV s'affiche avec badge "V2 Widgets" et stats (X/Y widgets)
 4. **Comprendre** : Section "Généré avec V2 Widgets" dans `CVOptimizationExplainer`
 

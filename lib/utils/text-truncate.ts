@@ -96,6 +96,39 @@ export function truncateForRAGExtraction(text: string): {
 }
 
 /**
+ * Truncate text for incremental RAG extraction
+ *
+ * Objectif: garder des prompts rapides et fiables sur Vercel (éviter timeouts).
+ */
+export function truncateForRAGIncrementalExtraction(text: string): {
+    text: string;
+    stats: {
+        originalTokens: number;
+        finalTokens: number;
+        wasTruncated: boolean;
+        truncatedPercentage?: number;
+    };
+} {
+    const MAX_TOKENS = 20000;
+
+    const base = truncateToTokens(text, MAX_TOKENS);
+    const truncatedText = base.wasTruncated ? smartTruncate(text, MAX_TOKENS, { beginning: 70, end: 30 }) : base.truncated;
+    const finalTokens = estimateTokenCount(truncatedText);
+
+    return {
+        text: truncatedText,
+        stats: {
+            originalTokens: base.originalTokens,
+            finalTokens,
+            wasTruncated: base.wasTruncated,
+            truncatedPercentage: base.wasTruncated
+                ? Math.round(((base.originalTokens - finalTokens) / base.originalTokens) * 100)
+                : undefined
+        }
+    };
+}
+
+/**
  * Smart truncation that prioritizes important sections
  * Keeps beginning and end, removes middle if needed
  */
@@ -117,5 +150,6 @@ export function smartTruncate(text: string, maxTokens: number, keepSections: {
     const beginning = text.substring(0, beginningChars);
     const end = text.substring(text.length - endChars);
 
-    return `${beginning}\n\n[... CONTENU TRONQUÉ ...]\n\n${end}`;
+    const merged = `${beginning}\n\n[... CONTENU TRONQUÉ ...]\n\n${end}`;
+    return truncateToTokens(merged, maxTokens).truncated;
 }

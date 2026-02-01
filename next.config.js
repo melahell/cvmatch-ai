@@ -60,10 +60,12 @@ const nextConfig = {
                         value: [
                             "default-src 'self'",
                             "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js needs this
+                            "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
                             "style-src 'self' 'unsafe-inline'",
                             "img-src 'self' data: https:",
                             "font-src 'self' data:",
                             "connect-src 'self' *.supabase.co https://generativelanguage.googleapis.com",
+                            "worker-src 'self' blob:",
                             "frame-src 'none'",
                         ].join('; '),
                     },

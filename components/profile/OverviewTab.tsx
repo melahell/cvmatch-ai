@@ -15,6 +15,80 @@ import { logger } from "@/lib/utils/logger";
 
 type WeightValue = "important" | "inclus" | "exclu";
 
+const normalizeKey = (value: unknown) =>
+    String(value ?? "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ")
+        .replace(/[^\p{L}\p{N}\s&'’.\-]/gu, "");
+
+const normalizeClientName = (value: unknown): string => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return "";
+    const cleaned = raw
+        .replace(/[\u00A0]/g, " ")
+        .replace(/\s+/g, " ")
+        .replace(/^[-–—•·\s]+|[-–—•·\s]+$/g, "")
+        .replace(/\s*\(.*?\)\s*/g, " ")
+        .trim();
+    if (!cleaned) return "";
+
+    const upper = cleaned.toUpperCase();
+    const isAcronym =
+        cleaned.length <= 10 &&
+        /[A-Z]/.test(cleaned) &&
+        cleaned === upper &&
+        !/[a-z]/.test(cleaned);
+    if (isAcronym) return cleaned;
+
+    const words = cleaned.split(" ");
+    const cased = words
+        .map((w) => {
+            if (!w) return w;
+            if (/^[A-Z0-9&'’.\-]{2,}$/.test(w) && !/[a-z]/.test(w)) return w;
+            const head = w[0]?.toUpperCase() ?? "";
+            return head + w.slice(1).toLowerCase();
+        })
+        .join(" ");
+    return cased;
+};
+
+const isBadClientName = (name: string): boolean => {
+    const key = normalizeKey(name);
+    if (!key) return true;
+    if (key.length < 2) return true;
+    if (key === "client" || key === "clients" || key === "references") return true;
+    if (key.includes("confidentiel") || key.includes("nda")) return true;
+    if (/^client\s*\d+$/.test(key)) return true;
+    const digits = (name.match(/\d/g) || []).length;
+    if (digits >= 5) return true;
+    return false;
+};
+
+const cleanClientList = (items: unknown[], options?: { exclude?: string[]; max?: number }) => {
+    const excludeKeys = new Set((options?.exclude || []).map(normalizeKey).filter(Boolean));
+    const counts = new Map<string, { label: string; count: number }>();
+    for (const item of items) {
+        const raw = typeof item === "string" ? item : (item as any)?.nom ?? (item as any)?.name ?? "";
+        const label = normalizeClientName(raw);
+        if (!label) continue;
+        if (isBadClientName(label)) continue;
+        const key = normalizeKey(label);
+        if (!key) continue;
+        if (excludeKeys.has(key)) continue;
+        const prev = counts.get(key);
+        if (!prev) counts.set(key, { label, count: 1 });
+        else counts.set(key, { label: prev.label.length >= label.length ? prev.label : label, count: prev.count + 1 });
+    }
+    const sorted = Array.from(counts.values())
+        .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "fr"))
+        .map((x) => x.label);
+    const max = options?.max ?? 30;
+    return sorted.slice(0, max);
+};
+
 interface WeightBadgeProps {
     weight: WeightValue;
     onChange: (w: WeightValue) => void;
@@ -84,6 +158,42 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
         label: string;
         options?: { experienceIndex?: number; key?: string };
     } | null>(null);
+
+    const referenceClientsRaw = Array.isArray(ragData?.references?.clients) ? ragData.references.clients : [];
+    const referenceClientsAggregated = (() => {
+        const byKey = new Map<string, { label: string; sectors: Set<string>; count: number }>();
+        for (const c of referenceClientsRaw) {
+            const rawName = typeof c === "string" ? c : (c as any)?.nom ?? (c as any)?.name ?? "";
+            const label = normalizeClientName(rawName);
+            if (!label || isBadClientName(label)) continue;
+            const key = normalizeKey(label);
+            if (!key) continue;
+            const sector = typeof c === "object" && c ? String((c as any).secteur ?? "").trim() : "";
+            const prev = byKey.get(key);
+            if (!prev) byKey.set(key, { label, sectors: new Set(sector ? [sector] : []), count: 1 });
+            else {
+                prev.count += 1;
+                if (sector) prev.sectors.add(sector);
+                if (label.length > prev.label.length) prev.label = label;
+            }
+        }
+        return Array.from(byKey.values())
+            .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "fr"))
+            .map((v) => ({
+                label: v.label,
+                sectors: Array.from(v.sectors).filter(Boolean),
+            }));
+    })();
+
+    const experienceClientsCleaned = Array.isArray(ragData?.experiences)
+        ? ragData.experiences
+              .map((exp: any) => {
+                  const raw = Array.isArray(exp?.clients_references) ? exp.clients_references : [];
+                  const cleaned = cleanClientList(raw, { exclude: [exp?.entreprise], max: 10 });
+                  return { entreprise: exp?.entreprise || "—", clients: cleaned };
+              })
+              .filter((row: any) => row.clients.length > 0)
+        : [];
 
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -812,8 +922,7 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
             </Card>
 
             {/* Clients & Références */}
-            {(ragData?.references?.clients?.length > 0 ||
-                ragData?.experiences?.some((exp: any) => exp.clients_references?.length > 0)) && (
+            {(referenceClientsAggregated.length > 0 || experienceClientsCleaned.length > 0) && (
                     <Card className="border-green-200 bg-gradient-to-br from-green-50/50 to-white">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -823,15 +932,21 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {/* Clients from references.clients */}
-                            {ragData?.references?.clients?.length > 0 && (
+                            {referenceClientsAggregated.length > 0 && (
                                 <div>
                                     <h4 className="font-medium mb-2 text-green-800">Clients (par secteur) :</h4>
                                     <div className="flex flex-wrap gap-2">
-                                        {ragData.references.clients.map((client: any, i: number) => (
+                                        {referenceClientsAggregated.map((client, i: number) => (
                                             <Badge key={i} className="bg-green-100 text-green-800 border-green-300">
-                                                {client.nom || client}
-                                                {client.secteur && (
-                                                    <span className="ml-1 text-green-600 text-xs">({client.secteur})</span>
+                                                {client.label}
+                                                {client.sectors.length > 0 && (
+                                                    <span className="ml-1 text-green-600 text-xs">
+                                                        (
+                                                        {client.sectors.length === 1
+                                                            ? client.sectors[0]
+                                                            : `${client.sectors[0]} +${client.sectors.length - 1}`}
+                                                        )
+                                                    </span>
                                                 )}
                                             </Badge>
                                         ))}
@@ -840,22 +955,20 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                             )}
 
                             {/* Clients from experiences */}
-                            {ragData?.experiences?.some((exp: any) => exp.clients_references?.length > 0) && (
+                            {experienceClientsCleaned.length > 0 && (
                                 <div>
                                     <h4 className="font-medium mb-2 text-green-800">Clients par expérience :</h4>
                                     <div className="space-y-2">
-                                        {ragData.experiences
-                                            .filter((exp: any) => exp.clients_references?.length > 0)
-                                            .map((exp: any, i: number) => (
+                                        {experienceClientsCleaned.map((exp: any, i: number) => (
                                                 <div key={i} className="text-sm">
                                                     <span className="font-medium">{exp.entreprise}:</span>{" "}
-                                                    {exp.clients_references.map((c: string, j: number) => (
+                                                    {exp.clients.map((c: string, j: number) => (
                                                         <Badge key={j} variant="outline" className="ml-1 text-xs">
                                                             {c}
                                                         </Badge>
                                                     ))}
                                                 </div>
-                                            ))}
+                                        ))}
                                     </div>
                                 </div>
                             )}

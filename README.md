@@ -25,7 +25,7 @@ L'architecture V2 sépare la génération de contenu (IA) du rendu visuel via un
 ### Utilisation
 
 1. Analyser une offre d'emploi : `/dashboard/analyze`
-2. Cliquer sur "Générer avec V2 (Widgets)" dans la page d'analyse
+2. Cliquer sur "Générer mon CV" dans la page d'analyse
 3. Le CV généré affiche un badge "V2 Widgets" avec les statistiques
 
 ### Documentation
@@ -177,7 +177,7 @@ flowchart TD
 
 ### Pour les Utilisateurs
 
-1. **Génération CV** : Utiliser le bouton "Générer avec V2 (Widgets)" au lieu de "Générer CV"
+1. **Génération CV** : Utiliser le bouton "Générer mon CV" (pipeline V2)
 2. **Personnalisation** : Ajuster `minScore` et `maxExperiences` dans les options
 3. **Export** : Utiliser "Export JSON" pour analyser les widgets bruts
 
@@ -265,4 +265,3 @@ Voir [CONTRIBUTING.md](./CONTRIBUTING.md) pour les guidelines de contribution.
 ## Licence
 
 [Voir LICENSE](./LICENSE)
-

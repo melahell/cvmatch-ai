@@ -26,6 +26,7 @@ export const CONTENT_UNITS_REFERENCE = {
 
     certification: { height_units: 3 },
     language: { height_units: 2 },
+    client_item: { height_units: 1 },
     achievement_bullet: { height_units: 2 },
     interest_item: { height_units: 2 },
     footer: { height_units: 5 },

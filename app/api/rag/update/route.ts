@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
+import { mergeRAGUserUpdate } from "@/lib/rag/merge-user-update";
 
 export async function POST(req: Request) {
     try {
@@ -14,11 +15,23 @@ export async function POST(req: Request) {
 
         const { ragData, customNotes } = await req.json();
 
-        // Update RAG metadata with edited data
+        const { data: existingRow, error: fetchError } = await supabase
+            .from("rag_metadata")
+            .select("completeness_details")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+        if (fetchError) {
+            return NextResponse.json({ error: fetchError.message }, { status: 500 });
+        }
+
+        const existingDetails = (existingRow?.completeness_details as any) || {};
+        const merged = mergeRAGUserUpdate(existingDetails, ragData);
+
         const { error } = await supabase
             .from("rag_metadata")
             .update({
-                completeness_details: ragData,
+                completeness_details: merged,
                 custom_notes: customNotes,
                 last_updated: new Date().toISOString()
             })

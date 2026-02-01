@@ -22,7 +22,7 @@ interface CVCardProps {
 export const CVCard = React.memo(function CVCard({ cv, onRename, onDownload }: CVCardProps) {
     const jobAnalysis = cv.job_analyses?.[0];
     const title = cv.custom_name || cv.cv_data?.profil?.titre_principal || "CV Personnalisé";
-    const company = jobAnalysis?.match_report?.entreprise;
+    const company = jobAnalysis?.company_name || jobAnalysis?.match_report?.company || jobAnalysis?.match_report?.entreprise;
     const score = jobAnalysis?.match_score;
     const date = new Date(cv.created_at).toLocaleDateString("fr-FR");
     const isV2 = cv.cv_data?.cv_metadata?.generator_type === "v2_widgets";

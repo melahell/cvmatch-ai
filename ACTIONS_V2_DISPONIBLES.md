@@ -4,8 +4,7 @@
 
 ### Depuis la page d'analyse d'emploi
 1. Aller sur `/dashboard/analyze/[id]` (page de résultat d'analyse)
-2. Cliquer sur le bouton **"Générer avec V2 (Widgets)"** (bouton avec icône Sparkles)
-3. Redirection automatique vers `/dashboard/cv-builder?analysisId=[id]`
+2. Ouvrir le CV Builder via l’URL : `/dashboard/cv-builder?analysisId=[id]`
 
 ## Actions Disponibles dans le CV Builder
 
@@ -84,7 +83,7 @@
 
 ### Flux Complet
 ```
-1. User clique "Générer avec V2" → Redirection /dashboard/cv-builder?analysisId=XXX
+1. User ouvre /dashboard/cv-builder?analysisId=XXX
 2. Page charge → Appelle /api/cv/generate-widgets
 3. API retourne widgets + jobOfferContext
 4. Widgets sauvegardés dans localStorage

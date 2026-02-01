@@ -164,7 +164,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { analysisId, template, includePhoto = true, matchContextSelection } = body;
+        const { analysisId, template, includePhoto = true, matchContextSelection, debug = false } = body;
 
         if (!analysisId) {
             return NextResponse.json({ error: "analysisId requis" }, { status: 400 });
@@ -199,6 +199,8 @@ export async function POST(req: Request) {
         if (!ragProfile || !ragProfile.profil) {
             return NextResponse.json({ error: "Profil RAG incomplet" }, { status: 400 });
         }
+        const ragPhotoRef = ragProfile?.profil?.photo_url;
+        const ragClientsCount = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients.length : 0;
 
         // [AUDIT FIX CRITIQUE-4] : Calculer le score de complétude RAG et minScore optimal
         const ragCompletenessScore = calculateRAGCompletenessScore(ragProfile);
@@ -209,15 +211,15 @@ export async function POST(req: Request) {
             optimalMinScore,
         });
 
-        // 3. Build match analysis object for widgets generation
+        const matchReport = analysisData.match_report || analysisData.analysis_result?.match_report || {};
         const matchAnalysis = {
             job_title: analysisData.job_title,
             company: analysisData.company_name,
             match_score: analysisData.match_score,
-            match_report: analysisData.analysis_result?.match_report || {},
-            strengths: analysisData.analysis_result?.match_report?.strengths || [],
-            missing_keywords: analysisData.analysis_result?.match_report?.missing_keywords || [],
-            coaching_tips: analysisData.analysis_result?.match_report?.coaching_tips || {},
+            match_report: matchReport,
+            strengths: matchReport?.strengths || [],
+            missing_keywords: matchReport?.missing_keywords || [],
+            coaching_tips: matchReport?.coaching_tips || {},
         };
 
         // [INTÉGRATION] Détecter le secteur pour les métriques
@@ -329,6 +331,8 @@ export async function POST(req: Request) {
         if (photoUrl && cvData.profil) {
             cvData.profil.photo_url = photoUrl;
         }
+        const bridgeClientsCount = Array.isArray(cvData?.clients_references?.clients) ? cvData.clients_references.clients.length : 0;
+        const bridgePhotoValue = cvData?.profil?.photo_url;
 
         // Propager les infos de contact depuis le RAG
         const ragProfil = ragProfile?.profil || {};
@@ -341,7 +345,7 @@ export async function POST(req: Request) {
         }
 
         // 6. Fit CV to template (spatial adaptation)
-        let finalCV, compressionLevelApplied, dense, unitStats;
+        let finalCV, compressionLevelApplied, dense, unitStats, lossReport;
         try {
             const fitResult = fitCVToTemplate({
                 cvData,
@@ -353,6 +357,7 @@ export async function POST(req: Request) {
             compressionLevelApplied = fitResult.compressionLevelApplied;
             dense = fitResult.dense;
             unitStats = fitResult.unitStats;
+            lossReport = fitResult.lossReport;
         } catch (fitError: any) {
             logger.error("CV template fitting error", { error: fitError });
             return NextResponse.json(
@@ -384,6 +389,16 @@ export async function POST(req: Request) {
             page_count: 1,
             dense: !!dense,
             unit_stats: unitStats,
+            loss_summary: lossReport
+                ? {
+                      removed_experiences_total:
+                          lossReport.removed.experiences.inputToPreselected.length +
+                          lossReport.removed.experiences.preselectedToPrelimited.length +
+                          lossReport.removed.experiences.prelimitedToAdapted.length,
+                      removed_realisations: lossReport.removed.realisations,
+                      template_omissions: lossReport.templateOmissions,
+                  }
+                : null,
             generation_duration_ms: generationTime,
             generator_type: "v2_widgets",
             widgets_total: widgetsTotal,
@@ -448,6 +463,54 @@ export async function POST(req: Request) {
             );
         }
 
+        const finalClientsCount = Array.isArray((finalCV as any)?.clients_references?.clients)
+            ? (finalCV as any).clients_references.clients.length
+            : 0;
+        const finalPhotoValue = (finalCV as any)?.profil?.photo_url;
+
+        const debugPayload = debug
+            ? {
+                  profile: {
+                      hasPhotoRef: !!ragPhotoRef,
+                      photoRefKind:
+                          typeof ragPhotoRef === "string"
+                              ? ragPhotoRef.startsWith("storage:")
+                                  ? "storage"
+                                  : (ragPhotoRef.startsWith("http://") || ragPhotoRef.startsWith("https://"))
+                                        ? "http"
+                                        : "other"
+                              : null,
+                      hasSignedPhotoUrl: !!photoUrl,
+                      ragClientsCount,
+                  },
+                  bridge: {
+                      clientsReferencesCount: bridgeClientsCount,
+                      photoKind:
+                          typeof bridgePhotoValue === "string"
+                              ? (bridgePhotoValue.startsWith("http://") || bridgePhotoValue.startsWith("https://"))
+                                    ? "http"
+                                    : bridgePhotoValue.startsWith("storage:")
+                                          ? "storage"
+                                          : "other"
+                              : null,
+                  },
+                  fit: {
+                      templateName: template || "modern",
+                      includePhotoEffective: includePhoto && !!photoUrl,
+                      clientsReferencesCount: finalClientsCount,
+                      photoKind:
+                          typeof finalPhotoValue === "string"
+                              ? (finalPhotoValue.startsWith("http://") || finalPhotoValue.startsWith("https://"))
+                                    ? "http"
+                                    : finalPhotoValue.startsWith("storage:")
+                                          ? "storage"
+                                          : "other"
+                              : null,
+                      lossReport,
+                  },
+              }
+            : undefined;
+
         return NextResponse.json({
             success: true,
             cvId: cvGen?.id,
@@ -468,7 +531,9 @@ export async function POST(req: Request) {
                 advancedScoringApplied: true,
                 sectorDetected: detectedSector,
                 cachedWidgets: fromCache,
+                lossReport,
             },
+            debug: debugPayload,
         });
 
     } catch (error: any) {

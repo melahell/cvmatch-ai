@@ -178,6 +178,86 @@ describe("POST /api/cv/generate-v2", () => {
         expect(data.widgetsTotal).toBe(1);
     });
 
+    it("should use match_report when analysis_result is missing", async () => {
+        vi.spyOn(supabaseModule, "requireSupabaseUser").mockResolvedValue(mockAuth as any);
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+            success: true,
+            remaining: 9,
+            resetAt: Date.now() + 60000,
+        });
+        vi.spyOn(rateLimitModule, "getRateLimitConfig").mockReturnValue({ maxRequests: 10, windowMs: 60000 });
+
+        const analysisWithoutLegacy = {
+            ...mockAnalysisData,
+            analysis_result: null,
+            match_report: {
+                job_title: "Développeur Full Stack",
+                company: "Tech Corp",
+                match_score: 85,
+                strengths: [{ point: "React", match_percent: 90 }],
+                missing_keywords: ["GraphQL"],
+            },
+        };
+
+        const mockSupabaseClient = {
+            from: vi.fn((table: string) => {
+                if (table === "users") {
+                    return {
+                        select: vi.fn(() => ({
+                            eq: vi.fn(() => ({
+                                single: vi.fn().mockResolvedValue({
+                                    data: { subscription_tier: "pro", subscription_status: "active" },
+                                    error: null,
+                                }),
+                            })),
+                        })),
+                    };
+                }
+                if (table === "job_analyses") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: analysisWithoutLegacy, error: null }),
+                    };
+                    return { select: vi.fn(() => query) };
+                }
+                if (table === "rag_metadata") {
+                    const query: any = {
+                        eq: vi.fn(() => query),
+                        single: vi.fn().mockResolvedValue({ data: mockRAGMetadata, error: null }),
+                    };
+                    return { select: vi.fn(() => query) };
+                }
+                if (table === "cv_generations") {
+                    return {
+                        insert: vi.fn(() => ({
+                            select: vi.fn(() => ({
+                                single: vi.fn().mockResolvedValue({ data: { id: "cv-789" }, error: null }),
+                            })),
+                        })),
+                    };
+                }
+                return {
+                    select: vi.fn(() => ({
+                        eq: vi.fn(() => ({
+                            single: vi.fn().mockResolvedValue({ data: null, error: null }),
+                        })),
+                    })),
+                };
+            }),
+        };
+
+        vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(mockSupabaseClient as any);
+        const genSpy = vi.spyOn(generateWidgetsModule, "generateWidgetsFromRAGAndMatch").mockResolvedValue(mockWidgetsEnvelope as any);
+        vi.spyOn(aiAdapterModule, "convertAndSort").mockReturnValue(mockCVData as any);
+        vi.spyOn(validatorModule, "fitCVToTemplate").mockReturnValue(mockFittedCV as any);
+
+        const response = await POST(makeRequest());
+        expect(response.status).toBe(200);
+
+        const callArgs = genSpy.mock.calls[0]?.[0];
+        expect(callArgs.matchAnalysis.missing_keywords).toEqual(["GraphQL"]);
+    });
+
     it("should return 401 if not authenticated", async () => {
         vi.spyOn(supabaseModule, "requireSupabaseUser").mockResolvedValue({
             user: null,

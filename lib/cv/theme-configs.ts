@@ -72,7 +72,7 @@ export const CV_THEMES: Record<CVThemeId, CVThemeConfig> = {
             interests: { name: "interests", capacity_units: 0, min_units: 0, flex: true, flex_priority: 1, overflow_strategy: "hide" },
             footer: { name: "footer", capacity_units: 5, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
             margins: { name: "margins", capacity_units: 15, min_units: 15, flex: false, flex_priority: 1, overflow_strategy: "hide" },
-            clients: { name: "clients", capacity_units: 0, min_units: 0, flex: true, flex_priority: 1, overflow_strategy: "hide" },
+            clients: { name: "clients", capacity_units: 6, min_units: 0, flex: true, flex_priority: 4, overflow_strategy: "hide" },
         },
         adaptive_rules: {
             min_detailed_experiences: 2,
@@ -128,7 +128,7 @@ export const CV_THEMES: Record<CVThemeId, CVThemeConfig> = {
             interests: { name: "interests", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
             footer: { name: "footer", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
             margins: { name: "margins", capacity_units: 12, min_units: 12, flex: false, flex_priority: 1, overflow_strategy: "hide" },
-            clients: { name: "clients", capacity_units: 0, min_units: 0, flex: true, flex_priority: 1, overflow_strategy: "hide" },
+            clients: { name: "clients", capacity_units: 8, min_units: 0, flex: true, flex_priority: 6, overflow_strategy: "hide" },
         },
         adaptive_rules: {
             min_detailed_experiences: 1,
@@ -156,7 +156,7 @@ export const CV_THEMES: Record<CVThemeId, CVThemeConfig> = {
             interests: { name: "interests", capacity_units: 0, min_units: 0, flex: true, flex_priority: 1, overflow_strategy: "hide" },
             footer: { name: "footer", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
             margins: { name: "margins", capacity_units: 20, min_units: 20, flex: false, flex_priority: 1, overflow_strategy: "hide" },
-            clients: { name: "clients", capacity_units: 0, min_units: 0, flex: true, flex_priority: 1, overflow_strategy: "hide" },
+            clients: { name: "clients", capacity_units: 6, min_units: 0, flex: true, flex_priority: 4, overflow_strategy: "hide" },
         },
         adaptive_rules: {
             min_detailed_experiences: 1,
@@ -188,7 +188,7 @@ export const CV_THEMES: Record<CVThemeId, CVThemeConfig> = {
             interests: { name: "interests", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
             footer: { name: "footer", capacity_units: 0, min_units: 0, flex: false, flex_priority: 1, overflow_strategy: "hide" },
             margins: { name: "margins", capacity_units: 12, min_units: 12, flex: false, flex_priority: 1, overflow_strategy: "hide" },
-            clients: { name: "clients", capacity_units: 0, min_units: 0, flex: true, flex_priority: 1, overflow_strategy: "hide" },
+            clients: { name: "clients", capacity_units: 6, min_units: 0, flex: true, flex_priority: 4, overflow_strategy: "hide" },
         },
         adaptive_rules: {
             min_detailed_experiences: 3,  // More detailed experiences for ATS

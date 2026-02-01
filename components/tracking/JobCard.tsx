@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Building2, Calendar, ExternalLink, MapPin, Trash2, Check, FileText, Eye, Download, Plus, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Building2, Calendar, ExternalLink, MapPin, Trash2, Check, FileText, Eye, Download, Plus, ChevronDown, ChevronUp, Loader2, Target } from "lucide-react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataListCard, DataListContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -61,7 +60,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
     const handleGenerateCV = async () => {
         setGeneratingCV(true);
         try {
-            const response = await fetch('/api/cv/generate', {
+            const response = await fetch('/api/cv/generate-v2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
@@ -371,6 +370,16 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                             Générer un CV
                                         </>
                                     )}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => window.open(`/dashboard/cv-builder?analysisId=${job.id}&jobId=${job.id}`, "_blank")}
+                                    disabled={generatingCV}
+                                    className="w-full mt-2"
+                                >
+                                    <Target className="w-4 h-4 mr-2" />
+                                    Méthode 2 (CV Builder)
                                 </Button>
                             </div>
                         )}

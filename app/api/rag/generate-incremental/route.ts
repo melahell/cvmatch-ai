@@ -7,15 +7,16 @@ import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore } from "@/lib/rag/quality-scoring";
 import { mergeRAGData, type MergeResult } from "@/lib/rag/merge-simple";
 import { validateRAGData } from "@/lib/rag/validation";
-import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
+import { truncateForRAGIncrementalExtraction, truncateToTokens } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
+import { preserveUserFieldsOnRegeneration } from "@/lib/rag/preserve-user-fields";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
-export const maxDuration = 60; // 60s for Vercel Pro/Team - reduce to 10 for free plan
+export const maxDuration = 300;
 
 // Timeout wrapper for Gemini API calls
 async function callWithTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
@@ -184,7 +185,7 @@ export async function POST(req: Request) {
         });
 
         // 3. Truncate text before sending to Gemini (prevent timeout)
-        const { text: truncatedText, stats: truncationStats } = truncateForRAGExtraction(extractedText);
+        const { text: truncatedText, stats: truncationStats } = truncateForRAGIncrementalExtraction(extractedText);
 
         if (truncationStats.wasTruncated) {
             logger.warn("Text truncated for Gemini", {
@@ -209,11 +210,16 @@ export async function POST(req: Request) {
         // - OR in completion mode (always enrich)
         // - OR in regeneration mode but NOT first document (enrich with previous documents)
         if (!(mode === "regeneration" && isFirstDocument) && existingRag?.completeness_details) {
-            existingRAGContext = formatRAGForPrompt(existingRag.completeness_details);
+            const rawContext = formatRAGForPrompt(existingRag.completeness_details);
+            const ctx = truncateToTokens(rawContext, 12000);
+            existingRAGContext = ctx.truncated;
             logger.info("Including existing RAG context in prompt", {
                 filename: doc.filename,
                 existingExperiences: existingRag.completeness_details.experiences?.length || 0,
-                contextLength: existingRAGContext.length
+                contextLength: existingRAGContext.length,
+                contextTokensOriginal: ctx.originalTokens,
+                contextTokensFinal: ctx.finalTokens,
+                contextWasTruncated: ctx.wasTruncated,
             });
         } else {
             logger.info("Starting fresh - no existing RAG context", {
@@ -223,17 +229,14 @@ export async function POST(req: Request) {
             });
         }
 
-        // 5. Call Gemini with timeout (45s - adequate for large documents)
+        // 5. Call Gemini with timeout
         const geminiStart = Date.now();
         let responseText: string;
         let modelUsed: string | null = null;
 
         try {
             const prompt = getRAGExtractionPrompt(truncatedText, existingRAGContext);
-            const cascade = await callWithRetry(
-                () => callWithTimeout(generateWithCascade(prompt), 45000),
-                3
-            );
+            const cascade = await callWithRetry(() => callWithTimeout(generateWithCascade(prompt), 45000), 2);
             modelUsed = cascade.modelUsed;
             responseText = cascade.result.response.text();
 
@@ -298,12 +301,7 @@ export async function POST(req: Request) {
         if (mode === "regeneration" && isFirstDocument) {
             // REGENERATION MODE - First document: Start fresh, don't merge with old RAG
             logger.info("Regeneration mode - starting fresh", { filename: doc.filename });
-            mergedRAG = newRAGData;
-
-            // Preserve user preferences (rejected_inferred)
-            if (existingRagForMerge?.completeness_details?.rejected_inferred) {
-                mergedRAG.rejected_inferred = existingRagForMerge.completeness_details.rejected_inferred;
-            }
+            mergedRAG = preserveUserFieldsOnRegeneration(existingRagForMerge?.completeness_details, newRAGData);
         } else if (existingRAGContext && existingRagForMerge?.completeness_details) {
             // Gemini already saw the context, so newRAGData should be enriched
             // But do a light merge to handle any edge cases

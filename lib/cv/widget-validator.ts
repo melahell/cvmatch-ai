@@ -6,7 +6,7 @@
  * - Compétences présentes dans le RAG
  * - Expériences référencées existent
  * 
- * Inspiré de la validation V1 (app/api/cv/generate/route.ts)
+ * Inspiré des règles de grounding utilisées par le pipeline de génération CV
  */
 
 import type { AIWidget, AIWidgetsEnvelope } from "./ai-widgets";

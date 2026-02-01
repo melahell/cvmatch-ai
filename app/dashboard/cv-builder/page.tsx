@@ -94,6 +94,15 @@ function CVBuilderContent() {
     const [errorAction, setErrorAction] = useState<{ action?: string; actionLabel?: string } | null>(null);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
     const [advancedFiltersEnabled, setAdvancedFiltersEnabled] = useState<boolean>(false);
+    const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
+    const [cvCacheHit, setCvCacheHit] = useState<boolean>(false);
+    const [buildInfo, setBuildInfo] = useState<{
+        version: string | null;
+        env: string | null;
+        ref: string | null;
+        sha: string | null;
+        deploymentId: string | null;
+    } | null>(null);
     const [advancedMinScoreBySection, setAdvancedMinScoreBySection] = useState<Record<string, number>>({
         header: 0,
         summary: 0,
@@ -118,6 +127,24 @@ function CVBuilderContent() {
     // Récupérer RAG profile pour validation
     const userId = Cookies.get("userId") || null;
     const { data: ragData } = useRAGData(userId);
+
+    useEffect(() => {
+        const run = async () => {
+            try {
+                const res = await fetch("/api/version", { cache: "no-store" });
+                if (!res.ok) return;
+                const data = await res.json();
+                setBuildInfo({
+                    version: data?.version ?? null,
+                    env: data?.vercel?.env ?? null,
+                    ref: data?.vercel?.git?.commit_ref ?? null,
+                    sha: data?.vercel?.git?.commit_sha ?? null,
+                    deploymentId: data?.vercel?.deployment_id ?? null,
+                });
+            } catch {}
+        };
+        run();
+    }, []);
 
     // Fonction pour traduire erreurs techniques en messages utilisateur-friendly
     const getUserFriendlyError = useCallback((error: any): { message: string; action?: string; actionLabel?: string } => {
@@ -375,6 +402,7 @@ function CVBuilderContent() {
             // Vérifier cache CVData d'abord (sans validation pour performance)
             const cached = getCVDataFromCache(analysisId, template);
             if (cached && JSON.stringify(cached.options) === JSON.stringify(cacheOptions)) {
+                setCvCacheHit(true);
                 setCvData(cached.cvData);
                 // Toujours valider même si en cache (pour afficher warnings)
                 if (ragData) {
@@ -399,6 +427,7 @@ function CVBuilderContent() {
                 }
                 return;
             }
+            setCvCacheHit(false);
 
             // Convertir avec validation + scoring avancé si RAG disponible
             try {
@@ -570,6 +599,27 @@ function CVBuilderContent() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
+                            {buildInfo?.sha && (
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 border border-slate-200 cursor-help">
+                                                <Info className="w-3 h-3" />
+                                                {buildInfo.env ?? "vercel"} {buildInfo.sha.slice(0, 7)}
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="bottom" className="max-w-xs">
+                                            <div className="space-y-1 text-xs">
+                                                <p className="font-semibold">Build</p>
+                                                <p className="text-slate-600">Env: {buildInfo.env ?? "—"}</p>
+                                                <p className="text-slate-600">Branche: {buildInfo.ref ?? "—"}</p>
+                                                <p className="text-slate-600">Commit: {buildInfo.sha ?? "—"}</p>
+                                                <p className="text-slate-600">Deployment: {buildInfo.deploymentId ?? "—"}</p>
+                                            </div>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            )}
                             {state.metadata && state.widgets && (
                                 <>
                                     <WidgetScoreVisualizer widgets={state.widgets} showDetails={false} />
@@ -931,6 +981,37 @@ function CVBuilderContent() {
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-4 text-xs">
+                                            <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                                                <div className="space-y-0.5">
+                                                    <p className="text-slate-800 font-medium">Diagnostics</p>
+                                                    <p className="text-slate-500">Vérifier build, cache et clients détectés.</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-slate-600">{showDiagnostics ? "Affichés" : "Masqués"}</span>
+                                                    <Switch checked={showDiagnostics} onCheckedChange={setShowDiagnostics} />
+                                                </div>
+                                            </div>
+                                            {showDiagnostics && (
+                                                <div className="space-y-2 rounded-md border border-slate-200 bg-white px-3 py-3">
+                                                    <div className="grid grid-cols-1 gap-1">
+                                                        <p className="text-slate-700">
+                                                            Build: {(buildInfo?.env ?? "local")} {(buildInfo?.sha ? buildInfo.sha.slice(0, 12) : "—")} {(buildInfo?.ref ? `(${buildInfo.ref})` : "")}
+                                                        </p>
+                                                        <p className="text-slate-700">
+                                                            Cache CV: {cvCacheHit ? "hit" : "miss"} • Cache widgets: {getWidgetsFromCache(analysisId) ? "hit" : "miss"}
+                                                        </p>
+                                                        <p className="text-slate-700">
+                                                            Clients RAG (references.clients): {Array.isArray((ragData as any)?.references?.clients) ? (ragData as any).references.clients.length : 0}
+                                                        </p>
+                                                        <p className="text-slate-700">
+                                                            Clients CV (clients_references.clients): {Array.isArray((cvData as any)?.clients_references?.clients) ? (cvData as any).clients_references.clients.length : 0}
+                                                        </p>
+                                                        <p className="text-slate-700">
+                                                            Expériences avec clients: {Array.isArray((cvData as any)?.experiences) ? (cvData as any).experiences.filter((e: any) => Array.isArray(e?.clients) && e.clients.length > 0).length : 0}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
                                             {showAdvancedFilters && (
                                                 <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                                                     <div className="space-y-0.5">

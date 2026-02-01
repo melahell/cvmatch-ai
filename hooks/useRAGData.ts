@@ -100,13 +100,9 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
                 }
             }
 
-            const mergedNormalized = { ...(normalized as any) };
-            mergedNormalized.profil = { ...((normalized as any)?.profil || {}) };
-            mergedNormalized.profil.photo_url = photoUrl;
-
             // Return COMPLETE normalized data, not just a subset
             setData({
-                ...mergedNormalized,  // Spread all fields: profil, experiences, competences, formations, langues
+                ...(normalized as any),  // Spread all fields: profil, experiences, competences, formations, langues
                 score: ragData.completeness_score || 0,
                 breakdown,
                 topJobs: ragData.top_10_jobs || [],

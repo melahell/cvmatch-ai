@@ -536,7 +536,10 @@ function buildExperiences(
             (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
             [];
         const maxClientsPerExperience = opts.limitsBySection?.maxClientsPerExperience ?? 6;
-        const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
+        let clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
+        if (clients.length === 0 && clientsRaw.length > 0) {
+            clients = cleanClientList(clientsRaw, { max: maxClientsPerExperience });
+        }
 
         const experience = {
             poste,
@@ -606,7 +609,10 @@ function buildExperiences(
                     (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
                     [];
                 const maxClientsPerExperience = opts.limitsBySection?.maxClientsPerExperience ?? 6;
-                const clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
+                let clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
+                if (clients.length === 0 && clientsRaw.length > 0) {
+                    clients = cleanClientList(clientsRaw, { max: maxClientsPerExperience });
+                }
 
                 experiences.push({
                     poste,
@@ -652,10 +658,19 @@ function buildExperiences(
 function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any): RendererResumeSchema["competences"] {
     const techniquesSet = new Set<string>();
     const softSkillsSet = new Set<string>();
+    const rejectedKeys = new Set<string>(Array.isArray(ragProfile?.rejected_inferred) ? ragProfile.rejected_inferred.map(normalizeKey).filter(Boolean) : []);
+
+    const shouldKeep = (name: string) => {
+        const key = normalizeKey(name);
+        if (!key) return false;
+        if (rejectedKeys.has(key)) return false;
+        return true;
+    };
 
     skillsWidgets.forEach((widget) => {
         const text = widget.text.trim();
         if (!text) return;
+        if (!shouldKeep(text)) return;
 
         const lower = text.toLowerCase();
         const isSoft =
@@ -677,14 +692,27 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any): Renderer
     const contexte = ragProfile?.contexte_enrichi;
     const tacites = Array.isArray(contexte?.competences_tacites) ? contexte.competences_tacites : [];
     for (const item of tacites) {
-        const name = typeof item === "string" ? item : item?.nom || item?.name;
-        if (name && String(name).trim()) techniquesSet.add(String(name).trim());
+        const nameRaw = typeof item === "string" ? item : item?.nom || item?.name;
+        const name = String(nameRaw ?? "").trim();
+        if (!name) continue;
+        if (!shouldKeep(name)) continue;
+        const confidence = typeof (item as any)?.confidence === "number" ? (item as any).confidence : undefined;
+        const type = typeof (item as any)?.type === "string" ? String((item as any).type) : "";
+
+        if (type === "soft_skill") {
+            if (confidence !== undefined && confidence < 80) continue;
+            softSkillsSet.add(name);
+            continue;
+        }
+
+        if (confidence !== undefined && confidence < 70) continue;
+        techniquesSet.add(name);
     }
 
     const softDeduites = Array.isArray(contexte?.soft_skills_deduites) ? contexte.soft_skills_deduites : [];
     for (const item of softDeduites) {
         const name = typeof item === "string" ? item : item?.nom || item?.name;
-        if (name && String(name).trim()) softSkillsSet.add(String(name).trim());
+        if (name && String(name).trim() && shouldKeep(String(name).trim())) softSkillsSet.add(String(name).trim());
     }
 
     return {
@@ -809,6 +837,12 @@ function buildCertificationsAndReferences(
 ) {
     const certifications: string[] = [];
     const clientsRaw: unknown[] = [];
+    const extractClientName = (value: any): string => {
+        if (typeof value === "string") return value;
+        if (!value || typeof value !== "object") return "";
+        const candidate = value.nom ?? value.name ?? value.client ?? value.entreprise ?? value.company;
+        return typeof candidate === "string" ? candidate : "";
+    };
 
     certificationWidgets.forEach((widget) => {
         const text = widget.text.trim();
@@ -834,7 +868,7 @@ function buildCertificationsAndReferences(
     // [AUDIT FIX] : Enrichir clients depuis RAG
     const ragClientsFromReferences = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
     ragClientsFromReferences.forEach((c: any) => {
-        const clientName = typeof c === "string" ? c : c.nom;
+        const clientName = extractClientName(c);
         if (clientName) clientsRaw.push(clientName);
     });
 
@@ -846,7 +880,7 @@ function buildCertificationsAndReferences(
             (Array.isArray(exp?.clientsReferences) && exp.clientsReferences) ||
             [];
         expClients.forEach((c: any) => {
-            const clientName = typeof c === "string" ? c : c.nom;
+            const clientName = extractClientName(c);
             if (clientName) clientsRaw.push(clientName);
         });
     });
@@ -854,13 +888,37 @@ function buildCertificationsAndReferences(
         ? ragProfile.experiences.map((e: any) => e?.entreprise || e?.client).filter(Boolean)
         : [];
     const maxClientsReferences = opts?.limitsBySection?.maxClientsReferences ?? 25;
-    const uniqueClients = cleanClientList(clientsRaw, { exclude: excludeCompanies, max: maxClientsReferences });
+    let uniqueClients = cleanClientList(clientsRaw, { exclude: excludeCompanies, max: maxClientsReferences });
+    if (uniqueClients.length === 0 && clientsRaw.length > 0) {
+        uniqueClients = cleanClientList(clientsRaw, { max: maxClientsReferences });
+    }
+
+    const secteursFromRag = (() => {
+        const ragClients = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
+        const bySector = new Map<string, Set<string>>();
+        for (const c of ragClients) {
+            if (!c || typeof c !== "object") continue;
+            const sector = String((c as any).secteur || "").trim();
+            if (!sector) continue;
+            const name = normalizeClientName((c as any).nom ?? (c as any).name);
+            if (!name) continue;
+            if (!uniqueClients.includes(name)) continue;
+            const set = bySector.get(sector) ?? new Set<string>();
+            set.add(name);
+            bySector.set(sector, set);
+        }
+        const sectors = Array.from(bySector.entries())
+            .map(([secteur, set]) => ({ secteur, clients: Array.from(set.values()) }))
+            .filter((x) => x.clients.length > 0)
+            .sort((a, b) => b.clients.length - a.clients.length || a.secteur.localeCompare(b.secteur, "fr"));
+        return sectors.length > 0 ? sectors.slice(0, 6) : undefined;
+    })();
 
     const clients_references =
         uniqueClients.length > 0
             ? {
                   clients: uniqueClients,
-                  secteurs: undefined,
+                  secteurs: secteursFromRag,
               }
             : undefined;
 

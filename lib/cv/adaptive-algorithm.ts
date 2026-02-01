@@ -256,7 +256,7 @@ export function adaptCVToThemeUnits(params: {
         zoneUnitsUsed.languages = (data.langues?.length || 0) * getUnitHeight("language");
 
         const clients = (data.clients_references?.clients || []).length;
-        zoneUnitsUsed.clients = clients * skillLineUnits;
+        zoneUnitsUsed.clients = clients * getUnitHeight("client_item");
 
         const totalUnitsUsed = Object.values(zoneUnitsUsed).reduce((sum, n) => sum + n, 0);
         return { zoneUnitsUsed, totalUnitsUsed };
@@ -372,7 +372,7 @@ export function adaptCVToThemeUnits(params: {
     const dropClientsIfNeeded = () => {
         if (!next.clients_references) return;
         const cap = zones.clients.capacity_units;
-        const per = getUnitHeight("skill_line");
+        const per = getUnitHeight("client_item");
         const maxItems = cap > 0 ? Math.floor(cap / per) : 0;
         if (maxItems <= 0) {
             delete (next as any).clients_references;

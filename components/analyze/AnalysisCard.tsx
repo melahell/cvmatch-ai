@@ -20,8 +20,8 @@ interface AnalysisCardProps {
 }
 
 export const AnalysisCard = React.memo(function AnalysisCard({ analysis, onCompare, onDelete }: AnalysisCardProps) {
-    const jobTitle = analysis.match_report?.poste_cible || "Analyse";
-    const company = analysis.match_report?.entreprise || "";
+    const jobTitle = analysis.match_report?.job_title || analysis.match_report?.poste_cible || "Analyse";
+    const company = analysis.match_report?.company || analysis.match_report?.entreprise || "";
     const date = new Date(analysis.created_at).toLocaleDateString("fr-FR");
 
     const handleCompare = useCallback(() => {

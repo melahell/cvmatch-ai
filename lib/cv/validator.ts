@@ -4,6 +4,7 @@
 
 import { adaptCVToThemeUnits } from "./adaptive-algorithm";
 import { JobOfferContext, sortExperiencesByRelevance } from "./relevance-scoring";
+import { buildCVLossReport } from "./loss-report";
 
 export interface CVValidationResult {
     isValid: boolean;
@@ -360,11 +361,19 @@ export function fitCVToTemplate(params: {
         jobOffer: params.jobOffer || null,
     });
     const validation = validateCVContent(adapted.cvData, baseLimits);
+    const lossReport = buildCVLossReport({
+        input: params.cvData,
+        preselected,
+        prelimited,
+        adapted: adapted.cvData,
+        templateName: params.templateName,
+    });
     return {
         cvData: adapted.cvData,
         compressionLevelApplied: adapted.compressionLevelApplied,
         validation,
         dense: adapted.dense,
+        lossReport,
         unitStats: {
             totalUnitsUsed: adapted.totalUnitsUsed,
             zoneUnitsUsed: adapted.zoneUnitsUsed,

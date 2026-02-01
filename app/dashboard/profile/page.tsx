@@ -140,16 +140,17 @@ function ProfileContent() {
     const saveWeights = async () => {
         if (!userId || !ragData) return;
         try {
-            const supabase = createSupabaseClient();
-            const { error } = await supabase
-                .from("rag_metadata")
-                .update({
-                    completeness_details: ragData,
-                    custom_notes: customNotes
-                })
-                .eq("user_id", userId);
-
-            if (error) throw error;
+            const authHeaders = await getSupabaseAuthHeader();
+            const res = await fetch("/api/rag/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...authHeaders },
+                credentials: "include",
+                body: JSON.stringify({ ragData, customNotes }),
+            });
+            if (!res.ok) {
+                const payload = await res.json().catch(() => null);
+                throw new Error(payload?.error || "Erreur lors de la sauvegarde");
+            }
 
             logger.success("Profil sauvegardé !");
             toast.success("Profil sauvegardé avec succès !");
@@ -181,6 +182,8 @@ function ProfileContent() {
         const totalDocs = documents.length;
         setTotalDocsCount(totalDocs);
         let processed = 0;
+        let successCount = 0;
+        let failureCount = 0;
 
         try {
             logger.info(`[INCREMENTAL CONTEXT-AWARE] Starting regeneration for ${totalDocs} document(s)`, { mode });
@@ -211,14 +214,30 @@ function ProfileContent() {
                 });
 
                 if (!res.ok) {
-                    const error = await res.json();
-                    logger.error(`[INCREMENTAL] Failed for ${doc.filename}:`, error);
-                    toast.error(`Erreur sur ${doc.filename}: ${error.error || "Échec"}. Continuation avec les documents restants...`);
+                    const error = await res.json().catch(() => null);
+                    failureCount++;
+                    logger.error(`[INCREMENTAL] Failed for ${doc.filename}:`, {
+                        status: res.status,
+                        error,
+                    });
+
+                    const errorCode = error?.errorCode || error?.code || null;
+                    const baseMessage = error?.error || "Échec";
+                    const details = typeof error?.details === "string" ? error.details : null;
+                    const hint =
+                        errorCode === "GEMINI_TIMEOUT"
+                            ? "IA indisponible/timeout (réessaie dans 1-2 min)."
+                            : null;
+
+                    toast.error(
+                        `Erreur sur ${doc.filename}: ${baseMessage}${hint ? ` — ${hint}` : ""}${details ? ` (${details})` : ""}`
+                    );
                     continue; // Continue with next document
                 }
 
                 const result = await res.json();
                 logger.success(`[INCREMENTAL] ${doc.filename} processed - Score: ${result.qualityScore}`);
+                successCount++;
 
                 // Store validation data from last document (will have merged all previous)
                 if (processed === totalDocs && result.validation) {
@@ -243,11 +262,21 @@ function ProfileContent() {
             await refetch();
             await refetchDocs();
 
-            toast.success(`Profil régénéré avec succès! ${processed}/${totalDocs} document(s) traité(s) avec contexte accumulé`);
+            if (successCount === 0) {
+                toast.error(`Régénération échouée: 0/${totalDocs} document(s) traité(s)`);
+                return;
+            }
+
+            if (failureCount > 0) {
+                toast.warning(`Régénération partielle: ${successCount}/${totalDocs} document(s) traités`);
+                return;
+            }
+
+            toast.success(`Profil régénéré avec succès! ${successCount}/${totalDocs} document(s) traité(s)`);
 
         } catch (e) {
             logger.error("Error in incremental regeneration:", e);
-            toast.error(`Erreur après traitement de ${processed}/${totalDocs} documents`);
+            toast.error(`Erreur après traitement de ${successCount}/${totalDocs} documents`);
         } finally {
             setRegenerating(false);
         }

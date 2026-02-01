@@ -92,6 +92,24 @@ function CompareContent() {
     const scoreA = analysisA.match_score || 0;
     const scoreB = analysisB.match_score || 0;
     const scoreDiff = Math.abs(scoreA - scoreB);
+    const reportA = analysisA.match_report || {};
+    const reportB = analysisB.match_report || {};
+    const titleA = reportA.job_title || reportA.poste_cible;
+    const titleB = reportB.job_title || reportB.poste_cible;
+    const companyA = reportA.company || reportA.entreprise || analysisA.company_name;
+    const companyB = reportB.company || reportB.entreprise || analysisB.company_name;
+    const strengthsA = Array.isArray(reportA.strengths)
+        ? reportA.strengths.map((s: any) => (typeof s === "string" ? s : s?.point)).filter(Boolean)
+        : (Array.isArray(reportA.points_forts) ? reportA.points_forts : []);
+    const strengthsB = Array.isArray(reportB.strengths)
+        ? reportB.strengths.map((s: any) => (typeof s === "string" ? s : s?.point)).filter(Boolean)
+        : (Array.isArray(reportB.points_forts) ? reportB.points_forts : []);
+    const gapsA = Array.isArray(reportA.gaps)
+        ? reportA.gaps.map((g: any) => (typeof g === "string" ? g : g?.point)).filter(Boolean)
+        : (Array.isArray(reportA.points_amelioration) ? reportA.points_amelioration : []);
+    const gapsB = Array.isArray(reportB.gaps)
+        ? reportB.gaps.map((g: any) => (typeof g === "string" ? g : g?.point)).filter(Boolean)
+        : (Array.isArray(reportB.points_amelioration) ? reportB.points_amelioration : []);
 
     return (
         <DashboardLayout>
@@ -175,25 +193,38 @@ function CompareContent() {
                                     <h3 className="text-sm font-semibold mb-1 sm:mb-2">URL/Source</h3>
                                     <p className="text-xs sm:text-sm text-slate-600 truncate">{analysisA.job_url || 'Texte collé'}</p>
                                 </div>
-                                {analysisA.match_report?.poste_cible && (
+                                {titleA && (
                                     <div>
                                         <h3 className="text-sm font-semibold mb-1 sm:mb-2">Poste</h3>
-                                        <p className="text-xs sm:text-sm">{analysisA.match_report.poste_cible}</p>
+                                        <p className="text-xs sm:text-sm">{titleA}</p>
                                     </div>
                                 )}
-                                {analysisA.match_report?.entreprise && (
+                                {companyA && (
                                     <div>
                                         <h3 className="text-sm font-semibold mb-1 sm:mb-2">Entreprise</h3>
-                                        <p className="text-xs sm:text-sm">{analysisA.match_report.entreprise}</p>
+                                        <p className="text-xs sm:text-sm">{companyA}</p>
                                     </div>
                                 )}
-                                {analysisA.match_report?.points_forts && (
+                                {strengthsA.length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-semibold mb-1 sm:mb-2 text-green-600">Points Forts</h3>
                                         <ul className="text-xs sm:text-sm space-y-1">
-                                            {analysisA.match_report.points_forts.slice(0, 3).map((point: string, i: number) => (
+                                            {strengthsA.slice(0, 3).map((point: string, i: number) => (
                                                 <li key={i} className="flex items-start gap-2">
                                                     <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                                                    <span className="flex-1">{point}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {gapsA.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-semibold mb-1 sm:mb-2 text-orange-600">À améliorer</h3>
+                                        <ul className="text-xs sm:text-sm space-y-1">
+                                            {gapsA.slice(0, 2).map((point: string, i: number) => (
+                                                <li key={i} className="flex items-start gap-2">
+                                                    <span className="text-orange-500 mt-0.5 flex-shrink-0">→</span>
                                                     <span className="flex-1">{point}</span>
                                                 </li>
                                             ))}
@@ -216,25 +247,38 @@ function CompareContent() {
                                     <h3 className="text-sm font-semibold mb-1 sm:mb-2">URL/Source</h3>
                                     <p className="text-xs sm:text-sm text-slate-600 truncate">{analysisB.job_url || 'Texte collé'}</p>
                                 </div>
-                                {analysisB.match_report?.poste_cible && (
+                                {titleB && (
                                     <div>
                                         <h3 className="text-sm font-semibold mb-1 sm:mb-2">Poste</h3>
-                                        <p className="text-xs sm:text-sm">{analysisB.match_report.poste_cible}</p>
+                                        <p className="text-xs sm:text-sm">{titleB}</p>
                                     </div>
                                 )}
-                                {analysisB.match_report?.entreprise && (
+                                {companyB && (
                                     <div>
                                         <h3 className="text-sm font-semibold mb-1 sm:mb-2">Entreprise</h3>
-                                        <p className="text-xs sm:text-sm">{analysisB.match_report.entreprise}</p>
+                                        <p className="text-xs sm:text-sm">{companyB}</p>
                                     </div>
                                 )}
-                                {analysisB.match_report?.points_forts && (
+                                {strengthsB.length > 0 && (
                                     <div>
                                         <h3 className="text-sm font-semibold mb-1 sm:mb-2 text-green-600">Points Forts</h3>
                                         <ul className="text-xs sm:text-sm space-y-1">
-                                            {analysisB.match_report.points_forts.slice(0, 3).map((point: string, i: number) => (
+                                            {strengthsB.slice(0, 3).map((point: string, i: number) => (
                                                 <li key={i} className="flex items-start gap-2">
                                                     <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
+                                                    <span className="flex-1">{point}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                {gapsB.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-semibold mb-1 sm:mb-2 text-orange-600">À améliorer</h3>
+                                        <ul className="text-xs sm:text-sm space-y-1">
+                                            {gapsB.slice(0, 2).map((point: string, i: number) => (
+                                                <li key={i} className="flex items-start gap-2">
+                                                    <span className="text-orange-500 mt-0.5 flex-shrink-0">→</span>
                                                     <span className="flex-1">{point}</span>
                                                 </li>
                                             ))}

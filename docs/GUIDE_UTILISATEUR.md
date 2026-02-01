@@ -108,23 +108,17 @@ Keywords Manquants :
 
 ### Différence V1 vs V2
 
-| Aspect | V1 | V2 |
-|--------|----|----|
-| **Architecture** | Monolithique | Widgets scorés |
-| **Contrôle** | Limitée | Options configurables |
-| **Traçabilité** | Basique | Références RAG complètes |
-| **Performance** | Standard | Cache + client-side |
-| **Qualité** | Bonne | Optimisée multi-critères |
-
-**Quand utiliser V2** :
-- ✅ Pour candidatures importantes
-- ✅ Quand vous voulez personnaliser le contenu
-- ✅ Pour analyser les widgets générés
-- ✅ Pour switch thème instantané
+| Aspect | V2 |
+|--------|----|
+| **Architecture** | Widgets scorés → conversion déterministe → rendu |
+| **Contrôle** | Paramètres de conversion + fit template |
+| **Traçabilité** | Références RAG + métriques de qualité |
+| **Performance** | Cache widgets + fit rapide |
+| **Qualité** | Optimisée multi-critères |
 
 ### Générer un CV V2
 
-1. Après avoir analysé une offre, cliquez sur **"Générer avec V2 (Widgets)"**
+1. Après avoir analysé une offre, cliquez sur **"Générer mon CV"**
 2. Attendez la génération (15-30 secondes la première fois, < 1s si cache)
 3. Le CV s'affiche avec un badge **"V2 Widgets"**
 

@@ -163,41 +163,19 @@ export default function ModernTemplate({
                     )}
                 </div>
 
-                {/* Compétences avec barres de progression */}
+                {/* Compétences */}
                 <div className="space-y-3 mb-5">
                     <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
                         Compétences
                     </h3>
-                    {(() => {
-                        // Phase 5 Diagnostic: Log dans template
-                        if (typeof window !== 'undefined') {
-                            console.log(`[ModernTemplate] Rendering ${limitedSkills.length} skills`);
-                        }
-                        return null;
-                    })()}
-                    <div className="space-y-2">
-                        {limitedSkills.map((skill, i) => {
-                            const percent = 95 - (i * 8); // Décroissant pour effet visuel
-                            return (
-                                <div key={i}>
-                                    <div className="flex justify-between mb-1">
-                                        <span className="text-slate-100 font-medium text-[8pt]">{renderSkill(skill)}</span>
-                                        <span className="text-[6pt] text-indigo-300 font-semibold">
-                                            {percent >= 90 ? 'Expert' : percent >= 75 ? 'Avancé' : 'Intermédiaire'}
-                                        </span>
-                                    </div>
-                                    <div className="w-full bg-slate-700 rounded-full h-1.5">
-                                        <div
-                                            className="bg-gradient-to-r from-neon-indigo to-neon-purple h-1.5 rounded-full shadow-level-1"
-                                            style={{
-                                                width: `${percent}%`
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                    <ul className="space-y-1">
+                        {limitedSkills.map((skill, i) => (
+                            <li key={i} className="flex items-start gap-2">
+                                <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
+                                <span className="text-slate-100 font-medium text-[8pt] leading-tight">{renderSkill(skill)}</span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
 
                 {/* Soft Skills - Tags */}
