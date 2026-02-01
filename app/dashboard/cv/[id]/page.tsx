@@ -7,7 +7,6 @@ import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTr
 import { ExportMenu } from "@/components/cv/ExportMenu";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
-import { TemplateSelector } from "@/components/cv/TemplateSelector";
 import { TEMPLATES } from "@/components/cv/templates";
 import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
@@ -30,7 +29,7 @@ export default function CVViewPage() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
     const [cvGeneration, setCvGeneration] = useState<CVGeneration | null>(null);
-    const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
+    const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [currentTemplate, setCurrentTemplate] = useState<string>("modern");
     const [currentIncludePhoto, setCurrentIncludePhoto] = useState<boolean>(true);
     const cvRef = useRef<HTMLDivElement>(null);
@@ -173,10 +172,9 @@ export default function CVViewPage() {
         }
     };
 
-    const handleTemplateChange = (templateId: string, includePhoto: boolean) => {
+    const handleTemplateChange = (templateId: string) => {
         setCurrentTemplate(templateId);
-        setCurrentIncludePhoto(includePhoto);
-        setTemplateSelectorOpen(false);
+        setShowTemplateMenu(false);
     };
 
     const templateInfo = TEMPLATES.find(t => t.id === currentTemplate);
@@ -276,15 +274,34 @@ export default function CVViewPage() {
                     </div>
 
                     <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setTemplateSelectorOpen(true)}
-                            className="dark:border-slate-700 dark:text-slate-300"
-                        >
-                            <RefreshCw className="w-4 h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Template</span>
-                        </Button>
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                                className="dark:border-slate-700 dark:text-slate-300"
+                            >
+                                <RefreshCw className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Template</span>
+                            </Button>
+                            {showTemplateMenu && (
+                                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[160px]">
+                                    {TEMPLATES.filter(t => t.available).map((t) => (
+                                        <button
+                                            key={t.id}
+                                            onClick={() => handleTemplateChange(t.id)}
+                                            className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                                                currentTemplate === t.id
+                                                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
+                                                    : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                            }`}
+                                        >
+                                            {t.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <Link href={`/dashboard/cvs/${id}/edit`}>
                             <Button
                                 variant="outline"
@@ -383,14 +400,6 @@ export default function CVViewPage() {
                     />
                 </div>
             </div>
-
-            {/* Template Selector Modal */}
-            <TemplateSelector
-                isOpen={templateSelectorOpen}
-                onClose={() => setTemplateSelectorOpen(false)}
-                onSelect={handleTemplateChange}
-                currentPhoto={cvGeneration.cv_data?.profil?.photo_url}
-            />
 
             <style jsx global>{`
                 @media print {
