@@ -195,6 +195,104 @@ export async function exportCVToWord(
         }
     }
 
+    // [CDC-16] Langues
+    if (cvData.langues && cvData.langues.length > 0) {
+        sections.push(
+            new Paragraph({
+                text: "Langues",
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 400, after: 200 },
+            })
+        );
+
+        for (const lang of cvData.langues) {
+            sections.push(
+                new Paragraph({
+                    text: `${lang.langue}: ${lang.niveau}`,
+                    bullet: { level: 0 },
+                    spacing: { after: 100 },
+                })
+            );
+        }
+    }
+
+    // [CDC-16] Certifications
+    if (cvData.certifications && cvData.certifications.length > 0) {
+        sections.push(
+            new Paragraph({
+                text: "Certifications",
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 400, after: 200 },
+            })
+        );
+
+        for (const cert of cvData.certifications) {
+            sections.push(
+                new Paragraph({
+                    text: cert,
+                    bullet: { level: 0 },
+                    spacing: { after: 100 },
+                })
+            );
+        }
+    }
+
+    // [CDC-16] Clients / Références
+    if (cvData.clients_references?.clients && cvData.clients_references.clients.length > 0) {
+        sections.push(
+            new Paragraph({
+                text: "Clients & Références",
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 400, after: 200 },
+            })
+        );
+
+        const clientsText = cvData.clients_references.clients.join(", ");
+        sections.push(
+            new Paragraph({
+                text: clientsText,
+                spacing: { after: 200 },
+            })
+        );
+    }
+
+    // [CDC-16] Projets
+    if (cvData.projects && cvData.projects.length > 0) {
+        sections.push(
+            new Paragraph({
+                text: "Projets",
+                heading: HeadingLevel.HEADING_1,
+                spacing: { before: 400, after: 200 },
+            })
+        );
+
+        for (const project of cvData.projects) {
+            sections.push(
+                new Paragraph({
+                    text: project.nom,
+                    heading: HeadingLevel.HEADING_2,
+                    spacing: { before: 200, after: 100 },
+                })
+            );
+            if (project.description) {
+                sections.push(
+                    new Paragraph({
+                        text: project.description,
+                        spacing: { after: 100 },
+                    })
+                );
+            }
+            if (project.technologies && project.technologies.length > 0) {
+                sections.push(
+                    new Paragraph({
+                        text: `Technologies: ${project.technologies.join(", ")}`,
+                        spacing: { after: 100 },
+                    })
+                );
+            }
+        }
+    }
+
     // Create document
     const doc = new Document({
         sections: [

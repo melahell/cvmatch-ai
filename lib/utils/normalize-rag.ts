@@ -1,3 +1,21 @@
+// [CDC-22] Helper pour extraire les dates de façon uniforme
+// Supporte: date_debut/date_fin, debut/fin, start_date/end_date
+export function getExperienceDates(exp: any): { start: string | null; end: string | null; isCurrent: boolean } {
+    const start = exp?.date_debut ?? exp?.debut ?? exp?.start_date ?? exp?.startDate ?? exp?.dateDebut ?? null;
+    const end = exp?.date_fin ?? exp?.fin ?? exp?.end_date ?? exp?.endDate ?? exp?.dateFin ?? null;
+    const isCurrent = Boolean(exp?.actuel ?? exp?.current ?? exp?.is_current);
+    return { start, end, isCurrent };
+}
+
+// [CDC-22] Configuration des poids de scoring centralisée
+export const SCORING_WEIGHTS = {
+    relevance: 0.35,    // Pertinence par rapport à l'offre
+    recency: 0.25,      // Récence de l'expérience
+    impact: 0.20,       // Impact quantifié
+    seniority: 0.10,    // Alignement niveau/séniorité
+    ats: 0.10,          // Compatibilité ATS (mots-clés)
+} as const;
+
 // Helper pour normaliser les données RAG (flat vs nested structure)
 export function normalizeRAGData(data: any): any {
     if (!data) return null;

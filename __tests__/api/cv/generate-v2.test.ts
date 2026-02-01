@@ -101,7 +101,7 @@ describe("POST /api/cv/generate-v2", () => {
         vi.spyOn(supabaseModule, "requireSupabaseUser").mockResolvedValue(mockAuth as any);
 
         // Mock rate limiting
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValue({
             success: true,
             remaining: 9,
             resetAt: Date.now() + 60000,
@@ -180,7 +180,7 @@ describe("POST /api/cv/generate-v2", () => {
 
     it("should use match_report when analysis_result is missing", async () => {
         vi.spyOn(supabaseModule, "requireSupabaseUser").mockResolvedValue(mockAuth as any);
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValue({
             success: true,
             remaining: 9,
             resetAt: Date.now() + 60000,
@@ -285,7 +285,7 @@ describe("POST /api/cv/generate-v2", () => {
         } as any));
         vi.spyOn(supabaseModule, "createSupabaseUserClient").mockReturnValue({} as any);
 
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValue({
             success: false,
             remaining: 0,
             resetAt: Date.now() + 60000,
@@ -332,7 +332,7 @@ describe("POST /api/cv/generate-v2", () => {
         };
 
         vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(mockSupabaseClient as any);
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValue({
             success: true,
             remaining: 9,
             resetAt: Date.now() + 60000,
@@ -382,7 +382,7 @@ describe("POST /api/cv/generate-v2", () => {
         };
 
         vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(mockSupabaseClient as any);
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValue({
             success: true,
             remaining: 9,
             resetAt: Date.now() + 60000,
@@ -441,7 +441,7 @@ describe("POST /api/cv/generate-v2", () => {
         };
 
         vi.spyOn(supabaseModule, "createSupabaseAdminClient").mockReturnValue(mockSupabaseClient as any);
-        vi.spyOn(rateLimitModule, "checkRateLimit").mockReturnValue({
+        vi.spyOn(rateLimitModule, "checkRateLimit").mockResolvedValue({
             success: true,
             remaining: 9,
             resetAt: Date.now() + 60000,

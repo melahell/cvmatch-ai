@@ -41,6 +41,13 @@ export interface CVData {
         clients: string[];
         secteurs?: Array<{ secteur: string; clients: string[] }>;
     };
+    // [CDC-21] Ajout des projets pour éviter la perte de données
+    projects?: Array<{
+        nom: string;
+        description: string;
+        technologies?: string[];
+        lien?: string;
+    }>;
 }
 
 export interface JobContext {
@@ -62,7 +69,7 @@ export interface TemplateInfo {
     id: string;
     name: string;
     description: string;
-    category: 'modern' | 'classic' | 'tech' | 'creative';
+    category: 'modern' | 'classic' | 'tech' | 'creative' | 'professional' | 'minimal';
     preview: string;
     available: boolean;
     recommended?: string[];
@@ -105,6 +112,34 @@ export const TEMPLATES: TemplateInfo[] = [
         preview: '/templates/creative-preview.png',
         available: true,
         recommended: ['Design', 'Marketing', 'Communication'],
+    },
+    // [CDC Sprint 4.2] Templates Reactive Resume
+    {
+        id: 'onyx',
+        name: 'Onyx',
+        description: 'Design professionnel avec sidebar, inspiré de Reactive Resume',
+        category: 'professional',
+        preview: '/templates/onyx-preview.png',
+        available: true,
+        recommended: ['Consulting', 'Management', 'Finance'],
+    },
+    {
+        id: 'pikachu',
+        name: 'Pikachu',
+        description: 'Design moderne et dynamique avec header coloré',
+        category: 'modern',
+        preview: '/templates/pikachu-preview.png',
+        available: true,
+        recommended: ['Marketing', 'Design', 'Startup'],
+    },
+    {
+        id: 'bronzor',
+        name: 'Bronzor',
+        description: 'Design minimaliste et élégant, typographie épurée',
+        category: 'minimal',
+        preview: '/templates/bronzor-preview.png',
+        available: true,
+        recommended: ['Juridique', 'Académique', 'Direction'],
     },
 ];
 

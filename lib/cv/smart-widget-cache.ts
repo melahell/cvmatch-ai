@@ -332,7 +332,7 @@ export async function saveToSmartCache(
         const expId = `exp_${i}`;
         const expHash = hashExperience(experiences[i]);
         const expWidgets = envelope.widgets.filter(
-            w => w.section === "experiences" && w.sources?.rag_experience_id === expId
+            w => w.section === "experiences" && w.sources.rag_experience_id === expId
         );
 
         if (expWidgets.length > 0) {

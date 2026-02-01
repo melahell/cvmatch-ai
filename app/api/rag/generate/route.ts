@@ -58,7 +58,7 @@ export async function POST(req: Request) {
         logger.info("RAG generation start", { mode: mode || "auto" });
 
         // Rate limiting: 5 RAG generations per hour
-        const rateLimitResult = checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
+        const rateLimitResult = await checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
@@ -174,6 +174,18 @@ export async function POST(req: Request) {
         if (!allExtractedText.trim()) {
             return NextResponse.json({
                 error: "No text could be extracted from any document",
+                processingResults
+            }, { status: 400 });
+        }
+
+        // [CDC-1] Alerte si extraction très courte (CV potentiellement vide/image)
+        const extractedLength = allExtractedText.trim().length;
+        if (extractedLength < 100) {
+            logger.warn("Extraction warning: very short content", { length: extractedLength });
+            return NextResponse.json({
+                error: "Extraction insuffisante",
+                warning: `Le contenu extrait est très court (${extractedLength} caractères). Le document pourrait être une image scannée, protégé ou vide.`,
+                suggestion: "Essayez d'importer un document texte éditable (DOCX, PDF textuel) ou vérifiez que le fichier n'est pas corrompu.",
                 processingResults
             }, { status: 400 });
         }

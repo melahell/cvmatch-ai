@@ -73,36 +73,9 @@ const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile'>> & { ragProfi
     ragProfile: undefined,
 };
 
-/**
- * @deprecated Plus utilisé - on génère tout maintenant
- * Gardé pour compatibilité avec le code existant
- */
-export interface DynamicLimits {
-    minExperiences: number;
-    maxExperiences: number;
-    minBulletsPerExperience: number;
-    maxBulletsPerExperience: number;
-    minScore: number;
-    maxWidgets: number;
-    promptHint: string;
-}
-
-/**
- * @deprecated Plus utilisé - on génère tout maintenant
- * Retourne des limites "sans limite" pour compatibilité
- */
-export function calculateDynamicLimits(_ragProfile: any): DynamicLimits {
-    // Plus de filtrage - on génère tout
-    return {
-        minExperiences: 1,
-        maxExperiences: 999,
-        minBulletsPerExperience: 1,
-        maxBulletsPerExperience: 999,
-        minScore: 0,
-        maxWidgets: 999,
-        promptHint: "",
-    };
-}
+// ============================================================================
+// ENRICHISSEMENT DEPUIS RAG
+// ============================================================================
 
 /**
  * [AUDIT FIX IMPORTANT-6] : Trouve l'expérience RAG correspondante
@@ -345,6 +318,9 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
         opts
     );
 
+    // [CDC-21] Construire les projets pour éviter la perte de données
+    const projects = buildProjects(projectWidgets, opts.ragProfile);
+
     const cv: RendererResumeSchema = {
         profil,
         experiences,
@@ -353,6 +329,7 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
         langues,
         certifications,
         clients_references,
+        projects,
     };
 
     return cv;
@@ -413,7 +390,7 @@ function buildExperiences(
             id: w.id,
             type: w.type,
             score: w.relevance_score,
-            ragExpId: w.sources?.rag_experience_id,
+            ragExpId: w.sources.rag_experience_id,
             textPreview: w.text?.substring(0, 60),
         })),
     });
@@ -455,7 +432,7 @@ function buildExperiences(
     };
 
     for (const widget of experienceWidgets) {
-        const expId = normalizeExpId(widget.sources?.rag_experience_id);
+        const expId = normalizeExpId(widget.sources.rag_experience_id);
         const existing = grouped.get(expId) || [];
         existing.push(widget);
         grouped.set(expId, existing);
@@ -926,4 +903,69 @@ function buildCertificationsAndReferences(
         certifications: certifications.length > 0 ? certifications : undefined,
         clients_references,
     };
+}
+
+/**
+ * [CDC-21] Construit les projets depuis les widgets et le RAG
+ * Évite la perte de données des projets dans le pipeline
+ */
+function buildProjects(
+    projectWidgets: AIWidget[],
+    ragProfile?: any
+): RendererResumeSchema["projects"] {
+    const projects: NonNullable<RendererResumeSchema["projects"]> = [];
+
+    // D'abord, construire depuis les widgets
+    projectWidgets.forEach((widget) => {
+        const text = widget.text.trim();
+        if (!text) return;
+
+        // Heuristique : "Nom du projet - Description"
+        let nom = text;
+        let description = "";
+        let technologies: string[] = [];
+        let lien: string | undefined;
+
+        // Chercher un lien URL dans le texte
+        const urlMatch = text.match(/https?:\/\/[^\s]+/);
+        if (urlMatch) {
+            lien = urlMatch[0];
+        }
+
+        // Séparer nom et description
+        const separatorIndex = text.indexOf(" - ");
+        if (separatorIndex !== -1) {
+            nom = text.slice(0, separatorIndex).trim();
+            description = text.slice(separatorIndex + 3).trim();
+        }
+
+        // Extraire les technologies si mentionnées entre parenthèses ou crochets
+        const techMatch = text.match(/\[([^\]]+)\]|\(([^)]+)\)/);
+        if (techMatch) {
+            const techStr = techMatch[1] || techMatch[2];
+            technologies = techStr.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+        }
+
+        projects.push({
+            nom: nom || "Projet",
+            description: description || text,
+            technologies: technologies.length > 0 ? technologies : undefined,
+            lien,
+        });
+    });
+
+    // [AUDIT FIX] : Si aucun projet depuis widgets, utiliser le RAG
+    if (projects.length === 0 && ragProfile?.projets) {
+        const ragProjets = Array.isArray(ragProfile.projets) ? ragProfile.projets : [];
+        ragProjets.forEach((p: any) => {
+            projects.push({
+                nom: p.nom || p.titre || p.name || "Projet",
+                description: p.description || "",
+                technologies: Array.isArray(p.technologies) ? p.technologies : undefined,
+                lien: p.lien || p.url || p.link || undefined,
+            });
+        });
+    }
+
+    return projects.length > 0 ? projects : undefined;
 }

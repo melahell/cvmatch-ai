@@ -83,7 +83,8 @@ export async function generateWidgetsFromRAGAndMatch(
                         ...widget,
                         relevance_score: Math.max(
                             0,
-                            Math.min(100, (widget.relevance_score || 50) + applySectorScoringBoost(widget, sector, params.ragProfile))
+                            // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0
+                            Math.min(100, (widget.relevance_score ?? 0) + applySectorScoringBoost(widget, sector, params.ragProfile))
                         ),
                     }));
 
@@ -192,7 +193,8 @@ export async function generateWidgetsFromRAGAndMatch(
             ...widget,
             relevance_score: Math.max(
                 0,
-                Math.min(100, (widget.relevance_score || 50) + applySectorScoringBoost(widget, sector, params.ragProfile))
+                // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0
+                Math.min(100, (widget.relevance_score ?? 0) + applySectorScoringBoost(widget, sector, params.ragProfile))
             ),
         }));
         const envelope: AIWidgetsEnvelope = {

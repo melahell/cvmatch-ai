@@ -96,6 +96,9 @@ function CVBuilderContent() {
     const [advancedFiltersEnabled, setAdvancedFiltersEnabled] = useState<boolean>(false);
     const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
     const [cvCacheHit, setCvCacheHit] = useState<boolean>(false);
+    // [CDC-23] Toggles pour photo et mode dense
+    const [includePhoto, setIncludePhoto] = useState<boolean>(true);
+    const [denseMode, setDenseMode] = useState<boolean>(false);
     const [buildInfo, setBuildInfo] = useState<{
         version: string | null;
         env: string | null;
@@ -1273,6 +1276,127 @@ function CVBuilderContent() {
                                                     className="w-full"
                                                 />
                                             </div>
+                                            {/* [CDC-23] Toggles photo et mode dense */}
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-slate-600">Inclure photo</label>
+                                                <Switch
+                                                    checked={includePhoto}
+                                                    onCheckedChange={setIncludePhoto}
+                                                />
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-slate-600">Mode dense (compact)</label>
+                                                <Switch
+                                                    checked={denseMode}
+                                                    onCheckedChange={setDenseMode}
+                                                />
+                                            </div>
+                                            {/* [CDC-23] Sliders manquants ajoutés */}
+                                            <div>
+                                                <label className="block text-slate-600 mb-1">
+                                                    Max compétences: {convertOptions.limitsBySection?.maxSkills ?? 20}
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="30"
+                                                    value={convertOptions.limitsBySection?.maxSkills ?? 20}
+                                                    onChange={(e) =>
+                                                        setConvertOptions((prev) => ({
+                                                            ...prev,
+                                                            limitsBySection: {
+                                                                ...(prev.limitsBySection || {}),
+                                                                maxSkills: Number(e.target.value),
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-slate-600 mb-1">
+                                                    Max formations: {convertOptions.limitsBySection?.maxFormations ?? 5}
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="10"
+                                                    value={convertOptions.limitsBySection?.maxFormations ?? 5}
+                                                    onChange={(e) =>
+                                                        setConvertOptions((prev) => ({
+                                                            ...prev,
+                                                            limitsBySection: {
+                                                                ...(prev.limitsBySection || {}),
+                                                                maxFormations: Number(e.target.value),
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-slate-600 mb-1">
+                                                    Max langues: {convertOptions.limitsBySection?.maxLanguages ?? 5}
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="10"
+                                                    value={convertOptions.limitsBySection?.maxLanguages ?? 5}
+                                                    onChange={(e) =>
+                                                        setConvertOptions((prev) => ({
+                                                            ...prev,
+                                                            limitsBySection: {
+                                                                ...(prev.limitsBySection || {}),
+                                                                maxLanguages: Number(e.target.value),
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-slate-600 mb-1">
+                                                    Max certifications: {convertOptions.limitsBySection?.maxCertifications ?? 10}
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="15"
+                                                    value={convertOptions.limitsBySection?.maxCertifications ?? 10}
+                                                    onChange={(e) =>
+                                                        setConvertOptions((prev) => ({
+                                                            ...prev,
+                                                            limitsBySection: {
+                                                                ...(prev.limitsBySection || {}),
+                                                                maxCertifications: Number(e.target.value),
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-slate-600 mb-1">
+                                                    Max projets: {convertOptions.limitsBySection?.maxProjects ?? 5}
+                                                </label>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="10"
+                                                    value={convertOptions.limitsBySection?.maxProjects ?? 5}
+                                                    onChange={(e) =>
+                                                        setConvertOptions((prev) => ({
+                                                            ...prev,
+                                                            limitsBySection: {
+                                                                ...(prev.limitsBySection || {}),
+                                                                maxProjects: Number(e.target.value),
+                                                            },
+                                                        }))
+                                                    }
+                                                    className="w-full"
+                                                />
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 </aside>
@@ -1291,8 +1415,8 @@ function CVBuilderContent() {
                                             <CVRenderer
                                                 data={reorderedCV || cvData}
                                                 templateId={templateId}
-                                                includePhoto={true}
-                                                dense={false}
+                                                includePhoto={includePhoto}
+                                                dense={denseMode}
                                             />
                                         </div>
                                     ) : (

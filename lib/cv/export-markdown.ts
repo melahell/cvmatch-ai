@@ -119,12 +119,12 @@ export function exportCVToMarkdown(cvData: RendererResumeSchema): string {
         lines.push("");
     }
 
-    // Langues
-    if (cvData.langues && Object.keys(cvData.langues).length > 0) {
+    // [CDC-16] Langues - Traiter comme array (pas objet)
+    if (cvData.langues && Array.isArray(cvData.langues) && cvData.langues.length > 0) {
         lines.push("## Langues");
         lines.push("");
-        for (const [langue, niveau] of Object.entries(cvData.langues)) {
-            lines.push(`- **${langue}:** ${niveau}`);
+        for (const lang of cvData.langues) {
+            lines.push(`- **${lang.langue}:** ${lang.niveau}`);
         }
         lines.push("");
     }
@@ -137,6 +137,39 @@ export function exportCVToMarkdown(cvData: RendererResumeSchema): string {
             lines.push(`- ${cert}`);
         }
         lines.push("");
+    }
+
+    // [CDC-16] Clients / Références
+    if (cvData.clients_references?.clients && cvData.clients_references.clients.length > 0) {
+        lines.push("## Clients & Références");
+        lines.push("");
+        for (const client of cvData.clients_references.clients) {
+            lines.push(`- ${client}`);
+        }
+        lines.push("");
+    }
+
+    // [CDC-16] Projets
+    if (cvData.projects && cvData.projects.length > 0) {
+        lines.push("## Projets");
+        lines.push("");
+        for (const project of cvData.projects) {
+            let projectLine = `### ${project.nom}`;
+            lines.push(projectLine);
+            lines.push("");
+            if (project.description) {
+                lines.push(project.description);
+                lines.push("");
+            }
+            if (project.technologies && project.technologies.length > 0) {
+                lines.push(`**Technologies:** ${project.technologies.join(", ")}`);
+                lines.push("");
+            }
+            if (project.lien) {
+                lines.push(`**Lien:** [${project.lien}](${project.lien})`);
+                lines.push("");
+            }
+        }
     }
 
     return lines.join("\n");

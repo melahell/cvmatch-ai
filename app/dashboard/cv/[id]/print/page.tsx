@@ -174,6 +174,7 @@ export default function CVPrintPage() {
             />
 
             <style jsx global>{`
+                /* [CDC-16] Styles optimisés pour export PDF multi-pages */
                 @page {
                     margin: 0;
                     size: ${format === "Letter" ? "Letter" : "A4"};
@@ -185,17 +186,35 @@ export default function CVPrintPage() {
                     color-adjust: exact !important;
                 }
 
-                body {
+                html, body {
                     background: white;
                     margin: 0;
                     padding: 0;
-                    overflow: hidden;
+                    /* CORRIGÉ: Permettre le multi-pages */
+                    overflow: visible !important;
+                    height: auto !important;
+                    min-height: 100%;
+                }
+
+                /* Container CV doit permettre le débordement */
+                #cv-container, .cv-page {
+                    overflow: visible !important;
+                    height: auto !important;
                 }
 
                 /* Prevent page breaks inside elements */
-                .break-inside-avoid {
+                .break-inside-avoid,
+                .experience-item,
+                .education-item,
+                .skill-category {
                     break-inside: avoid !important;
                     page-break-inside: avoid !important;
+                }
+
+                /* Forcer un saut de page avant certaines sections si nécessaire */
+                .page-break-before {
+                    break-before: page !important;
+                    page-break-before: always !important;
                 }
 
                 /* Control orphans and widows */
@@ -233,6 +252,12 @@ export default function CVPrintPage() {
                 .bg-gradient-to-tr,
                 .bg-gradient-to-tl {
                     -webkit-print-color-adjust: exact !important;
+                }
+
+                /* Assurer que les couleurs Tailwind sont préservées */
+                [class*="text-"], [class*="bg-"], [class*="border-"] {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
                 }
             `}</style>
         </>

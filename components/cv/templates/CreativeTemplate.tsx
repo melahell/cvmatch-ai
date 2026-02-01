@@ -2,8 +2,10 @@
 
 import React from "react";
 import { TemplateProps } from "./index";
-import { Mail, Phone, MapPin, Linkedin, Sparkles } from "lucide-react";
+import { Mail, Phone, MapPin, Linkedin, Sparkles, Github, Globe, ExternalLink } from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design-tokens";
+// [CDC-24] Utiliser utilitaire centralisé
+import { sanitizeText } from "@/lib/cv/sanitize-text";
 
 // Vibrant creative palette using design tokens
 // NOTE: Inline styles in this template (style={{ color, background }}) reference this COLORS object
@@ -15,46 +17,13 @@ const COLORS = {
     tertiary: DESIGN_TOKENS.colors.semantic.info, // Cyan/Info
 };
 
-// Sanitize text by fixing spacing issues (applied at render time)
-function sanitizeText(text: unknown): string {
-    if (text === null || text === undefined) return "";
-    if (typeof text !== "string") return "";
-    const input = text;
-    if (!input) return "";
-
-    return input
-        // Fix common French word concatenations
-        .replace(/([a-zàâäéèêëïîôùûüçœæ])(de|des|du|pour|avec|sans|dans|sur|sous|entre|chez|vers|par|et|ou|à|au|aux|un|une|le|la|les)([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆA-zàâäéèêëïîôùûüçœæ])/g, '$1 $2 $3')
-        // Fix lowercase + uppercase (camelCase)
-        .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
-        // Fix punctuation + letter
-        .replace(/([.,;:!?])([a-zA-ZÀ-ÿ])/g, '$1 $2')
-        // Fix closing parenthesis + letter
-        .replace(/\)([a-zA-ZÀ-ÿ])/g, ') $1')
-        // Fix letter + opening parenthesis
-        .replace(/([a-zA-ZÀ-ÿ])\(/g, '$1 (')
-        // Fix number + letter (12clients → 12 clients)
-        .replace(/(\d)([a-zA-ZÀ-ÿ])/g, '$1 $2')
-        // Fix letter + number (pour12 → pour 12)
-        .replace(/([a-zA-ZÀ-ÿ])(\d)/g, '$1 $2')
-        // Fix + and numbers
-        .replace(/\+(\d)/g, '+ $1')
-        .replace(/(\d)\+/g, '$1 +')
-        // Fix % and numbers
-        .replace(/(\d)%/g, '$1 %')
-        .replace(/%(\d)/g, '% $1')
-        // Normalize multiple spaces to single space
-        .replace(/\s+/g, ' ')
-        .trim();
-}
-
 export default function CreativeTemplate({
     data,
     includePhoto = true,
     jobContext,
     dense = false
 }: TemplateProps) {
-    const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
+    const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     const hasHttpPhoto =
         typeof profil?.photo_url === "string" &&
         (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
@@ -170,6 +139,22 @@ export default function CreativeTemplate({
                             {profil.localisation && (
                                 <span className="flex items-center gap-1">
                                     <MapPin className="w-3 h-3" /> {profil.localisation}
+                                </span>
+                            )}
+                            {/* [CDC-21] Liens sociaux ajoutés */}
+                            {profil.linkedin && (
+                                <span className="flex items-center gap-1">
+                                    <Linkedin className="w-3 h-3" /> LinkedIn
+                                </span>
+                            )}
+                            {profil.github && (
+                                <span className="flex items-center gap-1">
+                                    <Github className="w-3 h-3" /> GitHub
+                                </span>
+                            )}
+                            {profil.portfolio && (
+                                <span className="flex items-center gap-1">
+                                    <Globe className="w-3 h-3" /> Portfolio
                                 </span>
                             )}
                         </div>
@@ -410,6 +395,42 @@ export default function CreativeTemplate({
                                     >
                                         {client}
                                     </span>
+                                ))}
+                            </div>
+                        </section>
+                    )}
+
+                    {/* [CDC-21] Section Projets ajoutée */}
+                    {projects && projects.length > 0 && (
+                        <section className="mt-5">
+                            <h3
+                                className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
+                                style={{ color: COLORS.accent }}
+                            >
+                                🚀 Projets
+                            </h3>
+                            <div className="space-y-2">
+                                {projects.map((project, i) => (
+                                    <div key={i} className="mb-2">
+                                        <div className="text-[8pt] font-bold text-slate-900 flex items-center gap-1">
+                                            {project.nom}
+                                            {project.lien && <ExternalLink className="w-2.5 h-2.5 text-slate-500" />}
+                                        </div>
+                                        <div className="text-[7pt] text-slate-600">{project.description}</div>
+                                        {project.technologies && project.technologies.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {project.technologies.map((tech, j) => (
+                                                    <span
+                                                        key={j}
+                                                        className="px-1.5 py-0.5 text-[6pt] rounded text-white"
+                                                        style={{ background: COLORS.tertiary }}
+                                                    >
+                                                        {tech}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         </section>

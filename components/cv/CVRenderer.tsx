@@ -13,6 +13,11 @@ const TechTemplate = dynamic(() => import("./templates/TechTemplate"), { ssr: fa
 const ClassicTemplate = dynamic(() => import("./templates/ClassicTemplate"), { ssr: false });
 const CreativeTemplate = dynamic(() => import("./templates/CreativeTemplate"), { ssr: false });
 
+// [CDC Sprint 4.2] Templates Reactive Resume
+const OnyxTemplate = dynamic(() => import("./templates/rr/OnyxTemplate"), { ssr: false });
+const PikachuTemplate = dynamic(() => import("./templates/rr/PikachuTemplate"), { ssr: false });
+const BronzorTemplate = dynamic(() => import("./templates/rr/BronzorTemplate"), { ssr: false });
+
 interface CVRendererProps {
     data: any; // Accept raw data from API, will normalize
     templateId: string;
@@ -27,10 +32,15 @@ interface CVRendererProps {
 }
 
 const TEMPLATE_COMPONENTS: Record<string, React.ComponentType<TemplateProps>> = {
+    // Templates originaux CV-Crush
     modern: ModernTemplate,
     tech: TechTemplate,
     classic: ClassicTemplate,
     creative: CreativeTemplate,
+    // [CDC Sprint 4.2] Templates Reactive Resume
+    onyx: OnyxTemplate,
+    pikachu: PikachuTemplate,
+    bronzor: BronzorTemplate,
 };
 
 export default function CVRenderer({
@@ -98,4 +108,7 @@ export default function CVRenderer({
 }
 
 // Export for PDF generation
-export { ModernTemplate, TechTemplate, ClassicTemplate, CreativeTemplate };
+export { 
+    ModernTemplate, TechTemplate, ClassicTemplate, CreativeTemplate,
+    OnyxTemplate, PikachuTemplate, BronzorTemplate,
+};

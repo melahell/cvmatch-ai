@@ -5,66 +5,24 @@
  * - Normalisation avancée des noms d'entreprises
  * - Similarité de chaînes (Levenshtein + Jaccard)
  * - Déduplication par similarité pour compétences/expériences
+ * 
+ * [CDC-23] Refactorisé pour réutiliser string-similarity.ts au lieu de dupliquer
  */
 
 import { normalizeCompanyName } from "./normalize-company";
+// [CDC-23] Utiliser l'implémentation centrale au lieu de dupliquer
+import { 
+    calculateStringSimilarity as baseCalculateStringSimilarity 
+} from "./string-similarity";
 
 export { normalizeCompanyName };
 
 /**
  * Calcule la similarité entre deux chaînes (0-1)
- * Combine Levenshtein et Jaccard pour robustesse
+ * [CDC-23] Délègue à string-similarity.ts pour éviter duplication
  */
 export function calculateStringSimilarity(str1: string, str2: string): number {
-    if (!str1 || !str2) return 0;
-    if (str1.toLowerCase().trim() === str2.toLowerCase().trim()) return 1.0;
-
-    // Levenshtein distance
-    const levenshtein = levenshteinDistance(str1.toLowerCase(), str2.toLowerCase());
-    const maxLen = Math.max(str1.length, str2.length);
-    const levenshteinScore = maxLen > 0 ? 1 - (levenshtein / maxLen) : 0;
-
-    // Jaccard index (word-based)
-    const words1 = new Set(str1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-    const words2 = new Set(str2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
-    
-    const intersection = new Set([...words1].filter(w => words2.has(w)));
-    const union = new Set([...words1, ...words2]);
-    const jaccardScore = union.size > 0 ? intersection.size / union.size : 0;
-
-    // Moyenne pondérée (60% Levenshtein, 40% Jaccard)
-    return (levenshteinScore * 0.6) + (jaccardScore * 0.4);
-}
-
-/**
- * Distance de Levenshtein entre deux chaînes
- */
-function levenshteinDistance(str1: string, str2: string): number {
-    const matrix: number[][] = [];
-
-    for (let i = 0; i <= str2.length; i++) {
-        matrix[i] = [i];
-    }
-
-    for (let j = 0; j <= str1.length; j++) {
-        matrix[0][j] = j;
-    }
-
-    for (let i = 1; i <= str2.length; i++) {
-        for (let j = 1; j <= str1.length; j++) {
-            if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-                matrix[i][j] = matrix[i - 1][j - 1];
-            } else {
-                matrix[i][j] = Math.min(
-                    matrix[i - 1][j - 1] + 1, // substitution
-                    matrix[i][j - 1] + 1,     // insertion
-                    matrix[i - 1][j] + 1      // deletion
-                );
-            }
-        }
-    }
-
-    return matrix[str2.length][str1.length];
+    return baseCalculateStringSimilarity(str1, str2);
 }
 
 /**

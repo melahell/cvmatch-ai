@@ -82,7 +82,8 @@ export const aiWidgetSchema = z.object({
     offer_keywords: z.array(z.string()).optional(), // mots‑clés job qui ont motivé la sélection
 
     // Grounding & qualité
-    sources: aiWidgetSourceRefSchema.optional(),
+    // [CDC-21] sources rendu obligatoire pour traçabilité end-to-end
+    sources: aiWidgetSourceRefSchema,
     quality: aiWidgetQualitySchema.optional(),
 });
 

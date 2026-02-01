@@ -14,6 +14,10 @@ import { trackCVGeneration } from "@/lib/cv/observability";
 import { detectSector } from "@/lib/cv/sector-customization";
 import packageJson from "@/package.json";
 import { logger } from "@/lib/utils/logger";
+import { z } from "zod";
+
+// [CDC-19] Validation UUID pour sécurité
+const uuidSchema = z.string().uuid();
 
 export const runtime = "nodejs";
 
@@ -158,7 +162,7 @@ export async function POST(req: Request) {
             ? "free"
             : (userRow.subscription_tier || "free");
 
-        const rateLimitResult = checkRateLimit(`cv:${userId}`, getRateLimitConfig(tier, "CV_GENERATION"));
+        const rateLimitResult = await checkRateLimit(`cv:${userId}`, getRateLimitConfig(tier, "CV_GENERATION"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
@@ -168,6 +172,11 @@ export async function POST(req: Request) {
 
         if (!analysisId) {
             return NextResponse.json({ error: "analysisId requis" }, { status: 400 });
+        }
+
+        // [CDC-19] Validation UUID
+        if (!uuidSchema.safeParse(analysisId).success) {
+            return NextResponse.json({ error: "analysisId invalide" }, { status: 400 });
         }
 
         // 1. Fetch job analysis

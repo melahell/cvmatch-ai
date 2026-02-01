@@ -60,7 +60,8 @@ export function WidgetEditor({ widgets, onUpdate }: WidgetEditorProps) {
                 section: (newWidget.section || "experiences") as AIWidget["section"],
                 text: newWidget.text || "",
                 relevance_score: newWidget.relevance_score || 50,
-                sources: newWidget.sources,
+                // [CDC-21] sources est maintenant obligatoire
+                sources: newWidget.sources || {},
                 quality: newWidget.quality,
             };
             updatedWidgets.widgets.push(widgetToAdd);

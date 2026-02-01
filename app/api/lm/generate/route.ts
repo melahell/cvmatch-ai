@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { logger } from "@/lib/utils/logger";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
+import { z } from "zod";
+
+// [CDC-19] Validation UUID pour sécurité
+const uuidSchema = z.string().uuid();
 
 export const runtime = "nodejs";
 
@@ -19,6 +23,11 @@ export async function POST(req: Request) {
 
         const { analysisId, tone = "professional" } = await req.json();
 
+        // [CDC-19] Validation UUID
+        if (!analysisId || !uuidSchema.safeParse(analysisId).success) {
+            return NextResponse.json({ error: "analysisId invalide" }, { status: 400 });
+        }
+
         const { data: userRow } = await admin
             .from("users")
             .select("subscription_tier, subscription_expires_at, subscription_status")
@@ -32,7 +41,7 @@ export async function POST(req: Request) {
             ? "free"
             : (userRow.subscription_tier || "free");
 
-        const rateLimitResult = checkRateLimit(`lm:${userId}`, getRateLimitConfig(tier, "CV_GENERATION"));
+        const rateLimitResult = await checkRateLimit(`lm:${userId}`, getRateLimitConfig(tier, "CV_GENERATION"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }

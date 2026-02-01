@@ -28,6 +28,10 @@ import {
     hashJobDescription
 } from "@/lib/cv/widget-cache";
 import { logger } from "@/lib/utils/logger";
+import { z } from "zod";
+
+// [CDC-19] Validation UUID pour sécurité
+const uuidSchema = z.string().uuid("analysisId doit être un UUID valide");
 
 export const runtime = "nodejs";
 
@@ -50,6 +54,15 @@ export async function POST(req: Request) {
         if (!analysisId) {
             return NextResponse.json(
                 { error: "analysisId requis", errorCode: "MISSING_ANALYSIS_ID" },
+                { status: 400 }
+            );
+        }
+
+        // [CDC-19] Validation UUID
+        const uuidValidation = uuidSchema.safeParse(analysisId);
+        if (!uuidValidation.success) {
+            return NextResponse.json(
+                { error: "analysisId invalide", errorCode: "INVALID_ANALYSIS_ID" },
                 { status: 400 }
             );
         }

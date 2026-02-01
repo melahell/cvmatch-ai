@@ -21,12 +21,13 @@ export interface AdvancedScoreWeights {
     seniority: number; // Poids séniorité (0-1)
 }
 
+// [CDC-22] Poids par défaut (configurables via SCORING_WEIGHTS dans normalize-rag.ts)
 const DEFAULT_WEIGHTS: AdvancedScoreWeights = {
-    relevance: 0.4, // 40% - Critère principal
-    ats: 0.3, // 30% - Important pour passage ATS
-    metrics: 0.15, // 15% - Impact quantifié
-    recency: 0.1, // 10% - Expériences récentes
-    seniority: 0.05, // 5% - Alignement séniorité
+    relevance: 0.35, // 35% - Pertinence par rapport à l'offre
+    ats: 0.20,       // 20% - Important pour passage ATS
+    metrics: 0.20,   // 20% - Impact quantifié
+    recency: 0.15,   // 15% - Expériences récentes valorisées
+    seniority: 0.10, // 10% - Alignement niveau/séniorité
 };
 
 /**
@@ -94,12 +95,13 @@ function calculateMetricsScore(widget: AIWidget): number {
 
 /**
  * Calcule le score récence (basé sur sources.rag_experience_id)
+ * [CDC-BUG] CORRIGÉ: Calcule maintenant l'ancienneté (now - end) au lieu de la durée (end - start)
  */
 function calculateRecencyScore(
     widget: AIWidget,
     experiences: any[]
 ): number {
-    if (!widget.sources?.rag_experience_id) return 50; // Score neutre si pas d'expérience
+    if (!widget.sources.rag_experience_id) return 50; // Score neutre si pas d'expérience
     
     // Extraire index depuis exp_0, exp_1, etc.
     const match = widget.sources.rag_experience_id.match(/^exp_(\d+)$/);
@@ -110,17 +112,22 @@ function calculateRecencyScore(
     
     const exp = experiences[expIndex];
     
-    // Calculer ancienneté
+    // [CDC-BUG] Calculer ancienneté = combien de temps depuis la FIN de l'expérience
+    // (avant: calculait la DURÉE de l'expérience, ce qui était incorrect)
     let yearsAgo = 10; // Par défaut ancien
-    if (exp.debut) {
-        const start = new Date(exp.debut);
-        const end = exp.actuel || !exp.fin ? new Date() : new Date(exp.fin);
-        const months = Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()));
-        yearsAgo = months / 12;
-    }
+    
+    // Date de fin de l'expérience (ou maintenant si actuelle)
+    const end = exp.actuel || !exp.fin ? new Date() : new Date(exp.fin || exp.date_fin);
+    const now = new Date();
+    
+    // Calculer le nombre de mois écoulés depuis la fin
+    const monthsAgo = Math.max(0, (now.getFullYear() - end.getFullYear()) * 12 + (now.getMonth() - end.getMonth()));
+    yearsAgo = monthsAgo / 12;
     
     // Score décroissant avec ancienneté
+    // Expérience actuelle ou récente : 100
     // 0-2 ans : 100, 2-5 ans : 80, 5-10 ans : 50, >10 ans : 20
+    if (exp.actuel) return 100; // Expérience actuelle = score max
     if (yearsAgo <= 2) return 100;
     if (yearsAgo <= 5) return 80;
     if (yearsAgo <= 10) return 50;
@@ -175,7 +182,8 @@ export function calculateAdvancedScore(
     const weights: AdvancedScoreWeights = { ...DEFAULT_WEIGHTS, ...(context.weights || {}) };
     
     // Score pertinence (existant dans widget)
-    const relevanceScore = widget.relevance_score || 50;
+    // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0 pour éviter score artificiel
+    const relevanceScore = widget.relevance_score ?? 0;
     
     // Score ATS
     const jobOfferWithMissing = context.jobOffer as JobOfferContext & { missing_keywords?: string[] };
@@ -265,7 +273,8 @@ export function rescoreWidgetsWithAdvanced(
     
     // Logger statistiques
     const scoreChanges = rescored.map(w => {
-        const original = widgets.find(ow => ow.id === w.id)?.relevance_score || 50;
+        // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0
+        const original = widgets.find(ow => ow.id === w.id)?.relevance_score ?? 0;
         return { id: w.id, original, advanced: w.relevance_score, delta: w.relevance_score - original };
     });
     const avgDelta = scoreChanges.reduce((sum, s) => sum + s.delta, 0) / scoreChanges.length;

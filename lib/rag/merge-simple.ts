@@ -292,10 +292,80 @@ export function mergeRAGDataSimple(existing: any, incoming: any): any {
         ])],
 
         // ===== LANGUES =====
-        langues: {
-            ...(existing.langues || {}),
-            ...(incoming.langues || {})
-        },
+        // [CDC-6] Merge intelligent des langues: garder le niveau le plus élevé (CECRL)
+        langues: (() => {
+            const existingLangages = existing.langues || {};
+            const incomingLangages = incoming.langues || {};
+            
+            // Ordre des niveaux CECRL (du plus bas au plus haut)
+            const CECRL_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+            
+            // Mappings pour normaliser les niveaux courants
+            const LEVEL_MAPPINGS: Record<string, string> = {
+                'natif': 'C2',
+                'native': 'C2',
+                'maternelle': 'C2',
+                'maternel': 'C2',
+                'bilingue': 'C2',
+                'bilingual': 'C2',
+                'courant': 'C1',
+                'fluent': 'C1',
+                'professionnel': 'B2',
+                'professional': 'B2',
+                'avancé': 'B2',
+                'advanced': 'B2',
+                'intermédiaire': 'B1',
+                'intermediate': 'B1',
+                'moyen': 'B1',
+                'débutant': 'A2',
+                'beginner': 'A1',
+                'notions': 'A1',
+                'scolaire': 'A2',
+            };
+
+            const getNormalizedLevel = (level: string): string => {
+                const lower = level.toLowerCase().trim();
+                // Si c'est déjà un niveau CECRL, le retourner
+                const upperLevel = level.toUpperCase().trim();
+                if (CECRL_ORDER.includes(upperLevel)) return upperLevel;
+                // Sinon, chercher dans les mappings
+                return LEVEL_MAPPINGS[lower] || 'B1'; // B1 par défaut si inconnu
+            };
+
+            const compareLanguageLevels = (level1: string, level2: string): number => {
+                const norm1 = getNormalizedLevel(level1);
+                const norm2 = getNormalizedLevel(level2);
+                return CECRL_ORDER.indexOf(norm1) - CECRL_ORDER.indexOf(norm2);
+            };
+
+            const result: Record<string, string> = {};
+
+            // Ajouter existants
+            for (const [lang, level] of Object.entries(existingLangages)) {
+                if (typeof level === 'string') {
+                    result[lang] = level;
+                }
+            }
+
+            // Fusionner incoming en gardant le niveau le plus élevé
+            for (const [lang, level] of Object.entries(incomingLangages)) {
+                if (typeof level !== 'string') continue;
+                
+                // Chercher langue existante (case-insensitive)
+                const existingKey = Object.keys(result).find(k => k.toLowerCase() === lang.toLowerCase());
+                
+                if (existingKey) {
+                    // Comparer et garder le niveau le plus élevé
+                    if (compareLanguageLevels(level, result[existingKey]) > 0) {
+                        result[existingKey] = level;
+                    }
+                } else {
+                    result[lang] = level;
+                }
+            }
+
+            return result;
+        })(),
 
         // ===== PROJETS =====
         projets: [

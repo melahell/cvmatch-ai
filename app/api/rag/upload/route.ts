@@ -4,6 +4,19 @@ import { logger } from "@/lib/utils/logger";
 
 export const runtime = "edge";
 
+// [CDC-1] Types MIME autorisés pour les fichiers CV
+const ALLOWED_MIME_TYPES = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/msword', // .doc
+    'application/rtf',
+    'text/rtf',
+    'application/vnd.oasis.opendocument.text', // .odt
+];
+
+// [CDC-1] Extensions autorisées (fallback si MIME non fiable)
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.rtf', '.odt'];
+
 export async function POST(req: Request) {
     try {
         const auth = await requireSupabaseUser(req);
@@ -49,8 +62,33 @@ export async function POST(req: Request) {
 
         const uploads = [];
         let successCount = 0;
+        const warnings: string[] = [];
 
         for (const file of files) {
+            // [CDC-1] Validation du type MIME
+            const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+            const isMimeAllowed = ALLOWED_MIME_TYPES.includes(file.type);
+            const isExtensionAllowed = ALLOWED_EXTENSIONS.includes(fileExtension);
+
+            if (!isMimeAllowed && !isExtensionAllowed) {
+                logger.warn("Rejected file: unsupported type", { 
+                    filename: file.name, 
+                    mimeType: file.type,
+                    extension: fileExtension
+                });
+                uploads.push({
+                    filename: file.name,
+                    error: `Type de fichier non supporté (${file.type || fileExtension}). Formats acceptés: PDF, DOCX, DOC, RTF, ODT.`,
+                    rejected: true
+                });
+                continue;
+            }
+
+            // [CDC-1] Warning si fichier très petit (potentiellement vide/corrompu)
+            if (file.size < 1000) {
+                warnings.push(`Le fichier "${file.name}" est très petit (${file.size} octets) et pourrait être vide ou corrompu.`);
+            }
+
             const arrayBuffer = await file.arrayBuffer();
             const buffer = new Uint8Array(arrayBuffer);
             const timestamp = Date.now();
@@ -102,7 +140,13 @@ export async function POST(req: Request) {
             }, { status: 500 });
         }
 
-        return NextResponse.json({ success: true, successCount, uploads });
+        return NextResponse.json({ 
+            success: true, 
+            successCount, 
+            uploads,
+            // [CDC-1] Ajouter warnings s'il y en a
+            ...(warnings.length > 0 && { warnings })
+        });
     } catch (error: any) {
         logger.error("Upload server error", { error: error?.message });
         return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });

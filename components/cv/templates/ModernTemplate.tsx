@@ -2,41 +2,10 @@
 
 import React from "react";
 import { TemplateProps } from "./index";
-import { Mail, Phone, MapPin, Linkedin, Globe, Github } from "lucide-react";
+import { Mail, Phone, MapPin, Linkedin, Globe, Github, ExternalLink } from "lucide-react";
 import { DESIGN_TOKENS } from "@/lib/design-tokens";
-
-// Sanitize text by fixing spacing issues (applied at render time)
-function sanitizeText(text: unknown): string {
-    if (text === null || text === undefined) return "";
-    if (typeof text !== "string") return "";
-    const input = text;
-    if (!input) return "";
-
-    return input
-        // Fix common French word concatenations
-        .replace(/([a-zàâäéèêëïîôùûüçœæ])(de|des|du|pour|avec|sans|dans|sur|sous|entre|chez|vers|par|et|ou|à|au|aux|un|une|le|la|les)([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆA-zàâäéèêëïîôùûüçœæ])/g, '$1 $2 $3')
-        // Fix lowercase + uppercase (camelCase)
-        .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
-        // Fix punctuation + letter
-        .replace(/([.,;:!?])([a-zA-ZÀ-ÿ])/g, '$1 $2')
-        // Fix closing parenthesis + letter
-        .replace(/\)([a-zA-ZÀ-ÿ])/g, ') $1')
-        // Fix letter + opening parenthesis
-        .replace(/([a-zA-ZÀ-ÿ])\(/g, '$1 (')
-        // Fix number + letter (12clients → 12 clients)
-        .replace(/(\d)([a-zA-ZÀ-ÿ])/g, '$1 $2')
-        // Fix letter + number (pour12 → pour 12)
-        .replace(/([a-zA-ZÀ-ÿ])(\d)/g, '$1 $2')
-        // Fix + and numbers
-        .replace(/\+(\d)/g, '+ $1')
-        .replace(/(\d)\+/g, '$1 +')
-        // Fix % and numbers
-        .replace(/(\d)%/g, '$1 %')
-        .replace(/%(\d)/g, '% $1')
-        // Normalize multiple spaces to single space
-        .replace(/\s+/g, ' ')
-        .trim();
-}
+// [CDC-24] Utiliser utilitaire centralisé
+import { sanitizeText } from "@/lib/cv/sanitize-text";
 
 
 export default function ModernTemplate({
@@ -45,7 +14,7 @@ export default function ModernTemplate({
     jobContext,
     dense = false
 }: TemplateProps) {
-    const { profil, experiences, competences, formations, langues, certifications, clients_references } = data;
+    const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     const hasHttpPhoto =
         typeof profil?.photo_url === "string" &&
         (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
@@ -382,6 +351,39 @@ export default function ModernTemplate({
                                     )}
                                     {edu.annee && (
                                         <p className="text-slate-600 text-[7pt] mt-0.5">{sanitizeText(edu.annee)}</p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* [CDC-21] Section Projets ajoutée */}
+                {projects && projects.length > 0 && (
+                    <section className="mb-2">
+                        <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
+                            <span className="w-4 h-0.5 bg-indigo-600 rounded-full" />
+                            Projets
+                        </h2>
+                        <div className="grid grid-cols-2 gap-2">
+                            {projects.map((project, i) => (
+                                <div
+                                    key={i}
+                                    className="pl-3 py-2 border-l-2 border-purple-200 bg-gradient-to-r from-purple-50/50 to-transparent"
+                                >
+                                    <div className="flex items-center gap-1">
+                                        <h4 className="font-bold text-[8pt] text-slate-900">{project.nom}</h4>
+                                        {project.lien && <ExternalLink className="w-2.5 h-2.5 text-indigo-500" />}
+                                    </div>
+                                    <p className="text-slate-600 text-[7pt]">{project.description}</p>
+                                    {project.technologies && project.technologies.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {project.technologies.map((tech, j) => (
+                                                <span key={j} className="text-[5pt] bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded">
+                                                    {tech}
+                                                </span>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
                             ))}

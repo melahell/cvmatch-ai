@@ -287,7 +287,8 @@ function mergeExperiences(
       realisations:
         optimizedExp.realisations?.map((optReal: any, idx: number) => ({
           description: optReal.description || origExp.realisations?.[idx]?.description || "",
-          impact_score: origExp.realisations?.[idx]?.impact_score || 50
+          // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0
+          impact_score: origExp.realisations?.[idx]?.impact_score ?? 0
         })) || origExp.realisations,
       // Garder le contexte original (structure spatiale gérée par algorithme)
       contexte: optimizedExp.contexte || origExp.contexte

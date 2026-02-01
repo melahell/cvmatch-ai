@@ -66,7 +66,7 @@ export async function POST(req: Request) {
             ? "free"
             : (userRow.subscription_tier || "free");
 
-        const rateLimitResult = checkRateLimit(userId, getRateLimitConfig(tier, "MATCH_ANALYSIS"));
+        const rateLimitResult = await checkRateLimit(userId, getRateLimitConfig(tier, "MATCH_ANALYSIS"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }

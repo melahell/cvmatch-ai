@@ -59,7 +59,7 @@ export async function POST(req: Request) {
             ? "free"
             : (userRow.subscription_tier || "free");
 
-        const rateLimitResult = checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
+        const rateLimitResult = await checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
         if (!rateLimitResult.success) {
             return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
         }
