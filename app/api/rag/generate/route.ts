@@ -8,6 +8,7 @@ import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quali
 import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
 
 import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
+import { saveRAGVersion } from "@/lib/rag/versioning";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
@@ -345,6 +346,24 @@ export async function POST(req: Request) {
         // But we keep completeness_score for backward compatibility
         const completenessScore = qualityScoreResult.overall_score;
         const breakdown = qualityScoreResult.breakdown;
+
+        // [CDC Sprint 1.3] Auto-save version before updating RAG
+        if (existingNormalized) {
+            try {
+                const versionReason = actualMode === "regeneration" ? "regeneration" : "merge";
+                await saveRAGVersion(supabase, userId, existingNormalized, {
+                    reason: versionReason as "regeneration" | "merge",
+                    includeDiff: true,
+                });
+                logger.info("RAG version saved before update", { userId, reason: versionReason });
+            } catch (versionError) {
+                // Non-blocking: log error but continue with update
+                logger.warn("Failed to save RAG version (non-blocking)", { 
+                    userId, 
+                    error: versionError instanceof Error ? versionError.message : "Unknown" 
+                });
+            }
+        }
 
         if (existingRag) {
             const { error: updateError } = await supabase
