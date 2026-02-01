@@ -14,6 +14,8 @@ import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
+import { safeParseJSON } from "@/lib/ai/safe-json-parser";
+import { ragExtractionSchema } from "@/lib/ai/schemas";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -213,16 +215,18 @@ export async function POST(req: Request) {
         const { result, modelUsed } = await generateGemini(prompt);
         const responseText = result.response.text();
 
-        const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-        let ragData;
-
-        try {
-            ragData = normalizeRAGData(JSON.parse(jsonString));
-
-        } catch (e) {
-            logger.error("Failed to parse RAG JSON", { responseLength: responseText.length });
+        // [CDC Sprint 2.3] Parse avec validation Zod
+        const parseResult = safeParseJSON(responseText, ragExtractionSchema);
+        
+        if (!parseResult.success) {
+            logger.error("Failed to parse RAG JSON", { 
+                responseLength: responseText.length,
+                error: parseResult.error 
+            });
             return NextResponse.json({ error: "AI returned invalid format, please try again" }, { status: 500 });
         }
+        
+        let ragData = normalizeRAGData(parseResult.data);
 
         // ═══════════════════════════════════════════════════════════════
         // NEW: POST-EXTRACTION PROCESSING PIPELINE

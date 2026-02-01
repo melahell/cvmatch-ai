@@ -11,6 +11,8 @@ import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { getTopJobsPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { logger } from "@/lib/utils/logger";
+import { safeParseJSON } from "@/lib/ai/safe-json-parser";
+import { jobSuggestionsArraySchema } from "@/lib/ai/schemas";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // 1 minute should be enough
@@ -71,23 +73,29 @@ export async function POST(req: Request) {
             return text;
         }, 3);
 
-        // Parse JSON
-        const jsonString = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
-        let top10Jobs;
-
-        try {
-            top10Jobs = JSON.parse(jsonString);
-
-            // Validate structure
-            if (!Array.isArray(top10Jobs) || top10Jobs.length === 0) {
-                throw new Error("Invalid response structure");
-            }
-        } catch (parseError: any) {
-            logger.error("Top jobs parse error", { responseLength: responseText.length });
+        // [CDC Sprint 2.3] Parse avec validation Zod
+        const parseResult = safeParseJSON(responseText, jobSuggestionsArraySchema);
+        
+        if (!parseResult.success) {
+            logger.error("Top jobs parse error", { 
+                responseLength: responseText.length,
+                error: parseResult.error 
+            });
             return NextResponse.json({
                 error: "AI returned invalid format for job suggestions",
                 errorCode: "PARSE_ERROR",
-                details: parseError.message
+                details: parseResult.error
+            }, { status: 500 });
+        }
+        
+        const top10Jobs = parseResult.data;
+        
+        // Validate non-empty
+        if (!Array.isArray(top10Jobs) || top10Jobs.length === 0) {
+            logger.error("Top jobs empty response");
+            return NextResponse.json({
+                error: "AI returned empty job suggestions",
+                errorCode: "EMPTY_RESPONSE"
             }, { status: 500 });
         }
 

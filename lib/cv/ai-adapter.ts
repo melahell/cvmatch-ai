@@ -3,10 +3,13 @@
  *
  * [AUDIT FIX IMPORTANT-6] : Enrichissement des expériences avec dates/lieux depuis RAG
  * [AUDIT FIX CRITIQUE-3] : Propagation des infos de contact et photo depuis RAG
+ * [CDC Sprint 2.6] : Helpers extraits dans lib/cv/utils/client-normalizer.ts
  */
 
 import { aiWidgetsEnvelopeSchema, AIWidgetsEnvelope, AIWidget, type AIWidgetSection } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
+// [CDC Sprint 2.6] Les helpers client sont disponibles dans ./utils/client-normalizer
+// mais restent définis localement ici pour éviter les imports circulaires
 
 export interface ConvertOptions {
     /**
