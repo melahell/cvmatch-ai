@@ -43,13 +43,20 @@ export type AIWidgetSection = z.infer<typeof aiWidgetSectionSchema>;
 /**
  * Références de grounding vers le RAG source.
  * Permet de tracer chaque widget jusqu'à ses sources brutes.
+ * [CDC-21 Phase 1.1] Au moins un identifiant de traçage est requis.
  */
 export const aiWidgetSourceRefSchema = z.object({
     rag_experience_id: z.string().optional(),
     rag_realisation_id: z.string().optional(),
     rag_path: z.string().optional(), // ex: "experiences[2].realisations[1]"
     source_ids: z.array(z.string()).optional(), // IDs de documents / chunks, si disponibles
-});
+}).refine(
+    (data) => data.rag_experience_id || data.rag_path || (data.source_ids && data.source_ids.length > 0),
+    {
+        message: "Au moins un identifiant de traçage est requis (rag_experience_id, rag_path, ou source_ids)",
+    }
+);
+
 
 export type AIWidgetSourceRef = z.infer<typeof aiWidgetSourceRefSchema>;
 

@@ -74,22 +74,22 @@ function calculateATSScore(
  */
 function calculateMetricsScore(widget: AIWidget): number {
     const numbers = extractNumbers(widget.text);
-    
+
     if (numbers.length === 0) return 0;
-    
+
     // Plus il y a de chiffres, meilleur le score
     // Bonus pour pourcentages, montants, volumes
     let score = numbers.length * 10;
-    
+
     // Bonus pour pourcentages
     if (widget.text.includes("%")) score += 15;
-    
+
     // Bonus pour montants (€, $, k€, etc.)
     if (/\d+[kK]?\s*[€$£]/.test(widget.text)) score += 15;
-    
+
     // Bonus pour volumes (+, millions, etc.)
     if (/\+|\d+\s*(million|milliard|k|M)/i.test(widget.text)) score += 10;
-    
+
     return Math.min(100, score);
 }
 
@@ -102,28 +102,28 @@ function calculateRecencyScore(
     experiences: any[]
 ): number {
     if (!widget.sources.rag_experience_id) return 50; // Score neutre si pas d'expérience
-    
+
     // Extraire index depuis exp_0, exp_1, etc.
     const match = widget.sources.rag_experience_id.match(/^exp_(\d+)$/);
     if (!match) return 50;
-    
+
     const expIndex = parseInt(match[1], 10);
     if (isNaN(expIndex) || !experiences[expIndex]) return 50;
-    
+
     const exp = experiences[expIndex];
-    
+
     // [CDC-BUG] Calculer ancienneté = combien de temps depuis la FIN de l'expérience
     // (avant: calculait la DURÉE de l'expérience, ce qui était incorrect)
     let yearsAgo = 10; // Par défaut ancien
-    
+
     // Date de fin de l'expérience (ou maintenant si actuelle)
     const end = exp.actuel || !exp.fin ? new Date() : new Date(exp.fin || exp.date_fin);
     const now = new Date();
-    
+
     // Calculer le nombre de mois écoulés depuis la fin
     const monthsAgo = Math.max(0, (now.getFullYear() - end.getFullYear()) * 12 + (now.getMonth() - end.getMonth()));
     yearsAgo = monthsAgo / 12;
-    
+
     // Score décroissant avec ancienneté
     // Expérience actuelle ou récente : 100
     // 0-2 ans : 100, 2-5 ans : 80, 5-10 ans : 50, >10 ans : 20
@@ -144,15 +144,15 @@ function calculateSeniorityScore(
 ): number {
     const jobTitleLower = jobTitle.toLowerCase();
     const widgetText = widget.text.toLowerCase();
-    
+
     // Détecter niveau du poste
     const isSenior = /senior|lead|principal|expert|director|head|chief/i.test(jobTitle);
     const isJunior = /junior|entry|débutant|stagiaire/i.test(jobTitle);
-    
+
     // Détecter niveau dans le widget
     const widgetIsSenior = /senior|lead|principal|expert|director|head|chief|management|équipe/i.test(widgetText);
     const widgetIsJunior = /junior|entry|débutant|stagiaire|apprenti/i.test(widgetText);
-    
+
     // Score d'alignement
     if (isSenior && widgetIsSenior) return 100;
     if (isJunior && widgetIsJunior) return 100;
@@ -160,11 +160,11 @@ function calculateSeniorityScore(
     if (isJunior && !widgetIsSenior) return 80; // Pas senior = OK pour junior
     if (widgetIsSenior && !isSenior) return 60; // Widget trop senior
     if (widgetIsJunior && !isJunior) return 60; // Widget trop junior
-    
+
     // Score basé sur années d'expérience
     if (totalYearsExperience >= 8 && isSenior) return 90;
     if (totalYearsExperience < 3 && isJunior) return 90;
-    
+
     return 70; // Score neutre
 }
 
@@ -180,29 +180,29 @@ export function calculateAdvancedScore(
     }
 ): number {
     const weights: AdvancedScoreWeights = { ...DEFAULT_WEIGHTS, ...(context.weights || {}) };
-    
+
     // Score pertinence (existant dans widget)
     // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0 pour éviter score artificiel
     const relevanceScore = widget.relevance_score ?? 0;
-    
+
     // Score ATS
     const jobOfferWithMissing = context.jobOffer as JobOfferContext & { missing_keywords?: string[] };
     const atsScore = context.jobOffer
         ? calculateATSScore(
-              widget,
-              jobOfferWithMissing.keywords || [],
-              jobOfferWithMissing.missing_keywords || []
-          )
+            widget,
+            jobOfferWithMissing.keywords || [],
+            jobOfferWithMissing.missing_keywords || []
+        )
         : 50;
-    
+
     // Score métriques
     const metricsScore = calculateMetricsScore(widget);
-    
+
     // Score récence
     const recencyScore = context.ragProfile?.experiences
         ? calculateRecencyScore(widget, context.ragProfile.experiences)
         : 50;
-    
+
     // Score séniorité
     const totalYears = context.ragProfile
         ? calculateTotalYearsExperience(context.ragProfile)
@@ -210,7 +210,7 @@ export function calculateAdvancedScore(
     const seniorityScore = context.jobOffer
         ? calculateSeniorityScore(widget, context.jobOffer.title || "", totalYears)
         : 50;
-    
+
     // Score composite pondéré
     const compositeScore =
         relevanceScore * weights.relevance +
@@ -218,7 +218,7 @@ export function calculateAdvancedScore(
         metricsScore * weights.metrics +
         recencyScore * weights.recency +
         seniorityScore * weights.seniority;
-    
+
     return Math.max(0, Math.min(100, Math.round(compositeScore)));
 }
 
@@ -228,7 +228,7 @@ export function calculateAdvancedScore(
 function calculateTotalYearsExperience(ragProfile: any): number {
     const experiences = ragProfile?.experiences || [];
     let totalMonths = 0;
-    
+
     for (const exp of experiences) {
         if (exp.debut) {
             const start = new Date(exp.debut);
@@ -237,7 +237,7 @@ function calculateTotalYearsExperience(ragProfile: any): number {
             totalMonths += months;
         }
     }
-    
+
     return totalMonths / 12;
 }
 
@@ -253,24 +253,25 @@ export function rescoreWidgetsWithAdvanced(
     }
 ): AIWidget[] {
     const weights: AdvancedScoreWeights = { ...DEFAULT_WEIGHTS, ...(context.weights || {}) };
-    
+
     logger.debug("[advanced-scoring] Re-scoring widgets", {
         widgetsCount: widgets.length,
         weights,
         hasJobOffer: !!context.jobOffer,
         hasRAGProfile: !!context.ragProfile,
     });
-    
+
     const rescored = widgets.map((widget) => {
-        const originalScore = widget.relevance_score || 50;
+        // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0 pour éviter score artificiel
+        const originalScore = widget.relevance_score ?? 0;
         const advancedScore = calculateAdvancedScore(widget, context);
-        
+
         return {
             ...widget,
             relevance_score: Math.max(0, Math.min(100, advancedScore)),
         };
     });
-    
+
     // Logger statistiques
     const scoreChanges = rescored.map(w => {
         // [CDC-BUG] Corrigé: || 50 remplacé par ?? 0
@@ -278,12 +279,12 @@ export function rescoreWidgetsWithAdvanced(
         return { id: w.id, original, advanced: w.relevance_score, delta: w.relevance_score - original };
     });
     const avgDelta = scoreChanges.reduce((sum, s) => sum + s.delta, 0) / scoreChanges.length;
-    
+
     logger.debug("[advanced-scoring] Re-scoring terminé", {
         avgDelta: Math.round(avgDelta),
         improved: scoreChanges.filter(s => s.delta > 0).length,
         degraded: scoreChanges.filter(s => s.delta < 0).length,
     });
-    
+
     return rescored;
 }

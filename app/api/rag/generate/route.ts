@@ -8,6 +8,7 @@ import { calculateQualityScore, formatQualityScoreReport } from "@/lib/rag/quali
 import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
 
 import { mergeRAGData, MergeResult } from "@/lib/rag/merge-simple";
+import { deduplicateRAG } from "@/lib/rag/deduplicate";
 import { saveRAGVersion } from "@/lib/rag/versioning";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { truncateForRAGExtraction } from "@/lib/utils/text-truncate";
@@ -217,16 +218,20 @@ export async function POST(req: Request) {
 
         // [CDC Sprint 2.3] Parse avec validation Zod
         const parseResult = safeParseJSON(responseText, ragExtractionSchema);
-        
+
         if (!parseResult.success) {
-            logger.error("Failed to parse RAG JSON", { 
+            logger.error("Failed to parse RAG JSON", {
                 responseLength: responseText.length,
-                error: parseResult.error 
+                error: parseResult.error
             });
             return NextResponse.json({ error: "AI returned invalid format, please try again" }, { status: 500 });
         }
-        
+
         let ragData = normalizeRAGData(parseResult.data);
+
+        // [CDC Phase 2.1] Dédupliquer automatiquement après parsing
+        ragData = deduplicateRAG(ragData);
+        logger.info("RAG deduplication applied");
 
         // ═══════════════════════════════════════════════════════════════
         // NEW: POST-EXTRACTION PROCESSING PIPELINE
@@ -362,9 +367,9 @@ export async function POST(req: Request) {
                 logger.info("RAG version saved before update", { userId, reason: versionReason });
             } catch (versionError) {
                 // Non-blocking: log error but continue with update
-                logger.warn("Failed to save RAG version (non-blocking)", { 
-                    userId, 
-                    error: versionError instanceof Error ? versionError.message : "Unknown" 
+                logger.warn("Failed to save RAG version (non-blocking)", {
+                    userId,
+                    error: versionError instanceof Error ? versionError.message : "Unknown"
                 });
             }
         }
