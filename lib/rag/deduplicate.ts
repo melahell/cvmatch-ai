@@ -1,9 +1,12 @@
 /**
  * RAG Deduplication System
  * Removes semantic duplicates from RAG data
+ * 
+ * [CDC Phase 3.3] Refactored to use centralized string-similarity module
  */
 
 import { normalizeCompanyName } from "./normalize-company";
+import { combinedSimilarity } from "./string-similarity";
 
 interface Experience {
     poste: string;
@@ -26,63 +29,10 @@ interface RealisationObject {
 
 /**
  * Calculate similarity between two strings (0-1)
- * Uses combined similarity (Jaccard + Levenshtein) for better accuracy
+ * [CDC Phase 3.3] Now uses centralized implementation from string-similarity.ts
  */
 function calculateSimilarity(str1: string, str2: string): number {
-    if (!str1 || !str2) return 0;
-
-    // Import combined similarity from string-similarity
-    // Using inline implementation to avoid circular dependency
-    const normalize = (s: string) => s.toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .split(/\s+/)
-        .filter(w => w.length > 2); // Ignore short words
-
-    const words1 = new Set(normalize(str1));
-    const words2 = new Set(normalize(str2));
-
-    // Jaccard similarity
-    const intersection = new Set([...words1].filter(x => words2.has(x)));
-    const union = new Set([...words1, ...words2]);
-    const jaccard = union.size > 0 ? intersection.size / union.size : 0;
-
-    // Levenshtein similarity (normalized)
-    const s1 = str1.toLowerCase().trim();
-    const s2 = str2.toLowerCase().trim();
-    const maxLen = Math.max(s1.length, s2.length);
-    if (maxLen === 0) return 0;
-    
-    // Simple Levenshtein distance calculation
-    const levenshteinDistance = (a: string, b: string): number => {
-        const matrix: number[][] = [];
-        for (let i = 0; i <= b.length; i++) {
-            matrix[i] = [i];
-        }
-        for (let j = 0; j <= a.length; j++) {
-            matrix[0][j] = j;
-        }
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                    matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1,
-                        matrix[i][j - 1] + 1,
-                        matrix[i - 1][j] + 1
-                    );
-                }
-            }
-        }
-        return matrix[b.length][a.length];
-    };
-    
-    const distance = levenshteinDistance(s1, s2);
-    const levenshtein = 1 - (distance / maxLen);
-
-    // Combined: adaptive weights based on string length
-    const weight = maxLen > 20 ? 0.6 : 0.4; // Jaccard more important for long strings
-    return weight * jaccard + (1 - weight) * levenshtein;
+    return combinedSimilarity(str1, str2);
 }
 
 /**
@@ -180,33 +130,33 @@ function mergeExperiences(exps: Experience[]): Experience {
                 const similarity = calculateSimilarity(normalized, existingNorm);
                 if (similarity > 0.75) {
                     // Merge: keep the best version (longer description, with impact if available)
-                    const keepDescription = 
+                    const keepDescription =
                         (normalizedReal.impact && !existing.impact) ? normalizedReal.description :
-                        (!normalizedReal.impact && existing.impact) ? existing.description :
-                        normalizedReal.description.length > existing.description.length ? normalizedReal.description : existing.description;
-                    
+                            (!normalizedReal.impact && existing.impact) ? existing.description :
+                                normalizedReal.description.length > existing.description.length ? normalizedReal.description : existing.description;
+
                     const keepImpact =
                         (normalizedReal.impact && !existing.impact) ? normalizedReal.impact :
-                        (!normalizedReal.impact && existing.impact) ? existing.impact :
-                        (normalizedReal.impact || "").length > (existing.impact || "").length
-                            ? normalizedReal.impact
-                            : existing.impact;
-                    
+                            (!normalizedReal.impact && existing.impact) ? existing.impact :
+                                (normalizedReal.impact || "").length > (existing.impact || "").length
+                                    ? normalizedReal.impact
+                                    : existing.impact;
+
                     // Merge sources
                     const sources = Array.from(new Set([...(existing.sources || []), ...(normalizedReal.sources || [])]));
-                    
+
                     // Update existing with best version
                     existing.description = keepDescription;
                     if (keepImpact) existing.impact = keepImpact;
                     if (sources.length > 0) existing.sources = sources;
-                    
+
                     // Preserve all other properties from both
                     Object.keys(normalizedReal).forEach(key => {
                         if (!['description', 'impact', 'sources'].includes(key) && !existing[key]) {
                             existing[key] = normalizedReal[key];
                         }
                     });
-                    
+
                     mergedIntoExisting = true;
                     break;
                 }
