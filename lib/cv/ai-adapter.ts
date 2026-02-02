@@ -809,6 +809,7 @@ function buildLangues(
 
 /**
  * [AUDIT FIX] : Enrichit les certifications et clients depuis le RAG
+ * [CDC-FIX] : Ajout logs debug pour tracer les clients manquants
  */
 function buildCertificationsAndReferences(
     certificationWidgets: AIWidget[],
@@ -825,6 +826,23 @@ function buildCertificationsAndReferences(
         return typeof candidate === "string" ? candidate : "";
     };
 
+    // [CDC-DEBUG] Log structure RAG pour diagnostic clients
+    console.log("[buildCertificationsAndReferences] DEBUG RAG structure:", {
+        hasRagProfile: !!ragProfile,
+        hasReferences: !!ragProfile?.references,
+        hasReferencesClients: !!ragProfile?.references?.clients,
+        referencesClientsLength: ragProfile?.references?.clients?.length ?? 0,
+        referencesClientsType: Array.isArray(ragProfile?.references?.clients) ? "array" : typeof ragProfile?.references?.clients,
+        referencesClientsSample: ragProfile?.references?.clients?.slice?.(0, 3) ?? null,
+        // Aussi checker d'autres chemins possibles
+        hasClientsReferences: !!ragProfile?.clients_references,
+        clientsReferencesLength: ragProfile?.clients_references?.clients?.length ?? 0,
+        experiencesCount: ragProfile?.experiences?.length ?? 0,
+        experiencesWithClients: ragProfile?.experiences?.filter?.((e: any) => 
+            e?.clients?.length > 0 || e?.clients_references?.length > 0
+        )?.length ?? 0,
+    });
+
     certificationWidgets.forEach((widget) => {
         const text = widget.text.trim();
         if (!text) return;
@@ -837,6 +855,12 @@ function buildCertificationsAndReferences(
         clientsRaw.push(text);
     });
 
+    console.log("[buildCertificationsAndReferences] Widgets:", {
+        certificationWidgetsCount: certificationWidgets.length,
+        referenceWidgetsCount: referenceWidgets.length,
+        clientsFromWidgets: clientsRaw.length,
+    });
+
     // [AUDIT FIX] : Enrichir depuis RAG si vide
     if (certifications.length === 0 && ragProfile?.certifications) {
         const ragCerts = Array.isArray(ragProfile.certifications) ? ragProfile.certifications : [];
@@ -847,47 +871,92 @@ function buildCertificationsAndReferences(
     }
 
     // [AUDIT FIX] : Enrichir clients depuis RAG
+    // Chemin 1: references.clients
     const ragClientsFromReferences = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
+    console.log("[buildCertificationsAndReferences] ragClientsFromReferences:", ragClientsFromReferences.length, ragClientsFromReferences.slice(0, 5));
     ragClientsFromReferences.forEach((c: any) => {
         const clientName = extractClientName(c);
         if (clientName) clientsRaw.push(clientName);
     });
+    
+    // [CDC-FIX] Chemin alternatif: clients_references (au niveau racine)
+    const ragClientsFromRoot = Array.isArray(ragProfile?.clients_references?.clients) ? ragProfile.clients_references.clients : [];
+    console.log("[buildCertificationsAndReferences] ragClientsFromRoot:", ragClientsFromRoot.length, ragClientsFromRoot.slice(0, 5));
+    ragClientsFromRoot.forEach((c: any) => {
+        const clientName = extractClientName(c);
+        if (clientName) clientsRaw.push(clientName);
+    });
 
+    // Chemin 3: experiences[].clients ou clients_references
     const ragClientsFromExperiences = Array.isArray(ragProfile?.experiences) ? ragProfile.experiences : [];
-    ragClientsFromExperiences.forEach((exp: any) => {
+    let clientsFromExpCount = 0;
+    ragClientsFromExperiences.forEach((exp: any, idx: number) => {
         const expClients =
             (Array.isArray(exp?.clients_references) && exp.clients_references) ||
             (Array.isArray(exp?.clients) && exp.clients) ||
             (Array.isArray(exp?.clientsReferences) && exp.clientsReferences) ||
             [];
+        if (expClients.length > 0) {
+            console.log(`[buildCertificationsAndReferences] Experience ${idx} clients:`, expClients.slice(0, 3));
+        }
         expClients.forEach((c: any) => {
             const clientName = extractClientName(c);
-            if (clientName) clientsRaw.push(clientName);
+            if (clientName) {
+                clientsRaw.push(clientName);
+                clientsFromExpCount++;
+            }
         });
     });
+    
+    console.log("[buildCertificationsAndReferences] Total clientsRaw avant nettoyage:", {
+        total: clientsRaw.length,
+        fromExperiences: clientsFromExpCount,
+        sample: clientsRaw.slice(0, 10),
+    });
+    
     const excludeCompanies = Array.isArray(ragProfile?.experiences)
         ? ragProfile.experiences.map((e: any) => e?.entreprise || e?.client).filter(Boolean)
         : [];
+    console.log("[buildCertificationsAndReferences] Entreprises à exclure:", excludeCompanies.slice(0, 5));
+    
     const maxClientsReferences = opts?.limitsBySection?.maxClientsReferences ?? 25;
     let uniqueClients = cleanClientList(clientsRaw, { exclude: excludeCompanies, max: maxClientsReferences });
+    
+    console.log("[buildCertificationsAndReferences] Après cleanClientList (avec exclude):", {
+        uniqueClientsLength: uniqueClients.length,
+        uniqueClients: uniqueClients.slice(0, 10),
+    });
+    
     if (uniqueClients.length === 0 && clientsRaw.length > 0) {
+        console.log("[buildCertificationsAndReferences] FALLBACK: retry sans exclude car 0 clients");
         uniqueClients = cleanClientList(clientsRaw, { max: maxClientsReferences });
+        console.log("[buildCertificationsAndReferences] Après cleanClientList (sans exclude):", uniqueClients.length, uniqueClients.slice(0, 10));
     }
 
+    // [CDC-FIX] Construire les secteurs depuis le RAG
+    // Utiliser normalizeKey pour le matching (case-insensitive)
+    const uniqueClientsKeys = new Set(uniqueClients.map(normalizeKey));
+    
     const secteursFromRag = (() => {
         const ragClients = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
         const bySector = new Map<string, Set<string>>();
+        
         for (const c of ragClients) {
             if (!c || typeof c !== "object") continue;
             const sector = String((c as any).secteur || "").trim();
             if (!sector) continue;
             const name = normalizeClientName((c as any).nom ?? (c as any).name);
             if (!name) continue;
-            if (!uniqueClients.includes(name)) continue;
+            
+            // [CDC-FIX] Utiliser normalizeKey pour le matching au lieu de includes()
+            const nameKey = normalizeKey(name);
+            if (!uniqueClientsKeys.has(nameKey)) continue;
+            
             const set = bySector.get(sector) ?? new Set<string>();
             set.add(name);
             bySector.set(sector, set);
         }
+        
         const sectors = Array.from(bySector.entries())
             .map(([secteur, set]) => ({ secteur, clients: Array.from(set.values()) }))
             .filter((x) => x.clients.length > 0)
@@ -902,6 +971,13 @@ function buildCertificationsAndReferences(
                   secteurs: secteursFromRag,
               }
             : undefined;
+
+    console.log("[buildCertificationsAndReferences] RESULTAT FINAL:", {
+        hasClientsReferences: !!clients_references,
+        clientsCount: clients_references?.clients?.length ?? 0,
+        secteursCount: clients_references?.secteurs?.length ?? 0,
+        clientsSample: clients_references?.clients?.slice(0, 5) ?? [],
+    });
 
     return {
         certifications: certifications.length > 0 ? certifications : undefined,
