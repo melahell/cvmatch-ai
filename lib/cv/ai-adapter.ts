@@ -11,6 +11,12 @@ import type { RendererResumeSchema } from "./renderer-schema";
 // [CDC Sprint 2.6] Les helpers client sont disponibles dans ./utils/client-normalizer
 // mais restent définis localement ici pour éviter les imports circulaires
 
+// [CDC Phase 4] Flag pour désactiver les logs de debug en production
+const DEBUG_AI_ADAPTER = process.env.NODE_ENV === "development" && process.env.DEBUG_AI_ADAPTER === "true";
+const debugLog = (...args: any[]) => {
+    if (DEBUG_AI_ADAPTER) debugLog(...args);
+};
+
 export interface ConvertOptions {
     /**
      * Score minimum pour qu'un widget soit inclus.
@@ -226,18 +232,18 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     const sanitizedInput =
         input && typeof input === "object" && Array.isArray((input as any).widgets)
             ? {
-                  ...(input as any),
-                  widgets: (input as any).widgets.map((w: any) => ({
-                      ...w,
-                      relevance_score: clampScore(w?.relevance_score),
-                  })),
-              }
+                ...(input as any),
+                widgets: (input as any).widgets.map((w: any) => ({
+                    ...w,
+                    relevance_score: clampScore(w?.relevance_score),
+                })),
+            }
             : input;
 
     const parsed = aiWidgetsEnvelopeSchema.parse(sanitizedInput) as AIWidgetsEnvelope;
 
     // DEBUG: Log entrée
-    console.log("[convertAndSort] INPUT:", {
+    debugLog("[convertAndSort] INPUT:", {
         nbWidgetsTotal: parsed.widgets.length,
         options: options,
         sections: [...new Set(parsed.widgets.map(w => w.section))],
@@ -263,7 +269,7 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
         .filter((w) => w.relevance_score >= getMinScoreForWidget(w))
         .sort((a, b) => b.relevance_score - a.relevance_score);
 
-    console.log("[convertAndSort] Après filtre minScore:", {
+    debugLog("[convertAndSort] Après filtre minScore:", {
         minScore: opts.minScore,
         advancedFilteringEnabled: opts.advancedFilteringEnabled,
         nbWidgetsAvant: parsed.widgets.length,
@@ -274,7 +280,7 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     const headerWidgets = sortedWidgets.filter((w) => w.section === "header" || w.section === "summary");
     const experienceWidgets = sortedWidgets.filter((w) => w.section === "experiences");
 
-    console.log("[convertAndSort] Partition:", {
+    debugLog("[convertAndSort] Partition:", {
         headerWidgets: headerWidgets.length,
         experienceWidgets: experienceWidgets.length,
     });
@@ -388,7 +394,7 @@ function buildExperiences(
     opts: typeof DEFAULT_OPTIONS,
     ragProfile?: any
 ): RendererResumeSchema["experiences"] {
-    console.log("[buildExperiences] RÉÉCRITURE - INPUT:", {
+    debugLog("[buildExperiences] RÉÉCRITURE - INPUT:", {
         nbWidgets: experienceWidgets.length,
         widgets: experienceWidgets.map(w => ({
             id: w.id,
@@ -401,7 +407,7 @@ function buildExperiences(
 
     // Si aucun widget, retourner tableau vide
     if (experienceWidgets.length === 0) {
-        console.log("[buildExperiences] AUCUN WIDGET - retourne []");
+        debugLog("[buildExperiences] AUCUN WIDGET - retourne []");
         return [];
     }
 
@@ -442,7 +448,7 @@ function buildExperiences(
         grouped.set(expId, existing);
     }
 
-    console.log("[buildExperiences] Groupes créés:", {
+    debugLog("[buildExperiences] Groupes créés:", {
         nbGroupes: grouped.size,
         groupeIds: Array.from(grouped.keys()),
     });
@@ -552,7 +558,7 @@ function buildExperiences(
             experiences.map(e => `${normalizeKey(e.poste)}|${normalizeKey(e.entreprise)}`)
         );
 
-        console.log("[buildExperiences] FALLBACK check:", {
+        debugLog("[buildExperiences] FALLBACK check:", {
             coveredKeys: Array.from(coveredKeys),
             ragExperiences: ragProfile.experiences.map((e: any) => `${normalizeKey(e.poste || e.titre || "")}|${normalizeKey(e.entreprise || e.client || "")}`),
         });
@@ -564,7 +570,7 @@ function buildExperiences(
             const ragKey = `${ragPoste}|${ragEntreprise}`;
 
             if (!coveredKeys.has(ragKey) && (ragPoste || ragEntreprise)) {
-                console.log(`[buildExperiences] FALLBACK: exp RAG "${ragPoste} @ ${ragEntreprise}" non couverte par Gemini, création depuis RAG`);
+                debugLog(`[buildExperiences] FALLBACK: exp RAG "${ragPoste} @ ${ragEntreprise}" non couverte par Gemini, création depuis RAG`);
 
                 const poste = ragExp.poste || ragExp.titre || "Expérience";
                 const entreprise = ragExp.entreprise || ragExp.client || "—";
@@ -620,7 +626,7 @@ function buildExperiences(
     // Appliquer la limite max (mais par défaut = 999, donc pas de limite)
     const limited = experiences.slice(0, opts.maxExperiences);
 
-    console.log("[buildExperiences] OUTPUT:", {
+    debugLog("[buildExperiences] OUTPUT:", {
         nbExperiences: limited.length,
         fromGemini: limited.filter((e: any) => !e._from_fallback).length,
         fromFallback: limited.filter((e: any) => e._from_fallback).length,
@@ -827,7 +833,7 @@ function buildCertificationsAndReferences(
     };
 
     // [CDC-DEBUG] Log structure RAG pour diagnostic clients
-    console.log("[buildCertificationsAndReferences] DEBUG RAG structure:", {
+    debugLog("[buildCertificationsAndReferences] DEBUG RAG structure:", {
         hasRagProfile: !!ragProfile,
         hasReferences: !!ragProfile?.references,
         hasReferencesClients: !!ragProfile?.references?.clients,
@@ -838,7 +844,7 @@ function buildCertificationsAndReferences(
         hasClientsReferences: !!ragProfile?.clients_references,
         clientsReferencesLength: ragProfile?.clients_references?.clients?.length ?? 0,
         experiencesCount: ragProfile?.experiences?.length ?? 0,
-        experiencesWithClients: ragProfile?.experiences?.filter?.((e: any) => 
+        experiencesWithClients: ragProfile?.experiences?.filter?.((e: any) =>
             e?.clients?.length > 0 || e?.clients_references?.length > 0
         )?.length ?? 0,
     });
@@ -855,7 +861,7 @@ function buildCertificationsAndReferences(
         clientsRaw.push(text);
     });
 
-    console.log("[buildCertificationsAndReferences] Widgets:", {
+    debugLog("[buildCertificationsAndReferences] Widgets:", {
         certificationWidgetsCount: certificationWidgets.length,
         referenceWidgetsCount: referenceWidgets.length,
         clientsFromWidgets: clientsRaw.length,
@@ -873,15 +879,15 @@ function buildCertificationsAndReferences(
     // [AUDIT FIX] : Enrichir clients depuis RAG
     // Chemin 1: references.clients
     const ragClientsFromReferences = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
-    console.log("[buildCertificationsAndReferences] ragClientsFromReferences:", ragClientsFromReferences.length, ragClientsFromReferences.slice(0, 5));
+    debugLog("[buildCertificationsAndReferences] ragClientsFromReferences:", ragClientsFromReferences.length, ragClientsFromReferences.slice(0, 5));
     ragClientsFromReferences.forEach((c: any) => {
         const clientName = extractClientName(c);
         if (clientName) clientsRaw.push(clientName);
     });
-    
+
     // [CDC-FIX] Chemin alternatif: clients_references (au niveau racine)
     const ragClientsFromRoot = Array.isArray(ragProfile?.clients_references?.clients) ? ragProfile.clients_references.clients : [];
-    console.log("[buildCertificationsAndReferences] ragClientsFromRoot:", ragClientsFromRoot.length, ragClientsFromRoot.slice(0, 5));
+    debugLog("[buildCertificationsAndReferences] ragClientsFromRoot:", ragClientsFromRoot.length, ragClientsFromRoot.slice(0, 5));
     ragClientsFromRoot.forEach((c: any) => {
         const clientName = extractClientName(c);
         if (clientName) clientsRaw.push(clientName);
@@ -897,7 +903,7 @@ function buildCertificationsAndReferences(
             (Array.isArray(exp?.clientsReferences) && exp.clientsReferences) ||
             [];
         if (expClients.length > 0) {
-            console.log(`[buildCertificationsAndReferences] Experience ${idx} clients:`, expClients.slice(0, 3));
+            debugLog(`[buildCertificationsAndReferences] Experience ${idx} clients:`, expClients.slice(0, 3));
         }
         expClients.forEach((c: any) => {
             const clientName = extractClientName(c);
@@ -907,56 +913,56 @@ function buildCertificationsAndReferences(
             }
         });
     });
-    
-    console.log("[buildCertificationsAndReferences] Total clientsRaw avant nettoyage:", {
+
+    debugLog("[buildCertificationsAndReferences] Total clientsRaw avant nettoyage:", {
         total: clientsRaw.length,
         fromExperiences: clientsFromExpCount,
         sample: clientsRaw.slice(0, 10),
     });
-    
+
     const excludeCompanies = Array.isArray(ragProfile?.experiences)
         ? ragProfile.experiences.map((e: any) => e?.entreprise || e?.client).filter(Boolean)
         : [];
-    console.log("[buildCertificationsAndReferences] Entreprises à exclure:", excludeCompanies.slice(0, 5));
-    
+    debugLog("[buildCertificationsAndReferences] Entreprises à exclure:", excludeCompanies.slice(0, 5));
+
     const maxClientsReferences = opts?.limitsBySection?.maxClientsReferences ?? 25;
     let uniqueClients = cleanClientList(clientsRaw, { exclude: excludeCompanies, max: maxClientsReferences });
-    
-    console.log("[buildCertificationsAndReferences] Après cleanClientList (avec exclude):", {
+
+    debugLog("[buildCertificationsAndReferences] Après cleanClientList (avec exclude):", {
         uniqueClientsLength: uniqueClients.length,
         uniqueClients: uniqueClients.slice(0, 10),
     });
-    
+
     if (uniqueClients.length === 0 && clientsRaw.length > 0) {
-        console.log("[buildCertificationsAndReferences] FALLBACK: retry sans exclude car 0 clients");
+        debugLog("[buildCertificationsAndReferences] FALLBACK: retry sans exclude car 0 clients");
         uniqueClients = cleanClientList(clientsRaw, { max: maxClientsReferences });
-        console.log("[buildCertificationsAndReferences] Après cleanClientList (sans exclude):", uniqueClients.length, uniqueClients.slice(0, 10));
+        debugLog("[buildCertificationsAndReferences] Après cleanClientList (sans exclude):", uniqueClients.length, uniqueClients.slice(0, 10));
     }
 
     // [CDC-FIX] Construire les secteurs depuis le RAG
     // Utiliser normalizeKey pour le matching (case-insensitive)
     const uniqueClientsKeys = new Set(uniqueClients.map(normalizeKey));
-    
+
     const secteursFromRag = (() => {
         const ragClients = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
         const bySector = new Map<string, Set<string>>();
-        
+
         for (const c of ragClients) {
             if (!c || typeof c !== "object") continue;
             const sector = String((c as any).secteur || "").trim();
             if (!sector) continue;
             const name = normalizeClientName((c as any).nom ?? (c as any).name);
             if (!name) continue;
-            
+
             // [CDC-FIX] Utiliser normalizeKey pour le matching au lieu de includes()
             const nameKey = normalizeKey(name);
             if (!uniqueClientsKeys.has(nameKey)) continue;
-            
+
             const set = bySector.get(sector) ?? new Set<string>();
             set.add(name);
             bySector.set(sector, set);
         }
-        
+
         const sectors = Array.from(bySector.entries())
             .map(([secteur, set]) => ({ secteur, clients: Array.from(set.values()) }))
             .filter((x) => x.clients.length > 0)
@@ -967,12 +973,12 @@ function buildCertificationsAndReferences(
     const clients_references =
         uniqueClients.length > 0
             ? {
-                  clients: uniqueClients,
-                  secteurs: secteursFromRag,
-              }
+                clients: uniqueClients,
+                secteurs: secteursFromRag,
+            }
             : undefined;
 
-    console.log("[buildCertificationsAndReferences] RESULTAT FINAL:", {
+    debugLog("[buildCertificationsAndReferences] RESULTAT FINAL:", {
         hasClientsReferences: !!clients_references,
         clientsCount: clients_references?.clients?.length ?? 0,
         secteursCount: clients_references?.secteurs?.length ?? 0,
