@@ -290,8 +290,9 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     const languageWidgets = sortedWidgets
         .filter((w) => w.section === "languages")
         .slice(0, opts.limitsBySection?.maxLanguages ?? 999);
+    // [CDC Sprint 3.2] Inclure aussi les widgets de type "project_item"
     const projectWidgets = sortedWidgets
-        .filter((w) => w.section === "projects")
+        .filter((w) => w.section === "projects" || w.type === "project_item")
         .slice(0, opts.limitsBySection?.maxProjects ?? 999);
     const referenceWidgets = sortedWidgets
         .filter((w) => w.section === "references")

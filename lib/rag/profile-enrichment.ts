@@ -9,6 +9,8 @@ export interface ProfileEnrichment {
     yearsExperience: number;
     primaryTechnologies: string[];
     industryKeywords: string[];
+    // [CDC Sprint 3.1] Soft skills déduites
+    soft_skills_deduites: string[];
 }
 
 // Mapping secteurs par mots-clés
@@ -33,6 +35,27 @@ const SENIORITY_KEYWORDS: Record<string, string[]> = {
     "junior": ["junior", "débutant", "stagiaire", "alternant", "apprenti", "entry-level"],
 };
 
+// [CDC Sprint 3.1] Soft skills typiques par secteur/rôle
+const SOFT_SKILLS_BY_CONTEXT: Record<string, string[]> = {
+    // Par rôle
+    "manager": ["Leadership", "Gestion d'équipe", "Communication", "Délégation", "Prise de décision"],
+    "lead": ["Mentorat", "Coordination", "Vision technique", "Communication"],
+    "consultant": ["Adaptabilité", "Présentation client", "Résolution de problèmes", "Négociation"],
+    "développeur": ["Rigueur", "Esprit analytique", "Travail en équipe", "Curiosité technique"],
+    "chef de projet": ["Planification", "Gestion des risques", "Communication", "Organisation"],
+    
+    // Par secteur
+    "IT / Tech": ["Veille technologique", "Agilité", "Résolution de problèmes", "Travail en équipe"],
+    "Finance / Banque": ["Rigueur", "Attention aux détails", "Éthique", "Résistance au stress"],
+    "Conseil / Consulting": ["Adaptabilité", "Présentation", "Esprit de synthèse", "Autonomie"],
+    "Commerce / Retail": ["Sens du service", "Persuasion", "Écoute active", "Résilience"],
+    
+    // Par années d'expérience
+    "senior_generic": ["Leadership", "Mentorat", "Vision stratégique", "Autonomie"],
+    "mid_generic": ["Autonomie", "Proactivité", "Travail en équipe", "Adaptabilité"],
+    "junior_generic": ["Curiosité", "Apprentissage rapide", "Travail en équipe", "Motivation"],
+};
+
 /**
  * Enrichit un profil RAG avec des métadonnées déduites
  */
@@ -55,12 +78,21 @@ export function enrichProfile(ragProfile: any): ProfileEnrichment {
     // Extraire mots-clés industrie
     const industryKeywords = extractIndustryKeywords(experiences);
     
+    // [CDC Sprint 3.1] Détecter soft skills
+    const soft_skills_deduites = detectSoftSkills(
+        ragProfile, 
+        detectedSector, 
+        seniorityLevel,
+        competences?.soft_skills || []
+    );
+    
     return {
         detectedSector,
         seniorityLevel,
         yearsExperience,
         primaryTechnologies,
-        industryKeywords
+        industryKeywords,
+        soft_skills_deduites
     };
 }
 
@@ -204,4 +236,83 @@ function extractAllText(ragProfile: any): string {
     }
     
     return parts.join(' ');
+}
+
+// ============================================================================
+// [CDC Sprint 3.1] SOFT SKILLS DETECTION
+// ============================================================================
+
+/**
+ * Détecte les soft skills basé sur le contexte du profil
+ */
+function detectSoftSkills(
+    ragProfile: any,
+    detectedSector: string | null,
+    seniorityLevel: ProfileEnrichment['seniorityLevel'],
+    existingSoftSkills: string[]
+): string[] {
+    const suggestedSkills = new Set<string>();
+    const textToAnalyze = extractAllText(ragProfile).toLowerCase();
+    
+    // 1. Déduire par rôle détecté dans les postes
+    for (const [role, skills] of Object.entries(SOFT_SKILLS_BY_CONTEXT)) {
+        if (role.startsWith("IT") || role.startsWith("Finance") || role.startsWith("Conseil") || role.startsWith("Commerce")) {
+            continue; // Skip sector entries here
+        }
+        if (textToAnalyze.includes(role.toLowerCase())) {
+            for (const skill of skills) {
+                suggestedSkills.add(skill);
+            }
+        }
+    }
+    
+    // 2. Déduire par secteur
+    if (detectedSector && SOFT_SKILLS_BY_CONTEXT[detectedSector]) {
+        for (const skill of SOFT_SKILLS_BY_CONTEXT[detectedSector]) {
+            suggestedSkills.add(skill);
+        }
+    }
+    
+    // 3. Déduire par séniorité
+    const seniorityKey = `${seniorityLevel}_generic`;
+    if (SOFT_SKILLS_BY_CONTEXT[seniorityKey]) {
+        for (const skill of SOFT_SKILLS_BY_CONTEXT[seniorityKey]) {
+            suggestedSkills.add(skill);
+        }
+    }
+    
+    // 4. Filtrer les soft skills déjà présents explicitement
+    const existingLower = new Set(existingSoftSkills.map(s => s.toLowerCase()));
+    const deduplicated = Array.from(suggestedSkills).filter(
+        skill => !existingLower.has(skill.toLowerCase())
+    );
+    
+    return deduplicated.slice(0, 10); // Max 10 soft skills déduites
+}
+
+/**
+ * [CDC Sprint 3.1] Dédoublonne les skills explicites vs tacites
+ * Retourne les skills déduites qui ne sont pas déjà dans les explicites
+ */
+export function deduplicateSoftSkills(
+    explicitSkills: string[],
+    deducedSkills: string[]
+): string[] {
+    const normalizeSkill = (s: string) => s.toLowerCase().trim();
+    const explicitSet = new Set(explicitSkills.map(normalizeSkill));
+    
+    return deducedSkills.filter(skill => !explicitSet.has(normalizeSkill(skill)));
+}
+
+/**
+ * [CDC Sprint 3.1] Filtre les compétences tacites en excluant les rejetées
+ */
+export function filterRejectedTacitSkills(
+    deducedSkills: string[],
+    rejectedSkills: string[]
+): string[] {
+    const normalizeSkill = (s: string) => s.toLowerCase().trim();
+    const rejectedSet = new Set(rejectedSkills.map(normalizeSkill));
+    
+    return deducedSkills.filter(skill => !rejectedSet.has(normalizeSkill(skill)));
 }

@@ -71,7 +71,12 @@ export { normalizeCompanyName, areSameCompany } from "./normalize-company";
 export { consolidateClients, getAllClientNames, groupClientsBySector } from "./consolidate-clients";
 
 // Profile enrichment
-export { enrichProfile } from "./profile-enrichment";
+export { 
+    enrichProfile,
+    deduplicateSoftSkills,
+    filterRejectedTacitSkills,
+} from "./profile-enrichment";
+export type { ProfileEnrichment } from "./profile-enrichment";
 
 // Preserve user fields
 export { preserveUserFieldsOnRegeneration } from "./preserve-user-fields";

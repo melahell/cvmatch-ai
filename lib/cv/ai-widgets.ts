@@ -126,6 +126,10 @@ export const aiWidgetsEnvelopeSchema = z.object({
         sector: z.string().optional(),         // secteur détecté (tech, finance, etc.)
         language: z.string().optional(),       // langue détectée de l'offre
         generationTimeMs: z.number().optional(), // temps de génération en ms
+        // [CDC Sprint 3.2] Alertes compression RAG
+        compressionApplied: z.boolean().optional(),  // true si compression appliquée
+        compressionWarning: z.string().optional(),   // message warning si compression
+        tokensSaved: z.number().optional(),          // nombre de tokens économisés
     }).optional(),
 });
 

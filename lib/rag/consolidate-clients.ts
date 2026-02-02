@@ -1,9 +1,12 @@
 /**
  * Client Consolidation Module
  * Consolidates client references from multiple sources and enriches with sector information
+ * 
+ * [CDC Sprint 3.2] Utilise normalizeCompanyName centralisé
  */
 
 import type { ClientReference } from "@/types/rag";
+import { normalizeCompanyName as normalizeCompanyNameFromModule } from "./normalize-company";
 
 /**
  * Known company to sector mapping
@@ -181,22 +184,24 @@ function inferSector(companyName: string): string {
 }
 
 /**
- * Normalizes company name (fixes common typos, abbreviations, etc.)
+ * [CDC Sprint 3.2] Normalizes company name - délègue à normalize-company.ts
+ * Note: La version complète avec tous les alias est dans normalize-company.ts
  */
 function normalizeCompanyName(name: string): string {
-    const normalized = name.trim();
-
-    // Common normalizations
-    const normalizations: Record<string, string> = {
-        "BNP": "BNP Paribas",
-        "SG": "Société Générale",
-        "CA": "Crédit Agricole",
-        "LV": "Louis Vuitton",
-        "TF1": "TF1",
-        // Add more as needed
-    };
-
-    return normalizations[normalized] || normalized;
+    // Utiliser la version centralisée pour normalisation avancée
+    const centralizedNormalized = normalizeCompanyNameFromModule(name);
+    
+    // Si la version centralisée retourne une valeur différente, l'utiliser
+    // Sinon, garder le formatage original avec capitalisation
+    if (centralizedNormalized !== name.toLowerCase().trim()) {
+        // Capitaliser le résultat pour affichage
+        return centralizedNormalized
+            .split(" ")
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ");
+    }
+    
+    return name.trim();
 }
 
 /**

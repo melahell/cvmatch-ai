@@ -56,6 +56,10 @@ export const competencesSchema = z.object({
     soft_skills: z.array(z.string()).optional(),
     outils: z.array(z.string()).optional(),
     methodologies: z.array(z.string()).optional(),
+    // [CDC Sprint 3.1] Soft skills déduites automatiquement
+    soft_skills_deduites: z.array(z.string()).optional(),
+    // [CDC Sprint 3.1] Compétences tacites rejetées par l'utilisateur
+    rejected_tacit_skills: z.array(z.string()).optional(),
 }).passthrough();
 
 // ============================================================================

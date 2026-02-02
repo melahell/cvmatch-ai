@@ -18,6 +18,62 @@ import { compressRAGProfile, estimateTokens } from "@/lib/ai/prompt-optimization
 import { detectLanguage, getTranslationPromptInstructions } from "./multi-language";
 import { logger } from "@/lib/utils/logger";
 
+// ============================================================================
+// [CDC Sprint 3.2] COVERAGE VALIDATION
+// ============================================================================
+
+/**
+ * Vérifie que toutes les expériences RAG ont un widget correspondant
+ */
+function checkExperienceCoverage(
+    ragProfile: any,
+    widgets: any[]
+): { coverage: number; missing: string[]; total: number } {
+    const ragExperiences = ragProfile?.experiences || [];
+    const experienceWidgets = widgets.filter(w => 
+        w.section === "experiences" || 
+        w.type === "experience_header" || 
+        w.type === "experience_bullet"
+    );
+    
+    // Extraire les IDs d'expériences référencées dans les widgets
+    const referencedExpIds = new Set<string>();
+    for (const widget of experienceWidgets) {
+        if (widget.sources?.rag_experience_id) {
+            referencedExpIds.add(widget.sources.rag_experience_id);
+        }
+        // Aussi checker dans le texte du widget si format "exp_X"
+        const idMatch = widget.id?.match(/exp_(\d+)/);
+        if (idMatch) {
+            referencedExpIds.add(idMatch[0]);
+        }
+    }
+    
+    // Identifier les expériences non couvertes
+    const missing: string[] = [];
+    for (let i = 0; i < ragExperiences.length; i++) {
+        const exp = ragExperiences[i];
+        const expId = exp.id || `exp_${i}`;
+        
+        // Vérifier si cette expérience est référencée
+        const hasWidget = referencedExpIds.has(expId) || 
+            experienceWidgets.some(w => 
+                w.sources?.rag_experience_id === expId ||
+                w.text?.toLowerCase().includes(exp.entreprise?.toLowerCase() || "") ||
+                w.text?.toLowerCase().includes(exp.poste?.toLowerCase() || "")
+            );
+        
+        if (!hasWidget) {
+            missing.push(`${exp.poste || "Poste inconnu"} @ ${exp.entreprise || "Entreprise inconnue"}`);
+        }
+    }
+    
+    const total = ragExperiences.length;
+    const coverage = total > 0 ? Math.round(((total - missing.length) / total) * 100) : 100;
+    
+    return { coverage, missing, total };
+}
+
 export interface GenerateWidgetsParams {
     ragProfile: any;
     matchAnalysis: any;
@@ -113,6 +169,8 @@ export async function generateWidgetsFromRAGAndMatch(
         const originalTokens = estimateTokens(JSON.stringify(params.ragProfile));
         let finalRAG = optimizedRAG;
         let tokensSaved = 0;
+        let compressionApplied = false;
+        let compressionWarning: string | undefined;
 
         if (originalTokens > 50000) {
             const { compressed, metrics } = compressRAGProfile(optimizedRAG, {
@@ -120,9 +178,15 @@ export async function generateWidgetsFromRAGAndMatch(
             });
             finalRAG = compressed;
             tokensSaved = metrics.originalTokens - metrics.optimizedTokens;
-            logger.debug("[generate-widgets] Compression supplémentaire appliquée", {
+            compressionApplied = true;
+            compressionWarning = `RAG volumineux (${originalTokens} tokens) - compression appliquée (${metrics.reductionPercent}% réduction). Certaines informations mineures peuvent avoir été omises.`;
+            
+            // [CDC Sprint 3.2] Alerte visible
+            logger.warn("[generate-widgets] Compression RAG appliquée", {
+                originalTokens,
                 reduction: `${metrics.reductionPercent}%`,
                 tokensSaved,
+                warning: compressionWarning,
             });
         }
 
@@ -197,6 +261,20 @@ export async function generateWidgetsFromRAGAndMatch(
                 Math.min(100, (widget.relevance_score ?? 0) + applySectorScoringBoost(widget, sector, params.ragProfile))
             ),
         }));
+        // [CDC Sprint 3.2] Vérifier couverture expériences
+        const coverageResult = checkExperienceCoverage(params.ragProfile, boostedWidgets);
+        if (coverageResult.coverage < 100) {
+            logger.warn("[generate-widgets] Couverture expériences incomplète", {
+                coverage: `${coverageResult.coverage}%`,
+                missing: coverageResult.missing,
+                total: coverageResult.total,
+            });
+        } else {
+            logger.debug("[generate-widgets] Couverture 100% des expériences", {
+                total: coverageResult.total,
+            });
+        }
+
         const envelope: AIWidgetsEnvelope = {
             ...validation.data,
             widgets: boostedWidgets,
@@ -207,6 +285,10 @@ export async function generateWidgetsFromRAGAndMatch(
                 language: detectedLanguage,
                 fromCache: false,
                 generationTimeMs: Date.now() - startTime,
+                // [CDC Sprint 3.2] Métadonnées compression
+                compressionApplied,
+                compressionWarning,
+                tokensSaved,
             },
         };
 
