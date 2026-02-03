@@ -8,13 +8,14 @@
  */
 
 import { Button } from "@/components/ui/button";
-import { Download, FileDown } from "lucide-react";
-import { printCVToPDF, exportCVToPDF } from "@/lib/cv/pdf-export";
+import { Download } from "lucide-react";
+import { openPrintPreview, PrintPayload } from "@/lib/cv/pdf-export";
 import { useState } from "react";
 import { logger } from "@/lib/utils/logger";
 
 interface PDFExportButtonProps {
-    elementId: string;
+    routePath: string;
+    payload: PrintPayload;
     filename?: string;
     variant?: "primary" | "outline" | "ghost";
     size?: "sm" | "md" | "lg";
@@ -22,7 +23,8 @@ interface PDFExportButtonProps {
 }
 
 export function PDFExportButton({
-    elementId,
+    routePath,
+    payload,
     filename = "CV",
     variant = "primary",
     size = "md",
@@ -34,10 +36,9 @@ export function PDFExportButton({
         setIsExporting(true);
         
         try {
-            // Utiliser méthode simplifiée (window.print)
-            printCVToPDF(elementId);
+            openPrintPreview(routePath, payload);
         } catch (error) {
-            logger.error("Erreur export PDF", { error, elementId, filename });
+            logger.error("Erreur export PDF", { error, filename, routePath });
         } finally {
             // Reset après un délai (l'impression peut prendre du temps)
             setTimeout(() => {

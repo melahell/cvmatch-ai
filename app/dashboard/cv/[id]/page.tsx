@@ -3,17 +3,18 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
-import { Loader2, Download, ArrowLeft, RefreshCw, FileText, AlertTriangle, Info, Sparkles, Monitor, Printer } from "lucide-react";
-import { ExportMenu } from "@/components/cv/ExportMenu";
+import { Loader2, Download, ArrowLeft, RefreshCw, FileText, AlertTriangle, Info, Sparkles, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
 import { TEMPLATES } from "@/components/cv/templates";
 import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
 import { logger } from "@/lib/utils/logger";
+import ContextualLoader from "@/components/loading/ContextualLoader";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
-    loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
+    loading: () => <div className="flex items-center justify-center p-12"><LoadingSpinner /></div>,
     ssr: false
 });
 
@@ -36,6 +37,7 @@ export default function CVViewPage() {
     const [showFormatMenu, setShowFormatMenu] = useState(false);
     const cvRef = useRef<HTMLDivElement>(null);
     const [generatingPDF, setGeneratingPDF] = useState(false);
+    const pdfAbortRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
         const supabase = createSupabaseClient();
@@ -139,6 +141,10 @@ export default function CVViewPage() {
 
         setGeneratingPDF(true);
         try {
+            pdfAbortRef.current?.abort();
+            const controller = new AbortController();
+            pdfAbortRef.current = controller;
+            performance.mark("cv_pdf_start");
             const authHeaders = await getSupabaseAuthHeader();
             const params = new URLSearchParams({
                 format,
@@ -149,6 +155,7 @@ export default function CVViewPage() {
             const res = await fetch(`/api/cv/${id}/pdf?${params.toString()}`, {
                 method: "GET",
                 headers: authHeaders,
+                signal: controller.signal,
             });
 
             if (!res.ok) {
@@ -164,11 +171,16 @@ export default function CVViewPage() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-        } catch (error) {
+        } catch (error: any) {
+            if (error?.name === "AbortError") {
+                return;
+            }
             logger.error("PDF Error", { error });
             // Fallback: open print page in new tab
             window.open(`/dashboard/cv/${id}/print?format=${format}&template=${currentTemplate}`, "_blank");
         } finally {
+            try { performance.mark("cv_pdf_end"); performance.measure("cv_pdf", "cv_pdf_start", "cv_pdf_end"); } catch {}
+            pdfAbortRef.current = null;
             setGeneratingPDF(false);
         }
     }, [cvGeneration, generatingPDF, id, format, currentTemplate, currentIncludePhoto]);
@@ -195,7 +207,7 @@ export default function CVViewPage() {
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <LoadingSpinner text="Chargement du CV..." fullScreen={false} />
             </div>
         );
     }
@@ -208,6 +220,13 @@ export default function CVViewPage() {
 
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 pb-20">
+            {generatingPDF && (
+                <ContextualLoader
+                    context="exporting-pdf"
+                    isOverlay
+                    onCancel={() => pdfAbortRef.current?.abort()}
+                />
+            )}
 
             {/* Navbar (Hidden in Print) */}
             <div className="bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-10 print:hidden">
@@ -338,7 +357,7 @@ export default function CVViewPage() {
                         >
                             {generatingPDF ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                                    <Loader2 className="w-4 h-4 sm:mr-2 animate-spin motion-reduce:animate-none" />
                                     <span className="hidden sm:inline">Generation...</span>
                                 </>
                             ) : (

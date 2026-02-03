@@ -63,8 +63,8 @@ const DEFAULT_VARIABLES: CVThemeVariables = {
     "--cv-sidebar-accent": "#3b82f6",
     "--cv-border": "#e5e7eb",
 
-    "--cv-font-body": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-    "--cv-font-heading": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    "--cv-font-body": "var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif",
+    "--cv-font-heading": "var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif",
     "--cv-font-size-base": "9pt",
     "--cv-font-size-name": "18pt",
     "--cv-font-size-title": "11pt",
@@ -95,7 +95,7 @@ const TEMPLATE_OVERRIDES: Record<string, Partial<CVThemeVariables>> = {
         "--cv-sidebar-bg": "linear-gradient(180deg, #0f172a 0%, #475569 100%)",
         "--cv-sidebar-text": "#f8fafc",
         "--cv-sidebar-accent": "#818cf8",
-        "--cv-font-heading": "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+        "--cv-font-heading": "var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif",
         "--cv-sidebar-width": "75mm",
     },
     tech: {
@@ -104,8 +104,8 @@ const TEMPLATE_OVERRIDES: Record<string, Partial<CVThemeVariables>> = {
         "--cv-sidebar-bg": "#0f172a",
         "--cv-sidebar-text": "#f8fafc",
         "--cv-sidebar-accent": "#34d399",
-        "--cv-font-body": "'JetBrains Mono', 'Fira Code', monospace",
-        "--cv-font-heading": "'JetBrains Mono', 'Fira Code', monospace",
+        "--cv-font-body": "var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace",
+        "--cv-font-heading": "var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace",
         "--cv-sidebar-width": "70mm",
     },
     classic: {
@@ -113,8 +113,8 @@ const TEMPLATE_OVERRIDES: Record<string, Partial<CVThemeVariables>> = {
         "--cv-primary-light": "#1e3a5f10",
         "--cv-sidebar-bg": "#ffffff",
         "--cv-sidebar-text": "#1f2937",
-        "--cv-font-body": "'Georgia', 'Times New Roman', serif",
-        "--cv-font-heading": "'Georgia', 'Times New Roman', serif",
+        "--cv-font-body": "var(--font-serif), Georgia, 'Times New Roman', serif",
+        "--cv-font-heading": "var(--font-serif), Georgia, 'Times New Roman', serif",
         "--cv-sidebar-width": "0",
     },
     creative: {
@@ -123,8 +123,8 @@ const TEMPLATE_OVERRIDES: Record<string, Partial<CVThemeVariables>> = {
         "--cv-sidebar-bg": "#f9fafb",
         "--cv-sidebar-text": "#1f2937",
         "--cv-sidebar-accent": "#f97316",
-        "--cv-font-body": "'Outfit', 'Inter', sans-serif",
-        "--cv-font-heading": "'Outfit', 'Inter', sans-serif",
+        "--cv-font-body": "var(--font-display), var(--font-sans), sans-serif",
+        "--cv-font-heading": "var(--font-display), var(--font-sans), sans-serif",
         "--cv-sidebar-width": "65mm",
     },
     onyx: {

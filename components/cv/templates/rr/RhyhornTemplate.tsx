@@ -10,6 +10,7 @@
 import React from "react";
 import { CVData, TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 
 interface RhyhornColors {
     primary: string;
@@ -43,6 +44,7 @@ export default function RhyhornTemplate({ data, includePhoto = true, dense = fal
     const clientsReferences = data.clients_references;
 
     const fullName = `${profil.prenom || ""} ${profil.nom || ""}`.trim() || "Nom Prénom";
+    const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
     const technicalSkills = Array.isArray(competences)
@@ -55,19 +57,22 @@ export default function RhyhornTemplate({ data, includePhoto = true, dense = fal
 
     return (
         <div
-            className="w-full min-h-[1123px] bg-white print:bg-white"
-            style={{ fontFamily: "'Inter', sans-serif", color: colors.text }}
+            className="w-[var(--cv-page-width)] min-h-[var(--cv-page-height)] bg-white print:bg-white mx-auto"
+            style={{ fontFamily: "var(--cv-font-body)", color: colors.text }}
         >
             {/* HEADER compact */}
             <header className={`${padding} bg-slate-50 border-b-4`} style={{ borderColor: colors.primary }}>
                 <div className="flex items-center gap-6">
                     {/* Photo */}
-                    {includePhoto && profil.photo_url && (
-                        <img
-                            src={profil.photo_url}
-                            alt={fullName}
-                            className="w-20 h-20 rounded object-cover border-2"
-                            style={{ borderColor: colors.primary }}
+                    {includePhoto && (
+                        <ProfilePicture
+                            photoUrl={profil.photo_url}
+                            fullName={fullName}
+                            initials={initials}
+                            includePhoto={includePhoto}
+                            size="sm"
+                            borderColor={colors.primary}
+                            shape="square"
                         />
                     )}
 
@@ -81,14 +86,18 @@ export default function RhyhornTemplate({ data, includePhoto = true, dense = fal
                     </div>
 
                     {/* Contact à droite */}
-                    <div className="text-right text-xs space-y-1" style={{ color: colors.muted }}>
-                        {profil.email && <p>✉ {profil.email}</p>}
-                        {profil.telephone && <p>📞 {profil.telephone}</p>}
-                        {profil.localisation && <p>📍 {profil.localisation}</p>}
-                        {profil.linkedin && <p>🔗 LinkedIn</p>}
-                        {profil.github && <p>GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</p>}
-                        {profil.portfolio && <p>WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</p>}
-                    </div>
+                    <ContactInfo
+                        email={profil.email}
+                        telephone={profil.telephone}
+                        localisation={profil.localisation}
+                        linkedin={profil.linkedin}
+                        github={profil.github}
+                        portfolio={profil.portfolio}
+                        layout="vertical"
+                        showIcons={false}
+                        textColor={colors.muted}
+                        className="text-right text-xs space-y-1"
+                    />
                 </div>
             </header>
 

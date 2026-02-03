@@ -10,6 +10,7 @@
 import React from "react";
 import { CVData, TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 
 interface LeafishColors {
     primary: string;
@@ -43,6 +44,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
     const clientsReferences = data.clients_references;
 
     const fullName = `${profil.prenom || ""} ${profil.nom || ""}`.trim() || "Nom Prénom";
+    const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
     const technicalSkills = Array.isArray(competences)
@@ -55,8 +57,8 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
 
     return (
         <div
-            className="w-full min-h-[1123px] bg-white print:bg-white"
-            style={{ fontFamily: "'Inter', sans-serif", color: colors.text }}
+            className="w-[var(--cv-page-width)] min-h-[var(--cv-page-height)] bg-white print:bg-white mx-auto"
+            style={{ fontFamily: "var(--cv-font-body)", color: colors.text }}
         >
             {/* HEADER avec fond vert arrondi */}
             <header
@@ -65,11 +67,16 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
             >
                 <div className="flex items-center gap-6 text-white">
                     {/* Photo */}
-                    {includePhoto && profil.photo_url && (
-                        <img
-                            src={profil.photo_url}
-                            alt={fullName}
-                            className="w-24 h-24 rounded-2xl object-cover border-3 border-white shadow-lg"
+                    {includePhoto && (
+                        <ProfilePicture
+                            photoUrl={profil.photo_url}
+                            fullName={fullName}
+                            initials={initials}
+                            includePhoto={includePhoto}
+                            size="md"
+                            borderColor="#ffffff"
+                            shape="rounded"
+                            className="shadow-lg"
                         />
                     )}
 
@@ -81,15 +88,18 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
                             </h2>
                         )}
 
-                        {/* Contact */}
-                        <div className="flex flex-wrap gap-4 mt-3 text-sm text-white/80">
-                            {profil.email && <span>✉ {profil.email}</span>}
-                            {profil.telephone && <span>📞 {profil.telephone}</span>}
-                            {profil.localisation && <span>📍 {profil.localisation}</span>}
-                            {profil.linkedin && <span>🔗 LinkedIn</span>}
-                            {profil.github && <span>GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</span>}
-                            {profil.portfolio && <span>WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</span>}
-                        </div>
+                        <ContactInfo
+                            email={profil.email}
+                            telephone={profil.telephone}
+                            localisation={profil.localisation}
+                            linkedin={profil.linkedin}
+                            github={profil.github}
+                            portfolio={profil.portfolio}
+                            layout="inline"
+                            textColor="rgba(255,255,255,0.8)"
+                            iconColor="rgba(255,255,255,0.8)"
+                            className="flex flex-wrap gap-4 mt-3 text-sm"
+                        />
                     </div>
                 </div>
             </header>

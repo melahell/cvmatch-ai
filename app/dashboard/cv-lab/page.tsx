@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Loader2 } from "lucide-react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // Lazy load CVRenderer (heavy component with templates)
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
-    loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
+    loading: () => <div className="flex items-center justify-center p-12"><LoadingSpinner /></div>,
     ssr: false
 });
 import { Button } from "@/components/ui/button";
@@ -281,4 +281,3 @@ export default function CVLabPage() {
         </div>
     );
 }
-

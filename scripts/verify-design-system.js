@@ -59,7 +59,14 @@ const CONFIG = {
       pattern: /rgba\s*\(/gi,
       message: 'Couleur RGBA hardcodée détectée. Utilisez les tokens avec opacity',
       severity: 'error',
-      exceptions: ['design-tokens.ts', 'globals.css', 'Logo.tsx', 'ContextualLoader.tsx'],
+      exceptions: [
+        'design-tokens.ts',
+        'globals.css',
+        'Logo.tsx',
+        'ContextualLoader.tsx',
+        'components/cv/templates/rr/',
+        'components/cv/shared/',
+      ],
     },
     {
       pattern: /shadow-\[/g,

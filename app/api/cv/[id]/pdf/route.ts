@@ -7,6 +7,15 @@ import { logger } from "@/lib/utils/logger";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+function toSafeFilenamePart(value: string): string {
+    return value
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9._-]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 80);
+}
+
 export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
@@ -128,6 +137,8 @@ export async function GET(
         // Final layout stabilization
         await new Promise(resolve => setTimeout(resolve, 300));
 
+        await page.emulateMediaType("print");
+
         logger.debug("Generating PDF buffer", { cvId: id, format });
 
         const pdfBuffer = await page.pdf({
@@ -150,15 +161,20 @@ export async function GET(
         await browser.close();
         browser = undefined;
 
-        const fileName = cvData.cv_data?.profil?.nom
-            ? `CV_${cvData.cv_data.profil.prenom}_${cvData.cv_data.profil.nom}.pdf`
-            : `CV_${id}.pdf`;
+        const firstName = typeof cvData.cv_data?.profil?.prenom === "string" ? cvData.cv_data.profil.prenom : "";
+        const lastName = typeof cvData.cv_data?.profil?.nom === "string" ? cvData.cv_data.profil.nom : "";
+        const safeFirst = toSafeFilenamePart(firstName);
+        const safeLast = toSafeFilenamePart(lastName);
+        const fileName = safeFirst || safeLast ? `CV_${safeFirst}_${safeLast}.pdf`.replace(/_+\.pdf$/, ".pdf") : `CV_${id}.pdf`;
 
         return new NextResponse(Buffer.from(pdfBuffer), {
             headers: {
                 "Content-Type": "application/pdf",
                 "Content-Disposition": `attachment; filename="${fileName}"`,
-                "Cache-Control": "public, max-age=3600",
+                "Cache-Control": "private, no-store",
+                "Pragma": "no-cache",
+                "Vary": "Authorization",
+                "X-Content-Type-Options": "nosniff",
             },
         });
 

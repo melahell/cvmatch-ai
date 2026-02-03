@@ -7,6 +7,7 @@ import { FileText, Trash2, Upload, Loader2, Eye, Download } from "lucide-react";
 import { useState, useRef } from "react";
 import { createSupabaseClient } from "@/lib/supabase";
 import { toast } from "sonner";
+import ContextualLoader from "@/components/loading/ContextualLoader";
 
 interface Document {
     id: string;
@@ -114,6 +115,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
 
     return (
         <div className="space-y-6">
+            {uploading && <ContextualLoader context="importing-docs" isOverlay />}
             {/* Upload Zone */}
             <Card className="border-dashed border-2 border-slate-300 bg-slate-50">
                 <CardContent className="p-8 text-center">
@@ -135,7 +137,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                     >
                         {uploading ? (
                             <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" />
                                 Upload en cours...
                             </>
                         ) : (
@@ -201,7 +203,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                                                         title="Voir le document"
                                                     >
                                                         {viewing === doc.id ? (
-                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />
                                                         ) : (
                                                             <Eye className="w-4 h-4" />
                                                         )}
@@ -215,7 +217,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                                                         title="Télécharger le document"
                                                     >
                                                         {downloading === doc.id ? (
-                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />
                                                         ) : (
                                                             <Download className="w-4 h-4" />
                                                         )}
@@ -231,7 +233,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                                                 title="Supprimer le document"
                                             >
                                                 {deleting === doc.id ? (
-                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" />
                                                 ) : (
                                                     <Trash2 className="w-4 h-4" />
                                                 )}

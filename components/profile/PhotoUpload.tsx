@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Upload, Loader2, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import Image from "next/image";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
+import ContextualLoader from "@/components/loading/ContextualLoader";
 
 interface PhotoUploadProps {
     currentPhoto?: string | null;
@@ -28,6 +29,7 @@ export function PhotoUpload({
 }: PhotoUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [preview, setPreview] = useState<string | null>(currentPhoto || null);
+    const abortRef = useRef<AbortController | null>(null);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -55,6 +57,10 @@ export function PhotoUpload({
         // Upload
         setUploading(true);
         try {
+            abortRef.current?.abort();
+            const controller = new AbortController();
+            abortRef.current = controller;
+            performance.mark("photo_upload_start");
             const formData = new FormData();
             formData.append('photo', file);
 
@@ -65,6 +71,7 @@ export function PhotoUpload({
                 headers: authHeaders,
                 body: formData,
                 credentials: 'include',
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -76,9 +83,15 @@ export function PhotoUpload({
             onUploadSuccess(data.photo_url);
             toast.success('Photo de profil mise à jour !');
         } catch (error: any) {
+            if (error?.name === "AbortError") {
+                setPreview(currentPhoto || null);
+                return;
+            }
             toast.error(error.message || 'Erreur lors de l\'upload');
             setPreview(currentPhoto || null); // Revert preview
         } finally {
+            try { performance.mark("photo_upload_end"); performance.measure("photo_upload", "photo_upload_start", "photo_upload_end"); } catch {}
+            abortRef.current = null;
             setUploading(false);
         }
     };
@@ -105,7 +118,15 @@ export function PhotoUpload({
     };
 
     return (
-        <Card className="p-3 sm:p-4 md:p-6">
+        <>
+            {uploading && (
+                <ContextualLoader
+                    context="uploading-photo"
+                    isOverlay
+                    onCancel={() => abortRef.current?.abort()}
+                />
+            )}
+            <Card className="p-3 sm:p-4 md:p-6">
             <div className="flex items-start gap-3 sm:gap-4 md:gap-6">
                 {/* Avatar Preview */}
                 <div className="relative flex-shrink-0">
@@ -168,7 +189,7 @@ export function PhotoUpload({
                                 <span>
                                     {uploading ? (
                                         <>
-                                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin motion-reduce:animate-none" />
                                             <span className="text-xs sm:text-sm">Upload...</span>
                                         </>
                                     ) : (
@@ -190,6 +211,7 @@ export function PhotoUpload({
                     </div>
                 </div>
             </div>
-        </Card>
+            </Card>
+        </>
     );
 }

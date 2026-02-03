@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase";
 import {
@@ -23,6 +23,7 @@ export default function MatchResultPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
+    const [isPending, startTransition] = useTransition();
 
     useEffect(() => {
         const supabase = createSupabaseClient();
@@ -64,8 +65,15 @@ export default function MatchResultPage() {
         fetchAnalysis();
     }, [id]);
 
+    useEffect(() => {
+        if (!id || !analysis) return;
+        router.prefetch(`/dashboard/cv-builder?analysisId=${id}&jobId=${id}`);
+    }, [analysis, id, router]);
+
     const handleGenerateCV = () => {
-        router.push(`/dashboard/cv-builder?analysisId=${id}&jobId=${id}`);
+        startTransition(() => {
+            router.push(`/dashboard/cv-builder?analysisId=${id}&jobId=${id}`);
+        });
     };
 
     const handleRetry = () => {
@@ -89,6 +97,7 @@ export default function MatchResultPage() {
     if (error) {
         return (
             <DashboardLayout>
+                {isPending && <ContextualLoader context="generating-cv" isOverlay />}
                 <div className="container mx-auto max-w-2xl py-10 px-4">
                     <Alert variant="destructive" className="mb-6">
                         <AlertCircle className="h-5 w-5" />
@@ -163,6 +172,7 @@ export default function MatchResultPage() {
 
     return (
         <DashboardLayout>
+            {isPending && <ContextualLoader context="generating-cv" isOverlay />}
             <div className="container mx-auto max-w-5xl py-4 sm:py-6 md:py-10 px-3 sm:px-4">
 
                 {/* HEADER SCORE */}
@@ -515,8 +525,17 @@ export default function MatchResultPage() {
                         size="lg"
                         className="h-11 sm:h-12 md:h-14 px-5 sm:px-6 md:px-8 text-sm sm:text-base md:text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-xl shadow-blue-200 dark:shadow-blue-900/50 mt-2"
                         onClick={handleGenerateCV}
+                        disabled={isPending}
                     >
-                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Générer mon CV
+                        {isPending ? (
+                            <>
+                                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> Préparation...
+                            </>
+                        ) : (
+                            <>
+                                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" /> Générer mon CV
+                            </>
+                        )}
                     </Button>
                 </div>
 

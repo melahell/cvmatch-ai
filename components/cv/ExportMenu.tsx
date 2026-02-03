@@ -14,6 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FileText, File, Code, FileJson, Download, Loader2 } from "lucide-react";
+import ContextualLoader from "@/components/loading/ContextualLoader";
 import { exportCVToWord } from "@/lib/cv/export-word";
 import { exportCVToMarkdown } from "@/lib/cv/export-markdown";
 import { exportCVToJSON } from "@/lib/cv/export-json";
@@ -28,7 +29,7 @@ interface ExportMenuProps {
     template?: string;
     filename?: string;
     jobAnalysisId?: string;
-    onPDFExport?: () => void; // Callback pour export PDF existant
+    onPDFExport?: () => void | Promise<void>;
 }
 
 export function ExportMenu({
@@ -96,7 +97,7 @@ export function ExportMenu({
 
                 case "pdf": {
                     if (onPDFExport) {
-                        onPDFExport();
+                        await onPDFExport();
                         toast.success("CV exporté en PDF");
                     } else {
                         toast.error("Export PDF non disponible");
@@ -113,12 +114,19 @@ export function ExportMenu({
     };
 
     return (
-        <DropdownMenu>
+        <>
+            {exporting && (
+                <ContextualLoader
+                    context={exporting === "pdf" ? "exporting-pdf" : "exporting-data"}
+                    isOverlay
+                />
+            )}
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="primary" size="sm" disabled={!!exporting}>
                     {exporting ? (
                         <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" />
                             Export...
                         </>
                     ) : (
@@ -147,6 +155,7 @@ export function ExportMenu({
                     JSON (.json)
                 </DropdownMenuItem>
             </DropdownMenuContent>
-        </DropdownMenu>
+            </DropdownMenu>
+        </>
     );
 }

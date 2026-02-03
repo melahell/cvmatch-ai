@@ -10,6 +10,7 @@
 import React from "react";
 import { CVData, TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 
 interface BronzorColors {
     primary: string;
@@ -46,6 +47,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
     const clientsReferences = data.clients_references;
 
     const fullName = `${profil.prenom || ""} ${profil.nom || ""}`.trim() || "Nom Prénom";
+    const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
     // Extraire les skills
@@ -58,9 +60,9 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
 
     return (
         <div 
-            className="w-full min-h-[1123px] bg-white print:bg-white"
+            className="w-[var(--cv-page-width)] min-h-[var(--cv-page-height)] bg-white print:bg-white mx-auto"
             style={{ 
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--cv-font-body)",
                 color: colors.text,
             }}
         >
@@ -84,49 +86,30 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                 </h2>
                             )}
                             
-                            {/* Contact - Ligne simple */}
-                            <div 
-                                className={`flex flex-wrap gap-4 mt-4 ${textSize}`}
-                                style={{ color: colors.muted }}
-                            >
-                                {profil.email && <span>{profil.email}</span>}
-                                {profil.email && profil.telephone && <span>•</span>}
-                                {profil.telephone && <span>{profil.telephone}</span>}
-                                {profil.telephone && profil.localisation && <span>•</span>}
-                                {profil.localisation && <span>{profil.localisation}</span>}
-                                {profil.linkedin && (
-                                    <>
-                                        <span>•</span>
-                                        <span style={{ color: colors.accent }}>
-                                            {profil.linkedin.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, "")}
-                                        </span>
-                                    </>
-                                )}
-                                {profil.github && (
-                                    <>
-                                        <span>•</span>
-                                        <span style={{ color: colors.accent }}>
-                                            {profil.github.replace(/https?:\/\/(www\.)?/, "")}
-                                        </span>
-                                    </>
-                                )}
-                                {profil.portfolio && (
-                                    <>
-                                        <span>•</span>
-                                        <span style={{ color: colors.accent }}>
-                                            {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}
-                                        </span>
-                                    </>
-                                )}
-                            </div>
+                            <ContactInfo
+                                email={profil.email}
+                                telephone={profil.telephone}
+                                localisation={profil.localisation}
+                                linkedin={profil.linkedin}
+                                github={profil.github}
+                                portfolio={profil.portfolio}
+                                layout="inline"
+                                showIcons={false}
+                                textSize={textSize}
+                                textColor={colors.muted}
+                                className="flex flex-wrap gap-4 mt-4"
+                            />
                         </div>
                         
                         {/* Photo - Petite et discrète */}
-                        {includePhoto && profil.photo_url && (
-                            <img
-                                src={profil.photo_url}
-                                alt={fullName}
-                                className="w-20 h-20 rounded-full object-cover grayscale hover:grayscale-0 transition-all"
+                        {includePhoto && (
+                            <ProfilePicture
+                                photoUrl={profil.photo_url}
+                                fullName={fullName}
+                                initials={initials}
+                                includePhoto={includePhoto}
+                                size="sm"
+                                className="grayscale hover:grayscale-0 transition-all"
                             />
                         )}
                     </div>

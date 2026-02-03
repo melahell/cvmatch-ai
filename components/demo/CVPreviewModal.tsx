@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ragToCVData } from "@/lib/utils/rag-to-cv-data";
 import { logger } from "@/lib/utils/logger";
+import { openPrintPreview } from "@/lib/cv/pdf-export";
 
 // Import templates
 import ModernTemplate from "@/components/cv/templates/ModernTemplate";
@@ -122,58 +123,36 @@ export function CVPreviewModal({
         setIsGenerating(true);
 
         try {
-            const html2pdf = (await import('html2pdf.js')).default;
-            const element = cvRef.current?.querySelector('.cv-page') as HTMLElement;
-
-            if (!element) throw new Error('CV element not found');
-
-            const clone = element.cloneNode(true) as HTMLElement;
-            clone.style.transform = 'none';
-            clone.style.width = '210mm';
-            clone.style.height = '297mm';
-            // Force text rendering
-            clone.classList.add('print:text-black');
-
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            container.style.top = '0';
-            container.appendChild(clone);
-            document.body.appendChild(container);
-
-            const sanitizedName = characterName.replace(/[^a-zA-Z0-9]/g, '_');
-            const filename = `CV_${sanitizedName}_${cv.templateName}.pdf`;
-
-            const options = {
-                margin: 0,
-                filename,
-                image: { type: 'jpeg' as const, quality: 0.98 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                },
-                jsPDF: {
-                    unit: 'mm' as const,
-                    format: 'a4' as const,
-                    orientation: 'portrait' as const
-                }
-            };
-
-            await html2pdf().set(options).from(clone).save();
-            document.body.removeChild(container);
-
+            openPrintPreview("/demo/print", {
+                data: cvData,
+                templateId: cv.templateId,
+                includePhoto: true,
+                dense: isCompact,
+                format: "A4",
+            });
         } catch (err) {
             logger.error('PDF Generation Error', { error: err });
-            window.print();
+            openPrintPreview("/demo/print", {
+                data: cvData,
+                templateId: cv.templateId,
+                includePhoto: true,
+                dense: isCompact,
+                format: "A4",
+            });
         } finally {
-            setIsGenerating(false);
+            setTimeout(() => setIsGenerating(false), 500);
         }
-    }, [characterName, cv.templateName, isGenerating]);
+    }, [isGenerating, cvData, cv.templateId, isCompact]);
 
     const handlePrint = useCallback(() => {
-        window.print();
-    }, []);
+        openPrintPreview("/demo/print", {
+            data: cvData,
+            templateId: cv.templateId,
+            includePhoto: true,
+            dense: isCompact,
+            format: "A4",
+        });
+    }, [cvData, cv.templateId, isCompact]);
 
     const getScale = () => {
         if (isFullscreen) return 0.9;

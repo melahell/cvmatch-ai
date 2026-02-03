@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { createSupabaseClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { logger } from "@/lib/utils/logger";
+import ContextualLoader from "@/components/loading/ContextualLoader";
 
 interface ExportDataModalProps {
     isOpen: boolean;
@@ -112,6 +113,7 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
 
     return (
         <>
+            {exporting && <ContextualLoader context="exporting-data" isOverlay />}
             {/* Backdrop */}
             <div
                 className="fixed inset-0 bg-black/50 z-50"
@@ -210,7 +212,7 @@ export function ExportDataModal({ isOpen, onClose }: ExportDataModalProps) {
                         >
                             {exporting ? (
                                 <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" />
                                     Export...
                                 </>
                             ) : (

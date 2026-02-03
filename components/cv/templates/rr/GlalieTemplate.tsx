@@ -10,6 +10,7 @@
 import React from "react";
 import { CVData, TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 
 interface GlalieColors {
     primary: string;
@@ -43,6 +44,7 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
     const clientsReferences = data.clients_references;
 
     const fullName = `${profil.prenom || ""} ${profil.nom || ""}`.trim() || "Nom Prénom";
+    const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
     const technicalSkills = Array.isArray(competences)
@@ -55,8 +57,8 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
 
     return (
         <div
-            className="w-full min-h-[1123px] bg-white print:bg-white flex"
-            style={{ fontFamily: "'Inter', sans-serif", color: colors.text }}
+            className="w-[var(--cv-page-width)] min-h-[var(--cv-page-height)] bg-white print:bg-white flex mx-auto"
+            style={{ fontFamily: "var(--cv-font-body)", color: colors.text }}
         >
             {/* SIDEBAR avec fond légèrement coloré */}
             <aside
@@ -66,13 +68,17 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
                 {/* Header centré */}
                 <div className={`${padding} flex flex-col items-center text-center border-b`} style={{ borderColor: colors.primary }}>
                     {/* Photo */}
-                    {includePhoto && profil.photo_url && (
-                        <img
-                            src={profil.photo_url}
-                            alt={fullName}
-                            className="w-28 h-28 rounded-full object-cover border-4 mb-4"
-                            style={{ borderColor: colors.primary }}
-                        />
+                    {includePhoto && (
+                        <div className="mb-4">
+                            <ProfilePicture
+                                photoUrl={profil.photo_url}
+                                fullName={fullName}
+                                initials={initials}
+                                includePhoto={includePhoto}
+                                size="lg"
+                                borderColor={colors.primary}
+                            />
+                        </div>
                     )}
 
                     <h1 className="text-xl font-bold mb-1">{fullName}</h1>
@@ -87,12 +93,18 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
                         className="w-full p-3 rounded-lg border text-left space-y-1.5"
                         style={{ borderColor: colors.primary }}
                     >
-                        {profil.email && <p className="text-xs flex items-center gap-2">✉ {profil.email}</p>}
-                        {profil.telephone && <p className="text-xs flex items-center gap-2">📞 {profil.telephone}</p>}
-                        {profil.localisation && <p className="text-xs flex items-center gap-2">📍 {profil.localisation}</p>}
-                        {profil.linkedin && <p className="text-xs flex items-center gap-2">🔗 LinkedIn</p>}
-                        {profil.github && <p className="text-xs flex items-center gap-2">GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</p>}
-                        {profil.portfolio && <p className="text-xs flex items-center gap-2">WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</p>}
+                        <ContactInfo
+                            email={profil.email}
+                            telephone={profil.telephone}
+                            localisation={profil.localisation}
+                            linkedin={profil.linkedin}
+                            github={profil.github}
+                            portfolio={profil.portfolio}
+                            layout="vertical"
+                            iconColor={colors.primary}
+                            className="space-y-1.5"
+                            textSize="text-xs"
+                        />
                     </div>
                 </div>
 

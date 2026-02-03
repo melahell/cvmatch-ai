@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Building2, Calendar, ExternalLink, MapPin, Trash2, Check, FileText, Eye, Download, Plus, ChevronDown, ChevronUp, Loader2, Target } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { StatusDropdown } from "./StatusDropdown";
 import { JobAnalysisWithCVs, CVGeneration } from "@/hooks/useJobAnalyses";
 import { toast } from "sonner";
+import ContextualLoader from "@/components/loading/ContextualLoader";
 
 // Design System: Couleurs sémantiques pour les statuts
 const STATUS_CONFIG: Record<string, { dot: string }> = {
@@ -46,6 +47,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
     const status = STATUS_CONFIG[job.application_status || "pending"];
     const [showCVs, setShowCVs] = useState(false);
     const [generatingCV, setGeneratingCV] = useState(false);
+    const abortRef = useRef<AbortController | null>(null);
 
     // Design System: Score-based background color (subtle)
     const scoreBgColor = job.match_score >= 80
@@ -60,6 +62,10 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
     const handleGenerateCV = async () => {
         setGeneratingCV(true);
         try {
+            abortRef.current?.abort();
+            const controller = new AbortController();
+            abortRef.current = controller;
+            performance.mark("generate_cv_v2_start");
             const response = await fetch('/api/cv/generate-v2', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -68,6 +74,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                     analysisId: job.id,
                     template: 'classic', // Default template
                 }),
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -85,8 +92,14 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                 window.open(`/dashboard/cv/${result.cvId}`, '_blank');
             }
         } catch (error: any) {
+            if (error?.name === "AbortError") {
+                toast.message("Génération annulée");
+                return;
+            }
             toast.error(error.message || 'Erreur lors de la génération du CV');
         } finally {
+            try { performance.mark("generate_cv_v2_end"); performance.measure("generate_cv_v2", "generate_cv_v2_start", "generate_cv_v2_end"); } catch {}
+            abortRef.current = null;
             setGeneratingCV(false);
         }
     };
@@ -106,7 +119,15 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
 
     if (variant === "mobile") {
         return (
-            <DataListCard className={`hover:shadow-none rounded-none border-0 shadow-none ${scoreBgColor}`}>
+            <>
+                {generatingCV && (
+                    <ContextualLoader
+                        context="generating-cv"
+                        isOverlay
+                        onCancel={() => abortRef.current?.abort()}
+                    />
+                )}
+                <DataListCard className={`hover:shadow-none rounded-none border-0 shadow-none ${scoreBgColor}`}>
                 <DataListContent className="p-4">
                     <div className="flex flex-col gap-3">
                         <div className="flex items-start gap-3">
@@ -179,13 +200,22 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                         </div>
                     </div>
                 </DataListContent>
-            </DataListCard>
+                </DataListCard>
+            </>
         );
     }
 
     // Desktop variant
     return (
-        <DataListCard className={`hover:shadow-lg ${scoreBgColor}`}>
+        <>
+            {generatingCV && (
+                <ContextualLoader
+                    context="generating-cv"
+                    isOverlay
+                    onCancel={() => abortRef.current?.abort()}
+                />
+            )}
+            <DataListCard className={`hover:shadow-lg ${scoreBgColor}`}>
             <DataListContent className="p-4 md:p-5">
                 <div className="flex items-start md:items-center gap-4">
                     {/* Checkbox */}
@@ -361,7 +391,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                                 >
                                     {generatingCV ? (
                                         <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" />
                                             Génération...
                                         </>
                                     ) : (
@@ -385,6 +415,7 @@ export const JobCard = React.memo(function JobCard({ job, variant, onDelete, onS
                         )}
                     </div>
             </DataListContent>
-        </DataListCard>
+            </DataListCard>
+        </>
     );
 });

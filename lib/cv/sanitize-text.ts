@@ -14,8 +14,18 @@ export function sanitizeText(text: unknown): string {
     if (!input) return "";
 
     return input
-        // Fix common French word concatenations
-        .replace(/([a-zàâäéèêëïîôùûüçœæ])(de|des|du|pour|avec|sans|dans|sur|sous|entre|chez|vers|par|et|ou|à|au|aux|un|une|le|la|les)([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆA-zàâäéèêëïîôùûüçœæ])/g, '$1 $2 $3')
+        .replace(/[\u200B-\u200D\uFEFF\u00AD]/g, '')
+        .replace(/\betde\b/gi, 'et de')
+        .replace(/\betla\b/gi, 'et la')
+        .replace(/\betles\b/gi, 'et les')
+        .replace(/\bdela\b/gi, 'de la')
+        .replace(/\bdeles\b/gi, 'de les')
+        .replace(/\bàla\b/gi, 'à la')
+        .replace(/\benplace\b/gi, 'en place')
+        .replace(/\bpourla\b/gi, 'pour la')
+        .replace(/\bsurle\b/gi, 'sur le')
+        .replace(/\bavecle\b/gi, 'avec le')
+        .replace(/\bdansle\b/gi, 'dans le')
         // Fix lowercase + uppercase (camelCase)
         .replace(/([a-zàâäéèêëïîôùûüçœæ])([A-ZÀÂÄÉÈÊËÏÎÔÙÛÜÇŒÆ])/g, '$1 $2')
         // Fix punctuation + letter

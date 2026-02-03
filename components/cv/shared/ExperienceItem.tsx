@@ -50,7 +50,7 @@ export default function ExperienceItem({
 
     if (variant === "timeline") {
         return (
-            <div className={`relative pl-5 py-2 border-l-[3px] break-inside-avoid ${className}`} style={{ borderLeftColor: primaryColor }}>
+            <div className={`cv-item relative pl-5 py-2 border-l-[3px] break-inside-avoid ${className}`} style={{ borderLeftColor: primaryColor }}>
                 {/* Timeline dot */}
                 <div
                     className="absolute -left-[8px] top-3 w-3.5 h-3.5 rounded-full bg-white border-[3px]"
@@ -91,7 +91,7 @@ export default function ExperienceItem({
 
     if (variant === "compact") {
         return (
-            <div className={`break-inside-avoid mb-2 ${className}`}>
+            <div className={`cv-item break-inside-avoid mb-2 ${className}`}>
                 <div className="flex justify-between items-baseline mb-0.5">
                     <span className="font-bold text-[9pt]">{sanitizeText(poste)}</span>
                     <span className="text-[7pt] text-gray-500">{dateStr}</span>
@@ -110,7 +110,7 @@ export default function ExperienceItem({
 
     if (variant === "minimal") {
         return (
-            <div className={`break-inside-avoid mb-1.5 ${className}`}>
+            <div className={`cv-item break-inside-avoid mb-1.5 ${className}`}>
                 <div className="flex justify-between items-baseline">
                     <span className="font-bold text-[9pt]">{sanitizeText(poste)} — <span className="font-medium" style={{ color: primaryColor }}>{sanitizeText(entreprise)}</span></span>
                     <span className="text-[7pt] text-gray-500 flex-shrink-0">{dateStr}</span>
@@ -121,7 +121,7 @@ export default function ExperienceItem({
 
     // Standard variant
     return (
-        <div className={`break-inside-avoid mb-3 ${className}`}>
+        <div className={`cv-item break-inside-avoid mb-3 ${className}`}>
             <div className="flex justify-between items-start mb-0.5">
                 <div>
                     <h4 className="font-bold text-[10pt] text-gray-900">

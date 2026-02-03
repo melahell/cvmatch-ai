@@ -10,6 +10,7 @@
 import React from "react";
 import { CVData, TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 
 interface KakunaColors {
     primary: string;
@@ -43,6 +44,7 @@ export default function KakunaTemplate({ data, includePhoto = true, dense = fals
     const clientsReferences = data.clients_references;
 
     const fullName = `${profil.prenom || ""} ${profil.nom || ""}`.trim() || "Nom Prénom";
+    const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
     const technicalSkills = Array.isArray(competences)
@@ -55,19 +57,21 @@ export default function KakunaTemplate({ data, includePhoto = true, dense = fals
 
     return (
         <div
-            className="w-full min-h-[1123px] bg-white print:bg-white"
-            style={{ fontFamily: "'Inter', sans-serif", color: colors.text }}
+            className="w-[var(--cv-page-width)] min-h-[var(--cv-page-height)] bg-white print:bg-white mx-auto"
+            style={{ fontFamily: "var(--cv-font-body)", color: colors.text }}
         >
             {/* HEADER simple */}
             <header className={`${padding} border-b-2`} style={{ borderColor: colors.primary }}>
                 <div className="flex items-center gap-6">
                     {/* Photo */}
-                    {includePhoto && profil.photo_url && (
-                        <img
-                            src={profil.photo_url}
-                            alt={fullName}
-                            className="w-20 h-20 rounded-full object-cover border-2"
-                            style={{ borderColor: colors.primary }}
+                    {includePhoto && (
+                        <ProfilePicture
+                            photoUrl={profil.photo_url}
+                            fullName={fullName}
+                            initials={initials}
+                            includePhoto={includePhoto}
+                            size="sm"
+                            borderColor={colors.primary}
                         />
                     )}
 
@@ -79,15 +83,18 @@ export default function KakunaTemplate({ data, includePhoto = true, dense = fals
                             </h2>
                         )}
 
-                        {/* Contact inline */}
-                        <div className="flex flex-wrap gap-4 mt-2 text-xs" style={{ color: colors.muted }}>
-                            {profil.email && <span>✉ {profil.email}</span>}
-                            {profil.telephone && <span>📞 {profil.telephone}</span>}
-                            {profil.localisation && <span>📍 {profil.localisation}</span>}
-                            {profil.linkedin && <span>🔗 LinkedIn</span>}
-                            {profil.github && <span>GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</span>}
-                            {profil.portfolio && <span>WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</span>}
-                        </div>
+                        <ContactInfo
+                            email={profil.email}
+                            telephone={profil.telephone}
+                            localisation={profil.localisation}
+                            linkedin={profil.linkedin}
+                            github={profil.github}
+                            portfolio={profil.portfolio}
+                            layout="inline"
+                            textColor={colors.muted}
+                            iconColor={colors.primary}
+                            className="flex flex-wrap gap-4 mt-2 text-xs"
+                        />
                     </div>
                 </div>
             </header>

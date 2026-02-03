@@ -10,6 +10,7 @@
 import React from "react";
 import { CVData, TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 
 interface AzurillColors {
     primary: string;
@@ -44,6 +45,7 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
     const clientsReferences = data.clients_references;
 
     const fullName = `${profil.prenom || ""} ${profil.nom || ""}`.trim() || "Nom Prénom";
+    const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
     const technicalSkills = Array.isArray(competences)
@@ -56,23 +58,27 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
 
     return (
         <div
-            className="w-full min-h-[1123px] bg-white print:bg-white"
+            className="w-[var(--cv-page-width)] min-h-[var(--cv-page-height)] bg-white print:bg-white mx-auto"
             style={{
-                fontFamily: "'Inter', sans-serif",
+                fontFamily: "var(--cv-font-body)",
                 color: colors.text,
             }}
         >
             {/* HEADER Centré */}
             <header className={`${padding} flex flex-col items-center text-center border-b-4`} style={{ borderColor: colors.primary }}>
                 {/* Photo centrée */}
-                {includePhoto && profil.photo_url && (
-                    <img
-                        src={profil.photo_url}
-                        alt={fullName}
-                        className="w-24 h-24 rounded-full object-cover border-4 mb-4"
-                        style={{ borderColor: colors.primary }}
-                    />
-                )}
+                    {includePhoto && (
+                        <div className="mb-4">
+                            <ProfilePicture
+                                photoUrl={profil.photo_url}
+                                fullName={fullName}
+                                initials={initials}
+                                includePhoto={includePhoto}
+                                size="md"
+                                borderColor={colors.primary}
+                            />
+                        </div>
+                    )}
 
                 {/* Nom et titre */}
                 <h1 className="text-3xl font-bold mb-1" style={{ color: colors.text }}>
@@ -84,15 +90,18 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
                     </h2>
                 )}
 
-                {/* Contact inline */}
-                <div className="flex flex-wrap justify-center gap-4 text-sm" style={{ color: colors.muted }}>
-                    {profil.email && <span>✉ {profil.email}</span>}
-                    {profil.telephone && <span>📞 {profil.telephone}</span>}
-                    {profil.localisation && <span>📍 {profil.localisation}</span>}
-                    {profil.linkedin && <span>🔗 LinkedIn</span>}
-                    {profil.github && <span>GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</span>}
-                    {profil.portfolio && <span>WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</span>}
-                </div>
+                <ContactInfo
+                    email={profil.email}
+                    telephone={profil.telephone}
+                    localisation={profil.localisation}
+                    linkedin={profil.linkedin}
+                    github={profil.github}
+                    portfolio={profil.portfolio}
+                    layout="inline"
+                    textColor={colors.muted}
+                    iconColor={colors.primary}
+                    className="flex flex-wrap justify-center gap-4 text-sm"
+                />
             </header>
 
             {/* LAYOUT: Sidebar + Main */}

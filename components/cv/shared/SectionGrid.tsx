@@ -108,7 +108,7 @@ export function PageSection({
     };
 
     return (
-        <section className={`mb-3 break-inside-avoid ${className}`}>
+        <section className={`cv-section mb-3 ${className}`}>
             <h2 style={titleStyles[titleVariant]}>{title}</h2>
             {columns > 1 ? (
                 <SectionGrid columns={columns}>

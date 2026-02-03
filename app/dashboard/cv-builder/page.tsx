@@ -11,7 +11,7 @@
  * 5. Preview temps réel
  */
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw, Download, FileJson, Che
 import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions } from "@/lib/cv/client-bridge";
 import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { validateAIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
+import ContextualLoader from "@/components/loading/ContextualLoader";
+import { CVSkeleton } from "@/components/loading/CVSkeleton";
 import {
     saveWidgetsToCache,
     getWidgetsFromCache,
@@ -32,7 +34,6 @@ import type { RendererResumeSchema } from "@/lib/cv/renderer-schema";
 import { TEMPLATES } from "@/components/cv/templates";
 import { ValidationWarnings } from "@/components/cv/ValidationWarnings";
 import { MultiTemplatePreview } from "@/components/cv/MultiTemplatePreview";
-import { PDFExportButton } from "@/components/cv/PDFExportButton";
 import { ExportMenu } from "@/components/cv/ExportMenu";
 import { DraggableCV } from "@/components/cv/DraggableCV";
 import { ExperienceEditor } from "@/components/cv/ExperienceEditor";
@@ -42,16 +43,18 @@ import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
 import { useCVReorder } from "@/hooks/useCVReorder";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
+import { openPrintPreview } from "@/lib/cv/pdf-export";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { logger } from "@/lib/utils/logger";
 import { Switch } from "@/components/ui/switch";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // Lazy load CVRenderer (heavy component with templates)
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
-    loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
+    loading: () => <div className="flex items-center justify-center p-12"><LoadingSpinner /></div>,
     ssr: false
 });
 
@@ -83,6 +86,7 @@ function CVBuilderContent() {
         metadata: null,
         jobOfferContext: null,
     });
+    const generationAbortRef = useRef<AbortController | null>(null);
 
     const [templateId, setTemplateId] = useState<string>("modern");
     const [cvData, setCvData] = useState<RendererResumeSchema | null>(null);
@@ -300,7 +304,16 @@ function CVBuilderContent() {
         setLoadingStep("Récupération de votre profil professionnel...");
         setErrorAction(null);
 
+        let slowTimer: number | undefined;
         try {
+            slowTimer = window.setTimeout(() => {
+                setLoadingStep("Toujours en cours… (vous pouvez annuler et réessayer)");
+            }, 20000);
+            generationAbortRef.current?.abort();
+            const controller = new AbortController();
+            generationAbortRef.current = controller;
+            try { performance.mark("cv_builder_generate_start"); } catch {}
+
             // Récupérer headers d'authentification
             const authHeaders = await getSupabaseAuthHeader();
             
@@ -311,6 +324,7 @@ function CVBuilderContent() {
                     "Content-Type": "application/json",
                     ...authHeaders,
                 },
+                signal: controller.signal,
                 body: JSON.stringify({ analysisId, jobId }),
             });
 
@@ -359,6 +373,15 @@ function CVBuilderContent() {
             convertWidgetsToCVData(widgets, templateId, convertOptions, jobOfferContext);
             toast.success("CV généré avec succès !", { duration: 3000 });
         } catch (error: any) {
+            if (error?.name === "AbortError") {
+                setState((prev) => ({
+                    ...prev,
+                    isLoading: false,
+                }));
+                setLoadingStep(null);
+                setErrorAction(null);
+                return;
+            }
             const friendlyError = getUserFriendlyError(error);
             setState({
                 isLoading: false,
@@ -369,8 +392,32 @@ function CVBuilderContent() {
             });
             setLoadingStep(null);
             setErrorAction(friendlyError);
+        } finally {
+            try { performance.mark("cv_builder_generate_end"); performance.measure("cv_builder_generate", "cv_builder_generate_start", "cv_builder_generate_end"); } catch {}
+            try { if (slowTimer) window.clearTimeout(slowTimer); } catch {}
+            generationAbortRef.current = null;
         }
     }, [analysisId, jobId, templateId, convertOptions]);
+
+    const generationProgress = useMemo(() => {
+        if (!state.isLoading) return 0;
+        const step = (loadingStep || "").toLowerCase();
+        if (step.includes("profil")) return 15;
+        if (step.includes("widgets")) return 55;
+        if (step.includes("hallucination")) return 75;
+        if (step.includes("conversion")) return 90;
+        return 30;
+    }, [state.isLoading, loadingStep]);
+
+    const generationCurrentStep = useMemo(() => {
+        if (!state.isLoading) return 0;
+        const step = (loadingStep || "").toLowerCase();
+        if (step.includes("profil")) return 0;
+        if (step.includes("widgets")) return 1;
+        if (step.includes("hallucination")) return 2;
+        if (step.includes("conversion")) return 3;
+        return 0;
+    }, [state.isLoading, loadingStep]);
 
     // Convertir widgets → CVData (côté client, instantané) avec validation + scoring avancé
     const convertWidgetsToCVData = useCallback(
@@ -655,6 +702,12 @@ function CVBuilderContent() {
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
+                                    {cvCacheHit && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 border border-emerald-100">
+                                            <Zap className="w-3 h-3" />
+                                            Préview instantanée
+                                        </span>
+                                    )}
                                 </>
                             )}
                             <Button
@@ -680,17 +733,14 @@ function CVBuilderContent() {
                                         template={templateId}
                                         filename="CV"
                                         onPDFExport={() => {
-                                            const element = document.getElementById("cv-preview-container");
-                                            if (element) {
-                                                window.print();
-                                            }
+                                            openPrintPreview("/dashboard/cv-builder/print", {
+                                                data: reorderedCV || cvData || {},
+                                                templateId,
+                                                includePhoto,
+                                                dense: denseMode,
+                                                format: "A4",
+                                            });
                                         }}
-                                    />
-                                    <PDFExportButton
-                                        elementId="cv-preview-container"
-                                        filename={`CV_${cvData.profil.prenom}_${cvData.profil.nom}`}
-                                        variant="primary"
-                                        size="sm"
                                     />
                                 </>
                             )}
@@ -762,21 +812,13 @@ function CVBuilderContent() {
 
             <main className="container mx-auto px-4 pt-6">
                 {state.isLoading && (
-                    <Card className="mb-6">
-                        <CardContent className="pt-6">
-                            <div className="flex flex-col items-center justify-center gap-3 py-8">
-                                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-                                <div className="text-center">
-                                    <span className="text-sm font-medium text-slate-900 block mb-1">
-                                        {loadingStep || "Génération en cours..."}
-                                    </span>
-                                    <span className="text-xs text-slate-500">
-                                        Veuillez patienter, cela peut prendre quelques instants
-                                    </span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <ContextualLoader
+                        context="generating-cv"
+                        progress={generationProgress}
+                        currentStep={generationCurrentStep}
+                        onCancel={() => generationAbortRef.current?.abort()}
+                        isOverlay
+                    />
                 )}
 
                 {state.error && (
@@ -1420,9 +1462,8 @@ function CVBuilderContent() {
                                             />
                                         </div>
                                     ) : (
-                                        <div className="text-center text-slate-500 text-sm">
-                                            <AlertCircle className="w-5 h-5 mx-auto mb-2" />
-                                            <p>Chargement du CV...</p>
+                                        <div className="w-full">
+                                            <CVSkeleton />
                                         </div>
                                     )}
                                 </CardContent>
@@ -1441,11 +1482,8 @@ function CVBuilderContent() {
 export default function CVBuilderPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-sm text-slate-600">Chargement...</p>
-                </div>
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <LoadingSpinner text="Chargement du CV Builder..." fullScreen={false} />
             </div>
         }>
             <CVBuilderContent />

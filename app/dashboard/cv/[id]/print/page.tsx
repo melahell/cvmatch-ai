@@ -5,7 +5,6 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
-import { getGoogleFontsUrl } from "@/lib/cv/cv-theme-variables";
 import { logger } from "@/lib/utils/logger";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
@@ -20,33 +19,11 @@ export default function CVPrintPage() {
     const templateParam = searchParams.get("template");
     const includePhoto = searchParams.get("photo") !== "false";
     const customCSS = searchParams.get("css") || undefined;
+    const autoPrint = searchParams.get("autoprint") === "1";
     const [loading, setLoading] = useState(true);
     const [cvData, setCvData] = useState<any>(null);
     const [templateId, setTemplateId] = useState<string>("modern");
     const [rendered, setRendered] = useState(false);
-
-    // Load Google Fonts for the template
-    useEffect(() => {
-        const effectiveTemplate = templateParam || "modern";
-        const fontsUrl = getGoogleFontsUrl(effectiveTemplate);
-        const link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.href = fontsUrl;
-        link.crossOrigin = "anonymous";
-        document.head.appendChild(link);
-
-        // Also preconnect for faster loading
-        const preconnect = document.createElement("link");
-        preconnect.rel = "preconnect";
-        preconnect.href = "https://fonts.gstatic.com";
-        preconnect.crossOrigin = "anonymous";
-        document.head.appendChild(preconnect);
-
-        return () => {
-            document.head.removeChild(link);
-            document.head.removeChild(preconnect);
-        };
-    }, [templateParam]);
 
     useEffect(() => {
         async function fetchCV() {
@@ -178,6 +155,20 @@ export default function CVPrintPage() {
         }
     }, [loading, cvData]);
 
+    useEffect(() => {
+        if (!autoPrint || !rendered) return;
+        const onAfterPrint = () => {
+            try {
+                window.close();
+            } catch {
+                return;
+            }
+        };
+        window.addEventListener("afterprint", onAfterPrint);
+        setTimeout(() => window.print(), 50);
+        return () => window.removeEventListener("afterprint", onAfterPrint);
+    }, [autoPrint, rendered]);
+
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -243,18 +234,18 @@ export default function CVPrintPage() {
 
                 /* Allow multi-page overflow */
                 #cv-container, .cv-page {
+                    width: var(--cv-page-width, 210mm) !important;
+                    min-height: var(--cv-page-height, 297mm) !important;
+                    margin: 0 auto;
                     overflow: visible !important;
                     height: auto !important;
                 }
 
                 /* ===== Page Break Rules ===== */
+                .cv-avoid-break,
                 .break-inside-avoid,
-                article,
-                [class*="experience"],
-                [class*="education"],
-                [class*="formation"],
-                [class*="certification"],
-                [class*="skill-category"] {
+                .cv-item,
+                li {
                     break-inside: avoid !important;
                     page-break-inside: avoid !important;
                 }

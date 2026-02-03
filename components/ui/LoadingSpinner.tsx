@@ -22,8 +22,8 @@ export function LoadingSpinner({
     fullScreen = false
 }: LoadingSpinnerProps) {
     const spinner = (
-        <div className={`flex flex-col items-center justify-center gap-2 ${className}`}>
-            <Loader2 className={`${sizeClasses[size]} animate-spin text-blue-600`} />
+        <div className={`flex flex-col items-center justify-center gap-2 ${className}`} role="status" aria-live="polite" aria-busy="true">
+            <Loader2 className={`${sizeClasses[size]} animate-spin motion-reduce:animate-none text-blue-600`} aria-hidden="true" />
             {text && <span className="text-sm text-slate-600">{text}</span>}
         </div>
     );

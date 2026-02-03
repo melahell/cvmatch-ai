@@ -288,7 +288,7 @@ export default function TechTemplate({
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 p-5 bg-white overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+            <main className="flex-1 p-5 bg-white overflow-hidden" style={{ fontFamily: "var(--cv-font-body)" }}>
                 {/* Header */}
                 <div className="mb-4 pb-3 border-b-2 border-emerald-500">
                     <h1 className="text-xl font-extrabold text-slate-900">{profil.prenom} {profil.nom}</h1>

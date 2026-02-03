@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
     Upload, FileText, Sparkles, Target, RefreshCw,
     Save, Camera, Download, LogIn, Mail, X, CheckCircle
@@ -19,6 +19,7 @@ export type LoadingContext =
     | "refreshing-profile"
     | "saving-changes"
     | "uploading-photo"
+    | "exporting-pdf"
     | "exporting-data";
 
 interface ContextualLoaderProps {
@@ -88,6 +89,11 @@ const LOADING_MESSAGES: Record<LoadingContext, string[]> = {
         "Préparation de vos données...",
         "Génération du fichier...",
     ],
+    "exporting-pdf": [
+        "Préparation de la mise en page...",
+        "Chargement des polices et images...",
+        "Génération du PDF...",
+    ],
 };
 
 // Fun facts pendant le chargement
@@ -113,6 +119,7 @@ const CONTEXT_TITLES: Record<LoadingContext, string> = {
     "refreshing-profile": "Mise à jour du profil",
     "saving-changes": "Sauvegarde",
     "uploading-photo": "Upload photo",
+    "exporting-pdf": "Export PDF",
     "exporting-data": "Export de vos données",
 };
 
@@ -127,6 +134,7 @@ const CONTEXT_ICONS: Record<LoadingContext, React.ReactNode> = {
     "refreshing-profile": <RefreshCw className="w-8 h-8 text-white" />,
     "saving-changes": <Save className="w-8 h-8 text-white" />,
     "uploading-photo": <Camera className="w-8 h-8 text-white" />,
+    "exporting-pdf": <Download className="w-8 h-8 text-white" />,
     "exporting-data": <Download className="w-8 h-8 text-white" />,
 };
 
@@ -142,6 +150,7 @@ const ESTIMATED_TIMES: Record<LoadingContext, number> = {
     "saving-changes": 3,
     "uploading-photo": 5,
     "exporting-data": 5,
+    "exporting-pdf": 15,
 };
 
 // Étapes par contexte
@@ -156,6 +165,7 @@ const CONTEXT_STEPS: Record<LoadingContext, string[]> = {
     "saving-changes": ["Sauvegarde"],
     "uploading-photo": ["Upload", "Traitement"],
     "exporting-data": ["Préparation", "Export"],
+    "exporting-pdf": ["Mise en page", "Assets", "PDF"],
 };
 
 // Floating particles component
@@ -289,6 +299,7 @@ export function ContextualLoader({
     onCancel,
     isOverlay = true, // Default to overlay mode
 }: ContextualLoaderProps) {
+    const reduceMotion = useReducedMotion();
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
     const [currentFactIndex, setCurrentFactIndex] = useState(0);
     const [internalProgress, setInternalProgress] = useState(0);
@@ -369,9 +380,12 @@ export function ContextualLoader({
                 exit={{ opacity: 0 }}
                 className={`fixed inset-0 z-50 flex items-center justify-center ${isOverlay ? "backdrop-blur-md bg-black/40" : "bg-gradient-to-br from-blue-600 via-purple-600 to-pink-500"
                     }`}
+                role="dialog"
+                aria-modal="true"
+                aria-label={title}
             >
                 {/* Floating particles */}
-                <FloatingParticles />
+                {!reduceMotion && <FloatingParticles />}
 
                 {/* Animated gradient background (only in full mode) */}
                 {!isOverlay && (
@@ -385,7 +399,7 @@ export function ContextualLoader({
                                 "radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%)",
                             ],
                         }}
-                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                        transition={reduceMotion ? { duration: 0 } : { duration: 8, repeat: Infinity, ease: "linear" }}
                     />
                 )}
 
@@ -417,7 +431,7 @@ export function ContextualLoader({
                                 }}
                                 transition={{
                                     duration: 2,
-                                    repeat: Infinity,
+                                    repeat: reduceMotion ? 0 : Infinity,
                                     ease: "easeInOut",
                                 }}
                             />
@@ -428,7 +442,7 @@ export function ContextualLoader({
                                 }}
                                 transition={{
                                     duration: 3,
-                                    repeat: Infinity,
+                                    repeat: reduceMotion ? 0 : Infinity,
                                     ease: "easeInOut",
                                 }}
                             >
@@ -479,6 +493,11 @@ export function ContextualLoader({
                         {timeLeft > 0 && (
                             <p className="text-white/60 text-xs mt-4">
                                 ⏱ Environ {timeLeft}s restantes
+                            </p>
+                        )}
+                        {timeLeft === 0 && progress < 100 && (
+                            <p className="text-white/70 text-xs mt-4">
+                                Ça prend un peu plus longtemps que prévu…
                             </p>
                         )}
 

@@ -53,7 +53,7 @@ export default function ModernTemplate({
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'Inter', -apple-system, sans-serif",
+                fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8pt' : '8.5pt',
                 lineHeight: dense ? '1.25' : '1.3'
             }}

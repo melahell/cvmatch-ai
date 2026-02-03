@@ -45,7 +45,7 @@ export default function PageLayout({
     sidebarPadding = "var(--cv-margin-y, 5mm) var(--cv-margin-x, 5mm)",
     mainPadding = "var(--cv-margin-y, 5mm) var(--cv-margin-x, 5mm)",
     gap = "0",
-    minHeight = "1123px",
+    minHeight = "var(--cv-page-height, 297mm)",
     children,
     className = "",
     style,

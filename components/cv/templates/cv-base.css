@@ -2,9 +2,9 @@
 
 /* A4 Dimensions: 210mm x 297mm */
 .cv-page {
-    width: 210mm;
-    min-height: 297mm;
-    max-height: 297mm;
+    width: var(--cv-page-width, 210mm);
+    min-height: var(--cv-page-height, 297mm);
+    max-height: var(--cv-page-height, 297mm);
     overflow: hidden;
     background: white;
     box-sizing: border-box;
@@ -32,8 +32,8 @@
     body {
         margin: 0;
         padding: 0;
-        width: 210mm;
-        height: 297mm;
+        width: var(--cv-page-width, 210mm);
+        height: var(--cv-page-height, 297mm);
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
         color-adjust: exact !important;
@@ -63,7 +63,7 @@
 /* Common padding for content */
 .cv-content {
     padding: 12mm 15mm;
-    height: calc(297mm - 24mm);
+    height: calc(var(--cv-page-height, 297mm) - 24mm);
     overflow: hidden;
 }
 
@@ -329,7 +329,7 @@
 /* Pour les réalisations et textes longs */
 .cv-page ul li,
 .cv-page p {
-    word-break: break-word;
+    word-break: normal;
     overflow-wrap: break-word;
-    hyphens: auto; /* Permet la césure automatique si nécessaire */
+    hyphens: none;
 }
