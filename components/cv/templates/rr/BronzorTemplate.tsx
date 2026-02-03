@@ -43,6 +43,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
     const langues = data.langues || [];
     const certifications = data.certifications || [];
     const projects = data.projects || [];
+    const clientsReferences = data.clients_references;
 
     const fullName = `${profil.prenom || ""} ${profil.nom || ""}`.trim() || "Nom Prénom";
     const titre = profil.titre_principal || "";
@@ -98,6 +99,22 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                         <span>•</span>
                                         <span style={{ color: colors.accent }}>
                                             {profil.linkedin.replace(/https?:\/\/(www\.)?linkedin\.com\/in\//, "")}
+                                        </span>
+                                    </>
+                                )}
+                                {profil.github && (
+                                    <>
+                                        <span>•</span>
+                                        <span style={{ color: colors.accent }}>
+                                            {profil.github.replace(/https?:\/\/(www\.)?/, "")}
+                                        </span>
+                                    </>
+                                )}
+                                {profil.portfolio && (
+                                    <>
+                                        <span>•</span>
+                                        <span style={{ color: colors.accent }}>
+                                            {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}
                                         </span>
                                     </>
                                 )}
@@ -166,7 +183,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                     </p>
                                     
                                     {exp.realisations && exp.realisations.length > 0 && (
-                                        <ul 
+                                        <ul
                                             className={`space-y-1 ${textSize}`}
                                             style={{ color: colors.muted }}
                                         >
@@ -177,6 +194,16 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                                 </li>
                                             ))}
                                         </ul>
+                                    )}
+
+                                    {exp.clients && exp.clients.length > 0 && (
+                                        <p
+                                            className={`mt-2 ${textSize}`}
+                                            style={{ color: colors.muted }}
+                                        >
+                                            <span className="font-medium">Clients : </span>
+                                            {exp.clients.slice(0, 4).join(", ")}
+                                        </p>
                                     )}
                                 </article>
                             ))}
@@ -319,6 +346,29 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                         </p>
                                     )}
                                 </article>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Références clients */}
+                {clientsReferences?.clients && clientsReferences.clients.length > 0 && (
+                    <section className="mb-8">
+                        <h2
+                            className="text-xs font-semibold tracking-widest uppercase mb-4"
+                            style={{ color: colors.accent }}
+                        >
+                            Clients Références
+                        </h2>
+                        <div className="flex flex-wrap gap-2">
+                            {clientsReferences.clients.slice(0, 10).map((client: string, idx: number) => (
+                                <span
+                                    key={idx}
+                                    className={`${textSize}`}
+                                    style={{ color: colors.muted }}
+                                >
+                                    {client}{idx < clientsReferences.clients.slice(0, 10).length - 1 ? " •" : ""}
+                                </span>
                             ))}
                         </div>
                     </section>

@@ -91,6 +91,8 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                             {profil.telephone && <span className="flex items-center gap-1.5">📞 {profil.telephone}</span>}
                             {profil.localisation && <span className="flex items-center gap-1.5">📍 {profil.localisation}</span>}
                             {profil.linkedin && <span className="flex items-center gap-1.5">🔗 LinkedIn</span>}
+                            {profil.github && <span className="flex items-center gap-1.5">GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</span>}
+                            {profil.portfolio && <span className="flex items-center gap-1.5">WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</span>}
                         </div>
                     </div>
                 </div>

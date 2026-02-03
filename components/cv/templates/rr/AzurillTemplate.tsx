@@ -90,6 +90,8 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
                     {profil.telephone && <span>📞 {profil.telephone}</span>}
                     {profil.localisation && <span>📍 {profil.localisation}</span>}
                     {profil.linkedin && <span>🔗 LinkedIn</span>}
+                    {profil.github && <span>GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</span>}
+                    {profil.portfolio && <span>WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</span>}
                 </div>
             </header>
 

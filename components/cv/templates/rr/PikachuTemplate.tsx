@@ -113,6 +113,16 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                     🔗 LinkedIn
                                 </span>
                             )}
+                            {profil.github && (
+                                <span className="flex items-center gap-1">
+                                    GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}
+                                </span>
+                            )}
+                            {profil.portfolio && (
+                                <span className="flex items-center gap-1">
+                                    WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>

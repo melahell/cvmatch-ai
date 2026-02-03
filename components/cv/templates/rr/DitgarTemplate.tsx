@@ -92,6 +92,8 @@ export default function DitgarTemplate({ data, includePhoto = true, dense = fals
                         {profil.telephone && <p className="flex items-center gap-2">📞 {profil.telephone}</p>}
                         {profil.localisation && <p className="flex items-center gap-2">📍 {profil.localisation}</p>}
                         {profil.linkedin && <p className="flex items-center gap-2">🔗 LinkedIn</p>}
+                        {profil.github && <p className="flex items-center gap-2">GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</p>}
+                        {profil.portfolio && <p className="flex items-center gap-2">WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</p>}
                     </div>
                 </div>
 

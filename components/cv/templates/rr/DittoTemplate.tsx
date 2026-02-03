@@ -98,6 +98,8 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                     {profil.telephone && <span className="flex items-center gap-1">📞 {profil.telephone}</span>}
                     {profil.localisation && <span className="flex items-center gap-1">📍 {profil.localisation}</span>}
                     {profil.linkedin && <span className="flex items-center gap-1">🔗 LinkedIn</span>}
+                    {profil.github && <span className="flex items-center gap-1">GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</span>}
+                    {profil.portfolio && <span className="flex items-center gap-1">WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</span>}
                 </div>
             </div>
 
