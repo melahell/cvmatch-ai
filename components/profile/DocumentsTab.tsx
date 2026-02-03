@@ -135,14 +135,27 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                         <div className="mt-4 space-y-3 text-sm text-slate-700">
                             <div className="font-medium">Étapes (LinkedIn Desktop)</div>
                             <ol className="list-decimal pl-5 space-y-1">
-                                <li>Ouvre LinkedIn sur ordinateur (Chrome/Edge) et connecte-toi.</li>
-                                <li>Va sur ton profil: <span className="font-medium">Moi</span> → <span className="font-medium">Voir le profil</span>.</li>
-                                <li>Clique sur <span className="font-medium">Plus</span> (ou “…” près du bouton “Ajouter une section”).</li>
-                                <li>Sélectionne <span className="font-medium">Enregistrer au format PDF</span> / <span className="font-medium">Save to PDF</span>.</li>
-                                <li>Télécharge le fichier (souvent nommé <span className="font-medium">Profile.pdf</span>).</li>
+                                <li>Ouvre LinkedIn sur ordinateur (cette option n’existe pas sur l’app mobile).</li>
+                                <li>Clique sur <span className="font-medium">Vous</span> puis <span className="font-medium">Voir le profil</span>.</li>
+                                <li>Dans l’Intro, clique sur <span className="font-medium">Plus</span> (ou <span className="font-medium">Ressources</span> selon l’interface).</li>
+                                <li>Sélectionne <span className="font-medium">Enregistrer au format PDF</span>.</li>
+                                <li>Le fichier se télécharge (PDF).</li>
                             </ol>
-                            <div className="text-xs text-slate-600">
-                                Astuce: avant l’export, descends sur ton profil et clique sur quelques “Voir plus” (résumé / expériences longues) pour maximiser le contenu.
+                            <div className="text-xs text-slate-600 space-y-1">
+                                <div>
+                                    Important: LinkedIn indique que cette fonctionnalité peut dépendre de la langue du profil (souvent requis en anglais).
+                                </div>
+                                <div>
+                                    Référence:{" "}
+                                    <a
+                                        href="https://www.linkedin.com/help/linkedin/answer/a547069/enregistrer-un-profil-au-format-pdf?lang=fr"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="underline underline-offset-2"
+                                    >
+                                        Assistance LinkedIn — Enregistrer un profil au format PDF
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </details>
