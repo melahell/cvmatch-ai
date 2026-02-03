@@ -86,6 +86,8 @@ export default function RhyhornTemplate({ data, includePhoto = true, dense = fal
                         {profil.telephone && <p>📞 {profil.telephone}</p>}
                         {profil.localisation && <p>📍 {profil.localisation}</p>}
                         {profil.linkedin && <p>🔗 LinkedIn</p>}
+                        {profil.github && <p>GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</p>}
+                        {profil.portfolio && <p>WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</p>}
                     </div>
                 </div>
             </header>

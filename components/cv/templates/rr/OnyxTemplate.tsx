@@ -121,6 +121,14 @@ export default function OnyxTemplate({ data, includePhoto = true, dense = false 
                                     </span>
                                 </div>
                             )}
+                            {profil.portfolio && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-gray-500">🌐</span>
+                                    <span className="break-all">
+                                        {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </section>
 

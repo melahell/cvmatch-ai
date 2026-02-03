@@ -91,6 +91,8 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
                         {profil.telephone && <p className="text-xs flex items-center gap-2">📞 {profil.telephone}</p>}
                         {profil.localisation && <p className="text-xs flex items-center gap-2">📍 {profil.localisation}</p>}
                         {profil.linkedin && <p className="text-xs flex items-center gap-2">🔗 LinkedIn</p>}
+                        {profil.github && <p className="text-xs flex items-center gap-2">GH {profil.github.replace(/https?:\/\/(www\.)?/, "")}</p>}
+                        {profil.portfolio && <p className="text-xs flex items-center gap-2">WEB {profil.portfolio.replace(/https?:\/\/(www\.)?/, "")}</p>}
                     </div>
                 </div>
 

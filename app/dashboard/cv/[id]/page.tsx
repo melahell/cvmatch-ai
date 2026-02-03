@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
-import { Loader2, Download, ArrowLeft, RefreshCw, FileText, CheckCircle, AlertTriangle, Info, Sparkles } from "lucide-react";
+import { Loader2, Download, ArrowLeft, RefreshCw, FileText, AlertTriangle, Info, Sparkles, Monitor, Printer } from "lucide-react";
 import { ExportMenu } from "@/components/cv/ExportMenu";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
@@ -32,6 +32,8 @@ export default function CVViewPage() {
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [currentTemplate, setCurrentTemplate] = useState<string>("modern");
     const [currentIncludePhoto, setCurrentIncludePhoto] = useState<boolean>(true);
+    const [format, setFormat] = useState<"A4" | "Letter">("A4");
+    const [showFormatMenu, setShowFormatMenu] = useState(false);
     const cvRef = useRef<HTMLDivElement>(null);
     const [generatingPDF, setGeneratingPDF] = useState(false);
 
@@ -131,46 +133,45 @@ export default function CVViewPage() {
         };
     }, [cvGeneration, cvGeneration?.id, currentIncludePhoto, cvPhoto]);
 
-    // PDF generation with html2pdf.js and fallback to window.print()
-    const handleDownloadPDF = async () => {
+    // PDF generation via server-side Puppeteer (high quality)
+    const handleDownloadPDF = useCallback(async () => {
         if (!cvGeneration || generatingPDF) return;
 
         setGeneratingPDF(true);
         try {
-            const html2pdf = (await import('html2pdf.js')).default;
+            const authHeaders = await getSupabaseAuthHeader();
+            const params = new URLSearchParams({
+                format,
+                template: currentTemplate,
+                photo: currentIncludePhoto ? "true" : "false",
+            });
 
-            const element = document.querySelector('.cv-page') as HTMLElement;
-            if (!element) {
-                throw new Error('CV element not found');
+            const res = await fetch(`/api/cv/${id}/pdf?${params.toString()}`, {
+                method: "GET",
+                headers: authHeaders,
+            });
+
+            if (!res.ok) {
+                throw new Error(`PDF generation failed: ${res.status}`);
             }
 
-            const options = {
-                margin: 0,
-                filename: `CV_${cvGeneration.cv_data?.profil?.nom || 'Document'}.pdf`,
-                image: { type: 'jpeg' as const, quality: 1 },
-                html2canvas: {
-                    scale: 2,
-                    useCORS: true,
-                    letterRendering: true,
-                    logging: false
-                },
-                jsPDF: {
-                    unit: 'mm' as const,
-                    format: 'a4' as const,
-                    orientation: 'portrait' as const
-                }
-            };
-
-            await html2pdf().set(options).from(element).save();
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `CV_${cvGeneration.cv_data?.profil?.prenom || ""}_${cvGeneration.cv_data?.profil?.nom || "Document"}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         } catch (error) {
-            logger.error('PDF Error', { error });
-            // Fallback silencieux vers l'impression du navigateur
-            logger.warn('Fallback vers impression navigateur');
-            window.print();
+            logger.error("PDF Error", { error });
+            // Fallback: open print page in new tab
+            window.open(`/dashboard/cv/${id}/print?format=${format}&template=${currentTemplate}`, "_blank");
         } finally {
             setGeneratingPDF(false);
         }
-    };
+    }, [cvGeneration, generatingPDF, id, format, currentTemplate, currentIncludePhoto]);
 
     const handleTemplateChange = (templateId: string) => {
         setCurrentTemplate(templateId);
@@ -181,28 +182,15 @@ export default function CVViewPage() {
 
     // Extract CDC metadata if available
     const cvMetadata = cvGeneration?.cv_data?.cv_metadata;
-
-    // DEBUG: Log metadata to see what's available (only in development)
-    // Note: This is a client component, so we use conditional console.log
-    // The Next.js compiler will remove console.log in production anyway
-
     const qualityScore = cvMetadata?.ats_score;
     const compressionLevel = cvMetadata?.compression_level_applied || 0;
     const pageCount = cvMetadata?.page_count || 1;
     const seniorityLevel = cvMetadata?.seniority_level;
-    
+
     // V2 Widgets metadata
     const isV2 = cvMetadata?.generator_type === "v2_widgets";
     const widgetsTotal = cvMetadata?.widgets_total;
     const widgetsFiltered = cvMetadata?.widgets_filtered;
-
-    // Quality score badge color
-    const getScoreColor = (score: number | undefined) => {
-        if (!score) return 'bg-gray-100 text-gray-600';
-        if (score >= 80) return 'bg-green-100 text-green-700';
-        if (score >= 60) return 'bg-yellow-100 text-yellow-700';
-        return 'bg-red-100 text-red-700';
-    };
 
     if (loading) {
         return (
@@ -216,6 +204,8 @@ export default function CVViewPage() {
         return <div className="text-center p-20">CV Introuvable</div>;
     }
 
+    const pageWidth = format === "Letter" ? "215.9mm" : "210mm";
+
     return (
         <div className="min-h-screen bg-slate-100 dark:bg-slate-950 pb-20">
 
@@ -227,16 +217,15 @@ export default function CVViewPage() {
                             <ArrowLeft className="w-5 h-5" />
                         </Link>
                         <div>
-                            <h1 className="font-bold text-base sm:text-lg dark:text-white">Aperçu du CV</h1>
+                            <h1 className="font-bold text-base sm:text-lg dark:text-white">Apercu du CV</h1>
                             <p className="text-xs text-slate-600 dark:text-slate-600">
-                                Template: {templateInfo?.name || currentTemplate}
+                                Template: {templateInfo?.name || currentTemplate} | {format}
                             </p>
                         </div>
                     </div>
 
                     {/* Quality & Page Indicators */}
                     <div className="hidden md:flex items-center gap-3">
-                        {/* V2 Widgets Badge */}
                         {isV2 && (
                             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 border border-indigo-200">
                                 <Sparkles className="w-3 h-3" />
@@ -249,14 +238,12 @@ export default function CVViewPage() {
                             </div>
                         )}
 
-                        {/* Page Count Badge */}
                         <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${pageCount === 1 ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
                             }`}>
                             <FileText className="w-3 h-3" />
                             {pageCount} page{pageCount > 1 ? 's' : ''}
                         </div>
 
-                        {/* Compression Indicator */}
                         {compressionLevel > 0 && (
                             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
                                 <AlertTriangle className="w-3 h-3" />
@@ -264,7 +251,6 @@ export default function CVViewPage() {
                             </div>
                         )}
 
-                        {/* Seniority Badge */}
                         {seniorityLevel && (
                             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
                                 <Info className="w-3 h-3" />
@@ -274,18 +260,49 @@ export default function CVViewPage() {
                     </div>
 
                     <div className="flex gap-2">
+                        {/* Format selector */}
                         <div className="relative">
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                                onClick={() => { setShowFormatMenu(!showFormatMenu); setShowTemplateMenu(false); }}
+                                className="dark:border-slate-700 dark:text-slate-300"
+                            >
+                                <Printer className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">{format}</span>
+                            </Button>
+                            {showFormatMenu && (
+                                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[120px]">
+                                    {(["A4", "Letter"] as const).map((f) => (
+                                        <button
+                                            key={f}
+                                            onClick={() => { setFormat(f); setShowFormatMenu(false); }}
+                                            className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                                                format === f
+                                                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
+                                                    : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                            }`}
+                                        >
+                                            {f} {f === "A4" ? "(210x297mm)" : "(8.5x11in)"}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Template selector */}
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setShowTemplateMenu(!showTemplateMenu); setShowFormatMenu(false); }}
                                 className="dark:border-slate-700 dark:text-slate-300"
                             >
                                 <RefreshCw className="w-4 h-4 sm:mr-2" />
                                 <span className="hidden sm:inline">Template</span>
                             </Button>
                             {showTemplateMenu && (
-                                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[160px]">
+                                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[200px] max-h-[400px] overflow-y-auto">
                                     {TEMPLATES.filter(t => t.available).map((t) => (
                                         <button
                                             key={t.id}
@@ -296,7 +313,8 @@ export default function CVViewPage() {
                                                     : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
                                             }`}
                                         >
-                                            {t.name}
+                                            <span>{t.name}</span>
+                                            <span className="ml-2 text-xs text-slate-400">{t.category}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -309,7 +327,7 @@ export default function CVViewPage() {
                                 className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/30 dark:border-purple-700 dark:text-purple-300"
                             >
                                 <FileText className="w-4 h-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Éditer</span>
+                                <span className="hidden sm:inline">Editer</span>
                             </Button>
                         </Link>
                         <Button
@@ -321,7 +339,7 @@ export default function CVViewPage() {
                             {generatingPDF ? (
                                 <>
                                     <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
-                                    <span className="hidden sm:inline">Génération...</span>
+                                    <span className="hidden sm:inline">Generation...</span>
                                 </>
                             ) : (
                                 <>
@@ -361,7 +379,7 @@ export default function CVViewPage() {
 
             {/* CV Optimization Explainer Accordion */}
             {cvMetadata && (
-                <div className="container mx-auto px-4 pt-6 print:hidden" style={{ maxWidth: '210mm' }}>
+                <div className="container mx-auto px-4 pt-6 print:hidden" style={{ maxWidth: pageWidth }}>
                     <CVOptimizationExplainer
                         warnings={cvMetadata.warnings || []}
                         experiencesSummary={cvMetadata.formats_used ? {
@@ -384,12 +402,12 @@ export default function CVViewPage() {
                 </div>
             )}
 
-            {/* CV Preview Area */}
+            {/* CV Preview Area — Live preview with instant template switching */}
             <div className="container mx-auto py-8 print:p-0" ref={cvRef}>
                 <div
                     className="mx-auto print:max-w-none print:mx-0"
                     style={{
-                        width: '210mm',
+                        width: pageWidth,
                         maxWidth: '100%'
                     }}
                 >
@@ -397,41 +415,30 @@ export default function CVViewPage() {
                         data={cvGeneration.cv_data}
                         templateId={currentTemplate}
                         includePhoto={currentIncludePhoto}
+                        format={format}
                     />
                 </div>
             </div>
 
             <style jsx global>{`
                 @media print {
-                    @page { 
-                        size: A4; 
-                        margin: 0; 
+                    @page {
+                        size: ${format === "Letter" ? "Letter" : "A4"};
+                        margin: 0;
                     }
-                    body { 
-                        background: white; 
-                        margin: 0; 
-                        padding: 0; 
+                    body {
+                        background: white;
+                        margin: 0;
+                        padding: 0;
                     }
-                    .print\\:hidden { 
-                        display: none !important; 
+                    .print\\:hidden {
+                        display: none !important;
                     }
-                    .cv-page { 
-                        box-shadow: none !important;
-                        border-radius: 0 !important;
-                        width: 210mm !important;
-                        min-height: 297mm !important;
-                        max-height: 297mm !important;
-                        overflow: hidden !important;
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
                     }
-                }
-                
-                /* Force A4 dimensions */
-                .cv-page {
-                    width: 210mm !important;
-                    min-height: 297mm !important;
-                    max-height: 297mm !important;
-                    overflow: hidden !important;
-                    box-sizing: border-box;
                 }
             `}</style>
         </div>

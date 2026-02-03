@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
+import { getGoogleFontsUrl } from "@/lib/cv/cv-theme-variables";
 import { logger } from "@/lib/utils/logger";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
@@ -15,13 +16,37 @@ const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
 export default function CVPrintPage() {
     const { id } = useParams();
     const searchParams = useSearchParams();
-    const format = searchParams.get("format") || "A4"; // A4 or Letter
+    const format = (searchParams.get("format") || "A4") as "A4" | "Letter";
     const templateParam = searchParams.get("template");
     const includePhoto = searchParams.get("photo") !== "false";
+    const customCSS = searchParams.get("css") || undefined;
     const [loading, setLoading] = useState(true);
     const [cvData, setCvData] = useState<any>(null);
     const [templateId, setTemplateId] = useState<string>("modern");
     const [rendered, setRendered] = useState(false);
+
+    // Load Google Fonts for the template
+    useEffect(() => {
+        const effectiveTemplate = templateParam || "modern";
+        const fontsUrl = getGoogleFontsUrl(effectiveTemplate);
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = fontsUrl;
+        link.crossOrigin = "anonymous";
+        document.head.appendChild(link);
+
+        // Also preconnect for faster loading
+        const preconnect = document.createElement("link");
+        preconnect.rel = "preconnect";
+        preconnect.href = "https://fonts.gstatic.com";
+        preconnect.crossOrigin = "anonymous";
+        document.head.appendChild(preconnect);
+
+        return () => {
+            document.head.removeChild(link);
+            document.head.removeChild(preconnect);
+        };
+    }, [templateParam]);
 
     useEffect(() => {
         async function fetchCV() {
@@ -121,26 +146,34 @@ export default function CVPrintPage() {
     // Signal when CV is fully rendered (for Puppeteer detection)
     useEffect(() => {
         if (!loading && cvData) {
+            const markReady = () => {
+                setRendered(true);
+                (window as any).__CV_RENDER_COMPLETE__ = true;
+                logger.debug('CV Render Complete');
+            };
+
             // Wait for fonts and images to load
             if (document.fonts) {
                 document.fonts.ready.then(() => {
-                    // Add small delay for final layout calculations
-                    setTimeout(() => {
-                        setRendered(true);
-                        // Set a global flag that Puppeteer can detect
-                        (window as any).__CV_RENDER_COMPLETE__ = true;
-                        // Log only in development
-                        logger.debug('CV Render Complete');
-                    }, 500);
+                    // Wait for all images in the CV to load too
+                    const images = document.querySelectorAll('#cv-container img');
+                    if (images.length === 0) {
+                        setTimeout(markReady, 300);
+                    } else {
+                        Promise.all(
+                            Array.from(images).map(img =>
+                                (img as HTMLImageElement).complete
+                                    ? Promise.resolve()
+                                    : new Promise(resolve => {
+                                        (img as HTMLImageElement).onload = resolve;
+                                        (img as HTMLImageElement).onerror = resolve;
+                                    })
+                            )
+                        ).then(() => setTimeout(markReady, 300));
+                    }
                 });
             } else {
-                // Fallback if Font Loading API not available
-                setTimeout(() => {
-                    setRendered(true);
-                    (window as any).__CV_RENDER_COMPLETE__ = true;
-                    // Log only in development
-                    logger.debug('CV Render Complete (fallback)');
-                }, 1500);
+                setTimeout(markReady, 1500);
             }
         }
     }, [loading, cvData]);
@@ -171,15 +204,24 @@ export default function CVPrintPage() {
                 templateId={templateId}
                 includePhoto={includePhoto}
                 dense={!!(cvData as any)?.cv_metadata?.dense}
+                format={format}
+                customCSS={customCSS}
             />
 
             <style jsx global>{`
-                /* [CDC-16] Styles optimisés pour export PDF multi-pages */
+                /* ===== CSS RESET for PDF Print ===== */
+                *, *::before, *::after {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+
                 @page {
                     margin: 0;
                     size: ${format === "Letter" ? "Letter" : "A4"};
                 }
 
+                /* Force color preservation in PDF */
                 * {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
@@ -190,74 +232,78 @@ export default function CVPrintPage() {
                     background: white;
                     margin: 0;
                     padding: 0;
-                    /* CORRIGÉ: Permettre le multi-pages */
                     overflow: visible !important;
                     height: auto !important;
                     min-height: 100%;
-                }
-
-                /* Container CV doit permettre le débordement */
-                #cv-container, .cv-page {
-                    overflow: visible !important;
-                    height: auto !important;
-                }
-
-                /* Prevent page breaks inside elements */
-                .break-inside-avoid,
-                .experience-item,
-                .education-item,
-                .skill-category {
-                    break-inside: avoid !important;
-                    page-break-inside: avoid !important;
-                }
-
-                /* Forcer un saut de page avant certaines sections si nécessaire */
-                .page-break-before {
-                    break-before: page !important;
-                    page-break-before: always !important;
-                }
-
-                /* Control orphans and widows */
-                p, li, div {
-                    orphans: 3;
-                    widows: 3;
-                }
-
-                /* Prevent headings from being orphaned */
-                h1, h2, h3, h4, h5, h6 {
-                    break-after: avoid !important;
-                    page-break-after: avoid !important;
-                }
-
-                /* Optimize font rendering */
-                body {
+                    /* Font rendering */
                     -webkit-font-smoothing: antialiased;
                     -moz-osx-font-smoothing: grayscale;
                     text-rendering: optimizeLegibility;
                 }
 
-                /* Ensure all elements have explicit colors for PDF */
+                /* Allow multi-page overflow */
+                #cv-container, .cv-page {
+                    overflow: visible !important;
+                    height: auto !important;
+                }
+
+                /* ===== Page Break Rules ===== */
+                .break-inside-avoid,
+                article,
+                [class*="experience"],
+                [class*="education"],
+                [class*="formation"],
+                [class*="certification"],
+                [class*="skill-category"] {
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
+                }
+
+                .page-break-before {
+                    break-before: page !important;
+                    page-break-before: always !important;
+                }
+
+                /* ===== Orphan/Widow Control ===== */
+                p, li, div {
+                    orphans: 3;
+                    widows: 3;
+                }
+
+                h1, h2, h3, h4, h5, h6 {
+                    break-after: avoid !important;
+                    page-break-after: avoid !important;
+                }
+
+                /* ===== Gradient/Color Preservation ===== */
+                [class*="bg-gradient"],
+                [class*="text-"],
+                [class*="bg-"],
+                [class*="border-"],
+                [style*="background"],
+                [style*="color"] {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+
                 * {
                     -webkit-box-decoration-break: clone;
                     box-decoration-break: clone;
                 }
 
-                /* Fix gradient backgrounds in PDF */
-                .bg-gradient-to-r,
-                .bg-gradient-to-l,
-                .bg-gradient-to-t,
-                .bg-gradient-to-b,
-                .bg-gradient-to-br,
-                .bg-gradient-to-bl,
-                .bg-gradient-to-tr,
-                .bg-gradient-to-tl {
-                    -webkit-print-color-adjust: exact !important;
+                /* ===== Link Cleanup for Print ===== */
+                @media print {
+                    a {
+                        text-decoration: none !important;
+                        color: inherit !important;
+                    }
+                    a[href]::after {
+                        content: none !important;
+                    }
                 }
 
-                /* Assurer que les couleurs Tailwind sont préservées */
-                [class*="text-"], [class*="bg-"], [class*="border-"] {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
+                .no-print {
+                    display: none !important;
                 }
             `}</style>
         </>
