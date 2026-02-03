@@ -6,7 +6,7 @@ import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, Download, ArrowLeft, RefreshCw, FileText, AlertTriangle, Info, Sparkles, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
-import { TEMPLATES } from "@/components/cv/templates";
+import { ALL_TEMPLATES } from "@/components/cv/templates";
 import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
 import { logger } from "@/lib/utils/logger";
@@ -190,7 +190,7 @@ export default function CVViewPage() {
         setShowTemplateMenu(false);
     };
 
-    const templateInfo = TEMPLATES.find(t => t.id === currentTemplate);
+    const templateInfo = ALL_TEMPLATES.find(t => t.id === currentTemplate);
 
     // Extract CDC metadata if available
     const cvMetadata = cvGeneration?.cv_data?.cv_metadata;
@@ -322,7 +322,7 @@ export default function CVViewPage() {
                             </Button>
                             {showTemplateMenu && (
                                 <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[200px] max-h-[400px] overflow-y-auto">
-                                    {TEMPLATES.filter(t => t.available).map((t) => (
+                                    {ALL_TEMPLATES.filter(t => t.available).map((t) => (
                                         <button
                                             key={t.id}
                                             onClick={() => handleTemplateChange(t.id)}

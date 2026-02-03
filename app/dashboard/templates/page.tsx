@@ -5,11 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Lock, Sparkles, Grid3X3, LayoutTemplate } from "lucide-react";
-import { TEMPLATES, TemplateInfo } from "@/components/cv/templates";
+import { ALL_TEMPLATES, TEMPLATES, TemplateInfo } from "@/components/cv/templates";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function TemplatesStorePage() {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
+    const [showVariants, setShowVariants] = useState<boolean>(false);
 
     const categories = [
         { id: "all", label: "Tous", icon: Grid3X3 },
@@ -19,9 +20,10 @@ export default function TemplatesStorePage() {
         { id: "creative", label: "Créatif", icon: Sparkles },
     ];
 
+    const source = showVariants ? ALL_TEMPLATES : TEMPLATES;
     const filteredTemplates = selectedCategory === "all"
-        ? TEMPLATES
-        : TEMPLATES.filter(t => t.category === selectedCategory);
+        ? source
+        : source.filter(t => t.category === selectedCategory);
 
     return (
         <DashboardLayout>
@@ -54,6 +56,15 @@ export default function TemplatesStorePage() {
                             {cat.label}
                         </Button>
                     ))}
+                </div>
+                <div className="flex justify-center">
+                    <Button
+                        variant={showVariants ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setShowVariants((v) => !v)}
+                    >
+                        {showVariants ? "Masquer les variantes" : "Voir plus de versions"}
+                    </Button>
                 </div>
 
                 {/* Templates Grid */}

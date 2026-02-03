@@ -180,9 +180,8 @@ export async function POST(req: Request) {
             if (analysisData.job_title) {
                 jobOfferContext.title = analysisData.job_title;
             }
-            if (analysisData.company_name) {
-                jobOfferContext.company = analysisData.company_name;
-            }
+            const companyValue = analysisData.company || analysisData.company_name;
+            if (companyValue) jobOfferContext.company = companyValue;
             const matchReport = analysisData.match_report || (analysisData.analysis_result || {}).match_report || {};
             if (matchReport.missing_keywords && Array.isArray(matchReport.missing_keywords)) {
                 (jobOfferContext as any).missing_keywords = matchReport.missing_keywords;
@@ -205,7 +204,7 @@ export async function POST(req: Request) {
         const matchReport = analysisData.match_report || (analysisData.analysis_result || {}).match_report || {};
         
         const matchAnalysis = {
-            company: analysisData.company_name,
+            company: analysisData.company || analysisData.company_name,
             match_score: analysisData.match_score,
             match_report: matchReport,
             strengths: matchReport.strengths || [],
@@ -254,9 +253,8 @@ export async function POST(req: Request) {
         if (analysisData.job_title) {
             jobOfferContext.title = analysisData.job_title;
         }
-        if (analysisData.company_name) {
-            jobOfferContext.company = analysisData.company_name;
-        }
+        const companyValue = analysisData.company || analysisData.company_name;
+        if (companyValue) jobOfferContext.company = companyValue;
         // Ajouter missing_keywords depuis match_report (déjà défini plus haut)
         if (matchReport.missing_keywords && Array.isArray(matchReport.missing_keywords)) {
             (jobOfferContext as any).missing_keywords = matchReport.missing_keywords;

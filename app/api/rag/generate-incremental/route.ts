@@ -13,6 +13,7 @@ import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
 import { preserveUserFieldsOnRegeneration } from "@/lib/rag/preserve-user-fields";
+import { normalizeDocumentType } from "@/lib/rag/document-type";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -58,18 +59,24 @@ export async function POST(req: Request) {
         const tier = !userRow || userRow.subscription_status !== "active" || isExpired
             ? "free"
             : (userRow.subscription_tier || "free");
-
-        const rateLimitResult = await checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
-        if (!rateLimitResult.success) {
-            return NextResponse.json(createRateLimitError(rateLimitResult), { status: 429 });
-        }
-
         const { documentId, mode, isFirstDocument, isLastDocument } = await req.json();
         // mode: "completion" | "regeneration" (default: completion)
         // isFirstDocument: true if this is the first document being processed
 
         if (!documentId) {
             return NextResponse.json({ error: "Missing documentId" }, { status: 400 });
+        }
+
+        const shouldCountRateLimit = isFirstDocument !== false;
+        if (shouldCountRateLimit) {
+            const rateLimitResult = await checkRateLimit(`rag:${userId}`, getRateLimitConfig(tier, "RAG_GENERATION"));
+            if (!rateLimitResult.success) {
+                const retryAfter = rateLimitResult.retryAfter;
+                return NextResponse.json(createRateLimitError(rateLimitResult), {
+                    status: 429,
+                    headers: retryAfter ? { "Retry-After": String(retryAfter) } : undefined,
+                });
+            }
         }
 
         logger.info(`Incremental RAG generation`, {
@@ -111,7 +118,14 @@ export async function POST(req: Request) {
         const extractStart = Date.now();
 
         if (!extractedText || extractedText.trim().length === 0) {
-            logger.info(`Extracting text from document`, { filename: doc.filename, type: doc.file_type });
+            const normalizedType = normalizeDocumentType({ filename: doc.filename, storedFileType: doc.file_type });
+            logger.info(`Extracting text from document`, { filename: doc.filename, type: doc.file_type, normalizedType });
+
+            await supabase
+                .from("uploaded_documents")
+                .update({ extraction_status: "processing", extraction_error: null })
+                .eq("id", doc.id)
+                .eq("user_id", userId);
 
             const { data: fileData, error: downloadError } = await supabase.storage
                 .from("documents")
@@ -119,6 +133,11 @@ export async function POST(req: Request) {
 
             if (downloadError) {
                 logger.error("Failed to download document", { error: downloadError.message });
+                await supabase
+                    .from("uploaded_documents")
+                    .update({ extraction_status: "failed", extraction_error: downloadError.message })
+                    .eq("id", doc.id)
+                    .eq("user_id", userId);
                 return NextResponse.json({
                     error: "Failed to download document",
                     errorCode: "DOWNLOAD_ERROR"
@@ -128,7 +147,7 @@ export async function POST(req: Request) {
             const arrayBuffer = await fileData.arrayBuffer();
 
             // Extract based on file type
-            if (doc.file_type === "pdf") {
+            if (normalizedType === "pdf") {
                 try {
                     const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
                     const { text: pdfText } = await extractText(pdf, { mergePages: true });
@@ -137,7 +156,7 @@ export async function POST(req: Request) {
                     logger.error("PDF extraction failed", { error: pdfError.message, filename: doc.filename });
                     await supabase
                         .from("uploaded_documents")
-                        .update({ extraction_status: "failed" })
+                        .update({ extraction_status: "failed", extraction_error: pdfError.message })
                         .eq("id", doc.id)
                         .eq("user_id", userId);
                     return NextResponse.json({
@@ -145,7 +164,7 @@ export async function POST(req: Request) {
                         errorCode: "PDF_ERROR"
                     }, { status: 500 });
                 }
-            } else if (doc.file_type === "docx") {
+            } else if (normalizedType === "docx") {
                 try {
                     const mammoth = await import("mammoth");
                     const buffer = Buffer.from(arrayBuffer);
@@ -155,7 +174,7 @@ export async function POST(req: Request) {
                     logger.error("DOCX extraction failed", { error: docxError.message, filename: doc.filename });
                     await supabase
                         .from("uploaded_documents")
-                        .update({ extraction_status: "failed" })
+                        .update({ extraction_status: "failed", extraction_error: docxError.message })
                         .eq("id", doc.id)
                         .eq("user_id", userId);
                     return NextResponse.json({
@@ -163,6 +182,18 @@ export async function POST(req: Request) {
                         errorCode: "DOCX_ERROR"
                     }, { status: 500 });
                 }
+            } else if (normalizedType === "doc" || normalizedType === "odt") {
+                const message = `Format non supporté pour l'extraction (${normalizedType}). Convertissez en PDF ou DOCX.`;
+                await supabase
+                    .from("uploaded_documents")
+                    .update({ extraction_status: "failed", extraction_error: message })
+                    .eq("id", doc.id)
+                    .eq("user_id", userId);
+                return NextResponse.json({
+                    error: "Unsupported document type",
+                    errorCode: "UNSUPPORTED_TYPE",
+                    details: message
+                }, { status: 400 });
             } else {
                 // Plain text
                 const decoder = new TextDecoder("utf-8");

@@ -116,6 +116,38 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
     return (
         <div className="space-y-6">
             {uploading && <ContextualLoader context="importing-docs" isOverlay />}
+            <Card>
+                <CardContent className="p-4 sm:p-5">
+                    <details className="group">
+                        <summary className="cursor-pointer list-none select-none">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <div className="font-medium">Importer depuis LinkedIn (PDF recommandé)</div>
+                                    <div className="text-sm text-slate-600">
+                                        La méthode “Enregistrer au format PDF” inclut mieux les expériences.
+                                    </div>
+                                </div>
+                                <div className="text-slate-500 group-open:rotate-180 transition-transform">
+                                    ▾
+                                </div>
+                            </div>
+                        </summary>
+                        <div className="mt-4 space-y-3 text-sm text-slate-700">
+                            <div className="font-medium">Étapes (LinkedIn Desktop)</div>
+                            <ol className="list-decimal pl-5 space-y-1">
+                                <li>Ouvre LinkedIn sur ordinateur (Chrome/Edge) et connecte-toi.</li>
+                                <li>Va sur ton profil: <span className="font-medium">Moi</span> → <span className="font-medium">Voir le profil</span>.</li>
+                                <li>Clique sur <span className="font-medium">Plus</span> (ou “…” près du bouton “Ajouter une section”).</li>
+                                <li>Sélectionne <span className="font-medium">Enregistrer au format PDF</span> / <span className="font-medium">Save to PDF</span>.</li>
+                                <li>Télécharge le fichier (souvent nommé <span className="font-medium">Profile.pdf</span>).</li>
+                            </ol>
+                            <div className="text-xs text-slate-600">
+                                Astuce: avant l’export, descends sur ton profil et clique sur quelques “Voir plus” (résumé / expériences longues) pour maximiser le contenu.
+                            </div>
+                        </div>
+                    </details>
+                </CardContent>
+            </Card>
             {/* Upload Zone */}
             <Card className="border-dashed border-2 border-slate-300 bg-slate-50">
                 <CardContent className="p-8 text-center">

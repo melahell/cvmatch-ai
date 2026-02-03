@@ -17,6 +17,7 @@ import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { safeParseJSON } from "@/lib/ai/safe-json-parser";
 import { ragExtractionSchema } from "@/lib/ai/schemas";
+import { normalizeDocumentType } from "@/lib/rag/document-type";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -93,6 +94,8 @@ export async function POST(req: Request) {
         // 2. Extract text from each document
         for (const doc of docs) {
             try {
+                const normalizedType = normalizeDocumentType({ filename: doc.filename, storedFileType: doc.file_type });
+
                 // If already processed with text, use it
                 if (doc.extracted_text && doc.extracted_text.trim().length > 0) {
                     allExtractedText += `\n--- DOCUMENT: ${doc.filename} ---\n${doc.extracted_text}\n`;
@@ -100,6 +103,12 @@ export async function POST(req: Request) {
                     processingResults.push({ filename: doc.filename, status: "used_cached" });
                     continue;
                 }
+
+                await supabase
+                    .from("uploaded_documents")
+                    .update({ extraction_status: "processing", extraction_error: null })
+                    .eq("id", doc.id)
+                    .eq("user_id", userId);
 
                 // Download file from Storage
                 const { data: fileData, error: downloadError } = await supabase.storage
@@ -109,6 +118,11 @@ export async function POST(req: Request) {
                 if (downloadError) {
                     logger.error("Error downloading document", { filename: doc.filename, error: downloadError.message });
                     processingResults.push({ filename: doc.filename, status: "download_failed", error: downloadError.message });
+                    await supabase
+                        .from("uploaded_documents")
+                        .update({ extraction_status: "failed", extraction_error: downloadError.message })
+                        .eq("id", doc.id)
+                        .eq("user_id", userId);
                     continue;
                 }
 
@@ -116,7 +130,7 @@ export async function POST(req: Request) {
                 const arrayBuffer = await fileData.arrayBuffer();
 
                 // Extract based on file type
-                if (doc.file_type === "pdf") {
+                if (normalizedType === "pdf") {
                     // Use unpdf for PDF extraction
                     try {
                         const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
@@ -127,12 +141,12 @@ export async function POST(req: Request) {
                         processingResults.push({ filename: doc.filename, status: "extraction_failed", error: pdfError.message });
                         await supabase
                             .from("uploaded_documents")
-                            .update({ extraction_status: "failed" })
+                            .update({ extraction_status: "failed", extraction_error: pdfError.message })
                             .eq("id", doc.id)
                             .eq("user_id", userId);
                         continue;
                     }
-                } else if (doc.file_type === "docx") {
+                } else if (normalizedType === "docx") {
                     // For DOCX, use mammoth (dynamic import to avoid Edge issues)
                     try {
                         const mammoth = await import("mammoth");
@@ -144,11 +158,20 @@ export async function POST(req: Request) {
                         processingResults.push({ filename: doc.filename, status: "extraction_failed", error: docxError.message });
                         await supabase
                             .from("uploaded_documents")
-                            .update({ extraction_status: "failed" })
+                            .update({ extraction_status: "failed", extraction_error: docxError.message })
                             .eq("id", doc.id)
                             .eq("user_id", userId);
                         continue;
                     }
+                } else if (normalizedType === "doc" || normalizedType === "odt") {
+                    const message = `Format non supporté pour l'extraction (${normalizedType}). Convertissez en PDF ou DOCX.`;
+                    processingResults.push({ filename: doc.filename, status: "unsupported_type", error: message });
+                    await supabase
+                        .from("uploaded_documents")
+                        .update({ extraction_status: "failed", extraction_error: message })
+                        .eq("id", doc.id)
+                        .eq("user_id", userId);
+                    continue;
                 } else {
                     // Plain text files (txt, md, json, csv, etc.)
                     const decoder = new TextDecoder("utf-8");
@@ -166,12 +189,25 @@ export async function POST(req: Request) {
                         .eq("id", doc.id)
                         .eq("user_id", userId);
                 } else {
+                    const message = "Texte extrait vide";
                     processingResults.push({ filename: doc.filename, status: "empty_content" });
+                    await supabase
+                        .from("uploaded_documents")
+                        .update({ extraction_status: "failed", extraction_error: message })
+                        .eq("id", doc.id)
+                        .eq("user_id", userId);
                 }
 
             } catch (docError: any) {
                 logger.error("Error processing document", { filename: doc.filename, error: docError.message });
                 processingResults.push({ filename: doc.filename, status: "error", error: docError.message });
+                try {
+                    await supabase
+                        .from("uploaded_documents")
+                        .update({ extraction_status: "failed", extraction_error: docError.message })
+                        .eq("id", doc.id)
+                        .eq("user_id", userId);
+                } catch {}
             }
         }
 

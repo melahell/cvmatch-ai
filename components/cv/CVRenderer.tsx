@@ -7,6 +7,7 @@ import { normalizeRAGToCV } from "./normalizeData";
 import { generateCSSVariables, cssVariablesToStyle } from "@/lib/cv/css-variables";
 import { getThemeVariables, themeToStyle } from "@/lib/cv/cv-theme-variables";
 import { logger } from "@/lib/utils/logger";
+import { resolveTemplateVariant } from "@/lib/cv/template-variants";
 
 // Dynamic imports for templates — all 17
 const ModernTemplate = dynamic(() => import("./templates/ModernTemplate"), { ssr: false });
@@ -79,6 +80,8 @@ export default function CVRenderer({
     customCSS,
     unitStats,
 }: CVRendererProps) {
+    const { baseId, variant } = useMemo(() => resolveTemplateVariant(templateId), [templateId]);
+
     const looksLikeCVData = (value: any): value is CVData => {
         if (!value || typeof value !== "object") return false;
         const profil = (value as any).profil;
@@ -112,15 +115,16 @@ export default function CVRenderer({
             formation: 0, certifications: 0, languages: 0, margins: 0,
             ...unitStats,
         } : undefined;
-        return generateCSSVariables(templateId, stats);
-    }, [templateId, unitStats]);
+        return generateCSSVariables(baseId, stats);
+    }, [baseId, unitStats]);
 
     // Generate new theme CSS variables
     const themeVars = useMemo(() => {
-        return getThemeVariables(templateId, format);
-    }, [templateId, format]);
+        return getThemeVariables(baseId, format, variant?.themeOverrides);
+    }, [baseId, format, variant]);
 
-    const TemplateComponent = TEMPLATE_COMPONENTS[templateId] || TEMPLATE_COMPONENTS.modern;
+    const TemplateComponent = TEMPLATE_COMPONENTS[baseId] || TEMPLATE_COMPONENTS.modern;
+    const effectiveDense = dense || !!variant?.dense;
 
     // Merge both variable sets
     const mergedStyle = {
@@ -134,7 +138,7 @@ export default function CVRenderer({
                 data={normalizedData}
                 includePhoto={includePhoto}
                 jobContext={jobContext}
-                dense={dense}
+                dense={effectiveDense}
             />
             {customCSS && (
                 <style dangerouslySetInnerHTML={{

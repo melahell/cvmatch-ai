@@ -4,6 +4,8 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
     enabled: process.env.ANALYZE === 'true',
 });
 
+const frameSrcDirective = process.env.VERCEL ? "frame-src https://vercel.live" : "frame-src 'none'";
+
 const nextConfig = {
     images: {
         remotePatterns: [
@@ -66,7 +68,7 @@ const nextConfig = {
                             "font-src 'self' data:",
                             "connect-src 'self' *.supabase.co https://generativelanguage.googleapis.com",
                             "worker-src 'self' blob:",
-                            "frame-src 'none'",
+                            frameSrcDirective,
                         ].join('; '),
                     },
                 ],

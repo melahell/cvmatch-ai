@@ -1,6 +1,7 @@
 import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/utils/logger";
+import { normalizeDocumentType, normalizeDocumentTypeFromFilename, normalizeDocumentTypeFromMime } from "@/lib/rag/document-type";
 
 export const runtime = "edge";
 
@@ -12,10 +13,11 @@ const ALLOWED_MIME_TYPES = [
     'application/rtf',
     'text/rtf',
     'application/vnd.oasis.opendocument.text', // .odt
+    'text/plain',
 ];
 
 // [CDC-1] Extensions autorisées (fallback si MIME non fiable)
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.rtf', '.odt'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.rtf', '.odt', '.txt'];
 
 export async function POST(req: Request) {
     try {
@@ -69,6 +71,10 @@ export async function POST(req: Request) {
             const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
             const isMimeAllowed = ALLOWED_MIME_TYPES.includes(file.type);
             const isExtensionAllowed = ALLOWED_EXTENSIONS.includes(fileExtension);
+            const normalizedType =
+                normalizeDocumentTypeFromFilename(file.name) !== "unknown"
+                    ? normalizeDocumentTypeFromFilename(file.name)
+                    : normalizeDocumentTypeFromMime(file.type);
 
             if (!isMimeAllowed && !isExtensionAllowed) {
                 logger.warn("Rejected file: unsupported type", { 
@@ -114,21 +120,24 @@ export async function POST(req: Request) {
             }
 
             // Record in database
-            const { error: dbError } = await supabase.from("uploaded_documents").insert({
+            const { data: inserted, error: dbError } = await supabase.from("uploaded_documents").insert({
                 user_id: userId,
                 filename: file.name,
-                file_type: file.type.split("/").pop(),
+                file_type: normalizedType === "unknown" ? normalizeDocumentType({ filename: file.name, mimeType: file.type }) : normalizedType,
                 file_size: file.size,
                 storage_path: path,
                 extraction_status: "pending",
-            });
+            }).select("id, filename, file_type, extraction_status").single();
 
             if (dbError) {
                 logger.error("DB Insert error", { error: dbError.message, filename: file.name });
+                try {
+                    await supabase.storage.from("documents").remove([path]);
+                } catch {}
                 uploads.push({ filename: file.name, error: "Database error: " + dbError.message });
             } else {
                 successCount++;
-                uploads.push({ filename: file.name, path, success: true });
+                uploads.push({ filename: file.name, path, success: true, documentId: inserted?.id, file_type: inserted?.file_type });
             }
         }
 

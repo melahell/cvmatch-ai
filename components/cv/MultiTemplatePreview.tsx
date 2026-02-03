@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LayoutGrid, LayoutList, X } from "lucide-react";
 import type { RendererResumeSchema } from "@/lib/cv/renderer-schema";
-import { TEMPLATES } from "@/components/cv/templates";
+import { getAvailableTemplates, getTemplateById } from "@/components/cv/templates";
 
 interface MultiTemplatePreviewProps {
     cvData: RendererResumeSchema;
@@ -35,7 +35,7 @@ export function MultiTemplatePreview({
     const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
     // Filtrer templates disponibles
-    const availableTemplates = TEMPLATES.filter((t) => t.available);
+    const availableTemplates = getAvailableTemplates();
     const templatesToShow = selectedTemplates
         ? availableTemplates.filter((t) => selectedTemplates.includes(t.id))
         : availableTemplates.slice(0, maxTemplates);
@@ -57,7 +57,7 @@ export function MultiTemplatePreview({
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div className="flex items-center gap-2">
                             <CardTitle className="text-base">
-                                {TEMPLATES.find((t) => t.id === selectedTemplate)?.name || selectedTemplate}
+                                {getTemplateById(selectedTemplate)?.name || selectedTemplate}
                             </CardTitle>
                             <Badge variant="primary">Sélectionné</Badge>
                         </div>

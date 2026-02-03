@@ -20,6 +20,9 @@ import {
     traceAIModelCall,
     calculateAnalysisCost
 } from "@/lib/telemetry/safe-telemetry";
+import { truncateToTokens } from "@/lib/utils/text-truncate";
+import { getDocumentProxy, extractText } from "unpdf";
+import { extractJobTextFromHtml } from "@/lib/job/extract-job-text";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -34,6 +37,7 @@ export async function POST(req: Request) {
     let jobUrl: string | undefined;
     let jobText: string | undefined;
     let fileData: string | undefined;
+    let extractionDebug: any = null;
 
     try {
         const auth = await requireSupabaseUser(req);
@@ -90,18 +94,48 @@ export async function POST(req: Request) {
         if (fileData && !fullJobText) {
             try {
                 const base64Data = fileData.split(",")[1];
-                const mimeType = fileType || "image/png";
+                const mimeType = (fileType || "image/png").toLowerCase();
+                const fileNameStr = typeof fileName === "string" ? fileName : undefined;
+                const rawBytes = Buffer.from(base64Data, "base64");
 
-                const extractionPrompt = [
-                    { inlineData: { mimeType, data: base64Data } },
-                    "Extrais le texte complet de cette offre d'emploi. Retourne uniquement le texte brut."
-                ];
+                let method: string | null = null;
+                if (mimeType.includes("pdf")) {
+                    method = "unpdf";
+                    const pdf = await getDocumentProxy(new Uint8Array(rawBytes));
+                    const { text: pdfText } = await extractText(pdf, { mergePages: true });
+                    fullJobText = pdfText;
+                } else if (mimeType.includes("wordprocessingml") || (fileNameStr || "").toLowerCase().endsWith(".docx")) {
+                    method = "mammoth";
+                    const mammoth = await import("mammoth");
+                    const result = await mammoth.extractRawText({ buffer: rawBytes });
+                    fullJobText = result.value;
+                } else if (mimeType.startsWith("image/")) {
+                    method = "gemini_inline";
+                    const extractionPrompt = [
+                        { inlineData: { mimeType, data: base64Data } },
+                        "Extrais le texte complet de cette offre d'emploi. Retourne uniquement le texte brut."
+                    ];
 
-                const { result, modelUsed } = await callWithRetry(() =>
-                    generateWithCascade(extractionPrompt)
-                );
-                logger.debug("File extraction completed", { modelUsed });
-                fullJobText = result.response.text();
+                    const { result, modelUsed } = await callWithRetry(() =>
+                        generateWithCascade(extractionPrompt)
+                    );
+                    logger.debug("File extraction completed", { modelUsed });
+                    fullJobText = result.response.text();
+                } else {
+                    method = "text_decoder";
+                    const decoder = new TextDecoder("utf-8");
+                    fullJobText = decoder.decode(rawBytes);
+                }
+
+                extractionDebug = {
+                    source: "file",
+                    file: {
+                        fileName: fileNameStr,
+                        mimeType,
+                        method,
+                        extractedLength: fullJobText?.length || 0,
+                    }
+                };
 
                 if (fullJobText.length < 50) {
                     return NextResponse.json({ error: "Fichier illisible. Essayez un texte copié-collé." }, { status: 400 });
@@ -117,7 +151,6 @@ export async function POST(req: Request) {
         // 2B. Scrape URL if provided
         if (jobUrl && !fullJobText) {
             try {
-                const cheerio = await import("cheerio");
                 const response = await fetch(jobUrl, {
                     headers: {
                         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
@@ -128,25 +161,73 @@ export async function POST(req: Request) {
                 });
 
                 if (!response.ok) {
-                    return NextResponse.json({ error: "Site inaccessible. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
+                    return NextResponse.json({
+                        error: "Site inaccessible. Utilisez 'Texte' ou 'Fichier'.",
+                        errorCode: "URL_FETCH_FAILED",
+                        extraction_debug: { source: "url", url: jobUrl, status: response.status }
+                    }, { status: 400 });
                 }
 
+                const finalUrl = response.url;
                 const html = await response.text();
-                const $ = cheerio.load(html);
-                $('script, style, nav, header, footer, aside').remove();
+                const extracted = extractJobTextFromHtml(html, finalUrl);
+                fullJobText = extracted.text;
+                extractionDebug = { source: "url", ...extracted.debug, httpStatus: response.status, finalUrl };
 
-                let content = "";
-                for (const sel of ['[class*="description"]', 'article', 'main', '.content', 'body']) {
-                    const found = $(sel).text().replace(/\s+/g, ' ').trim();
-                    if (found && found.length > content.length) content = found;
+                if (fullJobText.length < 120) {
+                    const readerUrl = `https://r.jina.ai/${finalUrl}`;
+                    const readerRes = await fetch(readerUrl, {
+                        headers: {
+                            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+                            "Accept": "text/plain",
+                            "Accept-Language": "fr-FR"
+                        },
+                        redirect: "follow"
+                    }).catch(() => null);
+
+                    if (readerRes?.ok) {
+                        const readerText = await readerRes.text();
+                        const extractedReader = extractJobTextFromHtml(readerText, finalUrl);
+                        if (extractedReader.text.length > fullJobText.length) {
+                            fullJobText = extractedReader.text;
+                            extractionDebug = {
+                                ...extractionDebug,
+                                reader: { used: true, url: readerUrl, status: readerRes.status },
+                                readerExtraction: extractedReader.debug
+                            };
+                        }
+                    }
                 }
-                fullJobText = content;
 
-                if (fullJobText.length < 100) {
-                    return NextResponse.json({ error: "Contenu insuffisant. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
+                if (fullJobText.length < 120) {
+                    const truncated = truncateToTokens(html, 8000).truncated;
+                    const htmlExtractionPrompt = `Tu es un extracteur. À partir du HTML ci-dessous, extrais uniquement le texte de l'offre d'emploi (titre, entreprise, lieu, description, responsabilités, compétences). Retourne uniquement le texte brut.\n\nHTML:\n${truncated}`;
+                    const { result: extractResult, modelUsed: extractModelUsed } = await callWithRetry(() =>
+                        generateWithCascade(htmlExtractionPrompt)
+                    );
+                    const fromHtml = extractResult.response.text();
+                    if (fromHtml && fromHtml.length > fullJobText.length) {
+                        fullJobText = fromHtml;
+                        extractionDebug = { ...extractionDebug, geminiHtmlFallback: { used: true, modelUsed: extractModelUsed, extractedLength: fromHtml.length } };
+                    }
+                }
+
+                if (fullJobText.length < 120) {
+                    const hint = extractionDebug?.likelyBlocked
+                        ? "Page probablement bloquée (LinkedIn/login). Copiez-collez la description ou uploadez un PDF export LinkedIn."
+                        : "Contenu insuffisant. Utilisez 'Texte' ou 'Fichier'.";
+                    return NextResponse.json({
+                        error: hint,
+                        errorCode: extractionDebug?.likelyBlocked ? "URL_BLOCKED" : "URL_INSUFFICIENT_CONTENT",
+                        extraction_debug: extractionDebug
+                    }, { status: 400 });
                 }
             } catch {
-                return NextResponse.json({ error: "URL illisible. Utilisez 'Texte' ou 'Fichier'." }, { status: 400 });
+                return NextResponse.json({
+                    error: "URL illisible. Utilisez 'Texte' ou 'Fichier'.",
+                    errorCode: "URL_PARSE_FAILED",
+                    extraction_debug: extractionDebug
+                }, { status: 400 });
             }
         }
 
@@ -278,6 +359,7 @@ export async function POST(req: Request) {
             null;
 
         const hasEnrichment = !!(validatedData.salary_estimate || validatedData.coaching_tips);
+        const matchReportForDb = extractionDebug ? { ...validatedData, extraction_debug: extractionDebug } : validatedData;
 
         logger.info("Match analysis completed", {
             jobTitle: extractedJobTitle,
@@ -300,7 +382,7 @@ export async function POST(req: Request) {
                 job_description: fullJobText.substring(0, 10000),
                 match_score: validatedData.match_score,
                 match_level: validatedData.match_level,
-                match_report: validatedData, // ← Utilise données validées
+                match_report: matchReportForDb,
                 strengths: validatedData.strengths,
                 gaps: validatedData.gaps,
                 missing_keywords: validatedData.missing_keywords || [],
@@ -370,7 +452,8 @@ export async function POST(req: Request) {
             model_used: modelUsed,
             validation_passed: validation.success,
             has_enrichment: hasEnrichment,
-            duration_ms: durationMs
+            duration_ms: durationMs,
+            extraction_debug: extractionDebug
         });
 
     } catch (error: any) {

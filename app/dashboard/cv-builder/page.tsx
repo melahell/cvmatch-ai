@@ -31,7 +31,7 @@ import {
 } from "@/lib/cv/client-cache";
 import type { AIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
 import type { RendererResumeSchema } from "@/lib/cv/renderer-schema";
-import { TEMPLATES } from "@/components/cv/templates";
+import { TEMPLATES, TEMPLATE_VARIANTS } from "@/components/cv/templates";
 import { ValidationWarnings } from "@/components/cv/ValidationWarnings";
 import { MultiTemplatePreview } from "@/components/cv/MultiTemplatePreview";
 import { ExportMenu } from "@/components/cv/ExportMenu";
@@ -51,6 +51,7 @@ import Cookies from "js-cookie";
 import { logger } from "@/lib/utils/logger";
 import { Switch } from "@/components/ui/switch";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { Input } from "@/components/ui/input";
 
 // Lazy load CVRenderer (heavy component with templates)
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
@@ -103,6 +104,10 @@ function CVBuilderContent() {
     // [CDC-23] Toggles pour photo et mode dense
     const [includePhoto, setIncludePhoto] = useState<boolean>(true);
     const [denseMode, setDenseMode] = useState<boolean>(false);
+    const [showTemplateVariants, setShowTemplateVariants] = useState<boolean>(false);
+    const [variantBase, setVariantBase] = useState<"modern" | "tech">("modern");
+    const [variantQuery, setVariantQuery] = useState<string>("");
+    const [variantLimit, setVariantLimit] = useState<number>(24);
     const [buildInfo, setBuildInfo] = useState<{
         version: string | null;
         env: string | null;
@@ -130,6 +135,15 @@ function CVBuilderContent() {
             maxClientsReferences: 25,
         },
     });
+
+    const filteredVariantTemplates = useMemo(() => {
+        const q = variantQuery.trim().toLowerCase();
+        return TEMPLATE_VARIANTS
+            .filter((t) => t.available)
+            .filter((t) => t.id.startsWith(`${variantBase}__`))
+            .filter((t) => (q ? t.name.toLowerCase().includes(q) : true))
+            .slice(0, variantLimit);
+    }, [variantBase, variantLimit, variantQuery]);
 
     // Récupérer RAG profile pour validation
     const userId = Cookies.get("userId") || null;
@@ -933,6 +947,64 @@ function CVBuilderContent() {
                                                     {template.name}
                                                 </Button>
                                             ))}
+                                            <Button
+                                                variant={showTemplateVariants ? "primary" : "outline"}
+                                                size="sm"
+                                                className="w-full justify-start"
+                                                onClick={() => setShowTemplateVariants((v) => !v)}
+                                            >
+                                                {showTemplateVariants ? "Masquer les variantes" : "Voir plus de versions"}
+                                            </Button>
+                                            {showTemplateVariants && (
+                                                <div className="pt-2 space-y-2">
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            variant={variantBase === "modern" ? "primary" : "outline"}
+                                                            size="sm"
+                                                            className="flex-1"
+                                                            onClick={() => { setVariantBase("modern"); setVariantLimit(24); }}
+                                                        >
+                                                            Modern
+                                                        </Button>
+                                                        <Button
+                                                            variant={variantBase === "tech" ? "primary" : "outline"}
+                                                            size="sm"
+                                                            className="flex-1"
+                                                            onClick={() => { setVariantBase("tech"); setVariantLimit(24); }}
+                                                        >
+                                                            Tech
+                                                        </Button>
+                                                    </div>
+                                                    <Input
+                                                        value={variantQuery}
+                                                        onChange={(e) => { setVariantQuery(e.target.value); setVariantLimit(24); }}
+                                                        placeholder="Rechercher une variante…"
+                                                    />
+                                                    <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
+                                                        {filteredVariantTemplates.map((t) => (
+                                                            <Button
+                                                                key={t.id}
+                                                                variant={templateId === t.id ? "primary" : "outline"}
+                                                                size="sm"
+                                                                className="w-full justify-start"
+                                                                onClick={() => handleTemplateChange(t.id)}
+                                                            >
+                                                                {t.name}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                    {filteredVariantTemplates.length >= variantLimit && (
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="w-full"
+                                                            onClick={() => setVariantLimit((v) => v + 24)}
+                                                        >
+                                                            Charger plus
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </CardContent>
                                     </Card>
 

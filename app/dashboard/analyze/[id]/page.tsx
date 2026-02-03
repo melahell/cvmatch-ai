@@ -170,6 +170,8 @@ export default function MatchResultPage() {
         }).format(amount);
     };
 
+    const extractionDebug = (analysis as any)?.match_report?.extraction_debug;
+
     return (
         <DashboardLayout>
             {isPending && <ContextualLoader context="generating-cv" isOverlay />}
@@ -507,6 +509,18 @@ export default function MatchResultPage() {
                 )}
 
                 {/* ACTION AREA */}
+                {process.env.NODE_ENV !== "production" && extractionDebug && (
+                    <Card className="mb-6 border-slate-200">
+                        <CardHeader>
+                            <CardTitle className="text-sm">Debug extraction (dev)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <pre className="text-xs whitespace-pre-wrap break-words rounded-md bg-slate-50 border border-slate-200 p-3">
+                                {JSON.stringify(extractionDebug, null, 2)}
+                            </pre>
+                        </CardContent>
+                    </Card>
+                )}
                 <div className="flex flex-col items-center gap-3 sm:gap-4 p-4 sm:p-6 md:p-8 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 rounded-2xl border border-blue-100 dark:border-blue-800">
                     <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                         <Sparkles className="w-6 h-6 text-white" />

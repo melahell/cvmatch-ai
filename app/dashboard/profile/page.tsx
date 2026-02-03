@@ -170,6 +170,8 @@ function ProfileContent() {
         setShowModeDialog(true);
     };
 
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
     const regenerateProfile = async (mode: "completion" | "regeneration") => {
         if (!userId || !documents || documents.length === 0) {
             toast.warning("Aucun document à traiter");
@@ -201,32 +203,62 @@ function ProfileContent() {
                 logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`, { mode, isFirstDocument });
 
                 const authHeaders = await getSupabaseAuthHeader();
-                const res = await fetch("/api/rag/generate-incremental", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", ...authHeaders },
-                    credentials: "include",
-                    body: JSON.stringify({
-                        documentId: doc.id,
-                        mode, // "completion" or "regeneration"
-                        isFirstDocument, // true only for first doc when regenerating
-                        isLastDocument: i === documents.length - 1
-                    })
-                });
+                let res: Response | null = null;
+                let lastError: any = null;
 
-                if (!res.ok) {
-                    const error = await res.json().catch(() => null);
-                    failureCount++;
-                    logger.error(`[INCREMENTAL] Failed for ${doc.filename}:`, {
-                        status: res.status,
-                        error,
+                for (let attempt = 0; attempt < 3; attempt++) {
+                    res = await fetch("/api/rag/generate-incremental", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json", ...authHeaders },
+                        credentials: "include",
+                        body: JSON.stringify({
+                            documentId: doc.id,
+                            mode,
+                            isFirstDocument,
+                            isLastDocument: i === documents.length - 1,
+                        }),
                     });
 
+                    if (res.ok) break;
+
+                    const error = await res.json().catch(() => null);
+                    lastError = error;
+
+                    if (res.status === 429) {
+                        const retryAfterSec =
+                            Number(error?.retryAfter) ||
+                            Number(res.headers.get("Retry-After")) ||
+                            0;
+                        if (retryAfterSec > 0) {
+                            await sleep((retryAfterSec + 1) * 1000);
+                            continue;
+                        }
+                    }
+
                     const errorCode = error?.errorCode || error?.code || null;
-                    const baseMessage = error?.error || "Échec";
-                    const details = typeof error?.details === "string" ? error.details : null;
+                    if (res.status === 503 && errorCode === "GEMINI_TIMEOUT") {
+                        await sleep((attempt + 1) * 2000);
+                        continue;
+                    }
+
+                    break;
+                }
+
+                if (!res || !res.ok) {
+                    failureCount++;
+                    logger.error(`[INCREMENTAL] Failed for ${doc.filename}:`, {
+                        status: res?.status,
+                        error: lastError,
+                    });
+
+                    const errorCode = lastError?.errorCode || lastError?.code || null;
+                    const baseMessage = lastError?.error || "Échec";
+                    const details = typeof lastError?.details === "string" ? lastError.details : null;
                     const hint =
                         errorCode === "GEMINI_TIMEOUT"
                             ? "IA indisponible/timeout (réessaie dans 1-2 min)."
+                            : errorCode === "RATE_LIMIT_EXCEEDED"
+                                ? "Limite atteinte (attends un peu puis relance)."
                             : null;
 
                     toast.error(
@@ -300,8 +332,60 @@ function ProfileContent() {
             });
 
             if (res.ok) {
+                const payload = await res.json().catch(() => null);
                 await refetchDocs();
-                toast.success("Document uploadé avec succès ! Régénérez le profil pour l'inclure.");
+                const uploaded = Array.isArray(payload?.uploads) ? payload.uploads : [];
+                const docId = uploaded.find((u: any) => u?.success && u?.documentId)?.documentId as string | undefined;
+
+                if (docId) {
+                    try {
+                        const authHeaders2 = await getSupabaseAuthHeader();
+                        let genRes: Response | null = null;
+                        let genErr: any = null;
+
+                        for (let attempt = 0; attempt < 3; attempt++) {
+                            genRes = await fetch("/api/rag/generate-incremental", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", ...authHeaders2 },
+                                credentials: "include",
+                                body: JSON.stringify({ documentId: docId, mode: "completion", isFirstDocument: true, isLastDocument: true }),
+                            });
+                            if (genRes.ok) break;
+                            genErr = await genRes.json().catch(() => null);
+
+                            if (genRes.status === 429) {
+                                const retryAfterSec =
+                                    Number(genErr?.retryAfter) ||
+                                    Number(genRes.headers.get("Retry-After")) ||
+                                    0;
+                                if (retryAfterSec > 0) {
+                                    await sleep((retryAfterSec + 1) * 1000);
+                                    continue;
+                                }
+                            }
+
+                            const errorCode = genErr?.errorCode || genErr?.code || null;
+                            if (genRes.status === 503 && errorCode === "GEMINI_TIMEOUT") {
+                                await sleep((attempt + 1) * 2000);
+                                continue;
+                            }
+
+                            break;
+                        }
+
+                        if (!genRes || !genRes.ok) {
+                            toast.warning(`Document uploadé, mais génération RAG échouée: ${genErr?.error || "réessayez"}`);
+                        } else {
+                            await refetch();
+                            await refetchDocs();
+                            toast.success("Document uploadé et profil mis à jour !");
+                        }
+                    } catch {
+                        toast.warning("Document uploadé, génération RAG à relancer.");
+                    }
+                } else {
+                    toast.success("Document uploadé avec succès ! Régénérez le profil pour l'inclure.");
+                }
             } else {
                 const error = await res.json();
                 toast.error("Erreur: " + (error.error || "Échec de l'upload"));
@@ -364,7 +448,7 @@ function ProfileContent() {
 
             {uploading && (
                 <ContextualLoader
-                    context="uploading-photo"
+                    context="importing-docs"
                     onCancel={() => setUploading(false)}
                 />
             )}
