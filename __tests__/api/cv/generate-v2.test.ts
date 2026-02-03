@@ -15,7 +15,7 @@ vi.mock("@/lib/utils/rate-limit");
 
 describe("POST /api/cv/generate-v2", () => {
     const mockUserId = "user-123";
-    const mockAnalysisId = "analysis-456";
+    const mockAnalysisId = "11111111-1111-1111-1111-111111111111";
     const makeRequest = (overrides?: Partial<{ analysisId: string; template: string; includePhoto: boolean }>) =>
         new Request("http://localhost/api/cv/generate-v2", {
             method: "POST",
@@ -70,6 +70,7 @@ describe("POST /api/cv/generate-v2", () => {
                 section: "experiences",
                 text: "Développement d'une app React",
                 relevance_score: 85,
+                sources: { rag_experience_id: "exp_0" },
             },
         ],
         meta: { model: "gemini-3-pro-preview" },

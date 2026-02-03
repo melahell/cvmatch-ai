@@ -49,6 +49,7 @@ describe("convertAndSort - clients fallback", () => {
                     section: "summary",
                     text: "Résumé",
                     relevance_score: 10,
+                    sources: { rag_path: "profil" },
                 },
             ],
         };

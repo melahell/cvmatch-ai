@@ -43,6 +43,8 @@ const CONFIG = {
         'tailwind.config.ts', // Config Tailwind
         'globals.css', // Styles globaux
         'themes.ts', // Theme configuration data for CV templates
+        'components/cv/templates/rr/', // Templates Reactive Resume (thémés pour export PDF)
+        'components/cv/shared/', // Composants partagés CV (nécessitent styles dynamiques pour export PDF)
         'Logo.tsx', // Brand logo with specific neon colors
         'login/page.tsx', // Google Logo (official brand colors)
       ],
@@ -82,6 +84,8 @@ const CONFIG = {
       exceptions: [
         'CreativeTemplate.tsx', // Inline styles reference COLORS object (design tokens) - required for PDF rendering
         'TechTemplate.tsx', // Inline styles reference COLORS object (design tokens) - required for PDF rendering
+        'components/cv/templates/rr/', // Templates Reactive Resume (thémés pour export PDF)
+        'components/cv/shared/', // Composants partagés CV (styles dynamiques pour export PDF)
       ],
     },
     {

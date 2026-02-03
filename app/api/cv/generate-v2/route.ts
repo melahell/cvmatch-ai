@@ -20,6 +20,7 @@ import { z } from "zod";
 const uuidSchema = z.string().uuid();
 
 export const runtime = "nodejs";
+const APP_VERSION = (packageJson as any)?.version ?? (packageJson as any)?.default?.version ?? "unknown";
 
 /**
  * [AUDIT FIX CRITIQUE-2] : Validation grounding post-bridge
@@ -392,7 +393,7 @@ export async function POST(req: Request) {
             generated_for_job_id: analysisId,
             match_score: analysisData.match_score,
             generated_at: new Date().toISOString(),
-            generator_version: packageJson.version,
+            generator_version: APP_VERSION,
             generator_model: widgetsEnvelope.meta?.model || "gemini-3-pro-preview",
             compression_level_applied: compressionLevelApplied,
             page_count: 1,
@@ -546,7 +547,7 @@ export async function POST(req: Request) {
         });
 
     } catch (error: any) {
-        logger.error("CV Generation V2 Error", { error });
+        logger.error("CV Generation V2 Error", { message: error?.message, name: error?.name, stack: error?.stack });
 
         // [INTÉGRATION] Tracking observabilité pour les erreurs
         trackCVGeneration({
