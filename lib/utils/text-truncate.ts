@@ -109,7 +109,7 @@ export function truncateForRAGIncrementalExtraction(text: string): {
         truncatedPercentage?: number;
     };
 } {
-    const MAX_TOKENS = 20000;
+    const MAX_TOKENS = 8000;
 
     const base = truncateToTokens(text, MAX_TOKENS);
     const truncatedText = base.wasTruncated ? smartTruncate(text, MAX_TOKENS, { beginning: 70, end: 30 }) : base.truncated;

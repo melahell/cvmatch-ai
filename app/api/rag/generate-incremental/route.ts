@@ -7,7 +7,7 @@ import { consolidateClients } from "@/lib/rag/consolidate-clients";
 import { calculateQualityScore } from "@/lib/rag/quality-scoring";
 import { mergeRAGData, type MergeResult } from "@/lib/rag/merge-simple";
 import { validateRAGData } from "@/lib/rag/validation";
-import { truncateForRAGIncrementalExtraction, truncateToTokens } from "@/lib/utils/text-truncate";
+import { estimateTokenCount, truncateForRAGIncrementalExtraction, truncateToTokens } from "@/lib/utils/text-truncate";
 import { logger } from "@/lib/utils/logger";
 import { callWithRetry, generateWithCascade } from "@/lib/ai/gemini";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
@@ -149,9 +149,39 @@ export async function POST(req: Request) {
             // Extract based on file type
             if (normalizedType === "pdf") {
                 try {
-                    const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
-                    const { text: pdfText } = await extractText(pdf, { mergePages: true });
-                    extractedText = pdfText;
+                    const buffer = Buffer.from(arrayBuffer);
+                    const normalize = (s: string) => s.replace(/\s+/g, " ").trim();
+
+                    let extractedBy: "pdf-parse" | "unpdf" = "unpdf";
+                    let parsedText = "";
+
+                    try {
+                        const mod: any = await import("pdf-parse");
+                        const pdfParse = mod?.default ?? mod;
+                        const parsed: any = await callWithTimeout(pdfParse(buffer), 15000);
+                        parsedText = typeof parsed?.text === "string" ? parsed.text : "";
+                    } catch (e: any) {
+                        logger.warn("pdf-parse failed, falling back to unpdf", {
+                            filename: doc.filename,
+                            error: e?.message || String(e || ""),
+                        });
+                    }
+
+                    if (normalize(parsedText).length >= 300) {
+                        extractedText = parsedText;
+                        extractedBy = "pdf-parse";
+                    } else {
+                        const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+                        const { text: pdfText } = await extractText(pdf, { mergePages: true });
+                        extractedText = pdfText;
+                        extractedBy = "unpdf";
+                    }
+
+                    logger.info("PDF extracted", {
+                        filename: doc.filename,
+                        extractedBy,
+                        textLength: extractedText.length,
+                    });
                 } catch (pdfError: any) {
                     logger.error("PDF extraction failed", { error: pdfError.message, filename: doc.filename });
                     await supabase
@@ -242,7 +272,7 @@ export async function POST(req: Request) {
         // - OR in regeneration mode but NOT first document (enrich with previous documents)
         if (!(mode === "regeneration" && isFirstDocument) && existingRag?.completeness_details) {
             const rawContext = formatRAGForPrompt(existingRag.completeness_details);
-            const ctx = truncateToTokens(rawContext, 12000);
+            const ctx = truncateToTokens(rawContext, 4000);
             existingRAGContext = ctx.truncated;
             logger.info("Including existing RAG context in prompt", {
                 filename: doc.filename,
@@ -260,14 +290,18 @@ export async function POST(req: Request) {
             });
         }
 
+        const docBudgetTokens = existingRAGContext ? 6000 : 8000;
+        const docBudgeted = truncateToTokens(truncatedText, docBudgetTokens);
+        const docForPrompt = docBudgeted.truncated;
+
         // 5. Call Gemini with timeout
         const geminiStart = Date.now();
         let responseText: string;
         let modelUsed: string | null = null;
 
         try {
-            const prompt = getRAGExtractionPrompt(truncatedText, existingRAGContext);
-            const cascade = await callWithRetry(() => callWithTimeout(generateWithCascade(prompt), 45000), 2);
+            const prompt = getRAGExtractionPrompt(docForPrompt, existingRAGContext);
+            const cascade = await callWithRetry(() => callWithTimeout(generateWithCascade(prompt), 30000), 1);
             modelUsed = cascade.modelUsed;
             responseText = cascade.result.response.text();
 
@@ -276,7 +310,9 @@ export async function POST(req: Request) {
                 filename: doc.filename,
                 durationMs: geminiDuration,
                 responseLength: responseText.length,
-                modelUsed
+                modelUsed,
+                docTokensOriginal: truncationStats.originalTokens,
+                docTokensFinal: estimateTokenCount(docForPrompt),
             });
         } catch (geminiError: any) {
             const geminiDuration = Date.now() - geminiStart;
