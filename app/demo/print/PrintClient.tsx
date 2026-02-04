@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { Loader2, AlertTriangle, RotateCcw } from "lucide-react";
 import { logger } from "@/lib/utils/logger";
 import type { PrintPayload } from "@/lib/cv/pdf-export";
+import { getCVPrintCSS } from "@/lib/cv/print-css";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     loading: () => (
@@ -142,6 +143,7 @@ export default function DemoPrintClient() {
     }
 
     const format = payload.format || "A4";
+    const printCss = getCVPrintCSS(format);
 
     return (
         <>
@@ -158,73 +160,7 @@ export default function DemoPrintClient() {
                 customCSS={payload.customCSS}
             />
 
-            <style jsx global>{`
-                *, *::before, *::after {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-
-                @page {
-                    margin: 0;
-                    size: ${format === "Letter" ? "Letter" : "A4"};
-                }
-
-                * {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                    color-adjust: exact !important;
-                }
-
-                html, body {
-                    background: white;
-                    margin: 0;
-                    padding: 0;
-                    overflow: visible !important;
-                    height: auto !important;
-                    min-height: 100%;
-                    -webkit-font-smoothing: antialiased;
-                    -moz-osx-font-smoothing: grayscale;
-                }
-
-                #cv-container {
-                    width: var(--cv-page-width, 210mm) !important;
-                    height: auto !important;
-                    min-height: var(--cv-page-height, 297mm) !important;
-                    margin: 0 auto;
-                    overflow: visible !important;
-                }
-
-                .cv-avoid-break,
-                .break-inside-avoid,
-                .cv-item,
-                li {
-                    break-inside: avoid !important;
-                    page-break-inside: avoid !important;
-                }
-
-                h1, h2, h3, h4, h5, h6 {
-                    break-after: avoid !important;
-                    page-break-after: avoid !important;
-                }
-
-                .print-hidden, .no-print, .print\\:hidden, [data-no-print="true"] {
-                    display: none !important;
-                }
-
-                @media print {
-                    html, body {
-                        width: 100%;
-                        height: auto;
-                        overflow: visible !important;
-                    }
-
-                    #cv-container {
-                        page-break-inside: avoid;
-                        break-inside: avoid;
-                    }
-                }
-            `}</style>
+            <style jsx global>{printCss}</style>
         </>
     );
 }

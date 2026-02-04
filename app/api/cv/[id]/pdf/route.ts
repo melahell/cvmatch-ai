@@ -158,7 +158,7 @@ export async function GET(
                 bottom: '0mm',
                 left: '0mm',
             },
-            preferCSSPageSize: false,
+            preferCSSPageSize: true,
             omitBackground: false,
             displayHeaderFooter: false,
             scale: 1,

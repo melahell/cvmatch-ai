@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 import type { CVDensity } from "@/lib/cv/style/density";
+import { getCVPrintCSS } from "@/lib/cv/print-css";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
@@ -25,6 +26,7 @@ export default function CVPrintPage() {
     const density = (densityParam === "compact" || densityParam === "normal" || densityParam === "airy") ? (densityParam as CVDensity) : undefined;
     const customCSS = searchParams.get("css") || undefined;
     const autoPrint = searchParams.get("autoprint") === "1";
+    const printCss = getCVPrintCSS(format);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [cvData, setCvData] = useState<any>(null);
@@ -250,104 +252,7 @@ export default function CVPrintPage() {
                 customCSS={customCSS}
             />
 
-            <style jsx global>{`
-                /* ===== CSS RESET for PDF Print ===== */
-                *, *::before, *::after {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-
-                @page {
-                    margin: 0;
-                    size: ${format === "Letter" ? "Letter" : "A4"};
-                }
-
-                /* Force color preservation in PDF */
-                * {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                    color-adjust: exact !important;
-                }
-
-                html, body {
-                    background: white;
-                    margin: 0;
-                    padding: 0;
-                    overflow: visible !important;
-                    height: auto !important;
-                    min-height: 100%;
-                    /* Font rendering */
-                    -webkit-font-smoothing: antialiased;
-                    -moz-osx-font-smoothing: grayscale;
-                    text-rendering: optimizeLegibility;
-                }
-
-                /* Allow multi-page overflow */
-                #cv-container, .cv-page {
-                    width: var(--cv-page-width, 210mm) !important;
-                    min-height: var(--cv-page-height, 297mm) !important;
-                    margin: 0 auto;
-                    overflow: visible !important;
-                    height: auto !important;
-                }
-
-                /* ===== Page Break Rules ===== */
-                .cv-avoid-break,
-                .break-inside-avoid,
-                .cv-item,
-                li {
-                    break-inside: avoid !important;
-                    page-break-inside: avoid !important;
-                }
-
-                .page-break-before {
-                    break-before: page !important;
-                    page-break-before: always !important;
-                }
-
-                /* ===== Orphan/Widow Control ===== */
-                p, li, div {
-                    orphans: 3;
-                    widows: 3;
-                }
-
-                h1, h2, h3, h4, h5, h6 {
-                    break-after: avoid !important;
-                    page-break-after: avoid !important;
-                }
-
-                /* ===== Gradient/Color Preservation ===== */
-                [class*="bg-gradient"],
-                [class*="text-"],
-                [class*="bg-"],
-                [class*="border-"],
-                [style*="background"],
-                [style*="color"] {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                }
-
-                * {
-                    -webkit-box-decoration-break: clone;
-                    box-decoration-break: clone;
-                }
-
-                /* ===== Link Cleanup for Print ===== */
-                @media print {
-                    a {
-                        text-decoration: none !important;
-                        color: inherit !important;
-                    }
-                    a[href]::after {
-                        content: none !important;
-                    }
-                }
-
-                .no-print {
-                    display: none !important;
-                }
-            `}</style>
+            <style jsx global>{printCss}</style>
         </>
     );
 }

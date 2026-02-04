@@ -43,7 +43,6 @@ import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
 import { useCVReorder } from "@/hooks/useCVReorder";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
-import { openPrintPreview } from "@/lib/cv/pdf-export";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -854,16 +853,92 @@ function CVBuilderContent() {
                                         cvData={reorderedCV || cvData || {} as RendererResumeSchema}
                                         template={templateId}
                                         filename="CV"
-                                        onPDFExport={() => {
-                                            openPrintPreview("/dashboard/cv-builder/print", {
+                                        onPDFDownload={async () => {
+                                            const authHeaders = await getSupabaseAuthHeader();
+                                            const headers: Record<string, string> = {
+                                                "Content-Type": "application/json",
+                                                ...authHeaders,
+                                            };
+
+                                            const payload = {
                                                 data: reorderedCV || cvData || {},
                                                 templateId,
                                                 colorwayId,
                                                 fontId,
                                                 density,
                                                 includePhoto,
-                                                format: "A4",
+                                                format: "A4" as const,
+                                            };
+
+                                            const res = await fetch("/api/print-jobs", {
+                                                method: "POST",
+                                                headers,
+                                                credentials: "include",
+                                                body: JSON.stringify({ payload }),
                                             });
+
+                                            if (!res.ok) {
+                                                throw new Error(`Erreur génération PDF (${res.status})`);
+                                            }
+
+                                            const json = await res.json();
+                                            const token = json?.token as string | undefined;
+                                            if (!token) throw new Error("Token manquant");
+
+                                            const pdfRes = await fetch(`/api/print-jobs/${encodeURIComponent(token)}/pdf`, {
+                                                method: "GET",
+                                                headers: { ...authHeaders },
+                                                credentials: "include",
+                                            });
+                                            if (!pdfRes.ok) {
+                                                throw new Error(`Erreur export PDF (${pdfRes.status})`);
+                                            }
+                                            const blob = await pdfRes.blob();
+                                            const url = URL.createObjectURL(blob);
+                                            const link = document.createElement("a");
+                                            link.href = url;
+                                            link.download = `CV.pdf`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            URL.revokeObjectURL(url);
+                                        }}
+                                        onPDFExport={async () => {
+                                            const authHeaders = await getSupabaseAuthHeader();
+                                            const headers: Record<string, string> = {
+                                                "Content-Type": "application/json",
+                                                ...authHeaders,
+                                            };
+
+                                            const payload = {
+                                                data: reorderedCV || cvData || {},
+                                                templateId,
+                                                colorwayId,
+                                                fontId,
+                                                density,
+                                                includePhoto,
+                                                format: "A4" as const,
+                                            };
+
+                                            const res = await fetch("/api/print-jobs", {
+                                                method: "POST",
+                                                headers,
+                                                credentials: "include",
+                                                body: JSON.stringify({ payload }),
+                                            });
+
+                                            if (!res.ok) {
+                                                throw new Error(`Erreur création lien impression (${res.status})`);
+                                            }
+                                            const json = await res.json();
+                                            const token = json?.token as string | undefined;
+                                            if (!token) throw new Error("Token manquant");
+
+                                            const url = `/dashboard/cv-builder/print?token=${encodeURIComponent(token)}&autoprint=1&format=A4`;
+                                            const win = window.open(url, "_blank", "noopener,noreferrer");
+                                            if (!win) {
+                                                window.location.href = url;
+                                            }
                                         }}
                                     />
                                 </>

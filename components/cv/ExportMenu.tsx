@@ -29,6 +29,7 @@ interface ExportMenuProps {
     template?: string;
     filename?: string;
     jobAnalysisId?: string;
+    onPDFDownload?: () => void | Promise<void>;
     onPDFExport?: () => void | Promise<void>;
 }
 
@@ -38,6 +39,7 @@ export function ExportMenu({
     template = "modern",
     filename = "CV",
     jobAnalysisId,
+    onPDFDownload,
     onPDFExport,
 }: ExportMenuProps) {
     const [exporting, setExporting] = useState<string | null>(null);
@@ -96,7 +98,10 @@ export function ExportMenu({
                 }
 
                 case "pdf": {
-                    if (onPDFExport) {
+                    if (onPDFDownload) {
+                        await onPDFDownload();
+                        toast.success("CV exporté en PDF");
+                    } else if (onPDFExport) {
                         await onPDFExport();
                         toast.success("CV exporté en PDF");
                     } else {

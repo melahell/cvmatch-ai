@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 import { Loader2, AlertTriangle, RotateCcw } from "lucide-react";
 import { logger } from "@/lib/utils/logger";
 import type { PrintPayload } from "@/lib/cv/pdf-export";
+import { getSupabaseAuthHeader } from "@/lib/supabase";
+import { getCVPrintCSS } from "@/lib/cv/print-css";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     loading: () => (
@@ -16,51 +18,69 @@ const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     ssr: false,
 });
 
-const STORAGE_PREFIX = "cvcrush:print:";
-/** Keep payload in localStorage for 5 minutes so refresh / re-print works */
-const PAYLOAD_TTL_MS = 5 * 60 * 1000;
-
 export default function CVBuilderPrintClient() {
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
     const autoPrint = searchParams.get("autoprint") === "1";
+    const formatParam = searchParams.get("format");
     const [payload, setPayload] = useState<PrintPayload | null>(null);
     const [expired, setExpired] = useState(false);
     const [rendered, setRendered] = useState(false);
     const [overflow, setOverflow] = useState(false);
     const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const storageKey = useMemo(() => {
-        if (!token) return null;
-        return `${STORAGE_PREFIX}${token}`;
-    }, [token]);
+    const tokenKey = useMemo(() => token || null, [token]);
 
-    // Read payload from localStorage — defer cleanup to TTL instead of immediate delete
     useEffect(() => {
-        if (!storageKey) return;
-        try {
-            const raw = window.localStorage.getItem(storageKey);
-            if (!raw) {
-                // Token exists in URL but payload is gone → expired
-                setExpired(true);
-                return;
-            }
-            const parsed = JSON.parse(raw) as PrintPayload;
-            setPayload(parsed);
+        if (!tokenKey) return;
+        let cancelled = false;
 
-            // Schedule cleanup after TTL instead of deleting immediately
-            cleanupTimerRef.current = setTimeout(() => {
-                try { window.localStorage.removeItem(storageKey); } catch {}
-            }, PAYLOAD_TTL_MS);
-        } catch (e) {
-            logger.error("Erreur lecture payload print", { error: e });
-            setExpired(true);
-        }
+        const fetchPayload = async () => {
+            try {
+                const authHeaders = await getSupabaseAuthHeader();
+                const init: RequestInit = { method: "GET", credentials: "include" };
+                if (Object.keys(authHeaders).length > 0) {
+                    init.headers = authHeaders;
+                }
+
+                const res = await fetch(`/api/print-jobs/${encodeURIComponent(tokenKey)}`, init);
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        setExpired(true);
+                        return;
+                    }
+                    throw new Error(`Erreur de chargement (${res.status})`);
+                }
+                const json = await res.json();
+                if (cancelled) return;
+                setPayload(json.payload as PrintPayload);
+
+                cleanupTimerRef.current = setTimeout(() => {
+                    const deleteJob = async () => {
+                        try {
+                            const headers = await getSupabaseAuthHeader();
+                            const delInit: RequestInit = { method: "DELETE", credentials: "include" };
+                            if (Object.keys(headers).length > 0) delInit.headers = headers;
+                            await fetch(`/api/print-jobs/${encodeURIComponent(tokenKey)}`, delInit);
+                        } catch {
+                            return;
+                        }
+                    };
+                    void deleteJob();
+                }, 5 * 60 * 1000);
+            } catch (e) {
+                logger.error("Erreur chargement print job", { error: e });
+                setExpired(true);
+            }
+        };
+
+        void fetchPayload();
 
         return () => {
+            cancelled = true;
             if (cleanupTimerRef.current) clearTimeout(cleanupTimerRef.current);
         };
-    }, [storageKey]);
+    }, [tokenKey]);
 
     useEffect(() => {
         if (!payload) return;
@@ -100,13 +120,22 @@ export default function CVBuilderPrintClient() {
     useEffect(() => {
         if (!autoPrint || !rendered) return;
         const onAfterPrint = () => {
-            // Clean up localStorage after successful print
-            if (storageKey) {
-                try { window.localStorage.removeItem(storageKey); } catch {}
-            }
             if (cleanupTimerRef.current) {
                 clearTimeout(cleanupTimerRef.current);
                 cleanupTimerRef.current = null;
+            }
+            if (tokenKey) {
+                const deleteJob = async () => {
+                    try {
+                        const headers = await getSupabaseAuthHeader();
+                        const init: RequestInit = { method: "DELETE", credentials: "include" };
+                        if (Object.keys(headers).length > 0) init.headers = headers;
+                        await fetch(`/api/print-jobs/${encodeURIComponent(tokenKey)}`, init);
+                    } catch {
+                        return;
+                    }
+                };
+                void deleteJob();
             }
             try {
                 window.close();
@@ -117,7 +146,7 @@ export default function CVBuilderPrintClient() {
         window.addEventListener("afterprint", onAfterPrint);
         setTimeout(() => window.print(), 50);
         return () => window.removeEventListener("afterprint", onAfterPrint);
-    }, [autoPrint, rendered, storageKey]);
+    }, [autoPrint, rendered, tokenKey]);
 
     if (!token) {
         return <div className="p-12 text-center">Token manquant</div>;
@@ -152,7 +181,8 @@ export default function CVBuilderPrintClient() {
         );
     }
 
-    const format = payload.format || "A4";
+    const format = (formatParam === "Letter" || formatParam === "A4" ? formatParam : payload.format) || "A4";
+    const printCss = getCVPrintCSS(format);
 
     return (
         <>
@@ -174,73 +204,7 @@ export default function CVBuilderPrintClient() {
                 customCSS={payload.customCSS}
             />
 
-            <style jsx global>{`
-                *, *::before, *::after {
-                    margin: 0;
-                    padding: 0;
-                    box-sizing: border-box;
-                }
-
-                @page {
-                    margin: 0;
-                    size: ${format === "Letter" ? "Letter" : "A4"};
-                }
-
-                * {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                    color-adjust: exact !important;
-                }
-
-                html, body {
-                    background: white;
-                    margin: 0;
-                    padding: 0;
-                    overflow: visible !important;
-                    height: auto !important;
-                    min-height: 100%;
-                    -webkit-font-smoothing: antialiased;
-                    -moz-osx-font-smoothing: grayscale;
-                }
-
-                #cv-container {
-                    width: var(--cv-page-width, 210mm) !important;
-                    height: auto !important;
-                    min-height: var(--cv-page-height, 297mm) !important;
-                    margin: 0 auto;
-                    overflow: visible !important;
-                }
-
-                .cv-avoid-break,
-                .break-inside-avoid,
-                .cv-item,
-                li {
-                    break-inside: avoid !important;
-                    page-break-inside: avoid !important;
-                }
-
-                h1, h2, h3, h4, h5, h6 {
-                    break-after: avoid !important;
-                    page-break-after: avoid !important;
-                }
-
-                .print-hidden, .no-print, .print\\:hidden, [data-no-print="true"] {
-                    display: none !important;
-                }
-
-                @media print {
-                    html, body {
-                        width: 100%;
-                        height: auto;
-                        overflow: visible !important;
-                    }
-
-                    #cv-container {
-                        page-break-inside: avoid;
-                        break-inside: avoid;
-                    }
-                }
-            `}</style>
+            <style jsx global>{printCss}</style>
         </>
     );
 }
