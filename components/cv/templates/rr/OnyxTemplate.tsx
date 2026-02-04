@@ -8,9 +8,10 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { CertificationList, ClientReferences, ContactInfo, EducationItem, ExperienceItem, LanguageList, ProfilePicture, ProjectItem, SectionTitle, SkillsGrid } from "@/components/cv/shared";
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 interface OnyxColors {
     primary: string;
@@ -20,10 +21,10 @@ interface OnyxColors {
 }
 
 const defaultColors: OnyxColors = {
-    primary: "#3b82f6",
-    text: "#1f2937",
-    background: "#ffffff",
-    sidebar: "#f8fafc",
+    primary: CV_THEME_VARS.primary,
+    text: CV_THEME_VARS.text,
+    background: CV_THEME_VARS.background,
+    sidebar: CV_THEME_VARS.sidebarBg,
 };
 
 export default function OnyxTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {

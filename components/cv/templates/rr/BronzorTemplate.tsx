@@ -8,9 +8,10 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 interface BronzorColors {
     primary: string;
@@ -22,12 +23,12 @@ interface BronzorColors {
 }
 
 const defaultColors: BronzorColors = {
-    primary: "#374151",
-    accent: "#6366f1",
-    text: "#111827",
-    muted: "#9ca3af",
-    background: "#ffffff",
-    line: "#e5e7eb",
+    primary: CV_THEME_VARS.primary,
+    accent: CV_THEME_VARS.sidebarAccent,
+    text: CV_THEME_VARS.text,
+    muted: CV_THEME_VARS.muted,
+    background: CV_THEME_VARS.background,
+    line: CV_THEME_VARS.border,
 };
 
 export default function BronzorTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {

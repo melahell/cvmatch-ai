@@ -21,6 +21,9 @@ export { default as RhyhornTemplate } from "./RhyhornTemplate";
 export { default as LeafishTemplate } from "./LeafishTemplate";
 export { default as LaprasTemplate } from "./LaprasTemplate";
 export { default as DitgarTemplate } from "./DitgarTemplate";
+export { default as UmbreonTemplate } from "./UmbreonTemplate";
+export { default as EeveeTemplate } from "./EeveeTemplate";
+export { default as AltariaTemplate } from "./AltariaTemplate";
 
 /**
  * Informations sur les templates Reactive Resume
@@ -142,5 +145,32 @@ export const RR_TEMPLATE_INFO = [
         preview: "/templates/ditgar-preview.png",
         available: true,
         recommended: ["Security", "DevOps", "Backend"],
+    },
+    {
+        id: "umbreon",
+        name: "Umbreon",
+        description: "Sidebar sombre contrastée, style tech premium",
+        category: "professional" as const,
+        preview: "/templates/umbreon-preview.png",
+        available: true,
+        recommended: ["Security", "Engineering", "Product"],
+    },
+    {
+        id: "eevee",
+        name: "Eevee",
+        description: "Minimal mono-colonne, header typographique",
+        category: "minimal" as const,
+        preview: "/templates/eevee-preview.png",
+        available: true,
+        recommended: ["Consulting", "Management", "Generalist"],
+    },
+    {
+        id: "altaria",
+        name: "Altaria",
+        description: "Two-column léger, beaucoup d’air, très lisible",
+        category: "professional" as const,
+        preview: "/templates/altaria-preview.png",
+        available: true,
+        recommended: ["Consulting", "Data", "HR"],
     },
 ];

@@ -8,28 +8,23 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface AzurillColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-}
-
-const defaultColors: AzurillColors = {
-    primary: "#3b82f6",  // Bleu vif
-    secondary: "#1d4ed8",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function AzurillTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        primary08: CV_THEME_VARS.primaryA08,
+        primary15: CV_THEME_VARS.primaryLight,
+        primary30: CV_THEME_VARS.primaryA30,
+        primary40: CV_THEME_VARS.primaryA40,
+    };
     const padding = dense ? "px-6 py-4" : "px-8 py-6";
     const gap = dense ? "gap-3" : "gap-5";
     const textSize = dense ? "text-xs" : "text-sm";
@@ -107,7 +102,7 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
             {/* LAYOUT: Sidebar + Main */}
             <div className="flex">
                 {/* SIDEBAR */}
-                <aside className="w-1/3 p-6 bg-gray-50" style={{ backgroundColor: `${colors.primary}08` }}>
+                <aside className="w-1/3 p-6 bg-gray-50" style={{ backgroundColor: colors.primary08 }}>
                     {/* Pitch */}
                     {profil.elevator_pitch && (
                         <section className="mb-6">
@@ -134,7 +129,7 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
                                         key={idx}
                                         className={`px-2 py-1 rounded ${textSize}`}
                                         style={{
-                                            backgroundColor: `${colors.primary}15`,
+                                        backgroundColor: colors.primary15,
                                             color: colors.secondary,
                                         }}
                                     >
@@ -156,7 +151,7 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
                                 {langues.map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className={`${textSize} font-medium`}>{lang.langue}</span>
-                                        <span className={`${textSize} px-2 py-0.5 rounded`} style={{ backgroundColor: `${colors.primary}15`, color: colors.secondary }}>
+                                        <span className={`${textSize} px-2 py-0.5 rounded`} style={{ backgroundColor: colors.primary15, color: colors.secondary }}>
                                             {lang.niveau}
                                         </span>
                                     </div>
@@ -216,7 +211,7 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
                                     <article
                                         key={idx}
                                         className="relative pl-6 border-l-2"
-                                        style={{ borderColor: `${colors.primary}40` }}
+                                        style={{ borderColor: colors.primary40 }}
                                     >
                                         {/* Timeline dot */}
                                         <span
@@ -270,7 +265,7 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
                                     <article
                                         key={idx}
                                         className="p-3 rounded-lg border"
-                                        style={{ borderColor: `${colors.primary}30` }}
+                                        style={{ borderColor: colors.primary30 }}
                                     >
                                         <h3 className="font-bold text-sm mb-1">{sanitizeText(proj.nom)}</h3>
                                         {proj.description && (
@@ -284,7 +279,7 @@ export default function AzurillTemplate({ data, includePhoto = true, dense = fal
                                                     <span
                                                         key={tidx}
                                                         className="px-1.5 py-0.5 text-xs rounded"
-                                                        style={{ backgroundColor: `${colors.primary}15`, color: colors.secondary }}
+                                                        style={{ backgroundColor: colors.primary15, color: colors.secondary }}
                                                     >
                                                         {tech}
                                                     </span>

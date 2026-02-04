@@ -8,30 +8,23 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface GengarColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-    sidebarBg: string;
-}
-
-const defaultColors: GengarColors = {
-    primary: "#6366f1",  // Indigo
-    secondary: "#4f46e5",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-    sidebarBg: "#f0f0ff",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function GengarTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        sidebarBg: CV_THEME_VARS.sidebarBg,
+        primary10: CV_THEME_VARS.primaryA10,
+        primary20: CV_THEME_VARS.primaryA20,
+        primary30: CV_THEME_VARS.primaryA30,
+    };
     const padding = dense ? "px-5 py-4" : "px-6 py-5";
     const textSize = dense ? "text-xs" : "text-sm";
 
@@ -137,7 +130,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                     <span
                                         key={idx}
                                         className={`px-2 py-0.5 rounded text-xs`}
-                                        style={{ backgroundColor: `${colors.primary}20`, color: colors.secondary }}
+                                        style={{ backgroundColor: colors.primary20, color: colors.secondary }}
                                     >
                                         {sanitizeText(skill)}
                                     </span>
@@ -156,7 +149,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                 {langues.map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className={`${textSize} font-medium`}>{lang.langue}</span>
-                                        <span className={`text-xs px-1.5 py-0.5 rounded`} style={{ backgroundColor: `${colors.primary}20`, color: colors.secondary }}>
+                                        <span className={`text-xs px-1.5 py-0.5 rounded`} style={{ backgroundColor: colors.primary20, color: colors.secondary }}>
                                             {lang.niveau}
                                         </span>
                                     </div>
@@ -208,7 +201,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                 {profil.elevator_pitch && (
                     <section
                         className="mb-5 p-4 rounded-lg"
-                        style={{ backgroundColor: `${colors.primary}10` }}
+                        style={{ backgroundColor: colors.primary10 }}
                     >
                         <p className={`${textSize} text-gray-700 italic`}>
                             "{sanitizeText(profil.elevator_pitch)}"
@@ -268,7 +261,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                         </h2>
                         <div className="grid grid-cols-2 gap-3">
                             {projects.slice(0, 4).map((proj: any, idx: number) => (
-                                <article key={idx} className="p-3 rounded border" style={{ borderColor: `${colors.primary}30` }}>
+                                <article key={idx} className="p-3 rounded border" style={{ borderColor: colors.primary30 }}>
                                     <h3 className="font-semibold text-sm">{sanitizeText(proj.nom)}</h3>
                                     {proj.description && (
                                         <p className="text-xs text-gray-600 mt-1">{sanitizeText(proj.description)}</p>

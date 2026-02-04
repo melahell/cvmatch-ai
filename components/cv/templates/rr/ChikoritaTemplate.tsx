@@ -8,28 +8,24 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface ChikoritaColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-}
-
-const defaultColors: ChikoritaColors = {
-    primary: "#10b981",  // Vert émeraude clair
-    secondary: "#059669",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function ChikoritaTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        primary08: CV_THEME_VARS.primaryA08,
+        primary10: CV_THEME_VARS.primaryA10,
+        primary15: CV_THEME_VARS.primaryLight,
+        primary40: CV_THEME_VARS.primaryA40,
+        secondary10: "color-mix(in srgb, var(--cv-sidebar-accent) 6.25%, transparent)",
+    };
     const padding = dense ? "px-5 py-4" : "px-8 py-6";
     const textSize = dense ? "text-xs" : "text-sm";
 
@@ -64,7 +60,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
             <header
                 className={`${padding} pb-8`}
                 style={{
-                    background: `linear-gradient(135deg, ${colors.primary}15 0%, ${colors.secondary}10 100%)`,
+                    background: `linear-gradient(135deg, ${colors.primary15} 0%, ${colors.secondary10} 100%)`,
                     borderBottom: `3px solid ${colors.primary}`
                 }}
             >
@@ -127,7 +123,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                             </h2>
                             <div className="space-y-5">
                                 {experiences.map((exp: any, idx: number) => (
-                                    <article key={idx} className="pl-4 border-l-2" style={{ borderColor: `${colors.primary}40` }}>
+                                    <article key={idx} className="pl-4 border-l-2" style={{ borderColor: colors.primary40 }}>
                                         <div className="flex justify-between items-start mb-1">
                                             <div>
                                                 <h3 className="font-bold">{sanitizeText(exp.poste)}</h3>
@@ -135,7 +131,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                                     {sanitizeText(exp.entreprise)}
                                                 </p>
                                             </div>
-                                            <span className="text-xs text-gray-500 shrink-0 px-2 py-0.5 rounded" style={{ backgroundColor: `${colors.primary}10` }}>
+                                            <span className="text-xs text-gray-500 shrink-0 px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary10 }}>
                                                 {exp.date_debut}{exp.date_fin ? ` - ${exp.date_fin}` : " - Présent"}
                                             </span>
                                         </div>
@@ -172,7 +168,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                             </h2>
                             <div className="grid grid-cols-2 gap-3">
                                 {projects.slice(0, 4).map((proj: any, idx: number) => (
-                                    <article key={idx} className="p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}08` }}>
+                                    <article key={idx} className="p-3 rounded-lg" style={{ backgroundColor: colors.primary08 }}>
                                         <h3 className="font-semibold text-sm">{sanitizeText(proj.nom)}</h3>
                                         {proj.description && (
                                             <p className="text-xs text-gray-600 mt-1">{sanitizeText(proj.description)}</p>
@@ -195,7 +191,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
                                 {allSkills.slice(0, 12).map((skill: string, idx: number) => (
-                                    <span key={idx} className="px-2 py-1 rounded-full text-xs" style={{ backgroundColor: `${colors.primary}15`, color: colors.secondary }}>
+                                    <span key={idx} className="px-2 py-1 rounded-full text-xs" style={{ backgroundColor: colors.primary15, color: colors.secondary }}>
                                         {sanitizeText(skill)}
                                     </span>
                                 ))}
@@ -233,7 +229,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                 {langues.map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className="text-xs font-medium">{lang.langue}</span>
-                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: `${colors.primary}15`, color: colors.secondary }}>
+                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: colors.primary15, color: colors.secondary }}>
                                             {lang.niveau}
                                         </span>
                                     </div>

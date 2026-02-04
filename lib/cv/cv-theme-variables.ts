@@ -207,6 +207,24 @@ const TEMPLATE_OVERRIDES: Record<string, Partial<CVThemeVariables>> = {
         "--cv-primary-light": "#64748b15",
         "--cv-sidebar-width": "0",
     },
+    umbreon: {
+        "--cv-primary": "#f59e0b",
+        "--cv-primary-light": "#f59e0b15",
+        "--cv-sidebar-bg": "linear-gradient(180deg, #0b1020 0%, #111827 100%)",
+        "--cv-sidebar-text": "#f8fafc",
+        "--cv-sidebar-accent": "#fde047",
+        "--cv-sidebar-width": "35%",
+    },
+    eevee: {
+        "--cv-primary": "#92400e",
+        "--cv-primary-light": "#92400e15",
+        "--cv-sidebar-width": "0",
+    },
+    altaria: {
+        "--cv-primary": "#2563eb",
+        "--cv-primary-light": "#2563eb15",
+        "--cv-sidebar-width": "0",
+    },
 };
 
 /**

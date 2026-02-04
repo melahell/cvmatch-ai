@@ -8,28 +8,24 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface LeafishColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-}
-
-const defaultColors: LeafishColors = {
-    primary: "#22c55e",  // Vert feuille
-    secondary: "#16a34a",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function LeafishTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        primary08: CV_THEME_VARS.primaryA08,
+        primary10: CV_THEME_VARS.primaryA10,
+        primary15: CV_THEME_VARS.primaryLight,
+        primary20: CV_THEME_VARS.primaryA20,
+        primary30: CV_THEME_VARS.primaryA30,
+    };
     const padding = dense ? "px-5 py-4" : "px-8 py-6";
     const textSize = dense ? "text-xs" : "text-sm";
 
@@ -108,7 +104,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
             <main className={`${padding} space-y-5`}>
                 {/* Pitch */}
                 {profil.elevator_pitch && (
-                    <section className="p-4 rounded-2xl" style={{ backgroundColor: `${colors.primary}10` }}>
+                    <section className="p-4 rounded-2xl" style={{ backgroundColor: colors.primary10 }}>
                         <p className={`${textSize} text-gray-700 leading-relaxed`}>
                             {sanitizeText(profil.elevator_pitch)}
                         </p>
@@ -126,7 +122,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
                         </h2>
                         <div className="flex flex-wrap gap-2">
                             {allSkills.slice(0, 16).map((skill: string, idx: number) => (
-                                <span key={idx} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: `${colors.primary}15`, color: colors.secondary }}>
+                                <span key={idx} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ backgroundColor: colors.primary15, color: colors.secondary }}>
                                     {sanitizeText(skill)}
                                 </span>
                             ))}
@@ -145,7 +141,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
                         </h2>
                         <div className="space-y-4">
                             {experiences.map((exp: any, idx: number) => (
-                                <article key={idx} className="p-4 rounded-xl border" style={{ borderColor: `${colors.primary}30` }}>
+                                <article key={idx} className="p-4 rounded-xl border" style={{ borderColor: colors.primary30 }}>
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
                                             <h3 className="font-bold">{sanitizeText(exp.poste)}</h3>
@@ -153,7 +149,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
                                                 {sanitizeText(exp.entreprise)}
                                             </p>
                                         </div>
-                                        <span className="text-xs text-gray-500 shrink-0 px-2 py-1 rounded-full" style={{ backgroundColor: `${colors.primary}10` }}>
+                                        <span className="text-xs text-gray-500 shrink-0 px-2 py-1 rounded-full" style={{ backgroundColor: colors.primary10 }}>
                                             {exp.date_debut}{exp.date_fin ? ` - ${exp.date_fin}` : " - Présent"}
                                         </span>
                                     </div>
@@ -185,7 +181,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
                 <div className="grid grid-cols-3 gap-4">
                     {/* Formations */}
                     {formations.length > 0 && (
-                        <section className="p-4 rounded-xl" style={{ backgroundColor: `${colors.primary}08` }}>
+                        <section className="p-4 rounded-xl" style={{ backgroundColor: colors.primary08 }}>
                             <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
                                 <span style={{ color: colors.primary }}>🎓</span>
                                 Formation
@@ -204,7 +200,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
 
                     {/* Langues */}
                     {langues.length > 0 && (
-                        <section className="p-4 rounded-xl" style={{ backgroundColor: `${colors.primary}08` }}>
+                        <section className="p-4 rounded-xl" style={{ backgroundColor: colors.primary08 }}>
                             <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
                                 <span style={{ color: colors.primary }}>🌍</span>
                                 Langues
@@ -213,7 +209,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
                                 {langues.map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className="text-xs font-medium">{lang.langue}</span>
-                                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${colors.primary}20`, color: colors.secondary }}>
+                                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: colors.primary20, color: colors.secondary }}>
                                             {lang.niveau}
                                         </span>
                                     </div>
@@ -224,7 +220,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
 
                     {/* Certifications */}
                     {certifications.length > 0 && (
-                        <section className="p-4 rounded-xl" style={{ backgroundColor: `${colors.primary}08` }}>
+                        <section className="p-4 rounded-xl" style={{ backgroundColor: colors.primary08 }}>
                             <h2 className="text-sm font-bold mb-3 flex items-center gap-2">
                                 <span style={{ color: colors.primary }}>📜</span>
                                 Certifications
@@ -252,7 +248,7 @@ export default function LeafishTemplate({ data, includePhoto = true, dense = fal
                             </h2>
                             <div className="space-y-2">
                                 {projects.slice(0, 3).map((proj: any, idx: number) => (
-                                    <article key={idx} className="p-3 rounded-xl border" style={{ borderColor: `${colors.primary}30` }}>
+                                    <article key={idx} className="p-3 rounded-xl border" style={{ borderColor: colors.primary30 }}>
                                         <h3 className="font-semibold text-xs">{sanitizeText(proj.nom)}</h3>
                                         {proj.description && (
                                             <p className="text-xs text-gray-600 mt-1">{sanitizeText(proj.description)}</p>

@@ -8,28 +8,22 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface PikachuColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-}
-
-const defaultColors: PikachuColors = {
-    primary: "#fbbf24",
-    secondary: "#f59e0b",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function PikachuTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        primary10: CV_THEME_VARS.primaryA10,
+        primary20: CV_THEME_VARS.primaryA20,
+        primary50: CV_THEME_VARS.primaryA50,
+    };
     const padding = dense ? "px-6 py-4" : "px-8 py-6";
     const gap = dense ? "gap-4" : "gap-6";
     const textSize = dense ? "text-xs" : "text-sm";
@@ -145,7 +139,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                     key={idx}
                                     className={`px-3 py-1.5 rounded-full ${textSize} font-medium`}
                                     style={{ 
-                                        backgroundColor: `${colors.primary}20`,
+                                        backgroundColor: colors.primary20,
                                         color: colors.secondary,
                                     }}
                                 >
@@ -174,7 +168,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                 <article 
                                     key={idx} 
                                     className="relative pl-6 border-l-2 break-inside-avoid"
-                                    style={{ borderColor: `${colors.primary}50` }}
+                                    style={{ borderColor: colors.primary50 }}
                                 >
                                     {/* Timeline dot */}
                                     <span 
@@ -197,7 +191,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                         <span 
                                             className={`${textSize} px-3 py-1 rounded-full`}
                                             style={{ 
-                                                backgroundColor: `${colors.primary}20`,
+                                                backgroundColor: colors.primary20,
                                                 color: colors.muted,
                                             }}
                                         >
@@ -288,7 +282,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                             <span 
                                                 className={`${textSize} px-2 py-0.5 rounded`}
                                                 style={{ 
-                                                    backgroundColor: `${colors.primary}20`,
+                                                    backgroundColor: colors.primary20,
                                                     color: colors.secondary,
                                                 }}
                                             >
@@ -343,7 +337,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                 <article 
                                     key={idx} 
                                     className="p-4 rounded-lg break-inside-avoid"
-                                    style={{ backgroundColor: `${colors.primary}10` }}
+                                    style={{ backgroundColor: colors.primary10 }}
                                 >
                                     <h3 className="font-bold text-sm mb-1">
                                         {sanitizeText(proj.nom)}

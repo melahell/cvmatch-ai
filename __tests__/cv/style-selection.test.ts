@@ -8,8 +8,8 @@ describe("style selection", () => {
         expect(CV_COLORWAYS.length).toBe(20);
     });
 
-    it("expose 17 templates majeurs", () => {
-        expect(AVAILABLE_TEMPLATE_IDS.length).toBe(17);
+    it("expose 20 templates majeurs", () => {
+        expect(AVAILABLE_TEMPLATE_IDS.length).toBe(20);
     });
 
     it("parse les anciens ids template", () => {
@@ -26,4 +26,3 @@ describe("style selection", () => {
         expect(resolved.themeOverrides["--cv-primary"]).toBeTruthy();
     });
 });
-

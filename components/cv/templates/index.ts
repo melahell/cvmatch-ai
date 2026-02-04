@@ -232,6 +232,33 @@ export const TEMPLATES: TemplateInfo[] = [
         available: true,
         recommended: ['Industrial', 'Operations', 'Logistics'],
     },
+    {
+        id: 'umbreon',
+        name: 'Umbreon',
+        description: 'Sidebar sombre contrastée, style tech premium',
+        category: 'professional',
+        preview: '/templates/umbreon-preview.png',
+        available: true,
+        recommended: ['Security', 'Engineering', 'Product'],
+    },
+    {
+        id: 'eevee',
+        name: 'Eevee',
+        description: 'Minimal mono-colonne, header typographique',
+        category: 'minimal',
+        preview: '/templates/eevee-preview.png',
+        available: true,
+        recommended: ['Consulting', 'Management', 'Generalist'],
+    },
+    {
+        id: 'altaria',
+        name: 'Altaria',
+        description: 'Two-column léger, beaucoup d’air, très lisible',
+        category: 'professional',
+        preview: '/templates/altaria-preview.png',
+        available: true,
+        recommended: ['Consulting', 'Data', 'HR'],
+    },
 ];
 
 export function getTemplateById(id: string): TemplateInfo | undefined {

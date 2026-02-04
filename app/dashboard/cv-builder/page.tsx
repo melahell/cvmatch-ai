@@ -1109,6 +1109,15 @@ function CVBuilderContent() {
                                                 <div className="space-y-1">
                                                     <div className="text-xs text-slate-600">Couleurs</div>
                                                     <div className="grid grid-cols-10 gap-1">
+                                                        <button
+                                                            key="default"
+                                                            type="button"
+                                                            onClick={() => setColorwayId("default")}
+                                                            title="Défaut"
+                                                            className={`h-6 w-6 rounded-full border bg-white text-[9px] font-semibold ${colorwayId === "default" ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                        >
+                                                            D
+                                                        </button>
                                                         {CV_COLORWAYS.map((c) => (
                                                             <button
                                                                 key={c.id}
@@ -1140,25 +1149,17 @@ function CVBuilderContent() {
                                                 <div className="space-y-1">
                                                     <div className="text-xs text-slate-600">Police</div>
                                                     <div className="flex gap-2">
-                                                        {CV_FONTS.map((f) => {
-                                                            const allowed =
-                                                                f.id === "sans" ||
-                                                                (templateId === "tech" && (f.id === "mono" || f.id === "sans")) ||
-                                                                (templateId === "classic" && (f.id === "serif" || f.id === "sans")) ||
-                                                                (templateId === "creative" && (f.id === "display" || f.id === "sans"));
-                                                            return (
-                                                                <Button
-                                                                    key={f.id}
-                                                                    variant={fontId === f.id ? "primary" : "outline"}
-                                                                    size="sm"
-                                                                    className="flex-1"
-                                                                    disabled={!allowed}
-                                                                    onClick={() => setFontId(f.id)}
-                                                                >
-                                                                    {f.name}
-                                                                </Button>
-                                                            );
-                                                        })}
+                                                        {CV_FONTS.map((f) => (
+                                                            <Button
+                                                                key={f.id}
+                                                                variant={fontId === f.id ? "primary" : "outline"}
+                                                                size="sm"
+                                                                className="flex-1"
+                                                                onClick={() => setFontId(f.id)}
+                                                            >
+                                                                {f.name}
+                                                            </Button>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             </div>

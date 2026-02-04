@@ -3,7 +3,6 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Github, Globe, ExternalLink } from "lucide-react";
-import { DESIGN_TOKENS } from "@/lib/design-tokens";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 
@@ -46,7 +45,7 @@ export default function ClassicTemplate({
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'Georgia', 'Times New Roman', serif",
+                fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8.5pt' : '9pt',
                 lineHeight: dense ? '1.25' : '1.3'
             }}
@@ -55,7 +54,7 @@ export default function ClassicTemplate({
             <header
                 className="text-center py-6 px-8 text-white relative overflow-hidden"
                 style={{
-                    background: `linear-gradient(135deg, ${DESIGN_TOKENS.colors.text.primary} 0%, ${DESIGN_TOKENS.colors.text.secondary} 50%, ${DESIGN_TOKENS.colors.text.tertiary} 100%)`
+                    background: "var(--cv-primary)"
                 }}
             >
                 {/* Decorative elements */}

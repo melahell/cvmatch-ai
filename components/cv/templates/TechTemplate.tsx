@@ -3,18 +3,19 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Github, Linkedin, Globe, ExternalLink } from "lucide-react";
-import { DESIGN_TOKENS } from "@/lib/design-tokens";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 
-// Tech-specific color palette using design tokens
-// NOTE: Inline styles in this template reference this COLORS object which uses design tokens
 const COLORS = {
-    primary: DESIGN_TOKENS.colors.semantic.success, // Emerald/Success
-    secondary: DESIGN_TOKENS.colors.semantic.info, // Cyan/Info
-    accent: DESIGN_TOKENS.colors.neon.purple, // Violet
-    bg: DESIGN_TOKENS.colors.text.primary, // Slate 900
-    bgLight: DESIGN_TOKENS.colors.text.secondary, // Slate 800
+    primary: "var(--cv-primary)",
+    secondary: "var(--cv-sidebar-accent)",
+    accent: "var(--cv-sidebar-accent)",
+    bg: "var(--cv-sidebar-bg)",
+    bgLight: "color-mix(in srgb, var(--cv-sidebar-bg) 85%, white)",
+    primary30: "color-mix(in srgb, var(--cv-primary) 18.75%, transparent)",
+    secondary30: "color-mix(in srgb, var(--cv-sidebar-accent) 18.75%, transparent)",
+    accent30: "color-mix(in srgb, var(--cv-sidebar-accent) 18.75%, transparent)",
+    primary40: "color-mix(in srgb, var(--cv-primary) 25%, transparent)",
 };
 
 export default function TechTemplate({
@@ -92,7 +93,7 @@ export default function TechTemplate({
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8.5pt' : '9pt',
                 lineHeight: dense ? '1.25' : '1.3'
             }}
@@ -117,7 +118,7 @@ export default function TechTemplate({
                 <div className="flex flex-col items-center text-center mb-4">
                     {includePhoto && hasHttpPhoto ? (
                         <div
-                            className="w-20 h-20 rounded-lg border-2 border-semantic-success p-0.5 mb-3 overflow-hidden shadow-level-3"
+                            className="w-20 h-20 rounded-lg border-2 border-[color:var(--cv-primary)] p-0.5 mb-3 overflow-hidden shadow-level-3"
                         >
                             <img
                                 src={profil.photo_url}
@@ -127,57 +128,57 @@ export default function TechTemplate({
                         </div>
                     ) : (
                         <div
-                            className="w-20 h-20 rounded-lg border-2 border-emerald-500 mb-3 flex items-center justify-center"
+                            className="w-20 h-20 rounded-lg border-2 border-[color:var(--cv-primary)] mb-3 flex items-center justify-center"
                             style={{
-                                background: `linear-gradient(135deg, ${COLORS.primary}30, ${COLORS.secondary}30)`,
-                                boxShadow: `0 0 15px ${COLORS.primary}40`
+                                background: `linear-gradient(135deg, ${COLORS.primary30}, ${COLORS.secondary30})`,
+                                boxShadow: `0 0 15px ${COLORS.primary40}`
                             }}
                         >
-                            <span className="text-2xl font-bold text-emerald-400">{initials}</span>
+                            <span className="text-2xl font-bold text-[color:var(--cv-primary)]">{initials}</span>
                         </div>
                     )}
                     <h1 className="text-base font-bold tracking-tight">{profil.prenom} {profil.nom}</h1>
-                    <p className="text-emerald-400 font-mono mt-1 text-[8pt]">
+                    <p className="text-[color:var(--cv-primary)] font-mono mt-1 text-[8pt]">
                         <span className="text-slate-600">{'>'}</span> {profil.titre_principal}
                     </p>
                 </div>
 
                 {/* Contact - Terminal style */}
                 <div className="space-y-1.5 mb-4 text-[7pt] font-mono">
-                    <div className="text-emerald-300 text-[6pt] mb-1">{'// contact'}</div>
+                    <div className="text-[color:var(--cv-primary)] text-[6pt] mb-1">{'// contact'}</div>
                     {profil.email && (
                         <div className="flex items-center gap-2">
-                            <Mail className="w-3 h-3 text-cyan-400" />
+                            <Mail className="w-3 h-3 text-[color:var(--cv-sidebar-accent)]" />
                             <span className="text-slate-300 truncate">{profil.email}</span>
                         </div>
                     )}
                     {profil.telephone && (
                         <div className="flex items-center gap-2">
-                            <Phone className="w-3 h-3 text-cyan-400" />
+                            <Phone className="w-3 h-3 text-[color:var(--cv-sidebar-accent)]" />
                             <span className="text-slate-300">{profil.telephone}</span>
                         </div>
                     )}
                     {profil.localisation && (
                         <div className="flex items-center gap-2">
-                            <MapPin className="w-3 h-3 text-cyan-400" />
+                            <MapPin className="w-3 h-3 text-[color:var(--cv-sidebar-accent)]" />
                             <span className="text-slate-300">{profil.localisation}</span>
                         </div>
                     )}
                     {profil.github && (
                         <div className="flex items-center gap-2">
-                            <Github className="w-3 h-3 text-cyan-400" />
+                            <Github className="w-3 h-3 text-[color:var(--cv-sidebar-accent)]" />
                             <span className="text-slate-300 truncate">{profil.github}</span>
                         </div>
                     )}
                     {profil.portfolio && (
                         <div className="flex items-center gap-2">
-                            <Globe className="w-3 h-3 text-cyan-400" />
+                            <Globe className="w-3 h-3 text-[color:var(--cv-sidebar-accent)]" />
                             <span className="text-slate-300 truncate">{profil.portfolio}</span>
                         </div>
                     )}
                     {profil.linkedin && (
                         <div className="flex items-center gap-2">
-                            <Linkedin className="w-3 h-3 text-cyan-400" />
+                            <Linkedin className="w-3 h-3 text-[color:var(--cv-sidebar-accent)]" />
                             <span className="text-slate-300 truncate">{profil.linkedin}</span>
                         </div>
                     )}
@@ -185,7 +186,7 @@ export default function TechTemplate({
 
                 {/* Skills by Category */}
                 <div className="space-y-3 flex-1">
-                    <div className="text-emerald-300 text-[6pt] font-mono">{'// tech_stack'}</div>
+                    <div className="text-[color:var(--cv-primary)] text-[6pt] font-mono">{'// tech_stack'}</div>
 
                     {skillCategories.languages.length > 0 && (
                         <div>
@@ -195,7 +196,7 @@ export default function TechTemplate({
                                     <span
                                         key={i}
                                         className="px-1.5 py-0.5 text-[6pt] rounded font-mono"
-                                        style={{ background: `${COLORS.primary}30`, color: COLORS.primary }}
+                                        style={{ background: COLORS.primary30, color: COLORS.primary }}
                                     >
                                         {skill}
                                     </span>
@@ -212,7 +213,7 @@ export default function TechTemplate({
                                     <span
                                         key={i}
                                         className="px-1.5 py-0.5 text-[6pt] rounded font-mono"
-                                        style={{ background: `${COLORS.secondary}30`, color: COLORS.secondary }}
+                                        style={{ background: COLORS.secondary30, color: COLORS.secondary }}
                                     >
                                         {skill}
                                     </span>
@@ -229,7 +230,7 @@ export default function TechTemplate({
                                     <span
                                         key={i}
                                         className="px-1.5 py-0.5 text-[6pt] rounded font-mono"
-                                        style={{ background: `${COLORS.accent}30`, color: COLORS.accent }}
+                                        style={{ background: COLORS.accent30, color: COLORS.accent }}
                                     >
                                         {skill}
                                     </span>
@@ -245,7 +246,7 @@ export default function TechTemplate({
                                 {skillCategories.databases.map((skill, i) => (
                                     <span
                                         key={i}
-                                        className="px-1.5 py-0.5 text-[6pt] rounded font-mono bg-amber-500/20 text-amber-400"
+                                        className="px-1.5 py-0.5 text-[6pt] rounded font-mono bg-[var(--cv-primary-light)] text-[color:var(--cv-primary)]"
                                     >
                                         {skill}
                                     </span>
@@ -258,12 +259,12 @@ export default function TechTemplate({
                 {/* [CDC-21] Soft Skills ajoutés */}
                 {competences?.soft_skills && competences.soft_skills.length > 0 && (
                     <div className="pt-3 border-t border-slate-700 mt-3">
-                        <div className="text-emerald-300 text-[6pt] font-mono mb-1">{'// soft_skills'}</div>
+                        <div className="text-[color:var(--cv-primary)] text-[6pt] font-mono mb-1">{'// soft_skills'}</div>
                         <div className="flex flex-wrap gap-1">
                             {competences.soft_skills.map(safeString).map((skill, i) => (
                                 <span
                                     key={i}
-                                    className="px-1.5 py-0.5 text-[6pt] rounded font-mono bg-pink-500/20 text-pink-400"
+                                    className="px-1.5 py-0.5 text-[6pt] rounded font-mono bg-[var(--cv-primary-light)] text-[color:var(--cv-sidebar-accent)]"
                                 >
                                     {skill}
                                 </span>
@@ -275,11 +276,11 @@ export default function TechTemplate({
                 {/* Languages */}
                 {langues && langues.length > 0 && (
                     <div className="pt-3 border-t border-slate-700 mt-auto">
-                        <div className="text-emerald-300 text-[6pt] font-mono mb-1">{'// languages'}</div>
+                        <div className="text-[color:var(--cv-primary)] text-[6pt] font-mono mb-1">{'// languages'}</div>
                         <div className="flex flex-wrap gap-2">
                             {langues.map((lang, i) => (
                                 <span key={i} className="text-[7pt] text-slate-300">
-                                    {lang.langue}: <span className="text-emerald-400">{lang.niveau.split(' ')[0]}</span>
+                                    {lang.langue}: <span className="text-[color:var(--cv-primary)]">{lang.niveau.split(' ')[0]}</span>
                                 </span>
                             ))}
                         </div>
@@ -290,14 +291,14 @@ export default function TechTemplate({
             {/* Main Content */}
             <main className="flex-1 p-5 bg-white overflow-hidden" style={{ fontFamily: "var(--cv-font-body)" }}>
                 {/* Header */}
-                <div className="mb-4 pb-3 border-b-2 border-emerald-500">
+                <div className="mb-4 pb-3 border-b-2 border-[color:var(--cv-primary)]">
                     <h1 className="text-xl font-extrabold text-slate-900">{profil.prenom} {profil.nom}</h1>
-                    <p className="text-emerald-600 font-semibold text-[10pt]">{profil.titre_principal}</p>
+                    <p className="text-[color:var(--cv-primary)] font-semibold text-[10pt]">{profil.titre_principal}</p>
 
                     {/* Job context */}
                     {jobContext?.job_title && (
-                        <div className="mt-2 px-2 py-1 bg-emerald-50 rounded inline-block">
-                            <span className="text-[7pt] text-emerald-700 font-mono">
+                        <div className="mt-2 px-2 py-1 bg-[var(--cv-primary-light)] rounded inline-block">
+                            <span className="text-[7pt] text-[color:var(--cv-primary)] font-mono">
                                 {'// Candidature: '} {jobContext.job_title}
                                 {jobContext.company && ` @ ${jobContext.company}`}
                                 {jobContext.match_score && ` | Match: ${jobContext.match_score}%`}
@@ -309,7 +310,7 @@ export default function TechTemplate({
                 {/* Summary */}
                 {profil.elevator_pitch && (
                     <section className="mb-4">
-                        <p className="text-slate-700 text-[9pt] leading-relaxed border-l-3 border-emerald-200 pl-3 italic">
+                        <p className="text-slate-700 text-[9pt] leading-relaxed border-l-3 border-[color:var(--cv-primary)] pl-3 italic">
                             {profil.elevator_pitch}
                         </p>
                     </section>
@@ -318,9 +319,9 @@ export default function TechTemplate({
                 {/* Experiences */}
                 <section className="mb-4">
                     <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
-                        <span className="text-emerald-500 font-mono">{'<'}</span>
+                        <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                         Experience
-                        <span className="text-emerald-500 font-mono">{'>'}</span>
+                        <span className="text-[color:var(--cv-primary)] font-mono">{'>'}</span>
                     </h2>
 
                     <div className="space-y-3">
@@ -334,7 +335,7 @@ export default function TechTemplate({
                                     <div className="flex items-center gap-2">
                                         <h4 className="text-[9pt] font-bold text-slate-900">{exp.poste}</h4>
                                         {(exp as any)._relevance_score >= 50 && (
-                                            <span className="bg-emerald-100 text-emerald-700 text-[6pt] px-1.5 py-0.5 rounded font-bold font-sans">
+                                            <span className="bg-[var(--cv-primary-light)] text-[color:var(--cv-primary)] text-[6pt] px-1.5 py-0.5 rounded font-bold font-sans">
                                                 ★ Match
                                             </span>
                                         )}
@@ -356,7 +357,7 @@ export default function TechTemplate({
                                     <ul className="mt-1.5 space-y-0.5 text-[8pt] text-slate-700">
                                         {exp.realisations.map((r, j) => (
                                             <li key={j} className="flex items-start gap-1.5">
-                                                <span className="text-emerald-500 mt-0.5">→</span>
+                                                <span className="text-[color:var(--cv-primary)] mt-0.5">→</span>
                                                 {safeString(r)}
                                             </li>
                                         ))}
@@ -371,9 +372,9 @@ export default function TechTemplate({
                 {clients_references?.clients && clients_references.clients.length > 0 && (
                     <section className="mb-4">
                         <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
-                            <span className="text-emerald-500 font-mono">{'<'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Clients
-                            <span className="text-emerald-500 font-mono">{'/>'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
                         <div className="flex flex-wrap gap-2">
                             {clients_references.clients.map((client, i) => (
@@ -381,7 +382,7 @@ export default function TechTemplate({
                                     key={i}
                                     className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded border border-slate-200"
                                 >
-                                    <span className="text-emerald-500 text-[8pt]">◆</span>
+                                    <span className="text-[color:var(--cv-primary)] text-[8pt]">◆</span>
                                     <span className="text-[7pt] font-medium text-slate-700">{client}</span>
                                 </div>
                             ))}
@@ -393,9 +394,9 @@ export default function TechTemplate({
                 {certifications && certifications.length > 0 && (
                     <section className="mb-4">
                         <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
-                            <span className="text-emerald-500 font-mono">{'<'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Certifications
-                            <span className="text-emerald-500 font-mono">{'/>'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
                         <div className="flex flex-wrap gap-2">
                             {certifications.map((cert, i) => (
@@ -403,7 +404,7 @@ export default function TechTemplate({
                                     key={i}
                                     className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded border border-slate-200"
                                 >
-                                    <span className="text-emerald-500 text-[8pt]">✓</span>
+                                    <span className="text-[color:var(--cv-primary)] text-[8pt]">✓</span>
                                     <span className="text-[7pt] font-medium text-slate-700">{cert}</span>
                                 </div>
                             ))}
@@ -415,9 +416,9 @@ export default function TechTemplate({
                 {limitedFormations.length > 0 && (
                     <section>
                         <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
-                            <span className="text-emerald-500 font-mono">{'<'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Education
-                            <span className="text-emerald-500 font-mono">{'/>'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
                         <div className="space-y-2">
                             {limitedFormations.map((edu, i) => (
@@ -429,7 +430,7 @@ export default function TechTemplate({
                                         <div>
                                             <h4 className="text-[9pt] font-bold text-slate-900">{edu.diplome}</h4>
                                             {edu.etablissement && (
-                                                <p className="text-emerald-600 font-semibold text-[8pt] mt-0.5">{edu.etablissement}</p>
+                                                <p className="text-[color:var(--cv-primary)] font-semibold text-[8pt] mt-0.5">{edu.etablissement}</p>
                                             )}
                                         </div>
                                         {edu.annee && (
@@ -448,9 +449,9 @@ export default function TechTemplate({
                 {projects && projects.length > 0 && (
                     <section className="mt-4">
                         <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
-                            <span className="text-emerald-500 font-mono">{'<'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Projects
-                            <span className="text-emerald-500 font-mono">{'/>'}</span>
+                            <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
                         <div className="grid grid-cols-2 gap-2">
                             {projects.map((project, i) => (
@@ -460,7 +461,7 @@ export default function TechTemplate({
                                 >
                                     <div className="flex items-center gap-1">
                                         <h4 className="text-[8pt] font-bold text-slate-900">{project.nom}</h4>
-                                        {project.lien && <ExternalLink className="w-2.5 h-2.5 text-emerald-500" />}
+                                        {project.lien && <ExternalLink className="w-2.5 h-2.5 text-[color:var(--cv-primary)]" />}
                                     </div>
                                     <p className="text-[7pt] text-slate-600 mt-0.5">{project.description}</p>
                                     {project.technologies && project.technologies.length > 0 && (
@@ -469,7 +470,7 @@ export default function TechTemplate({
                                                 <span
                                                     key={j}
                                                     className="px-1 py-0.5 text-[5pt] rounded font-mono"
-                                                    style={{ background: `${COLORS.primary}30`, color: COLORS.primary }}
+                                                    style={{ background: COLORS.primary30, color: COLORS.primary }}
                                                 >
                                                     {tech}
                                                 </span>

@@ -8,28 +8,22 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface LaprasColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-}
-
-const defaultColors: LaprasColors = {
-    primary: "#06b6d4",  // Cyan
-    secondary: "#0891b2",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function LaprasTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        primary08: CV_THEME_VARS.primaryA08,
+        primary15: CV_THEME_VARS.primaryLight,
+        primary20: CV_THEME_VARS.primaryA20,
+    };
     const padding = dense ? "px-5 py-4" : "px-8 py-6";
     const textSize = dense ? "text-xs" : "text-sm";
 
@@ -177,7 +171,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                             </h2>
                             <div className="grid grid-cols-2 gap-3">
                                 {projects.slice(0, 4).map((proj: any, idx: number) => (
-                                    <article key={idx} className="p-3 rounded-lg" style={{ backgroundColor: `${colors.primary}08` }}>
+                                    <article key={idx} className="p-3 rounded-lg" style={{ backgroundColor: colors.primary08 }}>
                                         <h3 className="font-semibold text-sm">{sanitizeText(proj.nom)}</h3>
                                         {proj.description && (
                                             <p className="text-xs text-gray-600 mt-1">{sanitizeText(proj.description)}</p>
@@ -193,13 +187,13 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                 <aside className="w-1/3 space-y-5">
                     {/* Compétences */}
                     {allSkills.length > 0 && (
-                        <section className="p-4 rounded-lg" style={{ backgroundColor: `${colors.primary}08` }}>
+                        <section className="p-4 rounded-lg" style={{ backgroundColor: colors.primary08 }}>
                             <h3 className="text-sm font-bold mb-3" style={{ color: colors.primary }}>
                                 Compétences
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
                                 {allSkills.slice(0, 12).map((skill: string, idx: number) => (
-                                    <span key={idx} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: `${colors.primary}20`, color: colors.secondary }}>
+                                    <span key={idx} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.primary20, color: colors.secondary }}>
                                         {sanitizeText(skill)}
                                     </span>
                                 ))}
@@ -235,7 +229,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                 {langues.map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className="text-xs font-medium">{lang.langue}</span>
-                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: `${colors.primary}15`, color: colors.secondary }}>
+                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: colors.primary15, color: colors.secondary }}>
                                             {lang.niveau}
                                         </span>
                                     </div>

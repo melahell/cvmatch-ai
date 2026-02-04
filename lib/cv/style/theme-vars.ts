@@ -1,0 +1,17 @@
+export const CV_THEME_VARS = {
+    primary: "var(--cv-primary)",
+    primaryLight: "var(--cv-primary-light)",
+    text: "var(--cv-text)",
+    muted: "var(--cv-text-muted)",
+    background: "var(--cv-background)",
+    sidebarBg: "var(--cv-sidebar-bg)",
+    sidebarText: "var(--cv-sidebar-text)",
+    sidebarAccent: "var(--cv-sidebar-accent)",
+    border: "var(--cv-border)",
+    primaryA08: "color-mix(in srgb, var(--cv-primary) 3.125%, transparent)",
+    primaryA10: "color-mix(in srgb, var(--cv-primary) 6.25%, transparent)",
+    primaryA20: "color-mix(in srgb, var(--cv-primary) 12.5%, transparent)",
+    primaryA30: "color-mix(in srgb, var(--cv-primary) 18.75%, transparent)",
+    primaryA40: "color-mix(in srgb, var(--cv-primary) 25%, transparent)",
+    primaryA50: "color-mix(in srgb, var(--cv-primary) 31.25%, transparent)",
+};

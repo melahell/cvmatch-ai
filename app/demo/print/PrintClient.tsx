@@ -112,7 +112,7 @@ export default function DemoPrintClient() {
         return <div className="p-12 text-center">Token manquant</div>;
     }
 
-    if (expired || (!payload && token)) {
+    if (expired) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <div className="text-center space-y-4 max-w-md px-6">

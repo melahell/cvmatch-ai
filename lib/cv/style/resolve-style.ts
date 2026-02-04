@@ -51,11 +51,7 @@ export function parseLegacyTemplateId(templateId: string): {
 }
 
 function isFontAllowed(templateId: string, fontId: string): boolean {
-    if (fontId === "sans") return true;
-    if (templateId === "tech") return fontId === "mono" || fontId === "sans";
-    if (templateId === "classic") return fontId === "serif" || fontId === "sans";
-    if (templateId === "creative") return fontId === "display" || fontId === "sans";
-    return fontId === "sans";
+    return true;
 }
 
 function applyPrintSafe(templateId: string): Partial<CVThemeVariables> {
@@ -117,4 +113,3 @@ export function resolveCVStyle(selection: CVStyleSelection): ResolvedCVStyle {
         dense,
     };
 }
-

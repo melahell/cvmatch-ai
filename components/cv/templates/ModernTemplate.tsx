@@ -3,7 +3,6 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, ExternalLink } from "lucide-react";
-import { DESIGN_TOKENS } from "@/lib/design-tokens";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 
@@ -18,15 +17,6 @@ export default function ModernTemplate({
     const hasHttpPhoto =
         typeof profil?.photo_url === "string" &&
         (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
-
-    // Phase 1 Diagnostic: Log dans template
-    if (typeof window !== 'undefined') {
-        console.log("[ModernTemplate] Photo check", { 
-            photoUrl: profil?.photo_url, 
-            hasHttpPhoto,
-            includePhoto 
-        });
-    }
 
     const renderRealisation = (r: string): string => sanitizeText(r);
     const renderSkill = (s: string): string => sanitizeText(s);
@@ -63,13 +53,13 @@ export default function ModernTemplate({
                 className="flex-shrink-0 text-white p-5 flex flex-col"
                 style={{
                     width: '75mm',
-                    background: `linear-gradient(180deg, ${DESIGN_TOKENS.colors.text.primary} 0%, ${DESIGN_TOKENS.colors.text.secondary} 100%)`
+                    background: "var(--cv-sidebar-bg)"
                 }}
             >
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center mb-5">
                     <div
-                        className="w-24 h-24 rounded-full border-4 border-neon-indigo p-0.5 mb-3 overflow-hidden bg-slate-800 flex items-center justify-center shadow-level-4"
+                        className="w-24 h-24 rounded-full border-4 border-[color:var(--cv-sidebar-accent)] p-0.5 mb-3 overflow-hidden bg-slate-800 flex items-center justify-center shadow-level-4"
                     >
                         {includePhoto && hasHttpPhoto ? (
                             <img
@@ -78,55 +68,55 @@ export default function ModernTemplate({
                                 className="w-full h-full object-cover rounded-full"
                             />
                         ) : (
-                            <div className="w-full h-full rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl font-bold">
+                            <div className="w-full h-full rounded-full bg-gradient-to-br from-[var(--cv-primary)] to-[var(--cv-sidebar-accent)] flex items-center justify-center text-2xl font-bold">
                                 {initials}
                             </div>
                         )}
                     </div>
                     <h1 className="text-lg font-bold tracking-tight">{profil.prenom} {profil.nom}</h1>
-                    <p className="text-indigo-400 font-semibold mt-1 text-[9pt] uppercase tracking-widest leading-tight">
+                    <p className="text-[color:var(--cv-sidebar-accent)] font-semibold mt-1 text-[9pt] uppercase tracking-widest leading-tight">
                         {sanitizeText(profil.titre_principal)}
                     </p>
                 </div>
 
                 {/* Contact */}
                 <div className="space-y-2 mb-5 text-[8pt]">
-                    <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
+                    <h3 className="text-[color:var(--cv-sidebar-accent)] font-bold uppercase text-[7pt] tracking-widest border-b-2 border-[color:var(--cv-sidebar-accent)] pb-1.5">
                         Contact
                     </h3>
                     {profil.email && (
-                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
-                            <Mail className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <div className="flex items-center gap-2 hover:text-[color:var(--cv-sidebar-accent)] transition-colors">
+                            <Mail className="w-3.5 h-3.5 text-[color:var(--cv-sidebar-accent)] flex-shrink-0" />
                             <span className="text-slate-100 truncate">{profil.email}</span>
                         </div>
                     )}
                     {profil.telephone && (
-                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
-                            <Phone className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <div className="flex items-center gap-2 hover:text-[color:var(--cv-sidebar-accent)] transition-colors">
+                            <Phone className="w-3.5 h-3.5 text-[color:var(--cv-sidebar-accent)] flex-shrink-0" />
                             <span className="text-slate-100">{profil.telephone}</span>
                         </div>
                     )}
                     {profil.localisation && (
                         <div className="flex items-center gap-2">
-                            <MapPin className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-[color:var(--cv-sidebar-accent)] flex-shrink-0" />
                             <span className="text-slate-100">{profil.localisation}</span>
                         </div>
                     )}
                     {profil.linkedin && (
-                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
-                            <Linkedin className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <div className="flex items-center gap-2 hover:text-[color:var(--cv-sidebar-accent)] transition-colors">
+                            <Linkedin className="w-3.5 h-3.5 text-[color:var(--cv-sidebar-accent)] flex-shrink-0" />
                             <span className="text-slate-100 truncate text-[7pt]">{profil.linkedin}</span>
                         </div>
                     )}
                     {profil.github && (
-                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
-                            <Github className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <div className="flex items-center gap-2 hover:text-[color:var(--cv-sidebar-accent)] transition-colors">
+                            <Github className="w-3.5 h-3.5 text-[color:var(--cv-sidebar-accent)] flex-shrink-0" />
                             <span className="text-slate-100 truncate text-[7pt]">{profil.github}</span>
                         </div>
                     )}
                     {profil.portfolio && (
-                        <div className="flex items-center gap-2 hover:text-indigo-300 transition-colors">
-                            <Globe className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+                        <div className="flex items-center gap-2 hover:text-[color:var(--cv-sidebar-accent)] transition-colors">
+                            <Globe className="w-3.5 h-3.5 text-[color:var(--cv-sidebar-accent)] flex-shrink-0" />
                             <span className="text-slate-100 truncate text-[7pt]">{profil.portfolio}</span>
                         </div>
                     )}
@@ -134,13 +124,13 @@ export default function ModernTemplate({
 
                 {/* Compétences */}
                 <div className="space-y-3 mb-5">
-                    <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
+                    <h3 className="text-[color:var(--cv-sidebar-accent)] font-bold uppercase text-[7pt] tracking-widest border-b-2 border-[color:var(--cv-sidebar-accent)] pb-1.5">
                         Compétences
                     </h3>
                     <ul className="space-y-1">
                         {limitedSkills.map((skill, i) => (
                             <li key={i} className="flex items-start gap-2">
-                                <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
+                                <span className="mt-[4px] w-1.5 h-1.5 rounded-full bg-[var(--cv-sidebar-accent)] flex-shrink-0" />
                                 <span className="text-slate-100 font-medium text-[8pt] leading-tight">{renderSkill(skill)}</span>
                             </li>
                         ))}
@@ -150,14 +140,14 @@ export default function ModernTemplate({
                 {/* Soft Skills - Tags */}
                 {limitedSoftSkills.length > 0 && (
                     <div className="space-y-2 mb-5">
-                        <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
+                        <h3 className="text-[color:var(--cv-sidebar-accent)] font-bold uppercase text-[7pt] tracking-widest border-b-2 border-[color:var(--cv-sidebar-accent)] pb-1.5">
                             Qualités
                         </h3>
                         <div className="flex flex-wrap gap-1">
                             {limitedSoftSkills.map((skill, i) => (
                                 <span
                                     key={i}
-                                    className="px-2 py-0.5 bg-indigo-500/30 text-indigo-200 text-[7pt] rounded border border-indigo-400/50 font-medium"
+                                    className="px-2 py-0.5 bg-[var(--cv-primary-light)] text-[color:var(--cv-sidebar-text)] text-[7pt] rounded border border-[color:var(--cv-sidebar-accent)] font-medium"
                                 >
                                     {renderSkill(skill)}
                                 </span>
@@ -169,14 +159,14 @@ export default function ModernTemplate({
                 {/* Langues */}
                 {langues && langues.length > 0 && (
                     <div className="space-y-2">
-                        <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
+                        <h3 className="text-[color:var(--cv-sidebar-accent)] font-bold uppercase text-[7pt] tracking-widest border-b-2 border-[color:var(--cv-sidebar-accent)] pb-1.5">
                             Langues
                         </h3>
                         <div className="space-y-1.5 text-[8pt]">
                             {langues.map((lang, i) => (
                                 <div key={i} className="flex justify-between items-center">
                                     <span className="text-slate-100 font-medium">{lang.langue}</span>
-                                    <span className="text-[6pt] bg-indigo-600 text-white px-1.5 py-0.5 rounded uppercase font-semibold">
+                                    <span className="text-[6pt] bg-[var(--cv-sidebar-accent)] text-white px-1.5 py-0.5 rounded uppercase font-semibold">
                                         {lang.niveau.split(' ')[0]}
                                     </span>
                                 </div>
@@ -188,14 +178,14 @@ export default function ModernTemplate({
                 {/* Références Clients - Grille 2 colonnes */}
                 {clients_references && clients_references.clients && clients_references.clients.length > 0 && (
                     <div className="space-y-2 mb-4">
-                        <h3 className="text-indigo-300 font-bold uppercase text-[7pt] tracking-widest border-b-2 border-indigo-700 pb-1.5">
+                        <h3 className="text-[color:var(--cv-sidebar-accent)] font-bold uppercase text-[7pt] tracking-widest border-b-2 border-[color:var(--cv-sidebar-accent)] pb-1.5">
                             Références
                         </h3>
                         {clients_references.secteurs && clients_references.secteurs.length > 0 ? (
                             <div className="space-y-2">
                                 {clients_references.secteurs.slice(0, 5).map((group, i) => (
                                     <div key={i}>
-                                        <span className="inline-block bg-indigo-600 text-white text-[6pt] uppercase font-bold px-1.5 py-0.5 rounded mb-1">
+                                        <span className="inline-block bg-[var(--cv-sidebar-accent)] text-white text-[6pt] uppercase font-bold px-1.5 py-0.5 rounded mb-1">
                                             {group.secteur}
                                         </span>
                                         <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
@@ -223,10 +213,10 @@ export default function ModernTemplate({
                 {cleanElevatorPitch && (
                     <section className="mb-4">
                         <h2 className="text-base font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
-                            <span className="w-6 h-0.5 bg-indigo-600 rounded-full" />
+                            <span className="w-6 h-0.5 bg-[var(--cv-primary)] rounded-full" />
                             Profil
                         </h2>
-                        <p className="text-slate-700 leading-relaxed text-[9pt] border-l-4 border-indigo-100 pl-3 font-medium">
+                        <p className="text-slate-700 leading-relaxed text-[9pt] border-l-4 border-[var(--cv-border)] pl-3 font-medium">
                             {cleanElevatorPitch}
                         </p>
                     </section>
@@ -234,8 +224,8 @@ export default function ModernTemplate({
 
                 {/* Job context */}
                 {jobContext?.job_title && (
-                    <div className="mb-4 px-3 py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-100">
-                        <p className="text-[8pt] text-indigo-700 font-semibold">
+                    <div className="mb-4 px-3 py-2 bg-[var(--cv-primary-light)] rounded-lg border border-[var(--cv-border)]">
+                        <p className="text-[8pt] text-[color:var(--cv-primary)] font-semibold">
                             📍 Candidature pour : {jobContext.job_title}
                             {jobContext.company && ` chez ${jobContext.company}`}
                         </p>
@@ -269,7 +259,7 @@ export default function ModernTemplate({
                                             </span>
                                         )}
                                     </div>
-                                    <span className="text-indigo-700 font-bold bg-indigo-100 px-2 py-0.5 rounded text-[7pt]">
+                                    <span className="text-[color:var(--cv-primary)] font-bold bg-[var(--cv-primary-light)] px-2 py-0.5 rounded text-[7pt]">
                                         {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
                                     </span>
                                 </div>
@@ -292,7 +282,7 @@ export default function ModernTemplate({
                                 {(exp as any).technologies && Array.isArray((exp as any).technologies) && (exp as any).technologies.length > 0 && (
                                     <div className="flex flex-wrap gap-1 mb-1">
                                         {(exp as any).technologies.map((tech: string, idx: number) => (
-                                            <span key={idx} className="text-[6pt] bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded">
+                                            <span key={idx} className="text-[6pt] bg-[var(--cv-primary-light)] text-[color:var(--cv-primary)] px-1.5 py-0.5 rounded">
                                                 {sanitizeText(tech)}
                                             </span>
                                         ))}
@@ -336,18 +326,18 @@ export default function ModernTemplate({
                 {limitedFormations.length > 0 && (
                     <section className="mb-2">
                         <h2 className="text-base font-extrabold mb-3 flex items-center gap-2 uppercase tracking-widest text-slate-900">
-                            <span className="w-6 h-0.5 bg-indigo-600 rounded-full" />
+                            <span className="w-6 h-0.5 bg-[var(--cv-primary)] rounded-full" />
                             Formation
                         </h2>
                         <div className="space-y-2">
                             {limitedFormations.map((edu, i) => (
                                 <div
                                     key={i}
-                                    className="pl-4 py-2 border-l-2 border-indigo-200 bg-gradient-to-r from-indigo-50/50 to-transparent"
+                                    className="pl-4 py-2 border-l-2 border-[var(--cv-border)] bg-[var(--cv-primary-light)]"
                                 >
                                     <h4 className="font-bold text-[9pt] text-slate-900">{sanitizeText(edu.diplome)}</h4>
                                     {edu.etablissement && (
-                                        <p className="text-indigo-600 font-semibold text-[8pt]">{sanitizeText(edu.etablissement)}</p>
+                                        <p className="text-[color:var(--cv-primary)] font-semibold text-[8pt]">{sanitizeText(edu.etablissement)}</p>
                                     )}
                                     {edu.annee && (
                                         <p className="text-slate-600 text-[7pt] mt-0.5">{sanitizeText(edu.annee)}</p>
@@ -362,7 +352,7 @@ export default function ModernTemplate({
                 {projects && projects.length > 0 && (
                     <section className="mb-2">
                         <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
-                            <span className="w-4 h-0.5 bg-indigo-600 rounded-full" />
+                            <span className="w-4 h-0.5 bg-[var(--cv-primary)] rounded-full" />
                             Projets
                         </h2>
                         <div className="grid grid-cols-2 gap-2">
@@ -373,13 +363,13 @@ export default function ModernTemplate({
                                 >
                                     <div className="flex items-center gap-1">
                                         <h4 className="font-bold text-[8pt] text-slate-900">{project.nom}</h4>
-                                        {project.lien && <ExternalLink className="w-2.5 h-2.5 text-indigo-500" />}
+                                        {project.lien && <ExternalLink className="w-2.5 h-2.5 text-[color:var(--cv-primary)]" />}
                                     </div>
                                     <p className="text-slate-600 text-[7pt]">{project.description}</p>
                                     {project.technologies && project.technologies.length > 0 && (
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {project.technologies.map((tech, j) => (
-                                                <span key={j} className="text-[5pt] bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded">
+                                                <span key={j} className="text-[5pt] bg-[var(--cv-primary-light)] text-[color:var(--cv-primary)] px-1 py-0.5 rounded">
                                                     {tech}
                                                 </span>
                                             ))}

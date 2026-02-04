@@ -8,30 +8,24 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface DitgarColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-    dark: string;
-}
-
-const defaultColors: DitgarColors = {
-    primary: "#a855f7",  // Violet
-    secondary: "#9333ea",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-    dark: "#1e1b4b",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function DitgarTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        dark: CV_THEME_VARS.sidebarBg,
+        primary08: CV_THEME_VARS.primaryA08,
+        primary10: CV_THEME_VARS.primaryA10,
+        primary30: CV_THEME_VARS.primaryA30,
+        primary40: CV_THEME_VARS.primaryA40,
+    };
     const padding = dense ? "px-5 py-4" : "px-6 py-5";
     const textSize = dense ? "text-xs" : "text-sm";
 
@@ -92,7 +86,7 @@ export default function DitgarTemplate({ data, includePhoto = true, dense = fals
                 </div>
 
                 {/* Contact */}
-                <div className={`${padding} py-3 border-y`} style={{ borderColor: `${colors.primary}40` }}>
+                <div className={`${padding} py-3 border-y`} style={{ borderColor: colors.primary40 }}>
                     <ContactInfo
                         email={profil.email}
                         telephone={profil.telephone}
@@ -136,7 +130,7 @@ export default function DitgarTemplate({ data, includePhoto = true, dense = fals
                                 {langues.map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className="text-xs text-white/80">{lang.langue}</span>
-                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: `${colors.primary}30`, color: colors.primary }}>
+                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: colors.primary30, color: colors.primary }}>
                                             {lang.niveau}
                                         </span>
                                     </div>
@@ -186,7 +180,7 @@ export default function DitgarTemplate({ data, includePhoto = true, dense = fals
             <main className={`flex-1 ${padding}`}>
                 {/* Pitch */}
                 {profil.elevator_pitch && (
-                    <section className="mb-5 p-4 rounded-lg" style={{ backgroundColor: `${colors.primary}08` }}>
+                    <section className="mb-5 p-4 rounded-lg" style={{ backgroundColor: colors.primary08 }}>
                         <p className={`${textSize} text-gray-700 italic`}>
                             "{sanitizeText(profil.elevator_pitch)}"
                         </p>
@@ -209,7 +203,7 @@ export default function DitgarTemplate({ data, includePhoto = true, dense = fals
                                                 {sanitizeText(exp.entreprise)}
                                             </p>
                                         </div>
-                                        <span className="text-xs text-gray-500 shrink-0 px-2 py-0.5 rounded" style={{ backgroundColor: `${colors.primary}10` }}>
+                                        <span className="text-xs text-gray-500 shrink-0 px-2 py-0.5 rounded" style={{ backgroundColor: colors.primary10 }}>
                                             {exp.date_debut}{exp.date_fin ? ` - ${exp.date_fin}` : " - Présent"}
                                         </span>
                                     </div>
@@ -245,7 +239,7 @@ export default function DitgarTemplate({ data, includePhoto = true, dense = fals
                         </h2>
                         <div className="grid grid-cols-2 gap-3">
                             {projects.slice(0, 4).map((proj: any, idx: number) => (
-                                <article key={idx} className="p-3 rounded border" style={{ borderColor: `${colors.primary}30` }}>
+                                <article key={idx} className="p-3 rounded border" style={{ borderColor: colors.primary30 }}>
                                     <h3 className="font-semibold text-sm">{sanitizeText(proj.nom)}</h3>
                                     {proj.description && (
                                         <p className="text-xs text-gray-600 mt-1">{sanitizeText(proj.description)}</p>

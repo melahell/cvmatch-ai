@@ -371,6 +371,15 @@ export default function CVViewPage() {
                             {showColorMenu && (
                                 <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20">
                                     <div className="grid grid-cols-10 gap-1">
+                                        <button
+                                            key="default"
+                                            type="button"
+                                            onClick={() => { setCurrentColorwayId("default"); setShowColorMenu(false); }}
+                                            title="Défaut"
+                                            className={`h-6 w-6 rounded-full border bg-white text-[9px] font-semibold ${currentColorwayId === "default" ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                        >
+                                            D
+                                        </button>
                                         {CV_COLORWAYS.map((c) => (
                                             <button
                                                 key={c.id}
@@ -425,27 +434,19 @@ export default function CVViewPage() {
                             </Button>
                             {showFontMenu && (
                                 <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[180px]">
-                                    {CV_FONTS.map((f) => {
-                                        const allowed =
-                                            f.id === "sans" ||
-                                            (currentTemplate === "tech" && (f.id === "mono" || f.id === "sans")) ||
-                                            (currentTemplate === "classic" && (f.id === "serif" || f.id === "sans")) ||
-                                            (currentTemplate === "creative" && (f.id === "display" || f.id === "sans"));
-                                        return (
-                                            <button
-                                                key={f.id}
-                                                disabled={!allowed}
-                                                onClick={() => { if (!allowed) return; setCurrentFontId(f.id); setShowFontMenu(false); }}
-                                                className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
-                                                    currentFontId === f.id
-                                                        ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
-                                                        : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
-                                                } ${!allowed ? "opacity-40 cursor-not-allowed" : ""}`}
-                                            >
-                                                {f.name}
-                                            </button>
-                                        );
-                                    })}
+                                    {CV_FONTS.map((f) => (
+                                        <button
+                                            key={f.id}
+                                            onClick={() => { setCurrentFontId(f.id); setShowFontMenu(false); }}
+                                            className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                                                currentFontId === f.id
+                                                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
+                                                    : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                            }`}
+                                        >
+                                            {f.name}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
                         </div>

@@ -3,18 +3,16 @@
 import React from "react";
 import { TemplateProps } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Sparkles, Github, Globe, ExternalLink } from "lucide-react";
-import { DESIGN_TOKENS } from "@/lib/design-tokens";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 
-// Vibrant creative palette using design tokens
-// NOTE: Inline styles in this template (style={{ color, background }}) reference this COLORS object
-// which uses design tokens. Inline styles are necessary for proper PDF/print rendering.
 const COLORS = {
-    primary: DESIGN_TOKENS.colors.semantic.warning, // Orange/Warning
-    secondary: DESIGN_TOKENS.colors.neon.pink, // Pink
-    accent: DESIGN_TOKENS.colors.neon.purple, // Violet
-    tertiary: DESIGN_TOKENS.colors.semantic.info, // Cyan/Info
+    primary: "var(--cv-primary)",
+    secondary: "var(--cv-sidebar-accent)",
+    accent: "var(--cv-sidebar-accent)",
+    tertiary: "var(--cv-sidebar-accent)",
+    primary10: "color-mix(in srgb, var(--cv-primary) 6.25%, transparent)",
+    secondary10: "color-mix(in srgb, var(--cv-sidebar-accent) 6.25%, transparent)",
 };
 
 export default function CreativeTemplate({
@@ -60,7 +58,7 @@ export default function CreativeTemplate({
                 maxHeight: '297mm',
                 overflow: 'hidden',
                 boxSizing: 'border-box',
-                fontFamily: "'Outfit', 'Inter', sans-serif",
+                fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8.5pt' : '9pt',
                 lineHeight: dense ? '1.25' : '1.3'
             }}
@@ -182,7 +180,7 @@ export default function CreativeTemplate({
                     {jobContext?.job_title && (
                         <div
                             className="mb-5 px-4 py-2 rounded-lg text-[8pt]"
-                            style={{ background: `linear-gradient(90deg, ${COLORS.primary}10, ${COLORS.secondary}10)` }}
+                            style={{ background: `linear-gradient(90deg, ${COLORS.primary10}, ${COLORS.secondary10})` }}
                         >
                             <span style={{ color: COLORS.primary }}>✨</span>
                             <span className="ml-2 text-slate-700">
@@ -267,7 +265,7 @@ export default function CreativeTemplate({
                 {/* Sidebar */}
                 <aside
                     className="w-64 p-5 flex-shrink-0"
-                    style={{ background: DESIGN_TOKENS.colors.surface.secondary }}
+                    style={{ background: "var(--cv-sidebar-bg)" }}
                 >
                     {/* Skills with colorful tags */}
                     <section className="mb-5">

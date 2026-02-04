@@ -8,28 +8,22 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
-
-interface GlalieColors {
-    primary: string;
-    secondary: string;
-    text: string;
-    muted: string;
-    background: string;
-}
-
-const defaultColors: GlalieColors = {
-    primary: "#0ea5e9",  // Bleu ciel
-    secondary: "#0284c7",
-    text: "#1f2937",
-    muted: "#6b7280",
-    background: "#ffffff",
-};
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function GlalieTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
-    const colors = defaultColors;
+    const colors = {
+        primary: CV_THEME_VARS.primary,
+        secondary: CV_THEME_VARS.sidebarAccent,
+        text: CV_THEME_VARS.text,
+        muted: CV_THEME_VARS.muted,
+        background: CV_THEME_VARS.background,
+        primary08: CV_THEME_VARS.primaryA08,
+        primary15: CV_THEME_VARS.primaryLight,
+        primary30: CV_THEME_VARS.primaryA30,
+    };
     const padding = dense ? "px-5 py-4" : "px-6 py-5";
     const textSize = dense ? "text-xs" : "text-sm";
 
@@ -63,7 +57,7 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
             {/* SIDEBAR avec fond légèrement coloré */}
             <aside
                 className="w-1/3 flex flex-col"
-                style={{ backgroundColor: `${colors.primary}08` }}
+                style={{ backgroundColor: colors.primary08 }}
             >
                 {/* Header centré */}
                 <div className={`${padding} flex flex-col items-center text-center border-b`} style={{ borderColor: colors.primary }}>
@@ -137,7 +131,7 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
                                 {langues.map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className="text-xs font-medium">{lang.langue}</span>
-                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: `${colors.primary}15`, color: colors.secondary }}>
+                                        <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: colors.primary15, color: colors.secondary }}>
                                             {lang.niveau}
                                         </span>
                                     </div>
@@ -246,7 +240,7 @@ export default function GlalieTemplate({ data, includePhoto = true, dense = fals
                         </h2>
                         <div className="grid grid-cols-2 gap-3">
                             {projects.slice(0, 4).map((proj: any, idx: number) => (
-                                <article key={idx} className="p-3 rounded border" style={{ borderColor: `${colors.primary}30` }}>
+                                <article key={idx} className="p-3 rounded border" style={{ borderColor: colors.primary30 }}>
                                     <h3 className="font-semibold text-sm">{sanitizeText(proj.nom)}</h3>
                                     {proj.description && (
                                         <p className="text-xs text-gray-600 mt-1">{sanitizeText(proj.description)}</p>

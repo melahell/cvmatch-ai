@@ -8,9 +8,10 @@
  */
 
 import React from "react";
-import { CVData, TemplateProps } from "../index";
+import { TemplateProps } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
+import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 interface RhyhornColors {
     primary: string;
@@ -21,11 +22,11 @@ interface RhyhornColors {
 }
 
 const defaultColors: RhyhornColors = {
-    primary: "#64748b",  // Gris ardoise
-    secondary: "#475569",
-    text: "#1e293b",
-    muted: "#64748b",
-    background: "#ffffff",
+    primary: CV_THEME_VARS.primary,
+    secondary: CV_THEME_VARS.sidebarAccent,
+    text: CV_THEME_VARS.text,
+    muted: CV_THEME_VARS.muted,
+    background: CV_THEME_VARS.background,
 };
 
 export default function RhyhornTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
