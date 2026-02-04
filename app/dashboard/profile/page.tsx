@@ -338,56 +338,54 @@ function ProfileContent() {
                 const docId = uploaded.find((u: any) => u?.success && u?.documentId)?.documentId as string | undefined;
 
                 if (docId) {
-                    toast.success("Document uploadé. Mise à jour du profil en cours…", { duration: 4000 });
-                    void (async () => {
-                        try {
-                            const authHeaders2 = await getSupabaseAuthHeader();
-                            let genRes: Response | null = null;
-                            let genErr: any = null;
+                    toast.success("Document uploadé. Analyse IA en cours…", { duration: 8000 });
 
-                            for (let attempt = 0; attempt < 3; attempt++) {
-                                genRes = await fetch("/api/rag/generate-incremental", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json", ...authHeaders2 },
-                                    credentials: "include",
-                                    body: JSON.stringify({ documentId: docId, mode: "completion", isFirstDocument: true, isLastDocument: true }),
-                                });
-                                if (genRes.ok) break;
-                                genErr = await genRes.json().catch(() => null);
+                    try {
+                        const authHeaders2 = await getSupabaseAuthHeader();
+                        let genRes: Response | null = null;
+                        let genErr: any = null;
 
-                                if (genRes.status === 429) {
-                                    const retryAfterSec =
-                                        Number(genErr?.retryAfter) ||
-                                        Number(genRes.headers.get("Retry-After")) ||
-                                        0;
-                                    if (retryAfterSec > 0) {
-                                        await sleep((retryAfterSec + 1) * 1000);
-                                        continue;
-                                    }
-                                }
+                        for (let attempt = 0; attempt < 3; attempt++) {
+                            genRes = await fetch("/api/rag/generate-incremental", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", ...authHeaders2 },
+                                credentials: "include",
+                                body: JSON.stringify({ documentId: docId, mode: "completion", isFirstDocument: true, isLastDocument: true }),
+                            });
+                            if (genRes.ok) break;
+                            genErr = await genRes.json().catch(() => null);
 
-                                const errorCode = genErr?.errorCode || genErr?.code || null;
-                                if (genRes.status === 503 && errorCode === "GEMINI_TIMEOUT") {
-                                    await sleep((attempt + 1) * 2000);
+                            if (genRes.status === 429) {
+                                const retryAfterSec =
+                                    Number(genErr?.retryAfter) ||
+                                    Number(genRes.headers.get("Retry-After")) ||
+                                    0;
+                                if (retryAfterSec > 0) {
+                                    await sleep((retryAfterSec + 1) * 1000);
                                     continue;
                                 }
-
-                                break;
                             }
 
-                            if (!genRes || !genRes.ok) {
-                                toast.warning(`Génération du profil échouée: ${genErr?.error || "réessayez"}`);
-                                return;
+                            const errorCode = genErr?.errorCode || genErr?.code || null;
+                            if (genRes.status === 503 && errorCode === "GEMINI_TIMEOUT") {
+                                await sleep((attempt + 1) * 2000);
+                                continue;
                             }
 
+                            break;
+                        }
+
+                        if (!genRes || !genRes.ok) {
+                            toast.warning(`Génération du profil échouée: ${genErr?.error || "réessayez"}`);
+                        } else {
                             await refetch();
                             await refetchDocs();
                             toast.success("Profil mis à jour !");
-                        } catch (e) {
-                            logger.error("Post-upload RAG generation failed", e);
-                            toast.warning("Document uploadé, génération RAG à relancer.");
                         }
-                    })();
+                    } catch (e) {
+                        logger.error("Post-upload RAG generation failed", e);
+                        toast.warning("Document uploadé, génération RAG à relancer.");
+                    }
                 } else {
                     toast.success("Document uploadé avec succès ! Régénérez le profil pour l'inclure.");
                 }

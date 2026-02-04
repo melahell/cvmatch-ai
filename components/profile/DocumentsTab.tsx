@@ -183,7 +183,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                         {uploading ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" />
-                                Upload en cours...
+                                Analyse en cours...
                             </>
                         ) : (
                             <>
@@ -192,9 +192,11 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                             </>
                         )}
                     </Button>
-                    <p className="text-xs text-slate-600 mt-3">
-                        💡 Après upload, régénérez le profil dans l'onglet "Vue d'ensemble"
-                    </p>
+                    {uploading && (
+                        <p className="text-xs text-blue-600 mt-3 animate-pulse">
+                            Extraction et analyse IA du document, cela peut prendre quelques secondes...
+                        </p>
+                    )}
                 </CardContent>
             </Card>
 
