@@ -80,10 +80,17 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${request.nextUrl.protocol}//${request.nextUrl.host}`;
         const printUrl = `${baseUrl}/dashboard/cv-builder/print?token=${encodeURIComponent(tokenParsed.data)}&format=${format}`;
 
-        await page.goto(printUrl, { waitUntil: "networkidle0", timeout: 30000 });
+        await page.evaluateOnNewDocument((payload: unknown) => {
+            (window as any).__CV_PRINT_PAYLOAD__ = payload;
+        }, job.payload);
+
+        if (typeof (page as any).setDefaultNavigationTimeout === "function") {
+            await (page as any).setDefaultNavigationTimeout(45000);
+        }
+        await page.goto(printUrl, { waitUntil: "domcontentloaded", timeout: 45000 });
 
         try {
-            await page.waitForFunction(() => (window as any).__CV_RENDER_COMPLETE__ === true, { timeout: 15000 });
+            await page.waitForFunction(() => (window as any).__CV_RENDER_COMPLETE__ === true, { timeout: 25000 });
         } catch {
             logger.warn("Print job render timeout - proceeding anyway", { token: tokenParsed.data });
         }

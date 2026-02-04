@@ -119,9 +119,12 @@ export async function GET(
 
         logger.debug("Navigating to print page", { printUrl, cvId: id });
 
+        if (typeof (page as any).setDefaultNavigationTimeout === "function") {
+            await (page as any).setDefaultNavigationTimeout(45000);
+        }
         await page.goto(printUrl, {
-            waitUntil: "networkidle0",
-            timeout: 30000,
+            waitUntil: "domcontentloaded",
+            timeout: 45000,
         });
 
         // Wait for CV render completion signal (includes font + image loading)

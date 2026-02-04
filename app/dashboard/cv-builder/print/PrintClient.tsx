@@ -37,6 +37,12 @@ export default function CVBuilderPrintClient() {
 
         const fetchPayload = async () => {
             try {
+                const injectedPayload = (window as any).__CV_PRINT_PAYLOAD__ as PrintPayload | undefined;
+                if (injectedPayload && !cancelled) {
+                    setPayload(injectedPayload);
+                    return;
+                }
+
                 const authHeaders = await getSupabaseAuthHeader();
                 const init: RequestInit = { method: "GET", credentials: "include" };
                 if (Object.keys(authHeaders).length > 0) {
