@@ -468,7 +468,7 @@ export async function POST(req: Request) {
         // 10. Save merged RAG to database
         const dbStart = Date.now();
         if (existingRag) {
-            await supabase
+            const { error: updateError } = await supabase
                 .from("rag_metadata")
                 .update({
                     completeness_score: qualityScore.overall_score,
@@ -476,8 +476,17 @@ export async function POST(req: Request) {
                     last_updated: new Date().toISOString()
                 })
                 .eq("user_id", userId);
+
+            if (updateError) {
+                logger.error("Error updating rag_metadata", { error: updateError.message, userId });
+                return NextResponse.json({
+                    error: 'Database error: Failed to save profile data',
+                    errorCode: 'DB_UPDATE_FAILED',
+                    details: updateError.message
+                }, { status: 500 });
+            }
         } else {
-            await supabase
+            const { error: insertError } = await supabase
                 .from("rag_metadata")
                 .insert({
                     user_id: userId,
@@ -485,6 +494,15 @@ export async function POST(req: Request) {
                     completeness_details: mergedRAG,
                     top_10_jobs: []
                 });
+
+            if (insertError) {
+                logger.error("Error inserting rag_metadata", { error: insertError.message, userId });
+                return NextResponse.json({
+                    error: 'Database error: Failed to create profile data',
+                    errorCode: 'DB_INSERT_FAILED',
+                    details: insertError.message
+                }, { status: 500 });
+            }
         }
 
         await supabase.from("users").update({ onboarding_completed: true }).eq("id", userId);
