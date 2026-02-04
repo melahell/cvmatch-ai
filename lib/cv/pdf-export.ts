@@ -12,11 +12,15 @@
 /**
  * Payload stocké temporairement pour une impression via une page dédiée /print.
  */
+import type { CVDensity } from "@/lib/cv/style/density";
+
 export type PrintPayload = {
     data: any;
     templateId: string;
     includePhoto?: boolean;
-    dense?: boolean;
+    colorwayId?: string;
+    fontId?: string;
+    density?: CVDensity;
     format?: "A4" | "Letter";
     customCSS?: string;
 };
@@ -51,7 +55,9 @@ export function openPrintPreview(routePath: string, payload: PrintPayload): void
         data: payload.data,
         templateId: payload.templateId,
         includePhoto: payload.includePhoto ?? true,
-        dense: payload.dense ?? false,
+        colorwayId: payload.colorwayId,
+        fontId: payload.fontId,
+        density: payload.density,
         format: payload.format ?? "A4",
         customCSS: payload.customCSS,
     };

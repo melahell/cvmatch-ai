@@ -31,7 +31,7 @@ import {
 } from "@/lib/cv/client-cache";
 import type { AIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
 import type { RendererResumeSchema } from "@/lib/cv/renderer-schema";
-import { TEMPLATES, TEMPLATE_VARIANTS } from "@/components/cv/templates";
+import { TEMPLATES } from "@/components/cv/templates";
 import { ValidationWarnings } from "@/components/cv/ValidationWarnings";
 import { MultiTemplatePreview } from "@/components/cv/MultiTemplatePreview";
 import { ExportMenu } from "@/components/cv/ExportMenu";
@@ -52,6 +52,10 @@ import { logger } from "@/lib/utils/logger";
 import { Switch } from "@/components/ui/switch";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Input } from "@/components/ui/input";
+import { CV_COLORWAYS } from "@/lib/cv/style/colorways";
+import { CV_DENSITIES, type CVDensity } from "@/lib/cv/style/density";
+import { CV_FONTS } from "@/lib/cv/style/fonts";
+import { preloadCVTemplate } from "@/components/cv/CVRenderer";
 
 // Lazy load CVRenderer (heavy component with templates)
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
@@ -103,11 +107,11 @@ function CVBuilderContent() {
     const [cvCacheHit, setCvCacheHit] = useState<boolean>(false);
     // [CDC-23] Toggles pour photo et mode dense
     const [includePhoto, setIncludePhoto] = useState<boolean>(true);
-    const [denseMode, setDenseMode] = useState<boolean>(false);
-    const [showTemplateVariants, setShowTemplateVariants] = useState<boolean>(false);
-    const [variantBase, setVariantBase] = useState<"modern" | "tech">("modern");
-    const [variantQuery, setVariantQuery] = useState<string>("");
-    const [variantLimit, setVariantLimit] = useState<number>(24);
+    const [density, setDensity] = useState<CVDensity>("normal");
+    const [colorwayId, setColorwayId] = useState<string>("indigo");
+    const [fontId, setFontId] = useState<string>("sans");
+    const [templateQuery, setTemplateQuery] = useState<string>("");
+    const [favoriteStyles, setFavoriteStyles] = useState<Array<{ templateId: string; colorwayId: string; fontId: string; density: CVDensity }>>([]);
     const [buildInfo, setBuildInfo] = useState<{
         version: string | null;
         env: string | null;
@@ -136,14 +140,26 @@ function CVBuilderContent() {
         },
     });
 
-    const filteredVariantTemplates = useMemo(() => {
-        const q = variantQuery.trim().toLowerCase();
-        return TEMPLATE_VARIANTS
+    const filteredTemplates = useMemo(() => {
+        const q = templateQuery.trim().toLowerCase();
+        return TEMPLATES
             .filter((t) => t.available)
-            .filter((t) => t.id.startsWith(`${variantBase}__`))
-            .filter((t) => (q ? t.name.toLowerCase().includes(q) : true))
-            .slice(0, variantLimit);
-    }, [variantBase, variantLimit, variantQuery]);
+            .filter((t) => (q ? `${t.name} ${t.category}`.toLowerCase().includes(q) : true));
+    }, [templateQuery]);
+
+    const presets = useMemo(() => {
+        const base = [
+            { templateId: "modern", colorwayId: "indigo", fontId: "sans", density: "normal" as CVDensity },
+            { templateId: "modern", colorwayId: "navy", fontId: "sans", density: "normal" as CVDensity },
+            { templateId: "tech", colorwayId: "emerald", fontId: "mono", density: "normal" as CVDensity },
+            { templateId: "tech", colorwayId: "cyan", fontId: "mono", density: "compact" as CVDensity },
+            { templateId: "classic", colorwayId: "slate", fontId: "serif", density: "normal" as CVDensity },
+            { templateId: "classic", colorwayId: "charcoal", fontId: "serif", density: "airy" as CVDensity },
+            { templateId: "creative", colorwayId: "amber", fontId: "display", density: "normal" as CVDensity },
+            { templateId: "creative", colorwayId: "rose", fontId: "display", density: "compact" as CVDensity },
+        ];
+        return base.filter((p) => TEMPLATES.some((t) => t.id === p.templateId && t.available));
+    }, []);
 
     // Récupérer RAG profile pour validation
     const userId = Cookies.get("userId") || null;
@@ -166,6 +182,48 @@ function CVBuilderContent() {
         };
         run();
     }, []);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem("cvcrush:styleFavorites");
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) return;
+            setFavoriteStyles(
+                parsed
+                    .map((x: any) => ({
+                        templateId: String(x?.templateId || ""),
+                        colorwayId: String(x?.colorwayId || ""),
+                        fontId: String(x?.fontId || "sans"),
+                        density: (x?.density === "compact" || x?.density === "normal" || x?.density === "airy") ? x.density : "normal",
+                    }))
+                    .filter((x: any) => x.templateId && x.colorwayId)
+            );
+        } catch {}
+    }, []);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem("cvcrush:styleSelection");
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            const nextTemplateId = String(parsed?.templateId || "");
+            const nextColorwayId = String(parsed?.colorwayId || "");
+            const nextFontId = String(parsed?.fontId || "sans");
+            const nextDensity = (parsed?.density === "compact" || parsed?.density === "normal" || parsed?.density === "airy") ? parsed.density : "normal";
+
+            if (nextTemplateId && TEMPLATES.some((t) => t.id === nextTemplateId)) setTemplateId(nextTemplateId);
+            if (nextColorwayId) setColorwayId(nextColorwayId);
+            if (nextFontId) setFontId(nextFontId);
+            setDensity(nextDensity);
+        } catch {}
+    }, []);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("cvcrush:styleSelection", JSON.stringify({ templateId, colorwayId, fontId, density }));
+        } catch {}
+    }, [templateId, colorwayId, fontId, density]);
 
     // Fonction pour traduire erreurs techniques en messages utilisateur-friendly
     const getUserFriendlyError = useCallback((error: any): { message: string; action?: string; actionLabel?: string } => {
@@ -611,6 +669,56 @@ function CVBuilderContent() {
         // Conversion automatique via useEffect
     };
 
+    const isFavoriteCurrent = useMemo(() => {
+        return favoriteStyles.some((f) =>
+            f.templateId === templateId &&
+            f.colorwayId === colorwayId &&
+            f.fontId === fontId &&
+            f.density === density
+        );
+    }, [favoriteStyles, templateId, colorwayId, fontId, density]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("cvcrush:styleFavorites", JSON.stringify(favoriteStyles));
+        } catch {}
+    }, [favoriteStyles]);
+
+    const toggleFavoriteCurrent = () => {
+        setFavoriteStyles((prev) => {
+            const exists = prev.some((f) =>
+                f.templateId === templateId &&
+                f.colorwayId === colorwayId &&
+                f.fontId === fontId &&
+                f.density === density
+            );
+            if (exists) {
+                return prev.filter((f) => !(
+                    f.templateId === templateId &&
+                    f.colorwayId === colorwayId &&
+                    f.fontId === fontId &&
+                    f.density === density
+                ));
+            }
+            const next = [...prev, { templateId, colorwayId, fontId, density }];
+            return next.slice(-10);
+        });
+    };
+
+    const applyStyle = (style: { templateId: string; colorwayId: string; fontId: string; density: CVDensity }) => {
+        setTemplateId(style.templateId);
+        setColorwayId(style.colorwayId);
+        setFontId(style.fontId);
+        setDensity(style.density);
+        setViewMode("single");
+    };
+
+    const applyRandomPreset = () => {
+        if (presets.length === 0) return;
+        const picked = presets[Math.floor(Math.random() * presets.length)];
+        applyStyle(picked);
+    };
+
     const handleMultiPreviewSelect = (selectedTemplateId: string) => {
         setTemplateId(selectedTemplateId);
         setViewMode("single");
@@ -750,8 +858,10 @@ function CVBuilderContent() {
                                             openPrintPreview("/dashboard/cv-builder/print", {
                                                 data: reorderedCV || cvData || {},
                                                 templateId,
+                                                colorwayId,
+                                                fontId,
+                                                density,
                                                 includePhoto,
-                                                dense: denseMode,
                                                 format: "A4",
                                             });
                                         }}
@@ -936,75 +1046,122 @@ function CVBuilderContent() {
                                             <CardTitle className="text-sm">Template</CardTitle>
                                         </CardHeader>
                                         <CardContent className="space-y-2">
-                                            {TEMPLATES.filter((t) => t.available).map((template) => (
+                                            <Input
+                                                value={templateQuery}
+                                                onChange={(e) => setTemplateQuery(e.target.value)}
+                                                placeholder="Rechercher un template…"
+                                            />
+                                            {filteredTemplates.map((template) => (
                                                 <Button
                                                     key={template.id}
                                                     variant={templateId === template.id ? "primary" : "outline"}
                                                     size="sm"
                                                     className="w-full justify-start"
                                                     onClick={() => handleTemplateChange(template.id)}
+                                                    onMouseEnter={() => preloadCVTemplate(template.id)}
                                                 >
                                                     {template.name}
                                                 </Button>
                                             ))}
-                                            <Button
-                                                variant={showTemplateVariants ? "primary" : "outline"}
-                                                size="sm"
-                                                className="w-full justify-start"
-                                                onClick={() => setShowTemplateVariants((v) => !v)}
-                                            >
-                                                {showTemplateVariants ? "Masquer les variantes" : "Voir plus de versions"}
-                                            </Button>
-                                            {showTemplateVariants && (
-                                                <div className="pt-2 space-y-2">
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            variant={variantBase === "modern" ? "primary" : "outline"}
-                                                            size="sm"
-                                                            className="flex-1"
-                                                            onClick={() => { setVariantBase("modern"); setVariantLimit(24); }}
-                                                        >
-                                                            Modern
-                                                        </Button>
-                                                        <Button
-                                                            variant={variantBase === "tech" ? "primary" : "outline"}
-                                                            size="sm"
-                                                            className="flex-1"
-                                                            onClick={() => { setVariantBase("tech"); setVariantLimit(24); }}
-                                                        >
-                                                            Tech
-                                                        </Button>
-                                                    </div>
-                                                    <Input
-                                                        value={variantQuery}
-                                                        onChange={(e) => { setVariantQuery(e.target.value); setVariantLimit(24); }}
-                                                        placeholder="Rechercher une variante…"
-                                                    />
-                                                    <div className="max-h-64 overflow-y-auto space-y-1 pr-1">
-                                                        {filteredVariantTemplates.map((t) => (
+                                            <div className="pt-2 space-y-3">
+                                                <Button
+                                                    variant={isFavoriteCurrent ? "primary" : "outline"}
+                                                    size="sm"
+                                                    className="w-full"
+                                                    onClick={toggleFavoriteCurrent}
+                                                >
+                                                    {isFavoriteCurrent ? "Retirer des favoris" : "Ajouter aux favoris"}
+                                                </Button>
+                                                {favoriteStyles.length > 0 && (
+                                                    <div className="space-y-1">
+                                                        {favoriteStyles.slice().reverse().map((f) => (
                                                             <Button
-                                                                key={t.id}
-                                                                variant={templateId === t.id ? "primary" : "outline"}
+                                                                key={`${f.templateId}:${f.colorwayId}:${f.fontId}:${f.density}`}
+                                                                variant="outline"
                                                                 size="sm"
                                                                 className="w-full justify-start"
-                                                                onClick={() => handleTemplateChange(t.id)}
+                                                                onClick={() => applyStyle(f)}
                                                             >
-                                                                {t.name}
+                                                                {f.templateId} · {f.colorwayId} · {f.fontId} · {f.density}
                                                             </Button>
                                                         ))}
                                                     </div>
-                                                    {filteredVariantTemplates.length >= variantLimit && (
-                                                        <Button
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="w-full"
-                                                            onClick={() => setVariantLimit((v) => v + 24)}
-                                                        >
-                                                            Charger plus
-                                                        </Button>
-                                                    )}
+                                                )}
+                                                <div className="space-y-2">
+                                                    <div className="text-xs text-slate-600">Presets</div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {presets.map((p) => (
+                                                            <Button
+                                                                key={`${p.templateId}:${p.colorwayId}:${p.fontId}:${p.density}`}
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="justify-start"
+                                                                onClick={() => applyStyle(p)}
+                                                            >
+                                                                {p.templateId} · {p.colorwayId}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                    <Button variant="outline" size="sm" className="w-full" onClick={applyRandomPreset}>
+                                                        Proposer un style
+                                                    </Button>
                                                 </div>
-                                            )}
+                                                <div className="space-y-1">
+                                                    <div className="text-xs text-slate-600">Couleurs</div>
+                                                    <div className="grid grid-cols-10 gap-1">
+                                                        {CV_COLORWAYS.map((c) => (
+                                                            <button
+                                                                key={c.id}
+                                                                type="button"
+                                                                onClick={() => setColorwayId(c.id)}
+                                                                title={c.name}
+                                                                className={`h-6 w-6 rounded-full border bg-[var(--swatch)] ${colorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                                style={{ ["--swatch" as any]: c.primary } as any}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-xs text-slate-600">Densité</div>
+                                                    <div className="flex gap-2">
+                                                        {CV_DENSITIES.map((d) => (
+                                                            <Button
+                                                                key={d.id}
+                                                                variant={density === d.id ? "primary" : "outline"}
+                                                                size="sm"
+                                                                className="flex-1"
+                                                                onClick={() => setDensity(d.id)}
+                                                            >
+                                                                {d.name}
+                                                            </Button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <div className="text-xs text-slate-600">Police</div>
+                                                    <div className="flex gap-2">
+                                                        {CV_FONTS.map((f) => {
+                                                            const allowed =
+                                                                f.id === "sans" ||
+                                                                (templateId === "tech" && (f.id === "mono" || f.id === "sans")) ||
+                                                                (templateId === "classic" && (f.id === "serif" || f.id === "sans")) ||
+                                                                (templateId === "creative" && (f.id === "display" || f.id === "sans"));
+                                                            return (
+                                                                <Button
+                                                                    key={f.id}
+                                                                    variant={fontId === f.id ? "primary" : "outline"}
+                                                                    size="sm"
+                                                                    className="flex-1"
+                                                                    disabled={!allowed}
+                                                                    onClick={() => setFontId(f.id)}
+                                                                >
+                                                                    {f.name}
+                                                                </Button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </CardContent>
                                     </Card>
 
@@ -1398,13 +1555,6 @@ function CVBuilderContent() {
                                                     onCheckedChange={setIncludePhoto}
                                                 />
                                             </div>
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-slate-600">Mode dense (compact)</label>
-                                                <Switch
-                                                    checked={denseMode}
-                                                    onCheckedChange={setDenseMode}
-                                                />
-                                            </div>
                                             {/* [CDC-23] Sliders manquants ajoutés */}
                                             <div>
                                                 <label className="block text-slate-600 mb-1">
@@ -1520,7 +1670,7 @@ function CVBuilderContent() {
                                     <Card>
                                         <CardHeader>
                                             <CardTitle className="text-base">
-                                                Prévisualisation CV - Template {templateId}
+                                                Prévisualisation CV - {templateId} · {colorwayId} · {fontId} · {density}
                                             </CardTitle>
                                         </CardHeader>
                                 <CardContent className="bg-slate-100 flex items-center justify-center p-4 min-h-[800px]">
@@ -1529,8 +1679,10 @@ function CVBuilderContent() {
                                             <CVRenderer
                                                 data={reorderedCV || cvData}
                                                 templateId={templateId}
+                                                colorwayId={colorwayId}
+                                                fontId={fontId}
+                                                density={density}
                                                 includePhoto={includePhoto}
-                                                dense={denseMode}
                                             />
                                         </div>
                                     ) : (

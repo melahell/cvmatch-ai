@@ -32,6 +32,9 @@ export async function GET(
         const { searchParams } = new URL(request.url);
         const format = searchParams.get("format") || "A4";
         const requestedTemplate = searchParams.get("template");
+        const requestedColorway = searchParams.get("colorway");
+        const requestedFont = searchParams.get("font");
+        const requestedDensity = searchParams.get("density");
         const requestedPhoto = searchParams.get("photo");
 
         if (!["A4", "Letter"].includes(format)) {
@@ -105,9 +108,14 @@ export async function GET(
             `${request.nextUrl.protocol}//${request.nextUrl.host}`;
         const templateName = requestedTemplate || cvData.template_name || "modern";
         const includePhoto = requestedPhoto === "false" ? false : true;
+        const extraParams = new URLSearchParams();
+        if (requestedColorway) extraParams.set("colorway", requestedColorway);
+        if (requestedFont) extraParams.set("font", requestedFont);
+        if (requestedDensity) extraParams.set("density", requestedDensity);
+        extraParams.set("photo", includePhoto ? "true" : "false");
         const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${format}&template=${encodeURIComponent(
             templateName
-        )}&photo=${includePhoto ? "true" : "false"}`;
+        )}&${extraParams.toString()}`;
 
         logger.debug("Navigating to print page", { printUrl, cvId: id });
 

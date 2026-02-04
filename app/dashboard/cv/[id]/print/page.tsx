@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
+import type { CVDensity } from "@/lib/cv/style/density";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     loading: () => <div className="flex items-center justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>,
@@ -18,12 +19,17 @@ export default function CVPrintPage() {
     const format = (searchParams.get("format") || "A4") as "A4" | "Letter";
     const templateParam = searchParams.get("template");
     const includePhoto = searchParams.get("photo") !== "false";
+    const colorwayId = searchParams.get("colorway") || undefined;
+    const fontId = searchParams.get("font") || undefined;
+    const densityParam = searchParams.get("density") || undefined;
+    const density = (densityParam === "compact" || densityParam === "normal" || densityParam === "airy") ? (densityParam as CVDensity) : undefined;
     const customCSS = searchParams.get("css") || undefined;
     const autoPrint = searchParams.get("autoprint") === "1";
     const [loading, setLoading] = useState(true);
     const [cvData, setCvData] = useState<any>(null);
     const [templateId, setTemplateId] = useState<string>("modern");
     const [rendered, setRendered] = useState(false);
+    const [overflow, setOverflow] = useState(false);
 
     useEffect(() => {
         async function fetchCV() {
@@ -124,6 +130,11 @@ export default function CVPrintPage() {
     useEffect(() => {
         if (!loading && cvData) {
             const markReady = () => {
+                try {
+                    const pageHeight = window.innerHeight;
+                    const bodyHeight = document.body.scrollHeight;
+                    setOverflow(bodyHeight > pageHeight + 40);
+                } catch {}
                 setRendered(true);
                 (window as any).__CV_RENDER_COMPLETE__ = true;
                 logger.debug('CV Render Complete');
@@ -189,12 +200,20 @@ export default function CVPrintPage() {
                 data-ready={rendered ? 'true' : 'false'}
                 style={{ display: 'none' }}
             />
+            {overflow && (
+                <div className="print-hidden fixed top-0 left-0 right-0 z-50 bg-amber-50 text-amber-900 border-b border-amber-200 px-3 py-2 text-xs">
+                    Attention: le contenu dépasse probablement 1 page. Ajuste la densité ou coupe du contenu.
+                </div>
+            )}
 
             <CVRenderer
                 data={cvData}
                 templateId={templateId}
+                colorwayId={colorwayId}
+                fontId={fontId}
+                density={density}
+                printSafe={true}
                 includePhoto={includePhoto}
-                dense={!!(cvData as any)?.cv_metadata?.dense}
                 format={format}
                 customCSS={customCSS}
             />

@@ -107,8 +107,11 @@ export default function DemoPrintClient() {
             <CVRenderer
                 data={payload.data}
                 templateId={payload.templateId}
+                colorwayId={payload.colorwayId}
+                fontId={payload.fontId}
+                density={payload.density}
+                printSafe={true}
                 includePhoto={payload.includePhoto ?? true}
-                dense={payload.dense ?? false}
                 format={format}
                 customCSS={payload.customCSS}
             />
@@ -183,4 +186,3 @@ export default function DemoPrintClient() {
         </>
     );
 }
-

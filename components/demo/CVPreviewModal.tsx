@@ -127,7 +127,7 @@ export function CVPreviewModal({
                 data: cvData,
                 templateId: cv.templateId,
                 includePhoto: true,
-                dense: isCompact,
+                density: isCompact ? "compact" : "normal",
                 format: "A4",
             });
         } catch (err) {
@@ -136,7 +136,7 @@ export function CVPreviewModal({
                 data: cvData,
                 templateId: cv.templateId,
                 includePhoto: true,
-                dense: isCompact,
+                density: isCompact ? "compact" : "normal",
                 format: "A4",
             });
         } finally {
@@ -149,7 +149,7 @@ export function CVPreviewModal({
             data: cvData,
             templateId: cv.templateId,
             includePhoto: true,
-            dense: isCompact,
+            density: isCompact ? "compact" : "normal",
             format: "A4",
         });
     }, [cvData, cv.templateId, isCompact]);

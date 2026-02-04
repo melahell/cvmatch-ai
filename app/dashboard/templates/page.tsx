@@ -4,13 +4,25 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Lock, Sparkles, Grid3X3, LayoutTemplate } from "lucide-react";
-import { ALL_TEMPLATES, TEMPLATES, TemplateInfo } from "@/components/cv/templates";
+import { Check, Lock, Sparkles, Grid3X3, LayoutTemplate, Loader2, X } from "lucide-react";
+import { TEMPLATES, TemplateInfo } from "@/components/cv/templates";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { CV_COLORWAY_BY_ID, CV_COLORWAYS } from "@/lib/cv/style/colorways";
+import dynamic from "next/dynamic";
+import { SAMPLE_CV_DATA } from "@/lib/cv/sample-cv";
+import { preloadCVTemplate } from "@/components/cv/CVRenderer";
+
+const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
+    loading: () => (
+        <div className="flex items-center justify-center p-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+    ),
+    ssr: false,
+});
 
 export default function TemplatesStorePage() {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
-    const [showVariants, setShowVariants] = useState<boolean>(false);
 
     const categories = [
         { id: "all", label: "Tous", icon: Grid3X3 },
@@ -20,10 +32,9 @@ export default function TemplatesStorePage() {
         { id: "creative", label: "Créatif", icon: Sparkles },
     ];
 
-    const source = showVariants ? ALL_TEMPLATES : TEMPLATES;
     const filteredTemplates = selectedCategory === "all"
-        ? source
-        : source.filter(t => t.category === selectedCategory);
+        ? TEMPLATES
+        : TEMPLATES.filter(t => t.category === selectedCategory);
 
     return (
         <DashboardLayout>
@@ -57,15 +68,6 @@ export default function TemplatesStorePage() {
                         </Button>
                     ))}
                 </div>
-                <div className="flex justify-center">
-                    <Button
-                        variant={showVariants ? "primary" : "outline"}
-                        size="sm"
-                        onClick={() => setShowVariants((v) => !v)}
-                    >
-                        {showVariants ? "Masquer les variantes" : "Voir plus de versions"}
-                    </Button>
-                </div>
 
                 {/* Templates Grid */}
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
@@ -96,28 +98,20 @@ export default function TemplatesStorePage() {
 
 function TemplateStoreCard({ template }: { template: TemplateInfo }) {
     const isAvailable = template.available;
+    const [colorwayId, setColorwayId] = useState<string>("indigo");
+    const [showPreview, setShowPreview] = useState<boolean>(false);
+    const colorway = CV_COLORWAY_BY_ID[colorwayId] || CV_COLORWAYS[0];
 
     return (
         <Card className={`overflow-hidden transition-all hover:shadow-lg ${!isAvailable ? 'opacity-60' : ''
             } dark:bg-slate-900 dark:border-slate-800`}>
             {/* Preview */}
-            <div className={`aspect-[210/297] relative ${template.id === 'modern'
-                ? 'bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50'
-                : template.id === 'tech'
-                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/50 dark:to-emerald-950/50'
-                    : template.id === 'classic'
-                        ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/50 dark:to-orange-950/50'
-                        : 'bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-950/50 dark:to-rose-950/50'
-                }`}>
+            <div className="aspect-[210/297] relative bg-surface-secondary">
                 {/* Mini preview mockup */}
                 <div className="p-4 h-full flex flex-col">
                     <div className="flex gap-2 mb-3">
                         <div className="flex-1">
-                            <div className={`h-3 w-20 rounded ${template.id === 'modern' ? 'bg-blue-200'
-                                : template.id === 'tech' ? 'bg-green-200'
-                                    : template.id === 'classic' ? 'bg-amber-200'
-                                        : 'bg-pink-200'
-                                }`} />
+                            <div className="h-3 w-20 rounded bg-[var(--swatch)]" style={{ ["--swatch" as any]: colorway.primary } as any} />
                             <div className="h-2 w-14 bg-slate-200 rounded mt-1.5" />
                         </div>
                         {(template.id === 'modern' || template.id === 'creative') && (
@@ -155,6 +149,20 @@ function TemplateStoreCard({ template }: { template: TemplateInfo }) {
                         </div>
                     </div>
                 )}
+
+                {isAvailable && (
+                    <div className="absolute bottom-2 left-2 right-2 flex justify-between gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-white/80 backdrop-blur dark:bg-slate-900/70"
+                            onMouseEnter={() => preloadCVTemplate(template.id)}
+                            onClick={() => { preloadCVTemplate(template.id); setShowPreview(true); }}
+                        >
+                            Aperçu
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Info */}
@@ -189,7 +197,48 @@ function TemplateStoreCard({ template }: { template: TemplateInfo }) {
                         ))}
                     </div>
                 )}
+                <div className="mt-3 space-y-1">
+                    <div className="text-xs text-slate-600 dark:text-slate-600">20 couleurs</div>
+                    <div className="grid grid-cols-10 gap-1">
+                        {CV_COLORWAYS.map((c) => (
+                            <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => setColorwayId(c.id)}
+                                title={c.name}
+                                className={`h-5 w-5 rounded-full border bg-[var(--swatch)] ${colorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                style={{ ["--swatch" as any]: c.primary } as any}
+                            />
+                        ))}
+                    </div>
+                </div>
             </CardContent>
+
+            {showPreview && (
+                <div className="fixed inset-0 z-50 bg-black/50 p-4 flex items-center justify-center">
+                    <div className="relative bg-white dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-5xl h-[85vh] overflow-auto">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="absolute top-3 right-3 z-10"
+                            onClick={() => setShowPreview(false)}
+                        >
+                            <X className="w-4 h-4" />
+                        </Button>
+                        <div className="p-4">
+                            <CVRenderer
+                                data={SAMPLE_CV_DATA}
+                                templateId={template.id}
+                                colorwayId={colorwayId}
+                                fontId="sans"
+                                density="normal"
+                                includePhoto={false}
+                                format="A4"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </Card>
     );
 }

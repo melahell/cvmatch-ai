@@ -6,12 +6,17 @@ import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { Loader2, Download, ArrowLeft, RefreshCw, FileText, AlertTriangle, Info, Sparkles, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import dynamic from "next/dynamic";
-import { ALL_TEMPLATES } from "@/components/cv/templates";
+import { TEMPLATES, getTemplateById } from "@/components/cv/templates";
 import { CVOptimizationExplainer, computeExperienceSummary } from "@/components/cv/CVOptimizationExplainer";
 import Link from "next/link";
 import { logger } from "@/lib/utils/logger";
 import ContextualLoader from "@/components/loading/ContextualLoader";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { CV_COLORWAYS } from "@/lib/cv/style/colorways";
+import { CV_DENSITIES, type CVDensity } from "@/lib/cv/style/density";
+import { CV_FONTS } from "@/lib/cv/style/fonts";
+import { parseLegacyTemplateId } from "@/lib/cv/style/resolve-style";
+import { preloadCVTemplate } from "@/components/cv/CVRenderer";
 
 const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
     loading: () => <div className="flex items-center justify-center p-12"><LoadingSpinner /></div>,
@@ -32,9 +37,15 @@ export default function CVViewPage() {
     const [cvGeneration, setCvGeneration] = useState<CVGeneration | null>(null);
     const [showTemplateMenu, setShowTemplateMenu] = useState(false);
     const [currentTemplate, setCurrentTemplate] = useState<string>("modern");
+    const [currentColorwayId, setCurrentColorwayId] = useState<string>("indigo");
+    const [currentFontId, setCurrentFontId] = useState<string>("sans");
+    const [currentDensity, setCurrentDensity] = useState<CVDensity>("normal");
     const [currentIncludePhoto, setCurrentIncludePhoto] = useState<boolean>(true);
     const [format, setFormat] = useState<"A4" | "Letter">("A4");
     const [showFormatMenu, setShowFormatMenu] = useState(false);
+    const [showColorMenu, setShowColorMenu] = useState(false);
+    const [showDensityMenu, setShowDensityMenu] = useState(false);
+    const [showFontMenu, setShowFontMenu] = useState(false);
     const cvRef = useRef<HTMLDivElement>(null);
     const [generatingPDF, setGeneratingPDF] = useState(false);
     const pdfAbortRef = useRef<AbortController | null>(null);
@@ -55,11 +66,15 @@ export default function CVViewPage() {
             }
 
             if (data) {
+                const parsed = parseLegacyTemplateId(data.template_name || "modern");
                 setCvGeneration({
                     ...data,
                     include_photo: true
                 });
-                setCurrentTemplate(data.template_name || "modern");
+                setCurrentTemplate(parsed.templateId || "modern");
+                if (parsed.colorwayId) setCurrentColorwayId(parsed.colorwayId);
+                if (parsed.fontId) setCurrentFontId(parsed.fontId);
+                if (parsed.density) setCurrentDensity(parsed.density);
                 setCurrentIncludePhoto(true);
             }
             setLoading(false);
@@ -149,6 +164,9 @@ export default function CVViewPage() {
             const params = new URLSearchParams({
                 format,
                 template: currentTemplate,
+                colorway: currentColorwayId,
+                font: currentFontId,
+                density: currentDensity,
                 photo: currentIncludePhoto ? "true" : "false",
             });
 
@@ -177,20 +195,20 @@ export default function CVViewPage() {
             }
             logger.error("PDF Error", { error });
             // Fallback: open print page in new tab
-            window.open(`/dashboard/cv/${id}/print?format=${format}&template=${currentTemplate}`, "_blank");
+            window.open(`/dashboard/cv/${id}/print?format=${format}&template=${currentTemplate}&colorway=${currentColorwayId}&font=${currentFontId}&density=${currentDensity}&photo=${currentIncludePhoto ? "true" : "false"}`, "_blank");
         } finally {
             try { performance.mark("cv_pdf_end"); performance.measure("cv_pdf", "cv_pdf_start", "cv_pdf_end"); } catch {}
             pdfAbortRef.current = null;
             setGeneratingPDF(false);
         }
-    }, [cvGeneration, generatingPDF, id, format, currentTemplate, currentIncludePhoto]);
+    }, [cvGeneration, generatingPDF, id, format, currentTemplate, currentIncludePhoto, currentColorwayId, currentDensity, currentFontId]);
 
     const handleTemplateChange = (templateId: string) => {
         setCurrentTemplate(templateId);
         setShowTemplateMenu(false);
     };
 
-    const templateInfo = ALL_TEMPLATES.find(t => t.id === currentTemplate);
+    const templateInfo = getTemplateById(currentTemplate);
 
     // Extract CDC metadata if available
     const cvMetadata = cvGeneration?.cv_data?.cv_metadata;
@@ -314,7 +332,7 @@ export default function CVViewPage() {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => { setShowTemplateMenu(!showTemplateMenu); setShowFormatMenu(false); }}
+                                onClick={() => { setShowTemplateMenu(!showTemplateMenu); setShowFormatMenu(false); setShowColorMenu(false); setShowDensityMenu(false); setShowFontMenu(false); }}
                                 className="dark:border-slate-700 dark:text-slate-300"
                             >
                                 <RefreshCw className="w-4 h-4 sm:mr-2" />
@@ -322,10 +340,11 @@ export default function CVViewPage() {
                             </Button>
                             {showTemplateMenu && (
                                 <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[200px] max-h-[400px] overflow-y-auto">
-                                    {ALL_TEMPLATES.filter(t => t.available).map((t) => (
+                                    {TEMPLATES.filter(t => t.available).map((t) => (
                                         <button
                                             key={t.id}
                                             onClick={() => handleTemplateChange(t.id)}
+                                            onMouseEnter={() => preloadCVTemplate(t.id)}
                                             className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
                                                 currentTemplate === t.id
                                                     ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
@@ -336,6 +355,97 @@ export default function CVViewPage() {
                                             <span className="ml-2 text-xs text-slate-400">{t.category}</span>
                                         </button>
                                     ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setShowColorMenu(!showColorMenu); setShowTemplateMenu(false); setShowFormatMenu(false); setShowDensityMenu(false); setShowFontMenu(false); }}
+                                className="dark:border-slate-700 dark:text-slate-300"
+                            >
+                                <span className="hidden sm:inline">Couleur</span>
+                            </Button>
+                            {showColorMenu && (
+                                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20">
+                                    <div className="grid grid-cols-10 gap-1">
+                                        {CV_COLORWAYS.map((c) => (
+                                            <button
+                                                key={c.id}
+                                                type="button"
+                                                onClick={() => { setCurrentColorwayId(c.id); setShowColorMenu(false); }}
+                                                title={c.name}
+                                                className={`h-6 w-6 rounded-full border bg-[var(--swatch)] ${currentColorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                style={{ ["--swatch" as any]: c.primary } as any}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setShowDensityMenu(!showDensityMenu); setShowTemplateMenu(false); setShowFormatMenu(false); setShowColorMenu(false); setShowFontMenu(false); }}
+                                className="dark:border-slate-700 dark:text-slate-300"
+                            >
+                                <span className="hidden sm:inline">Densité</span>
+                            </Button>
+                            {showDensityMenu && (
+                                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[160px]">
+                                    {CV_DENSITIES.map((d) => (
+                                        <button
+                                            key={d.id}
+                                            onClick={() => { setCurrentDensity(d.id); setShowDensityMenu(false); }}
+                                            className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                                                currentDensity === d.id
+                                                    ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
+                                                    : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                            }`}
+                                        >
+                                            {d.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="relative hidden sm:block">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setShowFontMenu(!showFontMenu); setShowTemplateMenu(false); setShowFormatMenu(false); setShowColorMenu(false); setShowDensityMenu(false); }}
+                                className="dark:border-slate-700 dark:text-slate-300"
+                            >
+                                <span className="hidden sm:inline">Police</span>
+                            </Button>
+                            {showFontMenu && (
+                                <div className="absolute top-full right-0 mt-1 bg-white dark:bg-slate-800 border dark:border-slate-700 rounded-lg shadow-lg p-2 z-20 min-w-[180px]">
+                                    {CV_FONTS.map((f) => {
+                                        const allowed =
+                                            f.id === "sans" ||
+                                            (currentTemplate === "tech" && (f.id === "mono" || f.id === "sans")) ||
+                                            (currentTemplate === "classic" && (f.id === "serif" || f.id === "sans")) ||
+                                            (currentTemplate === "creative" && (f.id === "display" || f.id === "sans"));
+                                        return (
+                                            <button
+                                                key={f.id}
+                                                disabled={!allowed}
+                                                onClick={() => { if (!allowed) return; setCurrentFontId(f.id); setShowFontMenu(false); }}
+                                                className={`w-full text-left px-3 py-1.5 rounded text-sm transition-colors ${
+                                                    currentFontId === f.id
+                                                        ? "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium"
+                                                        : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+                                                } ${!allowed ? "opacity-40 cursor-not-allowed" : ""}`}
+                                            >
+                                                {f.name}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -433,6 +543,9 @@ export default function CVViewPage() {
                     <CVRenderer
                         data={cvGeneration.cv_data}
                         templateId={currentTemplate}
+                        colorwayId={currentColorwayId}
+                        fontId={currentFontId}
+                        density={currentDensity}
                         includePhoto={currentIncludePhoto}
                         format={format}
                     />

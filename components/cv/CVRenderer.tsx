@@ -7,7 +7,8 @@ import { normalizeRAGToCV } from "./normalizeData";
 import { generateCSSVariables, cssVariablesToStyle } from "@/lib/cv/css-variables";
 import { getThemeVariables, themeToStyle } from "@/lib/cv/cv-theme-variables";
 import { logger } from "@/lib/utils/logger";
-import { resolveTemplateVariant } from "@/lib/cv/template-variants";
+import { resolveCVStyle } from "@/lib/cv/style/resolve-style";
+import type { CVDensity } from "@/lib/cv/style/density";
 
 // Dynamic imports for templates — all 17
 const ModernTemplate = dynamic(() => import("./templates/ModernTemplate"), { ssr: false });
@@ -33,6 +34,10 @@ const RhyhornTemplate = dynamic(() => import("./templates/rr/RhyhornTemplate"), 
 export interface CVRendererProps {
     data: any; // Accept raw data from API, will normalize
     templateId: string;
+    colorwayId?: string;
+    fontId?: string;
+    density?: CVDensity;
+    printSafe?: boolean;
     includePhoto?: boolean;
     jobContext?: JobContext;
     dense?: boolean;
@@ -70,9 +75,40 @@ const TEMPLATE_COMPONENTS: Record<string, React.ComponentType<TemplateProps>> = 
 /** All available template IDs */
 export const AVAILABLE_TEMPLATE_IDS = Object.keys(TEMPLATE_COMPONENTS);
 
+const TEMPLATE_IMPORTERS: Record<string, () => Promise<unknown>> = {
+    modern: () => import("./templates/ModernTemplate"),
+    tech: () => import("./templates/TechTemplate"),
+    classic: () => import("./templates/ClassicTemplate"),
+    creative: () => import("./templates/CreativeTemplate"),
+    onyx: () => import("./templates/rr/OnyxTemplate"),
+    pikachu: () => import("./templates/rr/PikachuTemplate"),
+    bronzor: () => import("./templates/rr/BronzorTemplate"),
+    azurill: () => import("./templates/rr/AzurillTemplate"),
+    chikorita: () => import("./templates/rr/ChikoritaTemplate"),
+    ditgar: () => import("./templates/rr/DitgarTemplate"),
+    ditto: () => import("./templates/rr/DittoTemplate"),
+    gengar: () => import("./templates/rr/GengarTemplate"),
+    glalie: () => import("./templates/rr/GlalieTemplate"),
+    kakuna: () => import("./templates/rr/KakunaTemplate"),
+    lapras: () => import("./templates/rr/LaprasTemplate"),
+    leafish: () => import("./templates/rr/LeafishTemplate"),
+    rhyhorn: () => import("./templates/rr/RhyhornTemplate"),
+};
+
+export function preloadCVTemplate(templateId: string) {
+    const base = templateId.includes("__") ? templateId.split("__")[0] : templateId;
+    const importer = TEMPLATE_IMPORTERS[base];
+    if (!importer) return Promise.resolve();
+    return importer().then(() => undefined);
+}
+
 export default function CVRenderer({
     data,
     templateId,
+    colorwayId,
+    fontId,
+    density,
+    printSafe,
     includePhoto = true,
     jobContext,
     dense = false,
@@ -80,7 +116,10 @@ export default function CVRenderer({
     customCSS,
     unitStats,
 }: CVRendererProps) {
-    const { baseId, variant } = useMemo(() => resolveTemplateVariant(templateId), [templateId]);
+    const resolvedStyle = useMemo(
+        () => resolveCVStyle({ templateId, colorwayId, fontId, density, printSafe }),
+        [templateId, colorwayId, fontId, density, printSafe]
+    );
 
     const looksLikeCVData = (value: any): value is CVData => {
         if (!value || typeof value !== "object") return false;
@@ -115,16 +154,16 @@ export default function CVRenderer({
             formation: 0, certifications: 0, languages: 0, margins: 0,
             ...unitStats,
         } : undefined;
-        return generateCSSVariables(baseId, stats);
-    }, [baseId, unitStats]);
+        return generateCSSVariables(resolvedStyle.templateId, stats);
+    }, [resolvedStyle.templateId, unitStats]);
 
     // Generate new theme CSS variables
     const themeVars = useMemo(() => {
-        return getThemeVariables(baseId, format, variant?.themeOverrides);
-    }, [baseId, format, variant]);
+        return getThemeVariables(resolvedStyle.templateId, format, resolvedStyle.themeOverrides);
+    }, [resolvedStyle.templateId, format, resolvedStyle.themeOverrides]);
 
-    const TemplateComponent = TEMPLATE_COMPONENTS[baseId] || TEMPLATE_COMPONENTS.modern;
-    const effectiveDense = dense || !!variant?.dense;
+    const TemplateComponent = TEMPLATE_COMPONENTS[resolvedStyle.templateId] || TEMPLATE_COMPONENTS.modern;
+    const effectiveDense = dense || !!resolvedStyle.dense;
 
     // Merge both variable sets
     const mergedStyle = {

@@ -1,7 +1,5 @@
 // CV Template Types and Registry
 
-import { CV_TEMPLATE_VARIANTS } from "@/lib/cv/template-variants";
-
 export interface CVData {
     profil: {
         prenom: string;
@@ -236,25 +234,10 @@ export const TEMPLATES: TemplateInfo[] = [
     },
 ];
 
-export const TEMPLATE_VARIANTS: TemplateInfo[] = CV_TEMPLATE_VARIANTS.map((v) => {
-    const base = TEMPLATES.find((t) => t.id === v.baseId);
-    return {
-        id: v.id,
-        name: v.name,
-        description: base?.description || "Variante",
-        category: (base?.category || "modern") as TemplateInfo["category"],
-        preview: base?.preview || "/templates/modern-preview.png",
-        available: true,
-        recommended: base?.recommended,
-    };
-});
-
-export const ALL_TEMPLATES: TemplateInfo[] = [...TEMPLATES, ...TEMPLATE_VARIANTS];
-
 export function getTemplateById(id: string): TemplateInfo | undefined {
-    return ALL_TEMPLATES.find(t => t.id === id);
+    return TEMPLATES.find(t => t.id === id);
 }
 
 export function getAvailableTemplates(): TemplateInfo[] {
-    return ALL_TEMPLATES.filter(t => t.available);
+    return TEMPLATES.filter(t => t.available);
 }

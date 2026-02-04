@@ -24,6 +24,7 @@ export default function CVBuilderPrintClient() {
     const autoPrint = searchParams.get("autoprint") === "1";
     const [payload, setPayload] = useState<PrintPayload | null>(null);
     const [rendered, setRendered] = useState(false);
+    const [overflow, setOverflow] = useState(false);
 
     const storageKey = useMemo(() => {
         if (!token) return null;
@@ -46,6 +47,11 @@ export default function CVBuilderPrintClient() {
     useEffect(() => {
         if (!payload) return;
         const markReady = () => {
+            try {
+                const pageHeight = window.innerHeight;
+                const bodyHeight = document.body.scrollHeight;
+                setOverflow(bodyHeight > pageHeight + 40);
+            } catch {}
             setRendered(true);
             (window as any).__CV_RENDER_COMPLETE__ = true;
         };
@@ -104,11 +110,19 @@ export default function CVBuilderPrintClient() {
     return (
         <>
             <div id="cv-render-status" data-ready={rendered ? "true" : "false"} style={{ display: "none" }} />
+            {overflow && (
+                <div className="print-hidden fixed top-0 left-0 right-0 z-50 bg-amber-50 text-amber-900 border-b border-amber-200 px-3 py-2 text-xs">
+                    Attention: le contenu dépasse probablement 1 page. Réduis la densité ou coupe du contenu.
+                </div>
+            )}
             <CVRenderer
                 data={payload.data}
                 templateId={payload.templateId}
+                colorwayId={payload.colorwayId}
+                fontId={payload.fontId}
+                density={payload.density}
+                printSafe={true}
                 includePhoto={payload.includePhoto ?? true}
-                dense={payload.dense ?? false}
                 format={format}
                 customCSS={payload.customCSS}
             />
@@ -183,4 +197,3 @@ export default function CVBuilderPrintClient() {
         </>
     );
 }
-
