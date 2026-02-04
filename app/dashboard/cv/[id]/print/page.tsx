@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, RotateCcw } from "lucide-react";
 import dynamic from "next/dynamic";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
@@ -26,6 +26,7 @@ export default function CVPrintPage() {
     const customCSS = searchParams.get("css") || undefined;
     const autoPrint = searchParams.get("autoprint") === "1";
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [cvData, setCvData] = useState<any>(null);
     const [templateId, setTemplateId] = useState<string>("modern");
     const [rendered, setRendered] = useState(false);
@@ -35,30 +36,42 @@ export default function CVPrintPage() {
         async function fetchCV() {
             if (!id) return;
 
+            setFetchError(null);
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
             const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
             if (!supabaseUrl || !anonKey) {
+                setFetchError("Configuration Supabase manquante");
                 setLoading(false);
                 return;
             }
 
-            const authHeaders = await getSupabaseAuthHeader();
-            const headers: Record<string, string> = {
-                apikey: anonKey,
-            };
-            if (authHeaders.Authorization) {
-                headers.Authorization = authHeaders.Authorization;
-            }
+            try {
+                const authHeaders = await getSupabaseAuthHeader();
+                const headers: Record<string, string> = {
+                    apikey: anonKey,
+                };
+                if (authHeaders.Authorization) {
+                    headers.Authorization = authHeaders.Authorization;
+                }
 
-            const url = `${supabaseUrl}/rest/v1/cv_generations?id=eq.${id}&select=cv_data,template_name&limit=1`;
-            const res = await fetch(url, { method: "GET", headers });
-            if (res.ok) {
+                const url = `${supabaseUrl}/rest/v1/cv_generations?id=eq.${id}&select=cv_data,template_name&limit=1`;
+                const res = await fetch(url, { method: "GET", headers });
+                if (!res.ok) {
+                    setFetchError(`Erreur de chargement (${res.status})`);
+                    setLoading(false);
+                    return;
+                }
                 const rows = (await res.json()) as Array<{ cv_data: any; template_name: string | null }>;
                 const row = rows?.[0];
                 if (row?.cv_data) {
                     setCvData(row.cv_data);
                     setTemplateId(templateParam || row.template_name || "modern");
+                } else {
+                    setFetchError("CV introuvable");
                 }
+            } catch (err: any) {
+                logger.error("CV print fetch error", { error: err });
+                setFetchError(err?.message || "Erreur réseau");
             }
             setLoading(false);
         }
@@ -188,8 +201,27 @@ export default function CVPrintPage() {
         );
     }
 
-    if (!cvData) {
-        return <div className="text-center p-20">CV Introuvable</div>;
+    if (fetchError || !cvData) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="text-center space-y-4 max-w-md px-6">
+                    <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+                    <h2 className="text-lg font-semibold text-slate-800">
+                        {fetchError || "CV introuvable"}
+                    </h2>
+                    <p className="text-sm text-slate-600">
+                        Le CV n&apos;a pas pu être chargé. Vérifie que tu es connecté et réessaye.
+                    </p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                        <RotateCcw className="w-4 h-4" />
+                        Réessayer
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (

@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, RotateCcw } from "lucide-react";
 import { logger } from "@/lib/utils/logger";
 import type { PrintPayload } from "@/lib/cv/pdf-export";
 
@@ -17,31 +17,49 @@ const CVRenderer = dynamic(() => import("@/components/cv/CVRenderer"), {
 });
 
 const STORAGE_PREFIX = "cvcrush:print:";
+/** Keep payload in localStorage for 5 minutes so refresh / re-print works */
+const PAYLOAD_TTL_MS = 5 * 60 * 1000;
 
 export default function CVBuilderPrintClient() {
     const searchParams = useSearchParams();
     const token = searchParams.get("token");
     const autoPrint = searchParams.get("autoprint") === "1";
     const [payload, setPayload] = useState<PrintPayload | null>(null);
+    const [expired, setExpired] = useState(false);
     const [rendered, setRendered] = useState(false);
     const [overflow, setOverflow] = useState(false);
+    const cleanupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const storageKey = useMemo(() => {
         if (!token) return null;
         return `${STORAGE_PREFIX}${token}`;
     }, [token]);
 
+    // Read payload from localStorage — defer cleanup to TTL instead of immediate delete
     useEffect(() => {
         if (!storageKey) return;
         try {
             const raw = window.localStorage.getItem(storageKey);
-            if (!raw) return;
+            if (!raw) {
+                // Token exists in URL but payload is gone → expired
+                setExpired(true);
+                return;
+            }
             const parsed = JSON.parse(raw) as PrintPayload;
             setPayload(parsed);
-            window.localStorage.removeItem(storageKey);
+
+            // Schedule cleanup after TTL instead of deleting immediately
+            cleanupTimerRef.current = setTimeout(() => {
+                try { window.localStorage.removeItem(storageKey); } catch {}
+            }, PAYLOAD_TTL_MS);
         } catch (e) {
             logger.error("Erreur lecture payload print", { error: e });
+            setExpired(true);
         }
+
+        return () => {
+            if (cleanupTimerRef.current) clearTimeout(cleanupTimerRef.current);
+        };
     }, [storageKey]);
 
     useEffect(() => {
@@ -82,6 +100,14 @@ export default function CVBuilderPrintClient() {
     useEffect(() => {
         if (!autoPrint || !rendered) return;
         const onAfterPrint = () => {
+            // Clean up localStorage after successful print
+            if (storageKey) {
+                try { window.localStorage.removeItem(storageKey); } catch {}
+            }
+            if (cleanupTimerRef.current) {
+                clearTimeout(cleanupTimerRef.current);
+                cleanupTimerRef.current = null;
+            }
             try {
                 window.close();
             } catch {
@@ -91,10 +117,31 @@ export default function CVBuilderPrintClient() {
         window.addEventListener("afterprint", onAfterPrint);
         setTimeout(() => window.print(), 50);
         return () => window.removeEventListener("afterprint", onAfterPrint);
-    }, [autoPrint, rendered]);
+    }, [autoPrint, rendered, storageKey]);
 
     if (!token) {
         return <div className="p-12 text-center">Token manquant</div>;
+    }
+
+    if (expired || (!payload && token)) {
+        return (
+            <div className="flex h-screen items-center justify-center">
+                <div className="text-center space-y-4 max-w-md px-6">
+                    <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+                    <h2 className="text-lg font-semibold text-slate-800">Lien d&apos;impression expiré</h2>
+                    <p className="text-sm text-slate-600">
+                        Ce lien d&apos;export a expiré ou a déjà été utilisé. Relance l&apos;export PDF depuis la page du CV.
+                    </p>
+                    <button
+                        onClick={() => window.close()}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                        <RotateCcw className="w-4 h-4" />
+                        Fermer cet onglet
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     if (!payload) {
