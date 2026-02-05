@@ -11,6 +11,14 @@ export function getCVPrintCSS(format: "A4" | "Letter"): string {
 @page {
     margin: 0;
     size: ${size};
+    
+    @bottom-right {
+        content: "Page " counter(page) " / " counter(pages);
+        font-size: 8pt;
+        color: #9ca3af;
+        padding: 0 12mm 6mm 0;
+        font-family: system-ui, -apple-system, sans-serif;
+    }
 }
 
 * {

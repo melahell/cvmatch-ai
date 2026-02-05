@@ -56,7 +56,19 @@ export async function GET(request: Request) {
         const existingDetails = (ragRow?.completeness_details as any) || {};
         const ref = existingDetails?.profil?.photo_url as string | undefined;
         if (!ref) {
-            return NextResponse.json({ photo_url: null });
+            const folder = `avatars/${userId}`;
+            const { data: items } = await client.storage
+                .from("profile-photos")
+                .list(folder, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
+
+            const files = (items || []).filter((it: any) => it?.name && !String(it.name).endsWith("/"));
+            const pick = files[0] || null;
+
+            if (!pick) return NextResponse.json({ photo_url: null });
+
+            const storagePath = `${folder}/${pick.name}`;
+            const signedUrl = await createSignedUrl(client, `storage:profile-photos:${storagePath}`);
+            return NextResponse.json({ photo_url: signedUrl });
         }
 
         if (ref.startsWith('http://') || ref.startsWith('https://')) {
@@ -65,6 +77,15 @@ export async function GET(request: Request) {
 
         const parsed = parseStorageRef(ref);
         if (!parsed) {
+            const normalized = ref.trim().replace(/^\/+/, "");
+            if (normalized.startsWith(`avatars/${userId}/`)) {
+                const signedUrl = await createSignedUrl(client, `storage:profile-photos:${normalized}`);
+                return NextResponse.json({ photo_url: signedUrl });
+            }
+            if (normalized.startsWith(`photos/${userId}/`)) {
+                const signedUrl = await createSignedUrl(client, `storage:documents:${normalized}`);
+                return NextResponse.json({ photo_url: signedUrl });
+            }
             return NextResponse.json({ photo_url: null });
         }
 

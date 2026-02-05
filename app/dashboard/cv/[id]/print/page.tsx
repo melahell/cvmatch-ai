@@ -33,6 +33,7 @@ export default function CVPrintPage() {
     const [templateId, setTemplateId] = useState<string>("modern");
     const [rendered, setRendered] = useState(false);
     const [overflow, setOverflow] = useState(false);
+    const [estimatedPages, setEstimatedPages] = useState(1);
 
     useEffect(() => {
         async function fetchCV() {
@@ -80,28 +81,13 @@ export default function CVPrintPage() {
         fetchCV();
     }, [id, templateParam]);
 
+    // Toujours régénérer une signed URL fraîche pour la photo
+    // Les signed URLs expirent, donc on doit toujours en demander une nouvelle
     useEffect(() => {
         if (!includePhoto) return;
         if (!cvData) return;
 
         (window as any).__CV_PHOTO_READY__ = false;
-
-        const currentPhoto = cvData?.profil?.photo_url as string | undefined;
-        const isLikelySignedUrl = (value: string) => {
-            try {
-                const url = new URL(value);
-                return url.searchParams.has("token") || url.searchParams.has("X-Amz-Signature");
-            } catch {
-                return false;
-            }
-        };
-        const hasHttpPhoto =
-            typeof currentPhoto === "string" &&
-            (currentPhoto.startsWith("http://") || currentPhoto.startsWith("https://"));
-        if (hasHttpPhoto && !isLikelySignedUrl(currentPhoto)) {
-            (window as any).__CV_PHOTO_READY__ = true;
-            return;
-        }
 
         let cancelled = false;
 
@@ -118,23 +104,25 @@ export default function CVPrintPage() {
                 }
 
                 const res = await fetch("/api/profile/photo", init);
-                if (!res.ok) return;
+                if (!res.ok) {
+                    // Pas de photo disponible, on continue quand même
+                    logger.debug("No photo available from API");
+                    return;
+                }
                 const payload = await res.json();
                 const photoUrl = payload?.photo_url as string | null | undefined;
                 if (!photoUrl) return;
                 if (cancelled) return;
+
+                logger.debug("Fresh signed photo URL obtained", { photoUrl: photoUrl.substring(0, 50) + "..." });
+
+                // Toujours mettre à jour avec l'URL fraîche
                 setCvData((prev: any) => {
                     if (!prev) return prev;
-
-                    const prevPhoto = prev?.profil?.photo_url as string | undefined;
-                    const prevHasHttp =
-                        typeof prevPhoto === "string" &&
-                        (prevPhoto.startsWith("http://") || prevPhoto.startsWith("https://"));
-                    if (prevHasHttp) return prev;
-
                     return { ...prev, profil: { ...(prev.profil || {}), photo_url: photoUrl } };
                 });
-            } catch {
+            } catch (err) {
+                logger.error("Error loading photo", { error: err });
                 return;
             } finally {
                 if (!cancelled) (window as any).__CV_PHOTO_READY__ = true;
@@ -146,17 +134,21 @@ export default function CVPrintPage() {
         return () => {
             cancelled = true;
         };
-    }, [cvData?.profil?.photo_url, includePhoto, cvData]);
+    }, [includePhoto, cvData]);
 
     // Signal when CV is fully rendered (for Puppeteer detection)
     useEffect(() => {
         if (!loading && cvData) {
             const markReady = () => {
                 try {
-                    const pageHeight = window.innerHeight;
+                    // Calculer le nombre de pages estimé
+                    // A4 = 297mm (~1123px à 96dpi), Letter = 279.4mm (~1056px)
+                    const pageHeightPx = format === "Letter" ? 1056 : 1123;
                     const bodyHeight = document.body.scrollHeight;
-                    setOverflow(bodyHeight > pageHeight + 40);
-                } catch {}
+                    const pages = Math.max(1, Math.ceil(bodyHeight / pageHeightPx));
+                    setEstimatedPages(pages);
+                    setOverflow(pages > 1);
+                } catch { }
                 setRendered(true);
                 (window as any).__CV_RENDER_COMPLETE__ = true;
                 logger.debug('CV Render Complete');
@@ -197,7 +189,7 @@ export default function CVPrintPage() {
                 setTimeout(markReady, 1500);
             }
         }
-    }, [loading, cvData, includePhoto]);
+    }, [loading, cvData, includePhoto, format]);
 
     useEffect(() => {
         if (!autoPrint || !rendered) return;
@@ -252,11 +244,20 @@ export default function CVPrintPage() {
                 data-ready={rendered ? 'true' : 'false'}
                 style={{ display: 'none' }}
             />
-            {overflow && (
-                <div className="print-hidden fixed top-0 left-0 right-0 z-50 bg-amber-50 text-amber-900 border-b border-amber-200 px-3 py-2 text-xs">
-                    Attention: le contenu dépasse probablement 1 page. Ajuste la densité ou coupe du contenu.
+            {/* Badge indicateur de pages en haut à droite */}
+            <div className="print-hidden fixed top-3 right-3 z-50 flex flex-col items-end gap-2">
+                <div className={`px-3 py-1.5 rounded-full text-xs font-medium shadow-lg backdrop-blur-sm ${estimatedPages > 1
+                    ? 'bg-amber-500/90 text-white'
+                    : 'bg-emerald-500/90 text-white'
+                    }`}>
+                    📄 {estimatedPages} page{estimatedPages > 1 ? 's' : ''}
                 </div>
-            )}
+                {overflow && (
+                    <div className="bg-amber-50/95 text-amber-800 border border-amber-200 rounded-lg px-3 py-2 text-xs max-w-xs shadow-lg">
+                        ⚠️ Le CV dépasse 1 page. Ajuste la densité ou réduis le contenu.
+                    </div>
+                )}
+            </div>
 
             <CVRenderer
                 data={cvData}
