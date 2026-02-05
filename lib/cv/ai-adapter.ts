@@ -88,13 +88,18 @@ const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile'>> & { ragProfi
 
 /**
  * [AUDIT FIX IMPORTANT-6] : Trouve l'expérience RAG correspondante
+ * 
+ * [FIX 6.4.15] : Les IDs Gemini (exp_0, exp_1) ne matchent pas les IDs RAG 
+ * (exp_11lt8gr, exp_75trwn) car Gemini génère des IDs séquentiels mais le RAG 
+ * utilise des hashes. On ajoute un fallback par correspondance poste/entreprise.
  */
-function findRAGExperience(expId: string, ragProfile: any): any | null {
+function findRAGExperience(expId: string, ragProfile: any, headerText?: string): any | null {
     if (!ragProfile?.experiences || !Array.isArray(ragProfile.experiences)) {
         return null;
     }
 
-    // Format exp_0, exp_1, etc.
+    // Format exp_0, exp_1, etc. → index dans le tableau RAG (ORDRE GEMINI)
+    // ATTENTION: Ceci suppose que Gemini référence les expériences dans le même ordre que le RAG
     const numericMatch = expId.match(/^exp_(\d+)$/);
     if (numericMatch) {
         const index = parseInt(numericMatch[1], 10);
@@ -103,10 +108,37 @@ function findRAGExperience(expId: string, ragProfile: any): any | null {
         }
     }
 
-    // Recherche par ID personnalisé
+    // Recherche par ID personnalisé (format hash)
     for (const exp of ragProfile.experiences) {
         if (exp.id === expId) {
             return exp;
+        }
+    }
+
+    // [FIX 6.4.15] Fallback: correspondance par poste/entreprise depuis headerText
+    // headerText est typiquement "Poste - Entreprise" ou juste "Poste"
+    if (headerText) {
+        const normalizeForMatch = (s: string) =>
+            String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+
+        const headerNorm = normalizeForMatch(headerText);
+
+        for (const exp of ragProfile.experiences) {
+            const ragPoste = normalizeForMatch(exp.poste || exp.titre || "");
+            const ragEntreprise = normalizeForMatch(exp.entreprise || exp.client || "");
+
+            // Match si le header contient le poste ET l'entreprise
+            if (ragPoste && ragEntreprise &&
+                headerNorm.includes(ragPoste.substring(0, Math.min(20, ragPoste.length))) &&
+                headerNorm.includes(ragEntreprise.substring(0, Math.min(15, ragEntreprise.length)))) {
+                return exp;
+            }
+
+            // Match si le header contient juste le poste (pour les postes uniques)
+            if (ragPoste && ragPoste.length > 10 &&
+                headerNorm.includes(ragPoste.substring(0, Math.min(30, ragPoste.length)))) {
+                return exp;
+            }
         }
     }
 
@@ -482,7 +514,8 @@ function buildExperiences(
         }
 
         // Essayer de trouver l'expérience RAG correspondante
-        const ragExp = findRAGExperience(expId, ragProfile);
+        // [FIX 6.4.15] Passer headerText pour fallback par poste/entreprise
+        const ragExp = findRAGExperience(expId, ragProfile, headerText);
 
         // Déterminer poste et entreprise
         let poste = "";
