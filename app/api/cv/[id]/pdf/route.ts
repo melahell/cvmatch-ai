@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseUserClient, createSupabaseAdminClient, requireSupabaseUser, createSignedUrl, parseStorageRef } from "@/lib/supabase";
+import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { logger } from "@/lib/utils/logger";
 import { createPrinterSession, getPrinterAppUrl, type PrinterSession } from "@/lib/printer";
 import { createRequestId } from "@/lib/request-id";
@@ -104,7 +105,22 @@ export async function GET(
                     .eq("user_id", auth.user.id)
                     .maybeSingle();
 
-                const photoRef = ragRow?.completeness_details?.profil?.photo_url;
+                // Normaliser les données pour gérer les structures nested ET flat
+                const normalizedRag = ragRow?.completeness_details
+                    ? normalizeRAGData(ragRow.completeness_details)
+                    : null;
+
+                // Chercher photo_url dans la structure normalisée OU directement à la racine (flat)
+                const photoRef = normalizedRag?.profil?.photo_url
+                    || ragRow?.completeness_details?.photo_url
+                    || ragRow?.completeness_details?.profil?.photo_url;
+
+                logger.debug("Photo ref lookup for PDF", {
+                    hasRagRow: !!ragRow,
+                    hasNormalizedRag: !!normalizedRag,
+                    photoRef: photoRef ? photoRef.substring(0, 50) + "..." : null,
+                    cvId: id
+                });
                 if (photoRef) {
                     let signedUrl: string | null = null;
 
