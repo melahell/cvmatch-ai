@@ -54,7 +54,57 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
             return NextResponse.json({ error: "Print job introuvable ou expiré", requestId }, { status: 404 });
         }
 
-        const format = (job.payload?.format === "Letter" ? "Letter" : "A4") as "A4" | "Letter";
+        // Régénérer une signed URL fraîche pour la photo si nécessaire
+        // Car la signed URL dans le payload peut être expirée
+        const modifiedPayload = { ...job.payload };
+        if (modifiedPayload.includePhoto !== false && modifiedPayload.data?.profil) {
+            try {
+                const currentPhotoUrl = modifiedPayload.data.profil.photo_url as string | undefined;
+                if (typeof currentPhotoUrl === "string" && currentPhotoUrl.length > 0) {
+                    let newSignedUrl: string | null = null;
+
+                    // Si c'est déjà une URL HTTP (potentiellement expirée), extraire le path et régénérer
+                    if (currentPhotoUrl.startsWith("http://") || currentPhotoUrl.startsWith("https://")) {
+                        // Format typique Supabase: /storage/v1/object/sign/profile-photos/avatars/userId/filename.jpg?token=...
+                        const urlMatch = currentPhotoUrl.match(/\/storage\/v1\/(?:object\/sign|object\/public)\/([^/?]+)\/(.+?)(?:\?|$)/);
+                        if (urlMatch) {
+                            const [, bucket, pathWithQuery] = urlMatch;
+                            const cleanPath = decodeURIComponent(pathWithQuery.split('?')[0]);
+                            logger.debug("Extracting fresh photo URL from payload", { bucket, cleanPath, requestId });
+                            const { data: signedData } = await supabase.storage
+                                .from(bucket)
+                                .createSignedUrl(cleanPath, 3600);
+                            newSignedUrl = signedData?.signedUrl ?? null;
+                        }
+                    }
+                    // Si c'est une référence storage: ou chemin relatif
+                    else if (currentPhotoUrl.startsWith("storage:") || currentPhotoUrl.includes("avatars/")) {
+                        const storagePath = currentPhotoUrl.startsWith("storage:")
+                            ? currentPhotoUrl.replace(/^storage:profile-photos:/, "")
+                            : currentPhotoUrl;
+                        const { data: signedData } = await supabase.storage
+                            .from("profile-photos")
+                            .createSignedUrl(storagePath, 3600);
+                        newSignedUrl = signedData?.signedUrl ?? null;
+                    }
+
+                    if (newSignedUrl) {
+                        modifiedPayload.data = {
+                            ...modifiedPayload.data,
+                            profil: {
+                                ...modifiedPayload.data.profil,
+                                photo_url: newSignedUrl
+                            }
+                        };
+                        logger.debug("Fresh photo URL injected into payload", { requestId });
+                    }
+                }
+            } catch (photoError) {
+                logger.warn("Could not refresh photo URL for print job", { error: photoError, requestId });
+            }
+        }
+
+        const format = (modifiedPayload?.format === "Letter" ? "Letter" : "A4") as "A4" | "Letter";
         const viewportWidth = 794;
         const viewportHeight = format === "Letter" ? 1056 : 1123;
 
@@ -72,7 +122,7 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
 
         await page.evaluateOnNewDocument((payload: unknown) => {
             (window as any).__CV_PRINT_PAYLOAD__ = payload;
-        }, job.payload);
+        }, modifiedPayload);
 
         logger.debug("Navigating to print page", { printUrl, requestId, printerMode: printer.mode });
 
@@ -89,7 +139,7 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
 
         try {
             await page.evaluate(() => document.fonts.ready);
-        } catch {}
+        } catch { }
 
         await new Promise((resolve) => setTimeout(resolve, 300));
         await page.emulateMediaType("print");
@@ -138,7 +188,7 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
         if (printer) {
             try {
                 await printer.close();
-            } catch {}
+            } catch { }
         }
     }
 }
