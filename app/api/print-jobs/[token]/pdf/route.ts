@@ -54,80 +54,87 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
             return NextResponse.json({ error: "Print job introuvable ou expiré", requestId }, { status: 404 });
         }
 
-        // Régénérer une signed URL fraîche pour la photo si nécessaire
-        // Car la signed URL dans le payload peut être expirée
+        // Convertir la photo en base64 pour éviter les problèmes de chargement réseau dans Puppeteer
+        // Les signed URLs peuvent expirer ou ne pas être accessibles depuis l'environnement serverless
         const modifiedPayload = { ...job.payload };
-        console.log("[PDF:PHOTO] Processing photo regeneration", {
-            includePhoto: modifiedPayload.includePhoto,
-            hasProfilData: !!modifiedPayload.data?.profil,
-            hasPhotoUrl: !!modifiedPayload.data?.profil?.photo_url,
-            requestId
-        });
 
         if (modifiedPayload.includePhoto !== false && modifiedPayload.data?.profil) {
             try {
                 const currentPhotoUrl = modifiedPayload.data.profil.photo_url as string | undefined;
-                console.log("[PDF:PHOTO] Current photo URL:", currentPhotoUrl?.substring(0, 80), { requestId });
+                console.log("[PDF:PHOTO] Starting photo conversion to base64", {
+                    hasPhotoUrl: !!currentPhotoUrl,
+                    requestId
+                });
 
                 if (typeof currentPhotoUrl === "string" && currentPhotoUrl.length > 0) {
-                    let newSignedUrl: string | null = null;
+                    let imageDataUrl: string | null = null;
+                    let bucket = "profile-photos";
+                    let storagePath = "";
 
-                    // Si c'est déjà une URL HTTP (potentiellement expirée), extraire le path et régénérer
+                    // Extraire le path depuis l'URL ou la référence
                     if (currentPhotoUrl.startsWith("http://") || currentPhotoUrl.startsWith("https://")) {
-                        // Format typique Supabase: /storage/v1/object/sign/profile-photos/avatars/userId/filename.jpg?token=...
+                        // Format: /storage/v1/object/sign/profile-photos/avatars/userId/filename.jpg?token=...
                         const urlMatch = currentPhotoUrl.match(/\/storage\/v1\/(?:object\/sign|object\/public)\/([^/?]+)\/(.+?)(?:\?|$)/);
-                        console.log("[PDF:PHOTO] URL regex match:", urlMatch ? "YES" : "NO", { requestId });
-
                         if (urlMatch) {
-                            const [, bucket, pathWithQuery] = urlMatch;
-                            const cleanPath = decodeURIComponent(pathWithQuery.split('?')[0]);
-                            console.log("[PDF:PHOTO] Regenerating signed URL", { bucket, cleanPath, requestId });
-
-                            const { data: signedData, error: signedError } = await supabase.storage
-                                .from(bucket)
-                                .createSignedUrl(cleanPath, 3600);
-
-                            if (signedError) {
-                                console.error("[PDF:PHOTO] Error creating signed URL:", signedError.message, { requestId });
-                            } else {
-                                newSignedUrl = signedData?.signedUrl ?? null;
-                                console.log("[PDF:PHOTO] New signed URL created:", newSignedUrl?.substring(0, 80), { requestId });
-                            }
+                            bucket = urlMatch[1];
+                            storagePath = decodeURIComponent(urlMatch[2].split('?')[0]);
                         }
-                    }
-                    // Si c'est une référence storage: ou chemin relatif
-                    else if (currentPhotoUrl.startsWith("storage:") || currentPhotoUrl.includes("avatars/")) {
-                        const storagePath = currentPhotoUrl.startsWith("storage:")
-                            ? currentPhotoUrl.replace(/^storage:profile-photos:/, "")
-                            : currentPhotoUrl;
-                        console.log("[PDF:PHOTO] Regenerating from storage path", { storagePath, requestId });
-
-                        const { data: signedData, error: signedError } = await supabase.storage
-                            .from("profile-photos")
-                            .createSignedUrl(storagePath, 3600);
-
-                        if (signedError) {
-                            console.error("[PDF:PHOTO] Error creating signed URL:", signedError.message, { requestId });
-                        } else {
-                            newSignedUrl = signedData?.signedUrl ?? null;
+                    } else if (currentPhotoUrl.startsWith("storage:")) {
+                        // Format: storage:profile-photos:avatars/userId/filename.jpg
+                        const parts = currentPhotoUrl.split(":");
+                        if (parts.length >= 3) {
+                            bucket = parts[1];
+                            storagePath = parts.slice(2).join(":");
                         }
+                    } else if (currentPhotoUrl.includes("avatars/")) {
+                        storagePath = currentPhotoUrl;
                     }
 
-                    if (newSignedUrl) {
+                    console.log("[PDF:PHOTO] Extracted path", { bucket, storagePath, requestId });
+
+                    if (storagePath) {
+                        // Télécharger l'image depuis Storage
+                        const { data: fileData, error: downloadError } = await supabase.storage
+                            .from(bucket)
+                            .download(storagePath);
+
+                        if (downloadError) {
+                            console.error("[PDF:PHOTO] Download error:", downloadError.message, { requestId });
+                        } else if (fileData) {
+                            // Convertir en base64
+                            const arrayBuffer = await fileData.arrayBuffer();
+                            const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+                            // Détecter le type MIME
+                            const mimeType = fileData.type ||
+                                (storagePath.endsWith('.png') ? 'image/png' :
+                                    storagePath.endsWith('.jpg') || storagePath.endsWith('.jpeg') ? 'image/jpeg' :
+                                        storagePath.endsWith('.webp') ? 'image/webp' : 'image/png');
+
+                            imageDataUrl = `data:${mimeType};base64,${base64}`;
+                            console.log("[PDF:PHOTO] ✅ Image converted to base64", {
+                                mimeType,
+                                sizeKB: Math.round(base64.length / 1024),
+                                requestId
+                            });
+                        }
+                    }
+
+                    if (imageDataUrl) {
                         modifiedPayload.data = {
                             ...modifiedPayload.data,
                             profil: {
                                 ...modifiedPayload.data.profil,
-                                photo_url: newSignedUrl
+                                photo_url: imageDataUrl
                             }
                         };
-                        console.log("[PDF:PHOTO] ✅ Fresh photo URL injected into payload", { requestId });
+                        console.log("[PDF:PHOTO] ✅ Base64 photo injected into payload", { requestId });
                     } else {
-                        console.warn("[PDF:PHOTO] ⚠️ Could not generate fresh URL, keeping original", { requestId });
+                        console.warn("[PDF:PHOTO] ⚠️ Could not convert photo, keeping original URL", { requestId });
                     }
                 }
             } catch (photoError: any) {
-                console.error("[PDF:PHOTO] ❌ Exception refreshing photo URL:", photoError?.message, { requestId });
+                console.error("[PDF:PHOTO] ❌ Exception processing photo:", photoError?.message, { requestId });
             }
         }
 
