@@ -60,7 +60,22 @@ export async function createPrinterSession(): Promise<PrinterSession> {
         return { mode: "local", browser, close: async () => browser.close() };
     }
 
-    const executablePath = await chromium.executablePath();
+    let executablePath: string;
+    try {
+        executablePath = await chromium.executablePath();
+    } catch (error: any) {
+        const message = typeof error?.message === "string" ? error.message : "";
+        if (message.includes("@sparticuz/chromium/bin") || message.includes("brotli")) {
+            throw new Error(
+                [
+                    "Chromium introuvable dans l’environnement serveur.",
+                    "Sur Vercel, ajoutez outputFileTracingIncludes pour `node_modules/@sparticuz/chromium/bin/**`",
+                    "ou configurez PRINTER_ENDPOINT (Chrome/Browserless) pour éviter Chromium packagé.",
+                ].join(" ")
+            );
+        }
+        throw error;
+    }
     const browser = await puppeteer.launch({
         args: [...chromium.args, "--font-render-hinting=none", "--disable-gpu"],
         executablePath,

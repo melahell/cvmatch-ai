@@ -80,6 +80,12 @@ const nextConfig = {
     compiler: {
         removeConsole: process.env.NODE_ENV === 'production',
     },
+    experimental: {
+        outputFileTracingIncludes: {
+            "/api/print-jobs/[token]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+            "/api/cv/[id]/pdf": ["./node_modules/@sparticuz/chromium/bin/**"],
+        },
+    },
 }
 
 module.exports = withBundleAnalyzer(nextConfig);
