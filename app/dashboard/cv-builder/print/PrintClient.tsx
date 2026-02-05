@@ -73,7 +73,7 @@ export default function CVBuilderPrintClient() {
                         }
                     };
                     void deleteJob();
-                }, 5 * 60 * 1000);
+                }, 30 * 60 * 1000);
             } catch (e) {
                 logger.error("Erreur chargement print job", { error: e });
                 setExpired(true);

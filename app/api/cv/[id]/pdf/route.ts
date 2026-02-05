@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
 import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
+import { createPrinterSession, createRequestId, getPrinterAppUrl, type PrinterSession } from "@/lib/printer";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -20,12 +19,13 @@ export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
-    let browser;
+    let printer: PrinterSession | null = null;
+    const requestId = createRequestId();
 
     try {
         const auth = await requireSupabaseUser(request);
         if (auth.error || !auth.user || !auth.token) {
-            return NextResponse.json({ error: "Non autorise" }, { status: 401 });
+            return NextResponse.json({ error: "Non autorise", requestId }, { status: 401 });
         }
 
         const { id } = params;
@@ -39,7 +39,7 @@ export async function GET(
 
         if (!["A4", "Letter"].includes(format)) {
             return NextResponse.json(
-                { error: "Invalid format. Use A4 or Letter" },
+                { error: "Invalid format. Use A4 or Letter", requestId },
                 { status: 400 }
             );
         }
@@ -54,42 +54,19 @@ export async function GET(
 
         if (dbError || !cvData) {
             return NextResponse.json(
-                { error: "CV not found" },
+                { error: "CV not found", requestId },
                 { status: 404 }
             );
         }
 
-        logger.debug("Generating PDF", { cvId: id, format, userId: auth.user.id });
-
-        const isLocal = process.env.NODE_ENV === "development";
+        logger.debug("Generating PDF", { cvId: id, format, userId: auth.user.id, requestId });
 
         // A4: 210mm x 297mm, Letter: 215.9mm x 279.4mm
         const viewportWidth = 794; // A4 width at 96dpi
         const viewportHeight = format === "Letter" ? 1056 : 1123;
 
-        if (isLocal) {
-            browser = await puppeteer.launch({
-                headless: true,
-                args: [
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-gpu",
-                    "--font-render-hinting=none",
-                ],
-            });
-        } else {
-            const executablePath = await chromium.executablePath();
-            browser = await puppeteer.launch({
-                args: [
-                    ...chromium.args,
-                    "--font-render-hinting=none",
-                    "--disable-gpu",
-                ],
-                executablePath: executablePath,
-                headless: true,
-                defaultViewport: null,
-            });
-        }
+        printer = await createPrinterSession();
+        const browser = printer.browser;
 
         const page = await browser.newPage();
 
@@ -104,8 +81,9 @@ export async function GET(
             Authorization: `Bearer ${auth.token}`,
         });
 
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-            `${request.nextUrl.protocol}//${request.nextUrl.host}`;
+        const url = new URL(request.url);
+        const fallbackBaseUrl = `${url.protocol}//${url.host}`;
+        const baseUrl = getPrinterAppUrl(fallbackBaseUrl);
         const templateName = requestedTemplate || cvData.template_name || "modern";
         const includePhoto = requestedPhoto === "false" ? false : true;
         const extraParams = new URLSearchParams();
@@ -117,7 +95,7 @@ export async function GET(
             templateName
         )}&${extraParams.toString()}`;
 
-        logger.debug("Navigating to print page", { printUrl, cvId: id });
+        logger.debug("Navigating to print page", { printUrl, cvId: id, requestId, printerMode: printer.mode });
 
         if (typeof (page as any).setDefaultNavigationTimeout === "function") {
             await (page as any).setDefaultNavigationTimeout(45000);
@@ -169,8 +147,8 @@ export async function GET(
 
         logger.info("PDF generated successfully", { cvId: id, sizeBytes: pdfBuffer.length, format });
 
-        await browser.close();
-        browser = undefined;
+        await printer.close();
+        printer = null;
 
         const firstName = typeof cvData.cv_data?.profil?.prenom === "string" ? cvData.cv_data.profil.prenom : "";
         const lastName = typeof cvData.cv_data?.profil?.nom === "string" ? cvData.cv_data.profil.nom : "";
@@ -186,21 +164,23 @@ export async function GET(
                 "Pragma": "no-cache",
                 "Vary": "Authorization",
                 "X-Content-Type-Options": "nosniff",
+                "X-Request-Id": requestId,
             },
         });
 
     } catch (error: any) {
-        logger.error("PDF generation error", { error: error.message, stack: error.stack, cvId: params?.id });
+        logger.error("PDF generation error", { error: error.message, stack: error.stack, cvId: params?.id, requestId });
         return NextResponse.json(
             {
                 error: "Failed to generate PDF",
-                details: error.message
+                details: error.message,
+                requestId,
             },
             { status: 500 }
         );
     } finally {
-        if (browser) {
-            try { await browser.close(); } catch {}
+        if (printer) {
+            try { await printer.close(); } catch {}
         }
     }
 }

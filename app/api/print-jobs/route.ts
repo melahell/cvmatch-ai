@@ -3,6 +3,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { createSupabaseAdminClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
+import { createRequestId } from "@/lib/printer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,23 +28,24 @@ function createToken(): string {
 }
 
 export async function POST(req: Request) {
+    const requestId = createRequestId();
     try {
         const auth = await requireSupabaseUser(req);
         if (auth.error || !auth.user) {
-            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+            return NextResponse.json({ error: "Non autorisé", requestId }, { status: 401 });
         }
 
         const parsed = createPrintJobSchema.safeParse(await req.json());
         if (!parsed.success) {
             return NextResponse.json(
-                { error: "Payload invalide", details: parsed.error.flatten() },
+                { error: "Payload invalide", details: parsed.error.flatten(), requestId },
                 { status: 400 }
             );
         }
 
         const supabase = createSupabaseAdminClient();
         const token = createToken();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
         const { error } = await supabase.from("print_jobs").insert({
             user_id: auth.user.id,
@@ -53,14 +55,16 @@ export async function POST(req: Request) {
         });
 
         if (error) {
-            logger.error("Print job insert failed", { error: error.message });
-            return NextResponse.json({ error: "Impossible de créer le print job" }, { status: 500 });
+            logger.error("Print job insert failed", { error: error.message, requestId });
+            return NextResponse.json(
+                { error: "Impossible de créer le print job", details: error.message, requestId },
+                { status: 500 }
+            );
         }
 
-        return NextResponse.json({ token, expiresAt }, { status: 201 });
+        return NextResponse.json({ token, expiresAt, requestId }, { status: 201 });
     } catch (error: any) {
-        logger.error("Print job create error", { error: error?.message });
-        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+        logger.error("Print job create error", { error: error?.message, requestId });
+        return NextResponse.json({ error: "Erreur serveur", details: error?.message, requestId }, { status: 500 });
     }
 }
-

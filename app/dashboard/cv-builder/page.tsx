@@ -892,20 +892,17 @@ function CVBuilderContent() {
                                             });
                                             if (!pdfRes.ok) {
                                                 let details = "";
+                                                let requestId = "";
                                                 try {
                                                     const json = await pdfRes.json();
                                                     details = typeof json?.details === "string" ? `: ${json.details}` : "";
+                                                    requestId = typeof json?.requestId === "string" ? json.requestId : "";
                                                 } catch {
                                                     details = "";
+                                                    requestId = "";
                                                 }
-
-                                                const url = `/dashboard/cv-builder/print?token=${encodeURIComponent(token)}&autoprint=1&format=A4`;
-                                                const win = window.open(url, "_blank", "noopener,noreferrer");
-                                                if (!win) {
-                                                    window.location.href = url;
-                                                }
-
-                                                throw new Error(`Export PDF serveur indisponible (${pdfRes.status})${details}`);
+                                                const rid = requestId ? ` (requestId: ${requestId})` : "";
+                                                throw new Error(`Export PDF serveur indisponible (${pdfRes.status})${details}${rid}`);
                                             }
                                             const blob = await pdfRes.blob();
                                             const url = URL.createObjectURL(blob);

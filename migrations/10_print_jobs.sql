@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS print_jobs (
   token TEXT UNIQUE NOT NULL,
   payload JSONB NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '5 minutes')
+  expires_at TIMESTAMP WITH TIME ZONE DEFAULT (NOW() + INTERVAL '30 minutes')
 );
 
 CREATE INDEX IF NOT EXISTS idx_print_jobs_user_id ON print_jobs(user_id);

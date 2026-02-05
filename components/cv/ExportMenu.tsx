@@ -101,9 +101,6 @@ export function ExportMenu({
                     if (onPDFDownload) {
                         await onPDFDownload();
                         toast.success("CV exporté en PDF");
-                    } else if (onPDFExport) {
-                        await onPDFExport();
-                        toast.success("CV exporté en PDF");
                     } else {
                         toast.error("Export PDF non disponible");
                     }
@@ -113,6 +110,24 @@ export function ExportMenu({
         } catch (error: any) {
             logger.error(`Error exporting to ${format}`, { error, format });
             toast.error(`Erreur lors de l'export ${format}: ${error.message || "Erreur inconnue"}`);
+        } finally {
+            setExporting(null);
+        }
+    };
+
+    const handlePrintDebug = async () => {
+        if (!onPDFExport) {
+            toast.error("Impression non disponible");
+            return;
+        }
+
+        setExporting("pdf");
+        try {
+            await onPDFExport();
+            toast.success("Impression lancée");
+        } catch (error: any) {
+            logger.error("Error printing PDF", { error });
+            toast.error(`Erreur lors de l'impression: ${error.message || "Erreur inconnue"}`);
         } finally {
             setExporting(null);
         }
@@ -143,10 +158,24 @@ export function ExportMenu({
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport("pdf")} disabled={!!exporting}>
-                    <FileText className="w-4 h-4 mr-2" />
-                    PDF
-                </DropdownMenuItem>
+                {onPDFDownload && (
+                    <DropdownMenuItem onClick={() => handleExport("pdf")} disabled={!!exporting}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        PDF (serveur)
+                    </DropdownMenuItem>
+                )}
+                {onPDFExport && (
+                    <DropdownMenuItem onClick={handlePrintDebug} disabled={!!exporting}>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Imprimer (debug)
+                    </DropdownMenuItem>
+                )}
+                {!onPDFDownload && !onPDFExport && (
+                    <DropdownMenuItem disabled>
+                        <FileText className="w-4 h-4 mr-2" />
+                        PDF
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => handleExport("word")} disabled={!!exporting}>
                     <File className="w-4 h-4 mr-2" />
                     Word (.docx)
