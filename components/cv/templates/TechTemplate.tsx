@@ -25,9 +25,10 @@ export default function TechTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
-    const hasHttpPhoto =
+    // Support HTTP URLs AND base64 data URIs
+    const hasValidPhoto =
         typeof profil?.photo_url === "string" &&
-        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://") || profil.photo_url.startsWith("data:image/"));
 
     // Helper to safely render a string from potentially object value
     const safeString = (val: any): string => {
@@ -116,7 +117,7 @@ export default function TechTemplate({
 
                 {/* Avatar */}
                 <div className="flex flex-col items-center text-center mb-4">
-                    {includePhoto && hasHttpPhoto ? (
+                    {includePhoto && hasValidPhoto ? (
                         <div
                             className="w-20 h-20 rounded-lg border-2 border-[color:var(--cv-primary)] p-0.5 mb-3 overflow-hidden shadow-level-3"
                         >

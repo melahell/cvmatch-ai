@@ -13,9 +13,10 @@ export default function ClassicTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
-    const hasHttpPhoto =
+    // Support HTTP URLs AND base64 data URIs
+    const hasValidPhoto =
         typeof profil?.photo_url === "string" &&
-        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://") || profil.photo_url.startsWith("data:image/"));
 
     // Helper to safely render a string from potentially object value
     const safeString = (val: any): string => {
@@ -67,7 +68,7 @@ export default function ClassicTemplate({
                     {/* Photo */}
                     {includePhoto && (
                         <div className="w-24 h-24 rounded-lg border-4 border-white/30 overflow-hidden shadow-lg flex-shrink-0">
-                            {hasHttpPhoto ? (
+                            {hasValidPhoto ? (
                                 <img
                                     src={profil.photo_url}
                                     alt={`Photo professionnelle de ${profil.prenom} ${profil.nom}`}

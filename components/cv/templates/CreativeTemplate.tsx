@@ -22,9 +22,10 @@ export default function CreativeTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
-    const hasHttpPhoto =
+    // Support HTTP URLs AND base64 data URIs
+    const hasValidPhoto =
         typeof profil?.photo_url === "string" &&
-        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://") || profil.photo_url.startsWith("data:image/"));
 
     // Helper to safely render a string from potentially object value
     const safeString = (val: any): string => {
@@ -98,7 +99,7 @@ export default function CreativeTemplate({
                         <div
                             className="w-28 h-28 rounded-full border-4 border-white overflow-hidden flex-shrink-0 shadow-level-4"
                         >
-                            {hasHttpPhoto ? (
+                            {hasValidPhoto ? (
                                 <img
                                     src={profil.photo_url}
                                     alt={`Photo professionnelle de ${profil.prenom} ${profil.nom}`}

@@ -14,9 +14,10 @@ export default function ModernTemplate({
     dense = false
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
-    const hasHttpPhoto =
+    // Support HTTP URLs AND base64 data URIs
+    const hasValidPhoto =
         typeof profil?.photo_url === "string" &&
-        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://"));
+        (profil.photo_url.startsWith("http://") || profil.photo_url.startsWith("https://") || profil.photo_url.startsWith("data:image/"));
 
     const renderRealisation = (r: string): string => sanitizeText(r);
     const renderSkill = (s: string): string => sanitizeText(s);
@@ -61,7 +62,7 @@ export default function ModernTemplate({
                     <div
                         className="w-24 h-24 rounded-full border-4 border-[color:var(--cv-sidebar-accent)] p-0.5 mb-3 overflow-hidden bg-slate-800 flex items-center justify-center shadow-level-4"
                     >
-                        {includePhoto && hasHttpPhoto ? (
+                        {includePhoto && hasValidPhoto ? (
                             <img
                                 src={profil.photo_url}
                                 alt={`Photo professionnelle de ${profil.prenom} ${profil.nom}`}
@@ -241,62 +242,62 @@ export default function ModernTemplate({
                     <div className="space-y-1.5">
                         {limitedExperiences.map((exp, i) => {
                             return (
-                            <div
-                                key={i}
-                                className="relative pl-5 pr-3 py-3 border-l-[3px] border-l-neon-purple group rounded-r-lg bg-gradient-to-r from-neon-purple/5 to-transparent"
-                            >
-                                {/* Timeline dot */}
                                 <div
-                                    className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-[3px] border-neon-purple shadow-level-2"
-                                />
+                                    key={i}
+                                    className="relative pl-5 pr-3 py-3 border-l-[3px] border-l-neon-purple group rounded-r-lg bg-gradient-to-r from-neon-purple/5 to-transparent"
+                                >
+                                    {/* Timeline dot */}
+                                    <div
+                                        className="absolute -left-[9px] top-3 w-4 h-4 rounded-full bg-white border-[3px] border-neon-purple shadow-level-2"
+                                    />
 
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
-                                        {(exp as any)._relevance_score >= 50 && (
-                                            <span className="bg-green-100 text-green-700 text-[6pt] px-1.5 py-0.5 rounded font-bold">
-                                                ★ Pertinent
-                                            </span>
-                                        )}
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
+                                            {(exp as any)._relevance_score >= 50 && (
+                                                <span className="bg-green-100 text-green-700 text-[6pt] px-1.5 py-0.5 rounded font-bold">
+                                                    ★ Pertinent
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="text-[color:var(--cv-primary)] font-bold bg-[var(--cv-primary-light)] px-2 py-0.5 rounded text-[7pt]">
+                                            {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
+                                        </span>
                                     </div>
-                                    <span className="text-[color:var(--cv-primary)] font-bold bg-[var(--cv-primary-light)] px-2 py-0.5 rounded text-[7pt]">
-                                        {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
-                                    </span>
+                                    <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
+                                        {sanitizeText(exp.entreprise)}
+                                        {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
+                                    </p>
+                                    {exp.clients && exp.clients.length > 0 && (
+                                        <p className="text-slate-500 text-[7pt] mb-1">
+                                            Clients : {exp.clients.map(sanitizeText).join(", ")}
+                                        </p>
+                                    )}
+                                    {/* Solution 6.2: Afficher contexte opérationnel */}
+                                    {(exp as any).contexte && (
+                                        <p className="text-slate-600 text-[7pt] italic mb-1">
+                                            {sanitizeText((exp as any).contexte)}
+                                        </p>
+                                    )}
+                                    {/* Solution 6.2: Afficher technologies */}
+                                    {(exp as any).technologies && Array.isArray((exp as any).technologies) && (exp as any).technologies.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-1">
+                                            {(exp as any).technologies.map((tech: string, idx: number) => (
+                                                <span key={idx} className="text-[6pt] bg-[var(--cv-primary-light)] text-[color:var(--cv-primary)] px-1.5 py-0.5 rounded">
+                                                    {sanitizeText(tech)}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
+                                    {exp.realisations && exp.realisations.length > 0 && (
+                                        <ul className="text-slate-700 space-y-0.5 list-disc list-outside pl-5 text-[8pt] leading-relaxed">
+                                            {exp.realisations.map((r, j) => (
+                                                <li key={j} className="pl-1">{renderRealisation(r)}</li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
-                                <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
-                                    {sanitizeText(exp.entreprise)}
-                                    {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
-                                </p>
-                                {exp.clients && exp.clients.length > 0 && (
-                                    <p className="text-slate-500 text-[7pt] mb-1">
-                                        Clients : {exp.clients.map(sanitizeText).join(", ")}
-                                    </p>
-                                )}
-                                {/* Solution 6.2: Afficher contexte opérationnel */}
-                                {(exp as any).contexte && (
-                                    <p className="text-slate-600 text-[7pt] italic mb-1">
-                                        {sanitizeText((exp as any).contexte)}
-                                    </p>
-                                )}
-                                {/* Solution 6.2: Afficher technologies */}
-                                {(exp as any).technologies && Array.isArray((exp as any).technologies) && (exp as any).technologies.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-1">
-                                        {(exp as any).technologies.map((tech: string, idx: number) => (
-                                            <span key={idx} className="text-[6pt] bg-[var(--cv-primary-light)] text-[color:var(--cv-primary)] px-1.5 py-0.5 rounded">
-                                                {sanitizeText(tech)}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
-                                {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
-                                {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="text-slate-700 space-y-0.5 list-disc list-outside pl-5 text-[8pt] leading-relaxed">
-                                        {exp.realisations.map((r, j) => (
-                                            <li key={j} className="pl-1">{renderRealisation(r)}</li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </div>
                             );
                         })}
                     </div>

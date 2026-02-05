@@ -32,9 +32,10 @@ export default function ProfilePicture({
     const sizeClasses = SIZE_MAP[size];
     const shapeClass = shape === "circle" ? "rounded-full" : shape === "rounded" ? "rounded-xl" : "rounded-none";
 
-    const hasHttpPhoto =
+    // Support HTTP URLs AND base64 data URIs
+    const hasValidPhoto =
         typeof photoUrl === "string" &&
-        (photoUrl.startsWith("http://") || photoUrl.startsWith("https://"));
+        (photoUrl.startsWith("http://") || photoUrl.startsWith("https://") || photoUrl.startsWith("data:image/"));
 
     if (!includePhoto) return null;
 
@@ -43,7 +44,7 @@ export default function ProfilePicture({
             className={`${sizeClasses.container} ${shapeClass} border-4 overflow-hidden flex-shrink-0 flex items-center justify-center ${className}`}
             style={{ borderColor }}
         >
-            {hasHttpPhoto ? (
+            {hasValidPhoto ? (
                 <img
                     src={photoUrl}
                     alt={`Photo de ${fullName}`}
