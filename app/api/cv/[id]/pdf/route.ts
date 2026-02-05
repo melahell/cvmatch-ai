@@ -118,25 +118,35 @@ export async function GET(
                 logger.debug("Photo ref lookup for PDF", {
                     hasRagRow: !!ragRow,
                     hasNormalizedRag: !!normalizedRag,
-                    photoRef: photoRef ? photoRef.substring(0, 50) + "..." : null,
+                    photoRef: photoRef ? (typeof photoRef === 'string' ? photoRef.substring(0, 80) : String(photoRef)) : null,
                     cvId: id
                 });
-                if (photoRef) {
+
+                if (photoRef && typeof photoRef === "string") {
                     let signedUrl: string | null = null;
 
-                    if (typeof photoRef === "string" && (photoRef.startsWith("http://") || photoRef.startsWith("https://"))) {
-                        // Déjà une URL HTTP, mais on doit vérifier si c'est une signed URL expirée
-                        // Pour simplifier, on régénère toujours une nouvelle signed URL depuis le storage
-                        const parsed = parseStorageRef(photoRef);
-                        if (parsed) {
-                            signedUrl = await createSignedUrl(admin, `storage:${parsed.bucket}:${parsed.path}`, { expiresIn: 3600 });
+                    // Cas 1: URL HTTP (potentiellement signed URL expirée) - extraire le path et régénérer
+                    if (photoRef.startsWith("http://") || photoRef.startsWith("https://")) {
+                        // Tenter d'extraire bucket/path depuis l'URL Supabase
+                        // Format typique: https://xxx.supabase.co/storage/v1/object/sign/profile-photos/avatars/userId/filename.jpg?token=...
+                        const urlMatch = photoRef.match(/\/storage\/v1\/(?:object\/sign|object\/public)\/([^/?]+)\/(.+?)(?:\?|$)/);
+                        if (urlMatch) {
+                            const [, bucket, path] = urlMatch;
+                            const cleanPath = decodeURIComponent(path.split('?')[0]);
+                            logger.debug("Extracted storage path from URL", { bucket, cleanPath });
+                            signedUrl = await createSignedUrl(admin, `storage:${bucket}:${cleanPath}`, { expiresIn: 3600 });
                         } else {
-                            signedUrl = photoRef; // Utiliser l'URL telle quelle
+                            // URL externe (pas Supabase) - utiliser telle quelle
+                            logger.debug("Non-Supabase URL, using as-is");
+                            signedUrl = photoRef;
                         }
-                    } else if (typeof photoRef === "string" && photoRef.startsWith("storage:")) {
+                    }
+                    // Cas 2: Référence storage explicite
+                    else if (photoRef.startsWith("storage:")) {
                         signedUrl = await createSignedUrl(admin, photoRef, { expiresIn: 3600 });
-                    } else if (typeof photoRef === "string") {
-                        // Chemin relatif - essayer de le convertir
+                    }
+                    // Cas 3: Chemin relatif
+                    else {
                         const refPath = photoRef.includes("avatars/")
                             ? `storage:profile-photos:${photoRef}`
                             : `storage:profile-photos:avatars/${auth.user.id}/${photoRef}`;
@@ -145,7 +155,12 @@ export async function GET(
 
                     if (signedUrl) {
                         extraParams.set("photoUrl", signedUrl);
-                        logger.debug("Fresh signed photo URL generated for PDF", { cvId: id });
+                        logger.debug("Fresh signed photo URL generated for PDF", {
+                            cvId: id,
+                            urlPreview: signedUrl.substring(0, 80) + "..."
+                        });
+                    } else {
+                        logger.warn("Failed to generate signed URL for photo", { cvId: id, photoRef: photoRef.substring(0, 50) });
                     }
                 }
             } catch (photoError) {
