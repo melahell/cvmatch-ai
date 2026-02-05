@@ -57,9 +57,18 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
         // Régénérer une signed URL fraîche pour la photo si nécessaire
         // Car la signed URL dans le payload peut être expirée
         const modifiedPayload = { ...job.payload };
+        console.log("[PDF:PHOTO] Processing photo regeneration", {
+            includePhoto: modifiedPayload.includePhoto,
+            hasProfilData: !!modifiedPayload.data?.profil,
+            hasPhotoUrl: !!modifiedPayload.data?.profil?.photo_url,
+            requestId
+        });
+
         if (modifiedPayload.includePhoto !== false && modifiedPayload.data?.profil) {
             try {
                 const currentPhotoUrl = modifiedPayload.data.profil.photo_url as string | undefined;
+                console.log("[PDF:PHOTO] Current photo URL:", currentPhotoUrl?.substring(0, 80), { requestId });
+
                 if (typeof currentPhotoUrl === "string" && currentPhotoUrl.length > 0) {
                     let newSignedUrl: string | null = null;
 
@@ -67,14 +76,23 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
                     if (currentPhotoUrl.startsWith("http://") || currentPhotoUrl.startsWith("https://")) {
                         // Format typique Supabase: /storage/v1/object/sign/profile-photos/avatars/userId/filename.jpg?token=...
                         const urlMatch = currentPhotoUrl.match(/\/storage\/v1\/(?:object\/sign|object\/public)\/([^/?]+)\/(.+?)(?:\?|$)/);
+                        console.log("[PDF:PHOTO] URL regex match:", urlMatch ? "YES" : "NO", { requestId });
+
                         if (urlMatch) {
                             const [, bucket, pathWithQuery] = urlMatch;
                             const cleanPath = decodeURIComponent(pathWithQuery.split('?')[0]);
-                            logger.debug("Extracting fresh photo URL from payload", { bucket, cleanPath, requestId });
-                            const { data: signedData } = await supabase.storage
+                            console.log("[PDF:PHOTO] Regenerating signed URL", { bucket, cleanPath, requestId });
+
+                            const { data: signedData, error: signedError } = await supabase.storage
                                 .from(bucket)
                                 .createSignedUrl(cleanPath, 3600);
-                            newSignedUrl = signedData?.signedUrl ?? null;
+
+                            if (signedError) {
+                                console.error("[PDF:PHOTO] Error creating signed URL:", signedError.message, { requestId });
+                            } else {
+                                newSignedUrl = signedData?.signedUrl ?? null;
+                                console.log("[PDF:PHOTO] New signed URL created:", newSignedUrl?.substring(0, 80), { requestId });
+                            }
                         }
                     }
                     // Si c'est une référence storage: ou chemin relatif
@@ -82,10 +100,17 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
                         const storagePath = currentPhotoUrl.startsWith("storage:")
                             ? currentPhotoUrl.replace(/^storage:profile-photos:/, "")
                             : currentPhotoUrl;
-                        const { data: signedData } = await supabase.storage
+                        console.log("[PDF:PHOTO] Regenerating from storage path", { storagePath, requestId });
+
+                        const { data: signedData, error: signedError } = await supabase.storage
                             .from("profile-photos")
                             .createSignedUrl(storagePath, 3600);
-                        newSignedUrl = signedData?.signedUrl ?? null;
+
+                        if (signedError) {
+                            console.error("[PDF:PHOTO] Error creating signed URL:", signedError.message, { requestId });
+                        } else {
+                            newSignedUrl = signedData?.signedUrl ?? null;
+                        }
                     }
 
                     if (newSignedUrl) {
@@ -96,11 +121,13 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
                                 photo_url: newSignedUrl
                             }
                         };
-                        logger.debug("Fresh photo URL injected into payload", { requestId });
+                        console.log("[PDF:PHOTO] ✅ Fresh photo URL injected into payload", { requestId });
+                    } else {
+                        console.warn("[PDF:PHOTO] ⚠️ Could not generate fresh URL, keeping original", { requestId });
                     }
                 }
-            } catch (photoError) {
-                logger.warn("Could not refresh photo URL for print job", { error: photoError, requestId });
+            } catch (photoError: any) {
+                console.error("[PDF:PHOTO] ❌ Exception refreshing photo URL:", photoError?.message, { requestId });
             }
         }
 
