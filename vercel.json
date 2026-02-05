@@ -5,6 +5,14 @@
     },
     "app/api/rag/generate-incremental/route.ts": {
       "maxDuration": 300
+    },
+    "app/api/print-jobs/[token]/pdf/route.ts": {
+      "maxDuration": 120,
+      "memory": 2048
+    },
+    "app/api/cv/[id]/pdf/route.ts": {
+      "maxDuration": 120,
+      "memory": 2048
     }
   }
 }

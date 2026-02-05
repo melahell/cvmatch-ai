@@ -5,7 +5,8 @@ import { createPrinterSession, getPrinterAppUrl, type PrinterSession } from "@/l
 import { createRequestId } from "@/lib/request-id";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const runtime = "nodejs";
+export const maxDuration = 120;
 
 function toSafeFilenamePart(value: string): string {
     return value
