@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
-import { createPrinterSession, createRequestId, getPrinterAppUrl, type PrinterSession } from "@/lib/printer";
+import { createPrinterSession, getPrinterAppUrl, type PrinterSession } from "@/lib/printer";
+import { createRequestId } from "@/lib/request-id";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

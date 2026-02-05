@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSupabaseUser } from "@/lib/supabase";
-import { createPrinterSession, createRequestId, getPrinterEndpoint } from "@/lib/printer";
+import { createPrinterSession, getPrinterEndpoint } from "@/lib/printer";
+import { createRequestId } from "@/lib/request-id";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,4 +30,3 @@ export async function GET(req: Request) {
         );
     }
 }
-

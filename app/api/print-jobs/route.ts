@@ -3,7 +3,7 @@ import { z } from "zod";
 import crypto from "crypto";
 import { createSupabaseAdminClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
-import { createRequestId } from "@/lib/printer";
+import { createRequestId } from "@/lib/request-id";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

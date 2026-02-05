@@ -1,6 +1,6 @@
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import crypto from "crypto";
+import { createRequestId } from "@/lib/request-id";
 
 export type PrinterMode = "remote" | "local";
 
@@ -9,11 +9,6 @@ export type PrinterSession = {
     browser: any;
     close: () => Promise<void>;
 };
-
-export function createRequestId(): string {
-    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
-    return crypto.randomBytes(16).toString("hex");
-}
 
 export function getPrinterEndpoint(): string | null {
     const v = process.env.PRINTER_ENDPOINT?.trim();
@@ -55,4 +50,3 @@ export async function createPrinterSession(): Promise<PrinterSession> {
     });
     return { mode: "local", browser, close: async () => browser.close() };
 }
-

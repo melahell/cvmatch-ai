@@ -1,11 +1,15 @@
 ALTER TABLE print_jobs
   ALTER COLUMN expires_at SET DEFAULT (NOW() + INTERVAL '30 minutes');
 
+CREATE INDEX IF NOT EXISTS idx_print_jobs_expires_at ON print_jobs (expires_at);
+CREATE INDEX IF NOT EXISTS idx_print_jobs_user_created_at ON print_jobs (user_id, created_at DESC);
+
 CREATE OR REPLACE FUNCTION cleanup_print_jobs()
 RETURNS TRIGGER AS $$
 BEGIN
   DELETE FROM print_jobs
-  WHERE expires_at < NOW() - INTERVAL '1 hour';
+  WHERE user_id = NEW.user_id
+    AND expires_at < NOW() - INTERVAL '1 hour';
 
   DELETE FROM print_jobs
   WHERE user_id = NEW.user_id

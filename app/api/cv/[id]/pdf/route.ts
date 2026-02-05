@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
-import { createPrinterSession, createRequestId, getPrinterAppUrl, type PrinterSession } from "@/lib/printer";
+import { createPrinterSession, getPrinterAppUrl, type PrinterSession } from "@/lib/printer";
+import { createRequestId } from "@/lib/request-id";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
