@@ -105,7 +105,7 @@ export function buildExperiences(
         }
 
         // Essayer de trouver l'expérience RAG correspondante
-        const ragExp = findRAGExperience(expId, ragProfile);
+        const ragExp = findRAGExperience(expId, ragProfile, headerText);
 
         // Déterminer poste et entreprise
         let poste = "";
