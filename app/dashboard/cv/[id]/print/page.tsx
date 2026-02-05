@@ -84,6 +84,8 @@ export default function CVPrintPage() {
         if (!includePhoto) return;
         if (!cvData) return;
 
+        (window as any).__CV_PHOTO_READY__ = false;
+
         const currentPhoto = cvData?.profil?.photo_url as string | undefined;
         const isLikelySignedUrl = (value: string) => {
             try {
@@ -96,7 +98,10 @@ export default function CVPrintPage() {
         const hasHttpPhoto =
             typeof currentPhoto === "string" &&
             (currentPhoto.startsWith("http://") || currentPhoto.startsWith("https://"));
-        if (hasHttpPhoto && !isLikelySignedUrl(currentPhoto)) return;
+        if (hasHttpPhoto && !isLikelySignedUrl(currentPhoto)) {
+            (window as any).__CV_PHOTO_READY__ = true;
+            return;
+        }
 
         let cancelled = false;
 
@@ -131,6 +136,8 @@ export default function CVPrintPage() {
                 });
             } catch {
                 return;
+            } finally {
+                if (!cancelled) (window as any).__CV_PHOTO_READY__ = true;
             }
         };
 
@@ -158,12 +165,22 @@ export default function CVPrintPage() {
             // Wait for fonts and images to load
             if (document.fonts) {
                 document.fonts.ready.then(() => {
-                    // Wait for all images in the CV to load too
-                    const images = document.querySelectorAll('#cv-container img');
-                    if (images.length === 0) {
-                        setTimeout(markReady, 300);
-                    } else {
-                        Promise.all(
+                    (async () => {
+                        if (includePhoto) {
+                            const start = Date.now();
+                            while (!(window as any).__CV_PHOTO_READY__) {
+                                if (Date.now() - start > 8000) break;
+                                await new Promise(resolve => setTimeout(resolve, 50));
+                            }
+                        }
+
+                        const images = document.querySelectorAll('#cv-container img');
+                        if (images.length === 0) {
+                            setTimeout(markReady, 300);
+                            return;
+                        }
+
+                        await Promise.all(
                             Array.from(images).map(img =>
                                 (img as HTMLImageElement).complete
                                     ? Promise.resolve()
@@ -172,14 +189,15 @@ export default function CVPrintPage() {
                                         (img as HTMLImageElement).onerror = resolve;
                                     })
                             )
-                        ).then(() => setTimeout(markReady, 300));
-                    }
+                        );
+                        setTimeout(markReady, 300);
+                    })();
                 });
             } else {
                 setTimeout(markReady, 1500);
             }
         }
-    }, [loading, cvData]);
+    }, [loading, cvData, includePhoto]);
 
     useEffect(() => {
         if (!autoPrint || !rendered) return;
