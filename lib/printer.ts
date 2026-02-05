@@ -1,5 +1,7 @@
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import fs from "fs";
+import path from "path";
 
 export type PrinterMode = "remote" | "local";
 
@@ -38,6 +40,26 @@ export async function checkPrinterConnectivity(): Promise<PrinterConnectivity> {
     return { hasEndpoint: true, mode: "remote" };
 }
 
+async function resolveChromiumExecutablePath(): Promise<string> {
+    try {
+        return await chromium.executablePath();
+    } catch {}
+
+    const candidates = [
+        process.env.LAMBDA_TASK_ROOT ? path.join(process.env.LAMBDA_TASK_ROOT, "node_modules/@sparticuz/chromium/bin") : null,
+        "/var/task/node_modules/@sparticuz/chromium/bin",
+        path.join(process.cwd(), "node_modules/@sparticuz/chromium/bin"),
+    ].filter(Boolean) as string[];
+
+    for (const candidate of candidates) {
+        try {
+            if (fs.existsSync(candidate)) return await chromium.executablePath(candidate);
+        } catch {}
+    }
+
+    return await chromium.executablePath();
+}
+
 export async function createPrinterSession(): Promise<PrinterSession> {
     const endpoint = getPrinterEndpoint();
 
@@ -62,7 +84,7 @@ export async function createPrinterSession(): Promise<PrinterSession> {
 
     let executablePath: string;
     try {
-        executablePath = await chromium.executablePath();
+        executablePath = await resolveChromiumExecutablePath();
     } catch (error: any) {
         const message = typeof error?.message === "string" ? error.message : "";
         if (message.includes("@sparticuz/chromium/bin") || message.includes("brotli")) {
@@ -71,6 +93,8 @@ export async function createPrinterSession(): Promise<PrinterSession> {
                     "Chromium introuvable dans l’environnement serveur.",
                     "Sur Vercel, ajoutez outputFileTracingIncludes pour `node_modules/@sparticuz/chromium/bin/**`",
                     "ou configurez PRINTER_ENDPOINT (Chrome/Browserless) pour éviter Chromium packagé.",
+                    `cwd=${process.cwd()}`,
+                    `lambda_task_root=${process.env.LAMBDA_TASK_ROOT ?? "null"}`,
                 ].join(" ")
             );
         }
