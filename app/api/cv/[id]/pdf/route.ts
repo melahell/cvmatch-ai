@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
+import { createSupabaseUserClient, createSupabaseAdminClient, requireSupabaseUser, createSignedUrl, parseStorageRef } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 import { createPrinterSession, getPrinterAppUrl, type PrinterSession } from "@/lib/printer";
 import { createRequestId } from "@/lib/request-id";
@@ -93,6 +93,50 @@ export async function GET(
         if (requestedFont) extraParams.set("font", requestedFont);
         if (requestedDensity) extraParams.set("density", requestedDensity);
         extraParams.set("photo", includePhoto ? "true" : "false");
+
+        // Récupérer la photo avec signed URL fraîche si nécessaire
+        if (includePhoto) {
+            try {
+                const admin = createSupabaseAdminClient();
+                const { data: ragRow } = await admin
+                    .from("rag_metadata")
+                    .select("completeness_details")
+                    .eq("user_id", auth.user.id)
+                    .maybeSingle();
+
+                const photoRef = ragRow?.completeness_details?.profil?.photo_url;
+                if (photoRef) {
+                    let signedUrl: string | null = null;
+
+                    if (typeof photoRef === "string" && (photoRef.startsWith("http://") || photoRef.startsWith("https://"))) {
+                        // Déjà une URL HTTP, mais on doit vérifier si c'est une signed URL expirée
+                        // Pour simplifier, on régénère toujours une nouvelle signed URL depuis le storage
+                        const parsed = parseStorageRef(photoRef);
+                        if (parsed) {
+                            signedUrl = await createSignedUrl(admin, `storage:${parsed.bucket}:${parsed.path}`, { expiresIn: 3600 });
+                        } else {
+                            signedUrl = photoRef; // Utiliser l'URL telle quelle
+                        }
+                    } else if (typeof photoRef === "string" && photoRef.startsWith("storage:")) {
+                        signedUrl = await createSignedUrl(admin, photoRef, { expiresIn: 3600 });
+                    } else if (typeof photoRef === "string") {
+                        // Chemin relatif - essayer de le convertir
+                        const refPath = photoRef.includes("avatars/")
+                            ? `storage:profile-photos:${photoRef}`
+                            : `storage:profile-photos:avatars/${auth.user.id}/${photoRef}`;
+                        signedUrl = await createSignedUrl(admin, refPath, { expiresIn: 3600 });
+                    }
+
+                    if (signedUrl) {
+                        extraParams.set("photoUrl", signedUrl);
+                        logger.debug("Fresh signed photo URL generated for PDF", { cvId: id });
+                    }
+                }
+            } catch (photoError) {
+                logger.warn("Could not generate photo signed URL for PDF", { error: photoError, cvId: id });
+            }
+        }
+
         const printUrl = `${baseUrl}/dashboard/cv/${id}/print?format=${format}&template=${encodeURIComponent(
             templateName
         )}&${extraParams.toString()}`;
@@ -182,7 +226,7 @@ export async function GET(
         );
     } finally {
         if (printer) {
-            try { await printer.close(); } catch {}
+            try { await printer.close(); } catch { }
         }
     }
 }

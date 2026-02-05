@@ -26,6 +26,8 @@ export default function CVPrintPage() {
     const density = (densityParam === "compact" || densityParam === "normal" || densityParam === "airy") ? (densityParam as CVDensity) : undefined;
     const customCSS = searchParams.get("css") || undefined;
     const autoPrint = searchParams.get("autoprint") === "1";
+    // Photo URL passée directement par la route PDF (signed URL fraîche)
+    const photoUrlParam = searchParams.get("photoUrl") || undefined;
     const printCss = getCVPrintCSS(format);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
@@ -81,14 +83,26 @@ export default function CVPrintPage() {
         fetchCV();
     }, [id, templateParam]);
 
-    // Toujours régénérer une signed URL fraîche pour la photo
-    // Les signed URLs expirent, donc on doit toujours en demander une nouvelle
+    // Injecter la photo URL si passée par la route PDF
+    // Cela permet à Puppeteer d'avoir une signed URL fraîche sans auth JS
     useEffect(() => {
         if (!includePhoto) return;
         if (!cvData) return;
 
         (window as any).__CV_PHOTO_READY__ = false;
 
+        // Si on a une photoUrl fraîche passée par la route PDF, l'utiliser directement
+        if (photoUrlParam) {
+            logger.debug("Using photo URL from PDF route param", { photoUrl: photoUrlParam.substring(0, 50) + "..." });
+            setCvData((prev: any) => {
+                if (!prev) return prev;
+                return { ...prev, profil: { ...(prev.profil || {}), photo_url: photoUrlParam } };
+            });
+            (window as any).__CV_PHOTO_READY__ = true;
+            return;
+        }
+
+        // Fallback : essayer de charger via API (fonctionne en preview web, pas via Puppeteer)
         let cancelled = false;
 
         const loadPhoto = async () => {
@@ -105,7 +119,6 @@ export default function CVPrintPage() {
 
                 const res = await fetch("/api/profile/photo", init);
                 if (!res.ok) {
-                    // Pas de photo disponible, on continue quand même
                     logger.debug("No photo available from API");
                     return;
                 }
@@ -114,9 +127,8 @@ export default function CVPrintPage() {
                 if (!photoUrl) return;
                 if (cancelled) return;
 
-                logger.debug("Fresh signed photo URL obtained", { photoUrl: photoUrl.substring(0, 50) + "..." });
+                logger.debug("Fresh signed photo URL obtained via API", { photoUrl: photoUrl.substring(0, 50) + "..." });
 
-                // Toujours mettre à jour avec l'URL fraîche
                 setCvData((prev: any) => {
                     if (!prev) return prev;
                     return { ...prev, profil: { ...(prev.profil || {}), photo_url: photoUrl } };
@@ -134,7 +146,7 @@ export default function CVPrintPage() {
         return () => {
             cancelled = true;
         };
-    }, [includePhoto, cvData]);
+    }, [includePhoto, cvData, photoUrlParam]);
 
     // Signal when CV is fully rendered (for Puppeteer detection)
     useEffect(() => {
