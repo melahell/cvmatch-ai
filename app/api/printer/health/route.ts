@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireSupabaseUser } from "@/lib/supabase";
-import { createPrinterSession, getPrinterEndpoint } from "@/lib/printer";
+import { checkPrinterConnectivity } from "@/lib/printer";
 import { createRequestId } from "@/lib/request-id";
 
 export const runtime = "nodejs";
@@ -15,14 +15,8 @@ export async function GET(req: Request) {
     }
 
     try {
-        const session = await createPrinterSession();
-        const mode = session.mode;
-        await session.close();
-
-        return NextResponse.json(
-            { ok: true, mode, hasEndpoint: !!getPrinterEndpoint(), requestId },
-            { status: 200 }
-        );
+        const connectivity = await checkPrinterConnectivity();
+        return NextResponse.json({ ok: true, ...connectivity, requestId }, { status: 200 });
     } catch (error: any) {
         return NextResponse.json(
             { ok: false, error: "Printer indisponible", details: error?.message, requestId },

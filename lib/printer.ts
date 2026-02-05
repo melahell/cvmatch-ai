@@ -1,6 +1,5 @@
 import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
-import { createRequestId } from "@/lib/request-id";
 
 export type PrinterMode = "remote" | "local";
 
@@ -10,6 +9,11 @@ export type PrinterSession = {
     close: () => Promise<void>;
 };
 
+export type PrinterConnectivity = {
+    hasEndpoint: boolean;
+    mode: PrinterMode;
+};
+
 export function getPrinterEndpoint(): string | null {
     const v = process.env.PRINTER_ENDPOINT?.trim();
     return v ? v : null;
@@ -17,6 +21,21 @@ export function getPrinterEndpoint(): string | null {
 
 export function getPrinterAppUrl(fallbackUrl: string): string {
     return (process.env.PRINTER_APP_URL || process.env.NEXT_PUBLIC_APP_URL || fallbackUrl).replace(/\/+$/, "");
+}
+
+export async function checkPrinterConnectivity(): Promise<PrinterConnectivity> {
+    const endpoint = getPrinterEndpoint();
+    if (!endpoint) return { hasEndpoint: false, mode: "local" };
+
+    if (endpoint.startsWith("ws://") || endpoint.startsWith("wss://")) {
+        const browser = await (puppeteer as any).connect({ browserWSEndpoint: endpoint });
+        browser.disconnect();
+        return { hasEndpoint: true, mode: "remote" };
+    }
+
+    const browser = await (puppeteer as any).connect({ browserURL: endpoint });
+    browser.disconnect();
+    return { hasEndpoint: true, mode: "remote" };
 }
 
 export async function createPrinterSession(): Promise<PrinterSession> {
