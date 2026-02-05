@@ -129,6 +129,18 @@ export async function GET(request: NextRequest, { params }: { params: { token: s
                             }
                         };
                         console.log("[PDF:PHOTO] ✅ Base64 photo injected into payload", { requestId });
+
+                        // Mettre à jour le payload en DB pour que le fallback API retourne aussi le base64
+                        // Cela garantit que PrintClient aura la bonne photo même sans evaluateOnNewDocument
+                        try {
+                            await supabase
+                                .from("print_jobs")
+                                .update({ payload: modifiedPayload })
+                                .eq("token", tokenParsed.data);
+                            console.log("[PDF:PHOTO] ✅ Payload updated in DB with base64 photo", { requestId });
+                        } catch (updateErr: any) {
+                            console.warn("[PDF:PHOTO] ⚠️ Could not update payload in DB:", updateErr?.message, { requestId });
+                        }
                     } else {
                         console.warn("[PDF:PHOTO] ⚠️ Could not convert photo, keeping original URL", { requestId });
                     }
