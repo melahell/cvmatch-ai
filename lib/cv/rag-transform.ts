@@ -332,18 +332,22 @@ export function buildRAGForCVPrompt(profile: any): any {
         }));
     }
 
-    // Contexte enrichi (limité)
+    // Contexte enrichi - [AUDIT-FIX P1-4] Inclure TOUTES les sous-catégories y compris env_travail
     const contexte = base.contexte_enrichi;
     const contexteSimplifie: any = {};
     if (contexte) {
         if (Array.isArray(contexte.responsabilites_implicites)) {
-            contexteSimplifie.responsabilites_implicites = contexte.responsabilites_implicites.slice(0, 8);
+            contexteSimplifie.responsabilites_implicites = contexte.responsabilites_implicites.slice(0, 15);
         }
         if (Array.isArray(contexte.competences_tacites)) {
-            contexteSimplifie.competences_tacites = contexte.competences_tacites.slice(0, 10);
+            contexteSimplifie.competences_tacites = contexte.competences_tacites.slice(0, 15);
         }
         if (Array.isArray(contexte.soft_skills_deduites)) {
-            contexteSimplifie.soft_skills_deduites = contexte.soft_skills_deduites.slice(0, 8);
+            contexteSimplifie.soft_skills_deduites = contexte.soft_skills_deduites.slice(0, 10);
+        }
+        // [AUDIT-FIX P1-4] Environnement de travail était OMIS - maintenant transmis
+        if (contexte.environnement_travail) {
+            contexteSimplifie.environnement_travail = contexte.environnement_travail;
         }
     }
 

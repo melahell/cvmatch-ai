@@ -4,6 +4,7 @@ import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/
 import { normalizeRAGData } from "@/lib/utils/normalize-rag";
 import { generateWidgetsFromRAGAndMatch } from "@/lib/cv/generate-widgets";
 import { convertAndSort, ConvertOptions } from "@/lib/cv/ai-adapter";
+import { INDUCED_DATA_PRESETS, type InducedDataOptions } from "@/types/rag-contexte-enrichi";
 import { fitCVToTemplate } from "@/lib/cv/validator";
 import { parseJobOfferFromText, JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { calculateOptimalMinScore } from "@/lib/cv/widget-cache";
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
-        const { analysisId, template, includePhoto = true, matchContextSelection, debug = false } = body;
+        const { analysisId, template, includePhoto = true, matchContextSelection, debug = false, inducedDataMode } = body;
 
         if (!analysisId) {
             return NextResponse.json({ error: "analysisId requis" }, { status: 400 });
@@ -300,12 +301,19 @@ export async function POST(req: Request) {
         // PAS DE FILTRAGE : on inclut tout, l'utilisateur contrôle via l'UI
         let cvData;
         try {
+            // [AUDIT-FIX P1-1] Résoudre les options de données induites depuis le body
+            const resolvedInducedOpts: InducedDataOptions = inducedDataMode && INDUCED_DATA_PRESETS[inducedDataMode as keyof typeof INDUCED_DATA_PRESETS]
+                ? INDUCED_DATA_PRESETS[inducedDataMode as keyof typeof INDUCED_DATA_PRESETS]
+                : INDUCED_DATA_PRESETS.all;
+
             const convertOptions: ConvertOptions = {
                 // Pas de filtrage par défaut - tout est inclus
                 // L'utilisateur peut ajuster minScore via l'UI
                 minScore: 0,
                 // Passer le RAG pour enrichir les données (dates, lieux, contact)
                 ragProfile,
+                // [AUDIT-FIX P1-1] Propager le filtre de données induites
+                inducedDataOptions: resolvedInducedOpts,
             };
 
             logger.debug("[generate-v2] Conversion sans filtrage", {
@@ -542,7 +550,15 @@ export async function POST(req: Request) {
                 sectorDetected: detectedSector,
                 cachedWidgets: fromCache,
                 lossReport,
+                // [AUDIT-FIX P1-1] Mode données induites utilisé
+                inducedDataMode: resolvedInducedOpts.mode,
             },
+            // [AUDIT-FIX P2-2] Warnings combinés de perte de données remontés à l'utilisateur
+            dataWarnings: [
+                ...(unitStats?.warnings || []),
+                ...groundingValidation.warnings,
+                ...(lossReport?.templateOmissions || []),
+            ].slice(0, 10),
             debug: debugPayload,
         });
 

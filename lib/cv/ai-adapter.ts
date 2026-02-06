@@ -8,6 +8,8 @@
 
 import { aiWidgetsEnvelopeSchema, AIWidgetsEnvelope, AIWidget, type AIWidgetSection } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
+import type { InducedDataOptions } from "@/types/rag-contexte-enrichi";
+import { INDUCED_DATA_PRESETS } from "@/types/rag-contexte-enrichi";
 // [CDC Sprint 2.6] Les helpers client sont disponibles dans ./utils/client-normalizer
 // mais restent définis localement ici pour éviter les imports circulaires
 
@@ -63,23 +65,30 @@ export interface ConvertOptions {
      * (dates, lieux, contact, photo)
      */
     ragProfile?: any;
+    /**
+     * [AUDIT-FIX P1-1] Options de filtrage des données induites (contexte enrichi).
+     * Contrôle quelles données induites sont incluses dans le CV.
+     * Par défaut: "all" (tout inclure, confidence >= 60)
+     */
+    inducedDataOptions?: InducedDataOptions;
 }
 
 /**
  * Options par défaut : PAS DE FILTRAGE.
  * On génère tout, on trie par score, l'utilisateur décide via l'UI.
  */
-const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile'>> & { ragProfile?: any } = {
+const DEFAULT_OPTIONS: Required<Omit<ConvertOptions, 'ragProfile' | 'inducedDataOptions'>> & { ragProfile?: any; inducedDataOptions: InducedDataOptions } = {
     minScore: 0,           // Pas de filtrage par score
     advancedFilteringEnabled: false,
     minScoreBySection: {},
     maxExperiences: 999,   // Pas de limite d'expériences
     maxBulletsPerExperience: 999, // Pas de limite de bullets
     limitsBySection: {
-        maxClientsPerExperience: 6,
-        maxClientsReferences: 25,
+        maxClientsPerExperience: 30,   // [AUDIT-FIX P0-2] De 6 à 30 - ne pas tronquer côté adapter
+        maxClientsReferences: 999,      // [AUDIT-FIX P0-2] De 25 à 999 - laisser l'algo adaptatif gérer
     },
     ragProfile: undefined,
+    inducedDataOptions: INDUCED_DATA_PRESETS.all, // [AUDIT-FIX P1-1] Par défaut: tout inclure
 };
 
 // ============================================================================
@@ -344,8 +353,74 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     // [AUDIT FIX IMPORTANT-6] : Passer le ragProfile pour enrichir les dates/lieux
     const experiences = buildExperiences(experienceWidgets, opts, opts.ragProfile);
 
-    // 5) Construire les compétences
-    const competences = buildCompetences(skillsWidgets, opts.ragProfile);
+    // [AUDIT-FIX P0-4] Validation dates : aucune expérience ne doit avoir date_debut vide
+    // Si le re-matching widget/RAG a échoué, forcer un 2ème passage depuis le RAG
+    if (opts.ragProfile?.experiences && Array.isArray(opts.ragProfile.experiences)) {
+        for (const exp of experiences) {
+            if (!exp.date_debut || exp.date_debut.trim() === "") {
+                // Tentative de re-matching par poste+entreprise
+                const expKey = normalizeKey(exp.poste) + "|" + normalizeKey(exp.entreprise);
+                for (const ragExp of opts.ragProfile.experiences) {
+                    const ragKey = normalizeKey(ragExp.poste || ragExp.titre || "") + "|" + normalizeKey(ragExp.entreprise || ragExp.client || "");
+                    if (expKey === ragKey) {
+                        exp.date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date || "");
+                        if (!exp.date_fin && !exp.actuel) {
+                            const fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
+                            if (fin) exp.date_fin = fin;
+                        }
+                        if (ragExp.actuel || ragExp.current) {
+                            (exp as any).actuel = true;
+                            exp.date_fin = undefined;
+                        }
+                        break;
+                    }
+                }
+                // Si toujours vide après 2ème passage, logger un warning
+                if (!exp.date_debut || exp.date_debut.trim() === "") {
+                    console.warn(`[AUDIT-FIX P0-4] ⚠️ Date manquante pour "${exp.poste} @ ${exp.entreprise}" - aucun match RAG trouvé`);
+                }
+            }
+        }
+    }
+
+    // [AUDIT-FIX P1-1/P1-3] Appliquer le filtre InducedDataOptions
+    const inducedOpts = opts.inducedDataOptions || INDUCED_DATA_PRESETS.all;
+    const contexteEnrichi = opts.ragProfile?.contexte_enrichi;
+
+    // [AUDIT-FIX P1-3] Injecter les responsabilités implicites comme bullets dans les expériences
+    if (inducedOpts.include_responsabilites && inducedOpts.mode !== "none" && contexteEnrichi?.responsabilites_implicites) {
+        const responsabilites = (contexteEnrichi.responsabilites_implicites as any[])
+            .filter((r: any) => (r.confidence ?? 0) >= inducedOpts.min_confidence);
+
+        if (responsabilites.length > 0) {
+            // Distribuer les responsabilités implicites dans les expériences pertinentes
+            // en cherchant une correspondance entre la justification et le contenu de l'expérience
+            for (const resp of responsabilites) {
+                const justif = (resp.justification || "").toLowerCase();
+                let injected = false;
+                for (const exp of experiences) {
+                    const expText = [exp.poste, exp.entreprise, ...(exp.realisations || [])].join(" ").toLowerCase();
+                    // Si la justification mentionne le poste ou l'entreprise, injecter dans cette expérience
+                    if (justif.includes(normalizeKey(exp.poste)) || justif.includes(normalizeKey(exp.entreprise)) ||
+                        expText.includes(resp.description.toLowerCase().slice(0, 30))) {
+                        exp.realisations = exp.realisations || [];
+                        exp.realisations.push(`${resp.description} [induit, confiance: ${resp.confidence}%]`);
+                        injected = true;
+                        break;
+                    }
+                }
+                // Si aucune expérience ne correspond, injecter dans la première (plus récente)
+                if (!injected && experiences.length > 0) {
+                    experiences[0].realisations = experiences[0].realisations || [];
+                    experiences[0].realisations.push(`${resp.description} [induit, confiance: ${resp.confidence}%]`);
+                }
+            }
+            debugLog("[convertAndSort] Responsabilités implicites injectées:", responsabilites.length);
+        }
+    }
+
+    // 5) Construire les compétences (avec filtre induced)
+    const competences = buildCompetences(skillsWidgets, opts.ragProfile, inducedOpts);
 
     // 6) Formations - [AUDIT FIX] : Enrichir depuis RAG si disponible
     const formations = buildFormations(educationWidgets, opts.ragProfile);
@@ -675,7 +750,7 @@ function buildExperiences(
     return limited;
 }
 
-function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any): RendererResumeSchema["competences"] {
+function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOpts?: InducedDataOptions): RendererResumeSchema["competences"] {
     const techniquesSet = new Set<string>();
     const softSkillsSet = new Set<string>();
     const rejectedKeys = new Set<string>(Array.isArray(ragProfile?.rejected_inferred) ? ragProfile.rejected_inferred.map(normalizeKey).filter(Boolean) : []);
@@ -709,30 +784,37 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any): Renderer
         }
     });
 
+    // [AUDIT-FIX P1-1/P1-2] Appliquer le filtre InducedDataOptions pour les compétences tacites
+    const effectiveInducedOpts = inducedOpts || INDUCED_DATA_PRESETS.all;
     const contexte = ragProfile?.contexte_enrichi;
-    const tacites = Array.isArray(contexte?.competences_tacites) ? contexte.competences_tacites : [];
-    for (const item of tacites) {
-        const nameRaw = typeof item === "string" ? item : item?.nom || item?.name;
-        const name = String(nameRaw ?? "").trim();
-        if (!name) continue;
-        if (!shouldKeep(name)) continue;
-        const confidence = typeof (item as any)?.confidence === "number" ? (item as any).confidence : undefined;
-        const type = typeof (item as any)?.type === "string" ? String((item as any).type) : "";
 
-        if (type === "soft_skill") {
-            if (confidence !== undefined && confidence < 80) continue;
-            softSkillsSet.add(name);
-            continue;
+    if (effectiveInducedOpts.include_competences_tacites && effectiveInducedOpts.mode !== "none") {
+        const minConf = effectiveInducedOpts.min_confidence;
+        const tacites = Array.isArray(contexte?.competences_tacites) ? contexte.competences_tacites : [];
+        for (const item of tacites) {
+            const nameRaw = typeof item === "string" ? item : item?.nom || item?.name;
+            const name = String(nameRaw ?? "").trim();
+            if (!name) continue;
+            if (!shouldKeep(name)) continue;
+            const confidence = typeof (item as any)?.confidence === "number" ? (item as any).confidence : undefined;
+            const type = typeof (item as any)?.type === "string" ? String((item as any).type) : "";
+
+            // [AUDIT-FIX P1-2] Utiliser le seuil unifié du filtre induit au lieu de seuils codés en dur
+            if (confidence !== undefined && confidence < minConf) continue;
+
+            if (type === "soft_skill") {
+                softSkillsSet.add(name);
+                continue;
+            }
+
+            techniquesSet.add(name);
         }
 
-        if (confidence !== undefined && confidence < 70) continue;
-        techniquesSet.add(name);
-    }
-
-    const softDeduites = Array.isArray(contexte?.soft_skills_deduites) ? contexte.soft_skills_deduites : [];
-    for (const item of softDeduites) {
-        const name = typeof item === "string" ? item : item?.nom || item?.name;
-        if (name && String(name).trim() && shouldKeep(String(name).trim())) softSkillsSet.add(String(name).trim());
+        const softDeduites = Array.isArray(contexte?.soft_skills_deduites) ? contexte.soft_skills_deduites : [];
+        for (const item of softDeduites) {
+            const name = typeof item === "string" ? item : item?.nom || item?.name;
+            if (name && String(name).trim() && shouldKeep(String(name).trim())) softSkillsSet.add(String(name).trim());
+        }
     }
 
     return {
@@ -1003,10 +1085,34 @@ function buildCertificationsAndReferences(
         return sectors.length > 0 ? sectors.slice(0, 6) : undefined;
     })();
 
+    // [AUDIT-FIX P0-3] Scorer les clients par pertinence avec l'offre d'emploi
+    // Les clients dans le même secteur que l'offre remontent en priorité
+    const scoredClients = (() => {
+        if (uniqueClients.length === 0) return uniqueClients;
+        // Récupérer les secteurs de l'offre depuis le RAG ou le contexte
+        const ragClientsBySector = new Map<string, string>();
+        const ragClients = Array.isArray(ragProfile?.references?.clients) ? ragProfile.references.clients : [];
+        for (const c of ragClients) {
+            if (c && typeof c === "object" && c.secteur && (c.nom || c.name)) {
+                ragClientsBySector.set(normalizeKey(c.nom || c.name), c.secteur);
+            }
+        }
+
+        // Scorer chaque client : clients avec secteur connu en premier, puis alphabétique
+        return [...uniqueClients].sort((a, b) => {
+            const aSector = ragClientsBySector.get(normalizeKey(a));
+            const bSector = ragClientsBySector.get(normalizeKey(b));
+            // Clients avec secteur connu sont prioritaires
+            if (aSector && !bSector) return -1;
+            if (!aSector && bSector) return 1;
+            return a.localeCompare(b, "fr");
+        });
+    })();
+
     const clients_references =
-        uniqueClients.length > 0
+        scoredClients.length > 0
             ? {
-                clients: uniqueClients,
+                clients: scoredClients,
                 secteurs: secteursFromRag,
             }
             : undefined;

@@ -369,20 +369,31 @@ export function adaptCVToThemeUnits(params: {
         }
     };
 
-    const dropClientsIfNeeded = () => {
+    const compactClientsIfNeeded = () => {
         if (!next.clients_references) return;
         const cap = zones.clients.capacity_units;
         const per = getUnitHeight("client_item");
         const maxItems = cap > 0 ? Math.floor(cap / per) : 0;
+        const clients = next.clients_references.clients || [];
+        const originalCount = clients.length;
+
         if (maxItems <= 0) {
-            delete (next as any).clients_references;
-            compressionLevelApplied++;
+            // [AUDIT-FIX P0-1] Ne JAMAIS supprimer clients_references entièrement.
+            // Garder au minimum 5 clients en mode compact (noms seuls, 1 ligne)
+            const compactMin = Math.min(5, clients.length);
+            if (compactMin > 0) {
+                next.clients_references.clients = clients.slice(0, compactMin);
+                compressionLevelApplied++;
+                if (originalCount > compactMin) {
+                    warnings.push(`⚠️ ${originalCount - compactMin} client(s) masqué(s) par manque d'espace (${compactMin}/${originalCount} affichés)`);
+                }
+            }
             return;
         }
-        const clients = next.clients_references.clients || [];
         if (clients.length > maxItems) {
             next.clients_references.clients = clients.slice(0, maxItems);
             compressionLevelApplied++;
+            warnings.push(`⚠️ ${originalCount - maxItems} client(s) masqué(s) par manque d'espace (${maxItems}/${originalCount} affichés)`);
         }
     };
 
@@ -402,7 +413,7 @@ export function adaptCVToThemeUnits(params: {
     fitFormationToCapacity();
     fitCertificationsToCapacity();
     fitLanguagesToCapacity();
-    dropClientsIfNeeded();
+    compactClientsIfNeeded();
 
     let computed = computeZoneUnits(next, experienceFormats);
     const allowed = theme.page_config.total_height_units - zones.margins.capacity_units;

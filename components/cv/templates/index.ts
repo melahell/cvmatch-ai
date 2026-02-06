@@ -19,6 +19,7 @@ export interface CVData {
         entreprise: string;
         date_debut: string;
         date_fin?: string;
+        actuel?: boolean;         // [AUDIT-FIX P0-5] Champ actuel manquant
         lieu?: string;
         realisations: string[];
         clients?: string[];
