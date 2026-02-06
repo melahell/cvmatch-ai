@@ -16,6 +16,25 @@ import { safeParseJSON } from "@/lib/ai/safe-json-parser";
 export const runtime = "nodejs";
 export const maxDuration = 60; // 1 minute should be enough
 
+/** Extrait le texte de la réponse Gemini (gère réponses bloquées / structure variable). */
+function getTextFromGeminiResponse(result: { response?: { text?: () => string; candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> } }): string {
+    try {
+        if (result?.response?.text) {
+            return result.response.text();
+        }
+    } catch {
+        // response.text() peut throw si contenu bloqué ou vide
+    }
+    const candidates = result?.response?.candidates;
+    if (Array.isArray(candidates) && candidates.length > 0) {
+        const parts = candidates[0]?.content?.parts;
+        if (Array.isArray(parts)) {
+            return parts.map((p) => p?.text ?? "").join("");
+        }
+    }
+    return "";
+}
+
 /** Normalise un objet brut IA vers le format attendu par l’UI (tolérant aux clés et types). */
 function normalizeJobSuggestion(item: Record<string, unknown>): Record<string, unknown> {
     const str = (v: unknown) => (v != null && typeof v === "string" ? v : typeof v === "number" ? String(v) : Array.isArray(v) ? v.map(String).join(", ") : "");
@@ -89,14 +108,29 @@ export async function POST(req: Request) {
         logger.info("Top jobs génération démarrée", { userId });
 
         let modelUsed: string | null = null;
-        const responseText = await callWithRetry(async () => {
-            const cascade = await generateWithCascade(prompt);
-            modelUsed = cascade.modelUsed;
-            const result = cascade.result;
-            const text = result.response.text();
-            logger.info("Top jobs IA OK", { modelUsed, responseLength: text.length });
-            return text;
-        }, 3);
+        let responseText: string;
+        try {
+            responseText = await callWithRetry(async () => {
+                const cascade = await generateWithCascade(prompt);
+                modelUsed = cascade.modelUsed;
+                const result = cascade.result;
+                const text = getTextFromGeminiResponse(result);
+                if (!text || !text.trim()) {
+                    throw new Error("Gemini response empty or blocked (no text)");
+                }
+                logger.info("Top jobs IA OK", { modelUsed, responseLength: text.length });
+                return text;
+            }, 3);
+        } catch (geminiError: unknown) {
+            const msg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+            logger.error("Top jobs Gemini error", { error: msg });
+            return NextResponse.json({
+                error: "AI service error: Unable to generate job suggestions",
+                errorCode: "GEMINI_ERROR",
+                details: msg,
+                retry: true
+            }, { status: 503 });
+        }
 
         // Parse JSON sans schéma strict (l’IA peut renvoyer nombres en string, clés variées)
         const parsed = safeParseJSON<unknown>(responseText);

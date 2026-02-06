@@ -66,8 +66,9 @@ export default function DashboardPage() {
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error || 'Échec de la génération');
+                const errBody = await response.json().catch(() => ({}));
+                const msg = [errBody.error, errBody.details].filter(Boolean).join(': ') || response.statusText || 'Échec de la génération';
+                throw new Error(msg);
             }
 
             toast.success('Suggestions de postes générées !');
