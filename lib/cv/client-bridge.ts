@@ -16,7 +16,7 @@
  */
 
 import { convertAndSort, type ConvertOptions } from "./ai-adapter";
-import { validateWidgetsEnvelope, type ValidationResult } from "./widget-validator";
+import { validateWidgetsEnvelope, type ValidationResult, type ValidationWarning } from "./widget-validator";
 import { rescoreWidgetsWithAdvanced } from "./advanced-scoring";
 import type { AIWidgetsEnvelope } from "./ai-widgets";
 import type { RendererResumeSchema } from "./renderer-schema";
@@ -142,3 +142,6 @@ export function convertWidgetsToCVWithAdvancedScoring(
         validation,
     };
 }
+
+export type { ConvertOptions };
+export type { ValidationResult, ValidationWarning };
