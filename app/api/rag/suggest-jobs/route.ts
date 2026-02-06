@@ -12,7 +12,7 @@ import { getTopJobsPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { logger } from "@/lib/utils/logger";
 import { safeParseJSON } from "@/lib/ai/safe-json-parser";
-import { jobSuggestionsArraySchema } from "@/lib/ai/schemas";
+import { jobSuggestionsArraySchema, jobSuggestionsResponseSchema } from "@/lib/ai/schemas";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // 1 minute should be enough
@@ -73,22 +73,27 @@ export async function POST(req: Request) {
             return text;
         }, 3);
 
-        // [CDC Sprint 2.3] Parse avec validation Zod
-        const parseResult = safeParseJSON(responseText, jobSuggestionsArraySchema);
-        
-        if (!parseResult.success) {
-            logger.error("Top jobs parse error", { 
-                responseLength: responseText.length,
-                error: parseResult.error 
-            });
-            return NextResponse.json({
-                error: "AI returned invalid format for job suggestions",
-                errorCode: "PARSE_ERROR",
-                details: parseResult.error
-            }, { status: 500 });
+        // Parse avec validation Zod (accepte tableau ou { suggestions: [...] })
+        let top10Jobs: Array<Record<string, unknown>>;
+        const parseArray = safeParseJSON(responseText, jobSuggestionsArraySchema);
+        if (parseArray.success) {
+            top10Jobs = parseArray.data;
+        } else {
+            const parseEnvelope = safeParseJSON(responseText, jobSuggestionsResponseSchema);
+            if (parseEnvelope.success && Array.isArray(parseEnvelope.data.suggestions)) {
+                top10Jobs = parseEnvelope.data.suggestions;
+            } else {
+                logger.error("Top jobs parse error", {
+                    responseLength: responseText.length,
+                    error: parseArray.error
+                });
+                return NextResponse.json({
+                    error: "AI returned invalid format for job suggestions",
+                    errorCode: "PARSE_ERROR",
+                    details: parseArray.error
+                }, { status: 500 });
+            }
         }
-        
-        const top10Jobs = parseResult.data;
         
         // Validate non-empty
         if (!Array.isArray(top10Jobs) || top10Jobs.length === 0) {

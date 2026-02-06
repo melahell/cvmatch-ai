@@ -1,26 +1,37 @@
 /**
  * Schema Zod pour suggestions de jobs
  * 
- * [CDC Sprint 2.3] Validation stricte des sorties IA
+ * Aligné sur le prompt getTopJobsPrompt et l'UI dashboard (titre_poste, salaire_min/max, raison, secteurs).
  */
 
 import { z } from "zod";
 
 // ============================================================================
-// JOB SUGGESTION SCHEMA
+// JOB SUGGESTION SCHEMA (format prompt + UI)
 // ============================================================================
 
 export const jobSuggestionSchema = z.object({
-    titre: z.string(),
+    rang: z.number().optional(),
+    titre_poste: z.string().optional(),
+    titre: z.string().optional(),
+    match_score: z.number().min(0).max(100).optional(),
+    salaire_min: z.number().optional(),
+    salaire_max: z.number().optional(),
+    raison: z.string().optional(),
+    secteurs: z.array(z.string()).optional(),
+    // Champs alternatifs / legacy
     entreprise_type: z.string().optional(),
     secteur: z.string().optional(),
     niveau: z.string().optional(),
     salaire_estime: z.string().optional(),
-    match_score: z.number().min(0).max(100).optional(),
     raisons: z.array(z.string()).optional(),
     competences_cles: z.array(z.string()).optional(),
     description: z.string().optional(),
-}).passthrough();
+    ligne: z.string().optional(),
+}).passthrough().refine(
+    (data) => !!(data.titre_poste ?? data.titre ?? data.ligne),
+    { message: "Au moins un libellé de poste (titre_poste, titre ou ligne) requis" }
+);
 
 export const jobSuggestionsResponseSchema = z.object({
     suggestions: z.array(jobSuggestionSchema),
