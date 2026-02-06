@@ -51,6 +51,7 @@ export interface CVRendererProps {
         remaining: number;
         percentage: number;
     };
+    dynamicCssVariables?: Record<string, string>;
 }
 
 const TEMPLATE_COMPONENTS: Record<string, React.ComponentType<TemplateProps>> = {
@@ -124,6 +125,7 @@ export default function CVRenderer({
     format = "A4",
     customCSS,
     unitStats,
+    dynamicCssVariables,
 }: CVRendererProps) {
     const resolvedStyle = useMemo(
         () => resolveCVStyle({ templateId, colorwayId, fontId, density, printSafe }),
@@ -178,6 +180,7 @@ export default function CVRenderer({
     const mergedStyle = {
         ...cssVariablesToStyle(cssVariables),
         ...themeToStyle(themeVars),
+        ...(dynamicCssVariables || {}),
     };
 
     return (

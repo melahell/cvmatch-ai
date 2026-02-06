@@ -20,6 +20,7 @@ import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw, Download, FileJson, Che
 import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions, type ValidationWarning } from "@/lib/cv/client-bridge";
 import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { validateAIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
+import { adaptCVToThemeUnits } from "@/lib/cv/adaptive-algorithm";
 import ContextualLoader from "@/components/loading/ContextualLoader";
 import { CVSkeleton } from "@/components/loading/CVSkeleton";
 import {
@@ -94,6 +95,8 @@ function CVBuilderContent() {
 
     const [templateId, setTemplateId] = useState<string>("modern");
     const [cvData, setCvData] = useState<RendererResumeSchema | null>(null);
+    const [cssVariables, setCssVariables] = useState<Record<string, string>>({});
+    const [qualityMetrics, setQualityMetrics] = useState<any>(null);
     const [validationResult, setValidationResult] = useState<any>(null);
     const [viewMode, setViewMode] = useState<"single" | "multi">("single");
     const [showEditor, setShowEditor] = useState<boolean>(false);
@@ -138,6 +141,13 @@ function CVBuilderContent() {
             maxClientsReferences: 25,
         },
     });
+
+    // Diagnostique automatique si qualité faible
+    useEffect(() => {
+        if (qualityMetrics?.globalScore < 50) {
+            // Optional: Auto-open diagnostics or show toast
+        }
+    }, [qualityMetrics]);
 
     const filteredTemplates = useMemo(() => {
         const q = templateQuery.trim().toLowerCase();
@@ -657,12 +667,52 @@ function CVBuilderContent() {
 
                     setCvData(cv);
                     setValidationResult(finalValidation);
-                    // Sauvegarder dans cache
                     saveCVDataToCache(analysisId, template, cv, cacheOptions);
+
+                    // [Sprint 1.2] Apply Layout Engine (Client Side)
+                    try {
+                        const adapted = adaptCVToThemeUnits({
+                            cvData: cv,
+                            templateName: template,
+                            includePhoto: includePhoto,
+                            jobOffer: jobContext
+                        });
+                        setCvData(adapted.cvData);
+                        if (adapted.cssVariables) {
+                            setCssVariables(adapted.cssVariables);
+                        }
+                        if (adapted.quality) {
+                            setQualityMetrics(adapted.quality);
+                        }
+                    } catch (e) {
+                        // Fallback if adaptation fails
+                        logger.warn("Layout engine adaptation failed", e);
+                        setCvData(cv);
+                    }
+
                 } else {
                     // Fallback sans validation si RAG non disponible
                     const cv = convertWidgetsToCV(widgets, convertOptions);
-                    setCvData(cv);
+
+                    // [Sprint 1.2] Apply Layout Engine (Client Side)
+                    try {
+                        const adapted = adaptCVToThemeUnits({
+                            cvData: cv,
+                            templateName: template,
+                            includePhoto: includePhoto,
+                            jobOffer: jobContext
+                        });
+                        setCvData(adapted.cvData);
+                        if (adapted.cssVariables) {
+                            setCssVariables(adapted.cssVariables);
+                        }
+                        if (adapted.quality) {
+                            setQualityMetrics(adapted.quality);
+                        }
+                    } catch (e) {
+                        setCvData(cv);
+                    }
+
                     setValidationResult(null);
                     saveCVDataToCache(analysisId, template, cv, cacheOptions);
                 }
@@ -1447,15 +1497,30 @@ function CVBuilderContent() {
                                                             <p className="text-slate-700">
                                                                 Cache CV: {cvCacheHit ? "hit" : "miss"} • Cache widgets: {getWidgetsFromCache(analysisId) ? "hit" : "miss"}
                                                             </p>
-                                                            <p className="text-slate-700">
-                                                                Clients RAG (references.clients): {Array.isArray((ragData as any)?.references?.clients) ? (ragData as any).references.clients.length : 0}
-                                                            </p>
-                                                            <p className="text-slate-700">
-                                                                Clients CV (clients_references.clients): {Array.isArray((cvData as any)?.clients_references?.clients) ? (cvData as any).clients_references.clients.length : 0}
-                                                            </p>
-                                                            <p className="text-slate-700">
-                                                                Expériences avec clients: {Array.isArray((cvData as any)?.experiences) ? (cvData as any).experiences.filter((e: any) => Array.isArray(e?.clients) && e.clients.length > 0).length : 0}
-                                                            </p>
+
+                                                            {/* Quality Metrics Display */}
+                                                            {qualityMetrics && (
+                                                                <div className="mt-2 border-t pt-2 grid grid-cols-2 gap-2 text-xs">
+                                                                    <div>
+                                                                        <div className="font-semibold text-slate-800">Score ATS</div>
+                                                                        <div className={`${qualityMetrics.globalScore >= 70 ? "text-green-600" : "text-amber-600"} font-bold`}>
+                                                                            {qualityMetrics.globalScore}/100
+                                                                        </div>
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="font-semibold text-slate-800">Densité</div>
+                                                                        <div className="text-slate-600">
+                                                                            {qualityMetrics.density?.contentDensity.toFixed(2) ?? "?"} chars/unit
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            <div className="mt-2 border-t pt-2 text-xs text-slate-500">
+                                                                <p>Clients RAG: {Array.isArray((ragData as any)?.references?.clients) ? (ragData as any).references.clients.length : 0}</p>
+                                                                <p>Clients CV: {Array.isArray((cvData as any)?.clients_references?.clients) ? (cvData as any).clients_references.clients.length : 0}</p>
+                                                                <p>Expériences avec clients: {Array.isArray((cvData as any)?.experiences) ? (cvData as any).experiences.filter((e: any) => Array.isArray(e?.clients) && e.clients.length > 0).length : 0}</p>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 )}
@@ -1852,6 +1917,7 @@ function CVBuilderContent() {
                                                         <CVRenderer
                                                             data={reorderedCV || cvData}
                                                             templateId={templateId}
+                                                            dynamicCssVariables={cssVariables}
                                                             colorwayId={colorwayId}
                                                             fontId={fontId}
                                                             density={density}

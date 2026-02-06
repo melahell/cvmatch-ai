@@ -135,7 +135,7 @@ export default function ClassicTemplate({
             <main className="p-8">
                 {/* Summary */}
                 {profil.elevator_pitch && (
-                    <section className="mb-6 text-center">
+                    <section style={{ marginBottom: "var(--spacing-section)" }} className="text-center">
                         <p className="text-slate-700 leading-relaxed text-[9pt] max-w-3xl mx-auto italic">
                             "{profil.elevator_pitch}"
                         </p>
@@ -144,7 +144,7 @@ export default function ClassicTemplate({
 
                 {/* Job context */}
                 {jobContext?.job_title && (
-                    <div className="text-center mb-6">
+                    <div className="text-center" style={{ marginBottom: "var(--spacing-section)" }}>
                         <span className="text-[8pt] text-slate-600">
                             Candidature pour le poste de <strong>{jobContext.job_title}</strong>
                             {jobContext.company && ` chez ${jobContext.company}`}
@@ -153,15 +153,15 @@ export default function ClassicTemplate({
                 )}
 
                 {/* Experiences */}
-                <section className="mb-6">
+                <section style={{ marginBottom: "var(--spacing-section)" }}>
                     <h2
-                        className="text-[12pt] text-center uppercase tracking-widest border-b-2 border-slate-300 pb-2 mb-4 text-slate-800"
-                        style={{ letterSpacing: '0.15em' }}
+                        className="text-[12pt] text-center uppercase tracking-widest border-b-2 border-slate-300 pb-2 text-slate-800"
+                        style={{ letterSpacing: '0.15em', marginBottom: "var(--spacing-item)" }}
                     >
                         Expérience Professionnelle
                     </h2>
 
-                    <div className="space-y-4">
+                    <div className="flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                         {limitedExperiences.map((exp, i) => (
                             <div key={i} className="border-l-4 border-slate-400 pl-4 py-2">
                                 <div className="flex justify-between items-baseline mb-1">
@@ -187,7 +187,7 @@ export default function ClassicTemplate({
                                 )}
                                 {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                 {exp.realisations && exp.realisations.length > 0 && (
-                                    <ul className="text-[8pt] text-slate-700 space-y-1 list-disc list-inside">
+                                    <ul className="text-[8pt] text-slate-700 list-disc list-inside" style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-bullet)" }}>
                                         {exp.realisations.map((r, j) => (
                                             <li key={j}>{safeString(r)}</li>
                                         ))}

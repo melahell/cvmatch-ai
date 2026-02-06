@@ -58,7 +58,7 @@ export default function ModernTemplate({
                 }}
             >
                 {/* Avatar */}
-                <div className="flex flex-col items-center text-center mb-5">
+                <div className="flex flex-col items-center text-center" style={{ marginBottom: "var(--spacing-section)" }}>
                     <div
                         className="w-24 h-24 rounded-full border-4 border-[color:var(--cv-sidebar-accent)] p-0.5 mb-3 overflow-hidden bg-slate-800 flex items-center justify-center shadow-level-4"
                     >
@@ -81,7 +81,7 @@ export default function ModernTemplate({
                 </div>
 
                 {/* Contact */}
-                <div className="space-y-2 mb-5 text-[8pt]">
+                <div className="flex flex-col text-[8pt]" style={{ gap: "var(--spacing-item)", marginBottom: "var(--spacing-section)" }}>
                     <h3 className="text-[color:var(--cv-sidebar-accent)] font-bold uppercase text-[7pt] tracking-widest border-b-2 border-[color:var(--cv-sidebar-accent)] pb-1.5">
                         Contact
                     </h3>
@@ -140,11 +140,11 @@ export default function ModernTemplate({
 
                 {/* Soft Skills - Tags */}
                 {limitedSoftSkills.length > 0 && (
-                    <div className="space-y-2 mb-5">
+                    <div style={{ marginBottom: "var(--spacing-section)" }}>
                         <h3 className="text-[color:var(--cv-sidebar-accent)] font-bold uppercase text-[7pt] tracking-widest border-b-2 border-[color:var(--cv-sidebar-accent)] pb-1.5">
                             Qualités
                         </h3>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1" style={{ marginTop: "var(--spacing-bullet)" }}>
                             {limitedSoftSkills.map((skill, i) => (
                                 <span
                                     key={i}
@@ -212,7 +212,7 @@ export default function ModernTemplate({
             <main className="flex-1 p-5 bg-white overflow-hidden">
                 {/* Profil / Résumé */}
                 {cleanElevatorPitch && (
-                    <section className="mb-4">
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h2 className="text-base font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                             <span className="w-6 h-0.5 bg-[var(--cv-primary)] rounded-full" />
                             Profil
@@ -239,7 +239,7 @@ export default function ModernTemplate({
                         <span className="w-6 h-0.5 bg-purple-600 rounded-full" />
                         Expériences Professionnelles
                     </h2>
-                    <div className="space-y-1.5">
+                    <div className="flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                         {limitedExperiences.map((exp, i) => {
                             return (
                                 <div

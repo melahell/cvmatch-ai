@@ -3,6 +3,8 @@ import { CVData } from "../../components/cv/templates";
 import { getThemeConfig } from "./theme-configs";
 import { getUnitHeight } from "./content-units-reference";
 import { JobOfferContext, sortExperiencesByRelevance } from "./relevance-scoring";
+import { simulateLayout, getDynamicSpacingVariables } from "./layout-engine";
+import { analyzeQuality, QualityAnalysis } from "./quality-scorer";
 
 type ExperienceFormat = "detailed" | "standard" | "compact" | "minimal";
 
@@ -13,6 +15,9 @@ export interface CVAdaptationResult {
     zoneUnitsUsed: Record<string, number>;
     warnings: string[];
     compressionLevelApplied: number;
+    cssVariables?: Record<string, string>;
+    pages?: number;
+    quality?: QualityAnalysis;
 }
 
 function parseYear(value: string | undefined): number | null {
@@ -433,6 +438,20 @@ export function adaptCVToThemeUnits(params: {
         warnings.push(`⚠️ Contenu dépasse la capacité (${computed.totalUnitsUsed}/${allowed} units) - Considérez un template plus compact`);
     }
 
+    const layoutSim = simulateLayout({
+        cvData: next,
+        dense,
+        totalUnitsUsed: computed.totalUnitsUsed,
+        zoneUnitsUsed: computed.zoneUnitsUsed,
+        warnings,
+        compressionLevelApplied
+    }, params.templateName);
+
+    const cssVariables = getDynamicSpacingVariables(layoutSim, params.templateName);
+
+    // Calculate Quality Metrics
+    const quality = analyzeQuality(next, params.jobOffer, layoutSim.totalPages);
+
     return {
         cvData: next,
         dense,
@@ -440,6 +459,9 @@ export function adaptCVToThemeUnits(params: {
         zoneUnitsUsed: computed.zoneUnitsUsed,
         warnings,
         compressionLevelApplied,
+        cssVariables,
+        pages: layoutSim.totalPages,
+        quality
     };
 }
 
@@ -498,6 +520,8 @@ export function generateAdaptiveCV(
             experiences: experiences,
             skills: [],
             formation: []
-        }
+        },
+        cssVariables: result.cssVariables,
+        quality: result.quality
     } as any;
 }
