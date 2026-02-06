@@ -1,9 +1,11 @@
 /**
  * [CDC-09] Parser JSON sécurisé pour sorties IA
  * Gère les erreurs courantes des LLMs (markdown, trailing commas, etc.)
+ * Fallback: jsonrepair pour réparer le JSON mal formé (virgules, guillemets, tronqué).
  */
 
 import { z } from "zod";
+import { jsonrepair } from "jsonrepair";
 
 /**
  * Nettoie une chaîne JSON potentiellement mal formatée par un LLM
@@ -71,10 +73,27 @@ export function safeParseJSON<T>(
             
             return { success: true, data: parsed as T };
         } catch (repairError) {
-            return { 
-                success: false, 
-                error: `JSON parse failed: ${e instanceof Error ? e.message : 'Unknown error'}`
-            };
+            // Dernier essai: jsonrepair (gère virgules manquantes, guillemets, tronqué, etc.)
+            try {
+                const repaired = jsonrepair(raw);
+                const parsed = JSON.parse(repaired);
+                if (schema) {
+                    const result = schema.safeParse(parsed);
+                    if (!result.success) {
+                        return {
+                            success: false,
+                            error: `Validation failed after jsonrepair: ${result.error.issues.map((i) => i.message).join(", ")}`
+                        };
+                    }
+                    return { success: true, data: result.data };
+                }
+                return { success: true, data: parsed as T };
+            } catch (jsonrepairError) {
+                return {
+                    success: false,
+                    error: `JSON parse failed: ${e instanceof Error ? e.message : "Unknown error"} (jsonrepair failed)`
+                };
+            }
         }
     }
 }
