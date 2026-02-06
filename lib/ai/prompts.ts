@@ -378,25 +378,25 @@ OUTPUT (JSON Array) :
  * L'utilisateur décide ce qu'il affiche via l'UI.
  */
 export const getAIWidgetsGenerationPrompt = (
-    ragProfile: any,
-    matchAnalysis: any,
-    jobDescription: string,
-    _dynamicLimits?: any // Ignoré - on génère tout maintenant
+  ragProfile: any,
+  matchAnalysis: any,
+  jobDescription: string,
+  _dynamicLimits?: any // Ignoré - on génère tout maintenant
 ) => {
-    // Compter les expériences pour informer le prompt
-    const experiences = Array.isArray(ragProfile?.experiences) ? ragProfile.experiences : [];
-    const nbExperiences = experiences.length;
+  // Compter les expériences pour informer le prompt
+  const experiences = Array.isArray(ragProfile?.experiences) ? ragProfile.experiences : [];
+  const nbExperiences = experiences.length;
 
-    // Construire la liste explicite des IDs d'expériences que Gemini DOIT couvrir
-    const experienceIdList = experiences.map((exp: any, idx: number) => {
-        const id = exp.id || `exp_${idx}`;
-        const poste = exp.poste || "Poste inconnu";
-        const entreprise = exp.entreprise || "Entreprise inconnue";
-        const nbReal = Array.isArray(exp.realisations) ? exp.realisations.length : 0;
-        return `  - "${id}" : ${poste} @ ${entreprise} (${nbReal} réalisations)`;
-    }).join("\n");
+  // Construire la liste explicite des IDs d'expériences que Gemini DOIT couvrir
+  const experienceIdList = experiences.map((exp: any, idx: number) => {
+    const id = exp.id || `exp_${idx}`;
+    const poste = exp.poste || "Poste inconnu";
+    const entreprise = exp.entreprise || "Entreprise inconnue";
+    const nbReal = Array.isArray(exp.realisations) ? exp.realisations.length : 0;
+    return `  - "${id}" : ${poste} @ ${entreprise} (${nbReal} réalisations)`;
+  }).join("\n");
 
-    return `
+  return `
 Tu es un expert en génération de contenu CV optimisé pour ATS et recruteurs.
 
 ═══════════════════════════════════════════════════════════════
@@ -448,6 +448,17 @@ RÈGLES CRITIQUES
 4. QUANTIFICATION OBLIGATOIRE :
    - Si le RAG contient des chiffres (budgets, volumes, %, délais) → INCLURE
    - Si pas de chiffres → widget sans quantification (mais factuel)
+
+5. [NOUVEAU] DATES & LIEUX OBLIGATOIRES (Widget "experience_header") :
+   - Tu DOIS remplir les champs "date_start", "date_end", "is_current", "location"
+   - Format YYYY-MM (ex: "2024-01"). Si "is_current": true, ne pas mettre date_end.
+   - Ces infos sont CRITIQUES pour l'affichage chronologique.
+
+6. [NOUVEAU] CONTEXTE "ENVIRONNEMENT DE TRAVAIL" :
+   - Pour chaque expérience, utilise les infos de "environnement_travail" (équipe, outils) si dispo
+   - Intègre ces détails de manière fluide dans la description ou un bullet point dédié
+   - Ex: "Gestion d'une équipe de 5 dev dans un contexte Agile..."
+
 
 5. STRUCTURE DES WIDGETS :
    - Chaque widget = unité atomique (1 bullet, 1 compétence, 1 formation)
@@ -645,8 +656,8 @@ JSON uniquement ↓
 };
 
 export const getMatchAnalysisPrompt = (userProfile: any, jobText: string) => {
-    const contexteEnrichi = userProfile?.contexte_enrichi;
-    const contexteSection = contexteEnrichi ? `
+  const contexteEnrichi = userProfile?.contexte_enrichi;
+  const contexteSection = contexteEnrichi ? `
 ═══════════════════════════════════════════════════════════════
 CONTEXTE ENRICHI (Responsabilités Implicites & Compétences Tacites)
 ═══════════════════════════════════════════════════════════════
@@ -667,7 +678,7 @@ NOTE : Ces éléments sont déduits du contexte et peuvent enrichir l'analyse de
 Utilise-les pour identifier des atouts supplémentaires non explicitement mentionnés.
 ` : '';
 
-    return `
+  return `
 Tu es un expert RH / Career Coach avec une expertise en négociation salariale et stratégie de candidature.
 
 PROFIL DU CANDIDAT (DONNÉES EXPLICITES) :

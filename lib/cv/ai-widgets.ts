@@ -92,6 +92,13 @@ export const aiWidgetSchema = z.object({
     // [CDC-21] sources rendu obligatoire pour traçabilité end-to-end
     sources: aiWidgetSourceRefSchema,
     quality: aiWidgetQualitySchema.optional(),
+
+    // [AUDIT-FIX 100%] Champs structurés pour robustesse dates & lieux
+    // Permet à l'IA de transmettre explicitement ces infos sans dépendre du matching
+    date_start: z.string().optional(), // format YYYY-MM
+    date_end: z.string().optional(),   // format YYYY-MM
+    is_current: z.boolean().optional(),
+    location: z.string().optional(),
 });
 
 export type AIWidget = z.infer<typeof aiWidgetSchema>;

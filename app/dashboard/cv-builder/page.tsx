@@ -79,7 +79,7 @@ interface GenerationState {
 function CVBuilderContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
-    
+
     const analysisId = searchParams.get("analysisId") || "";
     const jobId = searchParams.get("jobId") || "";
 
@@ -177,7 +177,7 @@ function CVBuilderContent() {
                     sha: data?.vercel?.git?.commit_sha ?? null,
                     deploymentId: data?.vercel?.deployment_id ?? null,
                 });
-            } catch {}
+            } catch { }
         };
         run();
     }, []);
@@ -198,7 +198,7 @@ function CVBuilderContent() {
                     }))
                     .filter((x: any) => x.templateId && x.colorwayId)
             );
-        } catch {}
+        } catch { }
     }, []);
 
     useEffect(() => {
@@ -215,20 +215,20 @@ function CVBuilderContent() {
             if (nextColorwayId) setColorwayId(nextColorwayId);
             if (nextFontId) setFontId(nextFontId);
             setDensity(nextDensity);
-        } catch {}
+        } catch { }
     }, []);
 
     useEffect(() => {
         try {
             localStorage.setItem("cvcrush:styleSelection", JSON.stringify({ templateId, colorwayId, fontId, density }));
-        } catch {}
+        } catch { }
     }, [templateId, colorwayId, fontId, density]);
 
     // Fonction pour traduire erreurs techniques en messages utilisateur-friendly
     const getUserFriendlyError = useCallback((error: any): { message: string; action?: string; actionLabel?: string } => {
         const errorMessage = error?.message || error?.error || String(error || "");
         const errorCode = error?.errorCode || "";
-        
+
         // Erreur authentification
         if (errorMessage.includes("Non authentifié") || errorMessage.includes("401") || errorCode === "UNAUTHORIZED") {
             return {
@@ -237,7 +237,7 @@ function CVBuilderContent() {
                 actionLabel: "Se reconnecter"
             };
         }
-        
+
         // Erreur profil RAG manquant
         if (errorMessage.includes("RAG_PROFILE_NOT_FOUND") || errorMessage.includes("Profil RAG introuvable") || errorCode === "RAG_PROFILE_NOT_FOUND") {
             return {
@@ -246,7 +246,7 @@ function CVBuilderContent() {
                 actionLabel: "Compléter mon profil"
             };
         }
-        
+
         // Erreur profil RAG incomplet
         if (errorMessage.includes("RAG_INCOMPLETE") || errorCode === "RAG_INCOMPLETE") {
             return {
@@ -255,7 +255,7 @@ function CVBuilderContent() {
                 actionLabel: "Compléter mon profil"
             };
         }
-        
+
         // Erreur analyse introuvable
         if (errorMessage.includes("ANALYSIS_NOT_FOUND") || errorMessage.includes("Analyse d'emploi introuvable") || errorCode === "ANALYSIS_NOT_FOUND") {
             return {
@@ -264,7 +264,7 @@ function CVBuilderContent() {
                 actionLabel: "Créer une analyse"
             };
         }
-        
+
         // Erreur réseau
         if (error instanceof TypeError || errorMessage.includes("fetch") || errorMessage.includes("network") || errorMessage.includes("Failed to fetch")) {
             return {
@@ -273,7 +273,7 @@ function CVBuilderContent() {
                 actionLabel: "Réessayer"
             };
         }
-        
+
         // Erreur timeout
         if (errorMessage.includes("timeout") || errorMessage.includes("Timeout")) {
             return {
@@ -282,7 +282,7 @@ function CVBuilderContent() {
                 actionLabel: "Réessayer"
             };
         }
-        
+
         // Erreur rate limit
         if (errorCode === "RATE_LIMIT_EXCEEDED" || errorMessage.includes("429") || errorMessage.includes("trop de requêtes")) {
             return {
@@ -291,7 +291,7 @@ function CVBuilderContent() {
                 actionLabel: undefined
             };
         }
-        
+
         // Erreur générique avec détails si disponibles
         if (error?.details) {
             return {
@@ -300,7 +300,7 @@ function CVBuilderContent() {
                 actionLabel: undefined
             };
         }
-        
+
         // Fallback : message générique
         return {
             message: "Une erreur est survenue lors de la génération de votre CV. Veuillez réessayer.",
@@ -362,7 +362,7 @@ function CVBuilderContent() {
                 setErrorAction(null);
                 toast.success("Chargement depuis le cache (instantané)", { duration: 2000 });
                 // Convertir immédiatement avec le template actuel et optimalMinScore
-                const finalConvertOptions = optimalMinScore !== undefined 
+                const finalConvertOptions = optimalMinScore !== undefined
                     ? { ...convertOptions, minScore: optimalMinScore }
                     : convertOptions;
                 convertWidgetsToCVData(cached.widgets, templateId, finalConvertOptions, jobContext);
@@ -383,15 +383,15 @@ function CVBuilderContent() {
             generationAbortRef.current?.abort();
             const controller = new AbortController();
             generationAbortRef.current = controller;
-            try { performance.mark("cv_builder_generate_start"); } catch {}
+            try { performance.mark("cv_builder_generate_start"); } catch { }
 
             // Récupérer headers d'authentification
             const authHeaders = await getSupabaseAuthHeader();
-            
+
             setLoadingStep("Génération des widgets IA (cela peut prendre 10-20 secondes)...");
             const response = await fetch("/api/cv/generate-widgets", {
                 method: "POST",
-                headers: { 
+                headers: {
                     "Content-Type": "application/json",
                     ...authHeaders,
                 },
@@ -464,8 +464,8 @@ function CVBuilderContent() {
             setLoadingStep(null);
             setErrorAction(friendlyError);
         } finally {
-            try { performance.mark("cv_builder_generate_end"); performance.measure("cv_builder_generate", "cv_builder_generate_start", "cv_builder_generate_end"); } catch {}
-            try { if (slowTimer) window.clearTimeout(slowTimer); } catch {}
+            try { performance.mark("cv_builder_generate_end"); performance.measure("cv_builder_generate", "cv_builder_generate_start", "cv_builder_generate_end"); } catch { }
+            try { if (slowTimer) window.clearTimeout(slowTimer); } catch { }
             generationAbortRef.current = null;
         }
     }, [analysisId, jobId, templateId, convertOptions]);
@@ -528,20 +528,63 @@ function CVBuilderContent() {
                 // Toujours valider même si en cache (pour afficher warnings)
                 if (ragData) {
                     try {
+                        // [AUDIT-FIX 100%] Calculer warnings de troncation (données masquées) (copie logique)
+                        // Pour le cache hit, on recalcule aussi car ça dépend des options actuelles
+                        const generateTruncationWarnings = (cv: RendererResumeSchema, rag: any): ValidationWarning[] => {
+                            const warnings: ValidationWarning[] = [];
+
+                            // 1. Clients globaux références
+                            const ragClientsCount = (Array.isArray(rag?.references?.clients) ? rag.references.clients.length : 0);
+                            const cvClientsCount = (Array.isArray(cv?.clients_references?.clients) ? cv.clients_references.clients.length : 0);
+                            const limitClients = convertOptions.limitsBySection?.maxClientsReferences ?? 25;
+
+                            if (ragClientsCount > cvClientsCount && ragClientsCount > limitClients) {
+                                warnings.push({
+                                    widgetId: "global_clients",
+                                    type: "generic_warning",
+                                    severity: "medium",
+                                    message: `${ragClientsCount - cvClientsCount} clients masqués (limite de ${limitClients})`
+                                });
+                            }
+
+                            // 2. Expériences (comparaison nombre d'expériences)
+                            const ragExpsCount = (Array.isArray(rag?.experiences) ? rag.experiences.length : 0);
+                            const cvExpsCount = (Array.isArray(cv?.experiences) ? cv.experiences.length : 0);
+                            const limitExps = convertOptions.maxExperiences ?? 99;
+
+                            if (ragExpsCount > cvExpsCount && ragExpsCount > limitExps) {
+                                warnings.push({
+                                    widgetId: "experiences_count",
+                                    type: "generic_warning",
+                                    severity: "medium",
+                                    message: `${ragExpsCount - cvExpsCount} expériences masquées (limite de ${limitExps})`
+                                });
+                            }
+
+                            return warnings;
+                        };
+
                         // Utiliser scoring avancé si jobContext disponible
+                        let valRes;
                         if (jobContext) {
-                            const { validation } = convertWidgetsToCVWithAdvancedScoring(
+                            valRes = convertWidgetsToCVWithAdvancedScoring(
                                 widgets,
                                 ragData,
                                 jobContext,
                                 convertOptions,
                                 true
                             );
-                            setValidationResult(validation);
                         } else {
-                            const { validation } = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
-                            setValidationResult(validation);
+                            valRes = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
                         }
+
+                        const truncationWarnings = generateTruncationWarnings(cached.cvData, ragData);
+                        const finalValidation = valRes.validation ? {
+                            ...valRes.validation,
+                            warnings: [...valRes.validation.warnings, ...truncationWarnings]
+                        } : valRes.validation;
+
+                        setValidationResult(finalValidation);
                     } catch (error) {
                         logger.error("Erreur validation", { error });
                     }
@@ -553,26 +596,69 @@ function CVBuilderContent() {
             // Convertir avec validation + scoring avancé si RAG disponible
             try {
                 if (ragData) {
+                    // [AUDIT-FIX 100%] Calculer warnings de troncation (données masquées)
+                    const generateTruncationWarnings = (cv: RendererResumeSchema, rag: any): ValidationWarning[] => {
+                        const warnings: ValidationWarning[] = [];
+
+                        // 1. Clients globaux références
+                        const ragClientsCount = (Array.isArray(rag?.references?.clients) ? rag.references.clients.length : 0);
+                        const cvClientsCount = (Array.isArray(cv?.clients_references?.clients) ? cv.clients_references.clients.length : 0);
+                        const limitClients = convertOptions.limitsBySection?.maxClientsReferences ?? 25;
+
+                        if (ragClientsCount > cvClientsCount && ragClientsCount > limitClients) {
+                            warnings.push({
+                                widgetId: "global_clients",
+                                type: "generic_warning",
+                                severity: "medium",
+                                message: `${ragClientsCount - cvClientsCount} clients masqués (limite de ${limitClients})`
+                            });
+                        }
+
+                        // 2. Expériences (comparaison nombre d'expériences)
+                        const ragExpsCount = (Array.isArray(rag?.experiences) ? rag.experiences.length : 0);
+                        const cvExpsCount = (Array.isArray(cv?.experiences) ? cv.experiences.length : 0);
+                        const limitExps = convertOptions.maxExperiences ?? 99;
+
+                        if (ragExpsCount > cvExpsCount && ragExpsCount > limitExps) {
+                            warnings.push({
+                                widgetId: "experiences_count",
+                                type: "generic_warning",
+                                severity: "medium",
+                                message: `${ragExpsCount - cvExpsCount} expériences masquées (limite de ${limitExps})`
+                            });
+                        }
+
+                        return warnings;
+                    };
+
+                    let res;
                     // Utiliser scoring avancé si jobContext disponible
                     if (jobContext) {
-                        const { cvData: cv, validation } = convertWidgetsToCVWithAdvancedScoring(
+                        res = convertWidgetsToCVWithAdvancedScoring(
                             widgets,
                             ragData,
                             jobContext,
                             convertOptions,
                             true
                         );
-                        setCvData(cv);
-                        setValidationResult(validation);
-                        // Sauvegarder dans cache
-                        saveCVDataToCache(analysisId, template, cv, cacheOptions);
                     } else {
                         // Fallback avec validation simple si pas de jobContext
-                        const { cvData: cv, validation } = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
-                        setCvData(cv);
-                        setValidationResult(validation);
-                        saveCVDataToCache(analysisId, template, cv, cacheOptions);
+                        res = convertWidgetsToCVWithValidation(widgets, ragData, convertOptions);
                     }
+
+                    const { cvData: cv, validation: rawValidation } = res;
+
+                    // Injecter warnings
+                    const truncationWarnings = generateTruncationWarnings(cv, ragData);
+                    const finalValidation = rawValidation ? {
+                        ...rawValidation,
+                        warnings: [...rawValidation.warnings, ...truncationWarnings]
+                    } : null;
+
+                    setCvData(cv);
+                    setValidationResult(finalValidation);
+                    // Sauvegarder dans cache
+                    saveCVDataToCache(analysisId, template, cv, cacheOptions);
                 } else {
                     // Fallback sans validation si RAG non disponible
                     const cv = convertWidgetsToCV(widgets, convertOptions);
@@ -680,7 +766,7 @@ function CVBuilderContent() {
     useEffect(() => {
         try {
             localStorage.setItem("cvcrush:styleFavorites", JSON.stringify(favoriteStyles));
-        } catch {}
+        } catch { }
     }, [favoriteStyles]);
 
     const toggleFavoriteCurrent = () => {
@@ -971,8 +1057,8 @@ function CVBuilderContent() {
                                                         // Valider le format avant export
                                                         const validation = validateAIWidgetsEnvelope(state.widgets);
                                                         if (!validation.success) {
-                                                            logger.error("Export JSON: widgets invalides", { 
-                                                                errors: validation.error.errors 
+                                                            logger.error("Export JSON: widgets invalides", {
+                                                                errors: validation.error.errors
                                                             });
                                                             toast.error("Format widgets invalide, impossible d'exporter");
                                                             return;
@@ -1127,661 +1213,661 @@ function CVBuilderContent() {
                                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                                     {/* Sidebar : Contrôles */}
                                     <aside className="space-y-4">
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-sm">Template</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-2">
-                                            <Input
-                                                value={templateQuery}
-                                                onChange={(e) => setTemplateQuery(e.target.value)}
-                                                placeholder="Rechercher un template…"
-                                            />
-                                            {filteredTemplates.map((template) => (
-                                                <Button
-                                                    key={template.id}
-                                                    variant={templateId === template.id ? "primary" : "outline"}
-                                                    size="sm"
-                                                    className="w-full justify-start"
-                                                    onClick={() => handleTemplateChange(template.id)}
-                                                    onMouseEnter={() => preloadCVTemplate(template.id)}
-                                                >
-                                                    {template.name}
-                                                </Button>
-                                            ))}
-                                            <div className="pt-2 space-y-3">
-                                                <Button
-                                                    variant={isFavoriteCurrent ? "primary" : "outline"}
-                                                    size="sm"
-                                                    className="w-full"
-                                                    onClick={toggleFavoriteCurrent}
-                                                >
-                                                    {isFavoriteCurrent ? "Retirer des favoris" : "Ajouter aux favoris"}
-                                                </Button>
-                                                {favoriteStyles.length > 0 && (
-                                                    <div className="space-y-1">
-                                                        {favoriteStyles.slice().reverse().map((f) => (
-                                                            <Button
-                                                                key={`${f.templateId}:${f.colorwayId}:${f.fontId}:${f.density}`}
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="w-full justify-start"
-                                                                onClick={() => applyStyle(f)}
-                                                            >
-                                                                {f.templateId} · {f.colorwayId} · {f.fontId} · {f.density}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                <div className="space-y-2">
-                                                    <div className="text-xs text-slate-600">Presets</div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {presets.map((p) => (
-                                                            <Button
-                                                                key={`${p.templateId}:${p.colorwayId}:${p.fontId}:${p.density}`}
-                                                                variant="outline"
-                                                                size="sm"
-                                                                className="justify-start"
-                                                                onClick={() => applyStyle(p)}
-                                                            >
-                                                                {p.templateId} · {p.colorwayId}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                    <Button variant="outline" size="sm" className="w-full" onClick={applyRandomPreset}>
-                                                        Proposer un style
-                                                    </Button>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <div className="text-xs text-slate-600">Couleurs</div>
-                                                    <div className="grid grid-cols-10 gap-1">
-                                                        <button
-                                                            key="default"
-                                                            type="button"
-                                                            onClick={() => setColorwayId("default")}
-                                                            title="Défaut"
-                                                            className={`h-6 w-6 rounded-full border bg-white text-[9px] font-semibold ${colorwayId === "default" ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
-                                                        >
-                                                            D
-                                                        </button>
-                                                        {CV_COLORWAYS.map((c) => (
-                                                            <button
-                                                                key={c.id}
-                                                                type="button"
-                                                                onClick={() => setColorwayId(c.id)}
-                                                                title={c.name}
-                                                                className={`h-6 w-6 rounded-full border bg-[var(--swatch)] ${colorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
-                                                                style={{ ["--swatch" as any]: c.primary } as any}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <div className="text-xs text-slate-600">Densité</div>
-                                                    <div className="flex gap-2">
-                                                        {CV_DENSITIES.map((d) => (
-                                                            <Button
-                                                                key={d.id}
-                                                                variant={density === d.id ? "primary" : "outline"}
-                                                                size="sm"
-                                                                className="flex-1"
-                                                                onClick={() => setDensity(d.id)}
-                                                            >
-                                                                {d.name}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <div className="text-xs text-slate-600">Police</div>
-                                                    <div className="flex gap-2">
-                                                        {CV_FONTS.map((f) => (
-                                                            <Button
-                                                                key={f.id}
-                                                                variant={fontId === f.id ? "primary" : "outline"}
-                                                                size="sm"
-                                                                className="flex-1"
-                                                                onClick={() => setFontId(f.id)}
-                                                            >
-                                                                {f.name}
-                                                            </Button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-
-                                    {/* Widget Scores Visualization */}
-                                    {state.widgets && (
                                         <Card>
                                             <CardHeader>
-                                                <CardTitle className="text-sm">Scores de Pertinence</CardTitle>
+                                                <CardTitle className="text-sm">Template</CardTitle>
                                             </CardHeader>
-                                            <CardContent>
-                                                <WidgetScoreVisualizer widgets={state.widgets} showDetails={true} />
+                                            <CardContent className="space-y-2">
+                                                <Input
+                                                    value={templateQuery}
+                                                    onChange={(e) => setTemplateQuery(e.target.value)}
+                                                    placeholder="Rechercher un template…"
+                                                />
+                                                {filteredTemplates.map((template) => (
+                                                    <Button
+                                                        key={template.id}
+                                                        variant={templateId === template.id ? "primary" : "outline"}
+                                                        size="sm"
+                                                        className="w-full justify-start"
+                                                        onClick={() => handleTemplateChange(template.id)}
+                                                        onMouseEnter={() => preloadCVTemplate(template.id)}
+                                                    >
+                                                        {template.name}
+                                                    </Button>
+                                                ))}
+                                                <div className="pt-2 space-y-3">
+                                                    <Button
+                                                        variant={isFavoriteCurrent ? "primary" : "outline"}
+                                                        size="sm"
+                                                        className="w-full"
+                                                        onClick={toggleFavoriteCurrent}
+                                                    >
+                                                        {isFavoriteCurrent ? "Retirer des favoris" : "Ajouter aux favoris"}
+                                                    </Button>
+                                                    {favoriteStyles.length > 0 && (
+                                                        <div className="space-y-1">
+                                                            {favoriteStyles.slice().reverse().map((f) => (
+                                                                <Button
+                                                                    key={`${f.templateId}:${f.colorwayId}:${f.fontId}:${f.density}`}
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="w-full justify-start"
+                                                                    onClick={() => applyStyle(f)}
+                                                                >
+                                                                    {f.templateId} · {f.colorwayId} · {f.fontId} · {f.density}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-2">
+                                                        <div className="text-xs text-slate-600">Presets</div>
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            {presets.map((p) => (
+                                                                <Button
+                                                                    key={`${p.templateId}:${p.colorwayId}:${p.fontId}:${p.density}`}
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="justify-start"
+                                                                    onClick={() => applyStyle(p)}
+                                                                >
+                                                                    {p.templateId} · {p.colorwayId}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                        <Button variant="outline" size="sm" className="w-full" onClick={applyRandomPreset}>
+                                                            Proposer un style
+                                                        </Button>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <div className="text-xs text-slate-600">Couleurs</div>
+                                                        <div className="grid grid-cols-10 gap-1">
+                                                            <button
+                                                                key="default"
+                                                                type="button"
+                                                                onClick={() => setColorwayId("default")}
+                                                                title="Défaut"
+                                                                className={`h-6 w-6 rounded-full border bg-white text-[9px] font-semibold ${colorwayId === "default" ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                            >
+                                                                D
+                                                            </button>
+                                                            {CV_COLORWAYS.map((c) => (
+                                                                <button
+                                                                    key={c.id}
+                                                                    type="button"
+                                                                    onClick={() => setColorwayId(c.id)}
+                                                                    title={c.name}
+                                                                    className={`h-6 w-6 rounded-full border bg-[var(--swatch)] ${colorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                                    style={{ ["--swatch" as any]: c.primary } as any}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <div className="text-xs text-slate-600">Densité</div>
+                                                        <div className="flex gap-2">
+                                                            {CV_DENSITIES.map((d) => (
+                                                                <Button
+                                                                    key={d.id}
+                                                                    variant={density === d.id ? "primary" : "outline"}
+                                                                    size="sm"
+                                                                    className="flex-1"
+                                                                    onClick={() => setDensity(d.id)}
+                                                                >
+                                                                    {d.name}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <div className="text-xs text-slate-600">Police</div>
+                                                        <div className="flex gap-2">
+                                                            {CV_FONTS.map((f) => (
+                                                                <Button
+                                                                    key={f.id}
+                                                                    variant={fontId === f.id ? "primary" : "outline"}
+                                                                    size="sm"
+                                                                    className="flex-1"
+                                                                    onClick={() => setFontId(f.id)}
+                                                                >
+                                                                    {f.name}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </CardContent>
                                         </Card>
-                                    )}
 
-                                    {ragData?.contexte_enrichi && (
+                                        {/* Widget Scores Visualization */}
+                                        {state.widgets && (
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="text-sm">Scores de Pertinence</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <WidgetScoreVisualizer widgets={state.widgets} showDetails={true} />
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
+                                        {ragData?.contexte_enrichi && (
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="text-sm flex items-center gap-2">
+                                                        <Info className="w-4 h-4 text-slate-500" />
+                                                        <span>Contexte enrichi</span>
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="text-xs space-y-2">
+                                                    <div className="text-slate-600">
+                                                        Présent: <span className="font-medium text-slate-900">Oui</span>
+                                                    </div>
+                                                    <div className="text-slate-600">
+                                                        Compétences tacites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites.length : 0}</span>
+                                                    </div>
+                                                    <div className="text-slate-600">
+                                                        Soft skills déduites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites.length : 0}</span>
+                                                    </div>
+                                                    <div className="text-slate-600">
+                                                        Injectées dans le CV (skills):{" "}
+                                                        <span className="font-medium text-slate-900">
+                                                            {(() => {
+                                                                const cvSkills = new Set<string>([
+                                                                    ...((cvData as any)?.competences?.techniques || []),
+                                                                    ...((cvData as any)?.competences?.soft_skills || []),
+                                                                ].map((s: any) => String(s || "").toLowerCase().trim()).filter(Boolean));
+                                                                const tac = Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites : [];
+                                                                const soft = Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites : [];
+                                                                const all = [...tac, ...soft].map((x: any) => String(typeof x === "string" ? x : x?.nom || x?.name || "").toLowerCase().trim()).filter(Boolean);
+                                                                let matched = 0;
+                                                                for (const item of all) {
+                                                                    if (cvSkills.has(item)) matched++;
+                                                                }
+                                                                return matched;
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-slate-500">
+                                                        Preuve: le compteur compare les items du contexte enrichi et les compétences réellement présentes dans le CV rendu.
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+                                        )}
+
                                         <Card>
                                             <CardHeader>
-                                                <CardTitle className="text-sm flex items-center gap-2">
-                                                    <Info className="w-4 h-4 text-slate-500" />
-                                                    <span>Contexte enrichi</span>
+                                                <CardTitle className="text-sm flex items-center justify-between gap-2">
+                                                    <span className="flex items-center gap-2">
+                                                        <span>Options de Filtrage</span>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="right" className="max-w-xs">
+                                                                    <div className="space-y-2 text-xs">
+                                                                        <p className="font-semibold">Options de filtrage</p>
+                                                                        <p className="text-slate-600">
+                                                                            Le score global s'applique à toutes les sections. Les filtres avancés permettent de définir des seuils distincts par section (expériences, compétences, etc.).
+                                                                        </p>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </span>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="h-7 px-2"
+                                                        onClick={() => setShowAdvancedFilters((v) => !v)}
+                                                    >
+                                                        <SlidersHorizontal className="w-3 h-3 mr-1" />
+                                                        {showAdvancedFilters ? "Masquer" : "Avancé"}
+                                                        {showAdvancedFilters ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
+                                                    </Button>
                                                 </CardTitle>
                                             </CardHeader>
-                                            <CardContent className="text-xs space-y-2">
-                                                <div className="text-slate-600">
-                                                    Présent: <span className="font-medium text-slate-900">Oui</span>
-                                                </div>
-                                                <div className="text-slate-600">
-                                                    Compétences tacites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites.length : 0}</span>
-                                                </div>
-                                                <div className="text-slate-600">
-                                                    Soft skills déduites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites.length : 0}</span>
-                                                </div>
-                                                <div className="text-slate-600">
-                                                    Injectées dans le CV (skills):{" "}
-                                                    <span className="font-medium text-slate-900">
-                                                        {(() => {
-                                                            const cvSkills = new Set<string>([
-                                                                ...((cvData as any)?.competences?.techniques || []),
-                                                                ...((cvData as any)?.competences?.soft_skills || []),
-                                                            ].map((s: any) => String(s || "").toLowerCase().trim()).filter(Boolean));
-                                                            const tac = Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites : [];
-                                                            const soft = Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites : [];
-                                                            const all = [...tac, ...soft].map((x: any) => String(typeof x === "string" ? x : x?.nom || x?.name || "").toLowerCase().trim()).filter(Boolean);
-                                                            let matched = 0;
-                                                            for (const item of all) {
-                                                                if (cvSkills.has(item)) matched++;
-                                                            }
-                                                            return matched;
-                                                        })()}
-                                                    </span>
-                                                </div>
-                                                <p className="text-slate-500">
-                                                    Preuve: le compteur compare les items du contexte enrichi et les compétences réellement présentes dans le CV rendu.
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    )}
-
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-sm flex items-center justify-between gap-2">
-                                                <span className="flex items-center gap-2">
-                                                    <span>Options de Filtrage</span>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="right" className="max-w-xs">
-                                                                <div className="space-y-2 text-xs">
-                                                                    <p className="font-semibold">Options de filtrage</p>
-                                                                    <p className="text-slate-600">
-                                                                        Le score global s'applique à toutes les sections. Les filtres avancés permettent de définir des seuils distincts par section (expériences, compétences, etc.).
-                                                                    </p>
-                                                                </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </span>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="h-7 px-2"
-                                                    onClick={() => setShowAdvancedFilters((v) => !v)}
-                                                >
-                                                    <SlidersHorizontal className="w-3 h-3 mr-1" />
-                                                    {showAdvancedFilters ? "Masquer" : "Avancé"}
-                                                    {showAdvancedFilters ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
-                                                </Button>
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4 text-xs">
-                                            <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                                                <div className="space-y-0.5">
-                                                    <p className="text-slate-800 font-medium">Diagnostics</p>
-                                                    <p className="text-slate-500">Vérifier build, cache et clients détectés.</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-slate-600">{showDiagnostics ? "Affichés" : "Masqués"}</span>
-                                                    <Switch checked={showDiagnostics} onCheckedChange={setShowDiagnostics} />
-                                                </div>
-                                            </div>
-                                            {showDiagnostics && (
-                                                <div className="space-y-2 rounded-md border border-slate-200 bg-white px-3 py-3">
-                                                    <div className="grid grid-cols-1 gap-1">
-                                                        <p className="text-slate-700">
-                                                            Build: {(buildInfo?.env ?? "local")} {(buildInfo?.sha ? buildInfo.sha.slice(0, 12) : "—")} {(buildInfo?.ref ? `(${buildInfo.ref})` : "")}
-                                                        </p>
-                                                        <p className="text-slate-700">
-                                                            Cache CV: {cvCacheHit ? "hit" : "miss"} • Cache widgets: {getWidgetsFromCache(analysisId) ? "hit" : "miss"}
-                                                        </p>
-                                                        <p className="text-slate-700">
-                                                            Clients RAG (references.clients): {Array.isArray((ragData as any)?.references?.clients) ? (ragData as any).references.clients.length : 0}
-                                                        </p>
-                                                        <p className="text-slate-700">
-                                                            Clients CV (clients_references.clients): {Array.isArray((cvData as any)?.clients_references?.clients) ? (cvData as any).clients_references.clients.length : 0}
-                                                        </p>
-                                                        <p className="text-slate-700">
-                                                            Expériences avec clients: {Array.isArray((cvData as any)?.experiences) ? (cvData as any).experiences.filter((e: any) => Array.isArray(e?.clients) && e.clients.length > 0).length : 0}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {showAdvancedFilters && (
+                                            <CardContent className="space-y-4 text-xs">
                                                 <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                                                     <div className="space-y-0.5">
-                                                        <p className="text-slate-800 font-medium">Filtres avancés</p>
-                                                        <p className="text-slate-500">Seuils distincts par section (au lieu d'un seul filtre global).</p>
+                                                        <p className="text-slate-800 font-medium">Diagnostics</p>
+                                                        <p className="text-slate-500">Vérifier build, cache et clients détectés.</p>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-slate-600">{advancedFiltersEnabled ? "Activés" : "Désactivés"}</span>
-                                                        <Switch checked={advancedFiltersEnabled} onCheckedChange={setAdvancedFiltersEnabled} />
+                                                        <span className="text-slate-600">{showDiagnostics ? "Affichés" : "Masqués"}</span>
+                                                        <Switch checked={showDiagnostics} onCheckedChange={setShowDiagnostics} />
                                                     </div>
                                                 </div>
-                                            )}
-                                            <div>
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <label className="block text-slate-600">
-                                                        Score global minimum: {convertOptions.minScore}
-                                                    </label>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="right" className="max-w-xs">
-                                                                <div className="space-y-1 text-xs">
-                                                                    <p className="font-semibold">Score de pertinence</p>
-                                                                    <p className="text-slate-600">
-                                                                        Filtre les éléments par pertinence par rapport à l'offre d'emploi.
-                                                                    </p>
-                                                                    <ul className="list-disc list-inside text-slate-600 space-y-0.5">
-                                                                        <li>0-30 : Faible pertinence</li>
-                                                                        <li>50 : Pertinence moyenne (recommandé)</li>
-                                                                        <li>80+ : Très pertinent</li>
-                                                                    </ul>
-                                                                </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </div>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="100"
-                                                    value={convertOptions.minScore}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            minScore: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                                <p className="text-slate-500 mt-1">
-                                                    {(convertOptions.minScore ?? 50) < 30 ? "Affiche tous les éléments (peu sélectif)" :
-                                                     (convertOptions.minScore ?? 50) < 70 ? "Affiche les éléments pertinents (recommandé)" :
-                                                     "Affiche uniquement les éléments très pertinents"}
-                                                </p>
-                                            </div>
-                                            {showAdvancedFilters && (
-                                                <div className={`space-y-3 rounded-md border px-3 py-3 ${advancedFiltersEnabled ? "border-indigo-200 bg-indigo-50" : "border-slate-200 bg-slate-50"}`}>
-                                                    <div className="grid grid-cols-1 gap-3">
-                                                        {[
-                                                            { key: "experiences", label: "Expériences" },
-                                                            { key: "skills", label: "Compétences" },
-                                                            { key: "education", label: "Formations" },
-                                                            { key: "languages", label: "Langues" },
-                                                            { key: "references", label: "Clients / Références" },
-                                                            { key: "projects", label: "Projets" },
-                                                        ].map((row) => (
-                                                            <div key={row.key}>
-                                                                <div className="flex items-center justify-between mb-1">
-                                                                    <label className="block text-slate-700">
-                                                                        Seuil {row.label}: {advancedMinScoreBySection[row.key] ?? 0}
-                                                                    </label>
-                                                                </div>
-                                                                <input
-                                                                    type="range"
-                                                                    min="0"
-                                                                    max="100"
-                                                                    value={advancedMinScoreBySection[row.key] ?? 0}
-                                                                    onChange={(e) => {
-                                                                        const value = Number(e.target.value);
-                                                                        setAdvancedMinScoreBySection((prev) => ({ ...prev, [row.key]: value }));
-                                                                    }}
-                                                                    className="w-full"
-                                                                    disabled={!advancedFiltersEnabled}
-                                                                />
-                                                            </div>
-                                                        ))}
+                                                {showDiagnostics && (
+                                                    <div className="space-y-2 rounded-md border border-slate-200 bg-white px-3 py-3">
+                                                        <div className="grid grid-cols-1 gap-1">
+                                                            <p className="text-slate-700">
+                                                                Build: {(buildInfo?.env ?? "local")} {(buildInfo?.sha ? buildInfo.sha.slice(0, 12) : "—")} {(buildInfo?.ref ? `(${buildInfo.ref})` : "")}
+                                                            </p>
+                                                            <p className="text-slate-700">
+                                                                Cache CV: {cvCacheHit ? "hit" : "miss"} • Cache widgets: {getWidgetsFromCache(analysisId) ? "hit" : "miss"}
+                                                            </p>
+                                                            <p className="text-slate-700">
+                                                                Clients RAG (references.clients): {Array.isArray((ragData as any)?.references?.clients) ? (ragData as any).references.clients.length : 0}
+                                                            </p>
+                                                            <p className="text-slate-700">
+                                                                Clients CV (clients_references.clients): {Array.isArray((cvData as any)?.clients_references?.clients) ? (cvData as any).clients_references.clients.length : 0}
+                                                            </p>
+                                                            <p className="text-slate-700">
+                                                                Expériences avec clients: {Array.isArray((cvData as any)?.experiences) ? (cvData as any).experiences.filter((e: any) => Array.isArray(e?.clients) && e.clients.length > 0).length : 0}
+                                                            </p>
+                                                        </div>
                                                     </div>
+                                                )}
+                                                {showAdvancedFilters && (
+                                                    <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                                                        <div className="space-y-0.5">
+                                                            <p className="text-slate-800 font-medium">Filtres avancés</p>
+                                                            <p className="text-slate-500">Seuils distincts par section (au lieu d'un seul filtre global).</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-slate-600">{advancedFiltersEnabled ? "Activés" : "Désactivés"}</span>
+                                                            <Switch checked={advancedFiltersEnabled} onCheckedChange={setAdvancedFiltersEnabled} />
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="block text-slate-600">
+                                                            Score global minimum: {convertOptions.minScore}
+                                                        </label>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="right" className="max-w-xs">
+                                                                    <div className="space-y-1 text-xs">
+                                                                        <p className="font-semibold">Score de pertinence</p>
+                                                                        <p className="text-slate-600">
+                                                                            Filtre les éléments par pertinence par rapport à l'offre d'emploi.
+                                                                        </p>
+                                                                        <ul className="list-disc list-inside text-slate-600 space-y-0.5">
+                                                                            <li>0-30 : Faible pertinence</li>
+                                                                            <li>50 : Pertinence moyenne (recommandé)</li>
+                                                                            <li>80+ : Très pertinent</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="100"
+                                                        value={convertOptions.minScore}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                minScore: Number(e.target.value),
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
+                                                    <p className="text-slate-500 mt-1">
+                                                        {(convertOptions.minScore ?? 50) < 30 ? "Affiche tous les éléments (peu sélectif)" :
+                                                            (convertOptions.minScore ?? 50) < 70 ? "Affiche les éléments pertinents (recommandé)" :
+                                                                "Affiche uniquement les éléments très pertinents"}
+                                                    </p>
                                                 </div>
-                                            )}
-                                            <div>
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <label className="block text-slate-600">
-                                                        Max expériences: {convertOptions.maxExperiences}
-                                                    </label>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="right" className="max-w-xs">
-                                                                <div className="space-y-1 text-xs">
-                                                                    <p className="font-semibold">Nombre d'expériences</p>
-                                                                    <p className="text-slate-600">
-                                                                        Limite le nombre d'expériences professionnelles affichées dans le CV.
-                                                                    </p>
-                                                                    <ul className="list-disc list-inside text-slate-600 space-y-0.5">
-                                                                        <li>4-6 : Recommandé pour CV 1 page</li>
-                                                                        <li>6-8 : Pour CV 2 pages</li>
-                                                                        <li>8+ : Pour CV détaillé</li>
-                                                                    </ul>
+                                                {showAdvancedFilters && (
+                                                    <div className={`space-y-3 rounded-md border px-3 py-3 ${advancedFiltersEnabled ? "border-indigo-200 bg-indigo-50" : "border-slate-200 bg-slate-50"}`}>
+                                                        <div className="grid grid-cols-1 gap-3">
+                                                            {[
+                                                                { key: "experiences", label: "Expériences" },
+                                                                { key: "skills", label: "Compétences" },
+                                                                { key: "education", label: "Formations" },
+                                                                { key: "languages", label: "Langues" },
+                                                                { key: "references", label: "Clients / Références" },
+                                                                { key: "projects", label: "Projets" },
+                                                            ].map((row) => (
+                                                                <div key={row.key}>
+                                                                    <div className="flex items-center justify-between mb-1">
+                                                                        <label className="block text-slate-700">
+                                                                            Seuil {row.label}: {advancedMinScoreBySection[row.key] ?? 0}
+                                                                        </label>
+                                                                    </div>
+                                                                    <input
+                                                                        type="range"
+                                                                        min="0"
+                                                                        max="100"
+                                                                        value={advancedMinScoreBySection[row.key] ?? 0}
+                                                                        onChange={(e) => {
+                                                                            const value = Number(e.target.value);
+                                                                            setAdvancedMinScoreBySection((prev) => ({ ...prev, [row.key]: value }));
+                                                                        }}
+                                                                        className="w-full"
+                                                                        disabled={!advancedFiltersEnabled}
+                                                                    />
                                                                 </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="block text-slate-600">
+                                                            Max expériences: {convertOptions.maxExperiences}
+                                                        </label>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="right" className="max-w-xs">
+                                                                    <div className="space-y-1 text-xs">
+                                                                        <p className="font-semibold">Nombre d'expériences</p>
+                                                                        <p className="text-slate-600">
+                                                                            Limite le nombre d'expériences professionnelles affichées dans le CV.
+                                                                        </p>
+                                                                        <ul className="list-disc list-inside text-slate-600 space-y-0.5">
+                                                                            <li>4-6 : Recommandé pour CV 1 page</li>
+                                                                            <li>6-8 : Pour CV 2 pages</li>
+                                                                            <li>8+ : Pour CV détaillé</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="1"
+                                                        max="20"
+                                                        value={convertOptions.maxExperiences}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                maxExperiences: Number(e.target.value),
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
+                                                    <p className="text-slate-500 mt-1">
+                                                        {cvData && `Affichera ${Math.min(convertOptions.maxExperiences ?? 10, cvData.experiences.length)} expérience(s) sur ${cvData.experiences.length} disponible(s)`}
+                                                    </p>
                                                 </div>
-                                                <input
-                                                    type="range"
-                                                    min="1"
-                                                    max="20"
-                                                    value={convertOptions.maxExperiences}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            maxExperiences: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                                <p className="text-slate-500 mt-1">
-                                                    {cvData && `Affichera ${Math.min(convertOptions.maxExperiences ?? 10, cvData.experiences.length)} expérience(s) sur ${cvData.experiences.length} disponible(s)`}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <label className="block text-slate-600">
-                                                        Max bullets/exp: {convertOptions.maxBulletsPerExperience}
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="block text-slate-600">
+                                                            Max bullets/exp: {convertOptions.maxBulletsPerExperience}
+                                                        </label>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="right" className="max-w-xs">
+                                                                    <div className="space-y-1 text-xs">
+                                                                        <p className="font-semibold">Réalisations par expérience</p>
+                                                                        <p className="text-slate-600">
+                                                                            Nombre maximum de réalisations (bullets) affichées pour chaque expérience.
+                                                                        </p>
+                                                                        <ul className="list-disc list-inside text-slate-600 space-y-0.5">
+                                                                            <li>3-4 : CV concis (recommandé)</li>
+                                                                            <li>5-6 : CV détaillé</li>
+                                                                            <li>6+ : CV très détaillé</li>
+                                                                        </ul>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="1"
+                                                        max="10"
+                                                        value={convertOptions.maxBulletsPerExperience}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                maxBulletsPerExperience: Number(e.target.value),
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
+                                                    <p className="text-slate-500 mt-1">
+                                                        {(convertOptions.maxBulletsPerExperience ?? 6) <= 4 ? "CV concis et impactant" :
+                                                            (convertOptions.maxBulletsPerExperience ?? 6) <= 6 ? "CV détaillé avec contexte" :
+                                                                "CV très détaillé"}
+                                                    </p>
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="block text-slate-600">
+                                                            Max clients/exp: {convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                        </label>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="right" className="max-w-xs">
+                                                                    <div className="space-y-1 text-xs">
+                                                                        <p className="font-semibold">Clients par expérience</p>
+                                                                        <p className="text-slate-600">
+                                                                            Limite le nombre de clients affichés sous chaque expérience.
+                                                                        </p>
+                                                                        <p className="text-slate-600">
+                                                                            Mets 0 pour masquer complètement les clients dans les expériences.
+                                                                        </p>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="10"
+                                                        value={convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                limitsBySection: {
+                                                                    ...(prev.limitsBySection || {}),
+                                                                    maxClientsPerExperience: Number(e.target.value),
+                                                                },
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <label className="block text-slate-600">
+                                                            Max clients (références): {convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                        </label>
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="right" className="max-w-xs">
+                                                                    <div className="space-y-1 text-xs">
+                                                                        <p className="font-semibold">Clients & Références</p>
+                                                                        <p className="text-slate-600">
+                                                                            Limite le nombre de clients affichés dans la zone globale “Clients & Références”.
+                                                                        </p>
+                                                                        <p className="text-slate-600">
+                                                                            Mets 0 pour masquer complètement la zone clients (références).
+                                                                        </p>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="30"
+                                                        value={convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                limitsBySection: {
+                                                                    ...(prev.limitsBySection || {}),
+                                                                    maxClientsReferences: Number(e.target.value),
+                                                                },
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                                {/* [CDC-23] Toggles photo et mode dense */}
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-slate-600">Inclure photo</label>
+                                                    <Switch
+                                                        checked={includePhoto}
+                                                        onCheckedChange={setIncludePhoto}
+                                                    />
+                                                </div>
+                                                {/* [CDC-23] Sliders manquants ajoutés */}
+                                                <div>
+                                                    <label className="block text-slate-600 mb-1">
+                                                        Max compétences: {convertOptions.limitsBySection?.maxSkills ?? 20}
                                                     </label>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="right" className="max-w-xs">
-                                                                <div className="space-y-1 text-xs">
-                                                                    <p className="font-semibold">Réalisations par expérience</p>
-                                                                    <p className="text-slate-600">
-                                                                        Nombre maximum de réalisations (bullets) affichées pour chaque expérience.
-                                                                    </p>
-                                                                    <ul className="list-disc list-inside text-slate-600 space-y-0.5">
-                                                                        <li>3-4 : CV concis (recommandé)</li>
-                                                                        <li>5-6 : CV détaillé</li>
-                                                                        <li>6+ : CV très détaillé</li>
-                                                                    </ul>
-                                                                </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="30"
+                                                        value={convertOptions.limitsBySection?.maxSkills ?? 20}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                limitsBySection: {
+                                                                    ...(prev.limitsBySection || {}),
+                                                                    maxSkills: Number(e.target.value),
+                                                                },
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="range"
-                                                    min="1"
-                                                    max="10"
-                                                    value={convertOptions.maxBulletsPerExperience}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            maxBulletsPerExperience: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                                <p className="text-slate-500 mt-1">
-                                                    {(convertOptions.maxBulletsPerExperience ?? 6) <= 4 ? "CV concis et impactant" :
-                                                     (convertOptions.maxBulletsPerExperience ?? 6) <= 6 ? "CV détaillé avec contexte" :
-                                                     "CV très détaillé"}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <label className="block text-slate-600">
-                                                        Max clients/exp: {convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                <div>
+                                                    <label className="block text-slate-600 mb-1">
+                                                        Max formations: {convertOptions.limitsBySection?.maxFormations ?? 5}
                                                     </label>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="right" className="max-w-xs">
-                                                                <div className="space-y-1 text-xs">
-                                                                    <p className="font-semibold">Clients par expérience</p>
-                                                                    <p className="text-slate-600">
-                                                                        Limite le nombre de clients affichés sous chaque expérience.
-                                                                    </p>
-                                                                    <p className="text-slate-600">
-                                                                        Mets 0 pour masquer complètement les clients dans les expériences.
-                                                                    </p>
-                                                                </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="10"
+                                                        value={convertOptions.limitsBySection?.maxFormations ?? 5}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                limitsBySection: {
+                                                                    ...(prev.limitsBySection || {}),
+                                                                    maxFormations: Number(e.target.value),
+                                                                },
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="10"
-                                                    value={convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            limitsBySection: {
-                                                                ...(prev.limitsBySection || {}),
-                                                                maxClientsPerExperience: Number(e.target.value),
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center justify-between mb-1">
-                                                    <label className="block text-slate-600">
-                                                        Max clients (références): {convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                <div>
+                                                    <label className="block text-slate-600 mb-1">
+                                                        Max langues: {convertOptions.limitsBySection?.maxLanguages ?? 5}
                                                     </label>
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="right" className="max-w-xs">
-                                                                <div className="space-y-1 text-xs">
-                                                                    <p className="font-semibold">Clients & Références</p>
-                                                                    <p className="text-slate-600">
-                                                                        Limite le nombre de clients affichés dans la zone globale “Clients & Références”.
-                                                                    </p>
-                                                                    <p className="text-slate-600">
-                                                                        Mets 0 pour masquer complètement la zone clients (références).
-                                                                    </p>
-                                                                </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="10"
+                                                        value={convertOptions.limitsBySection?.maxLanguages ?? 5}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                limitsBySection: {
+                                                                    ...(prev.limitsBySection || {}),
+                                                                    maxLanguages: Number(e.target.value),
+                                                                },
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
                                                 </div>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="30"
-                                                    value={convertOptions.limitsBySection?.maxClientsReferences ?? 25}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            limitsBySection: {
-                                                                ...(prev.limitsBySection || {}),
-                                                                maxClientsReferences: Number(e.target.value),
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                            {/* [CDC-23] Toggles photo et mode dense */}
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-slate-600">Inclure photo</label>
-                                                <Switch
-                                                    checked={includePhoto}
-                                                    onCheckedChange={setIncludePhoto}
-                                                />
-                                            </div>
-                                            {/* [CDC-23] Sliders manquants ajoutés */}
-                                            <div>
-                                                <label className="block text-slate-600 mb-1">
-                                                    Max compétences: {convertOptions.limitsBySection?.maxSkills ?? 20}
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="30"
-                                                    value={convertOptions.limitsBySection?.maxSkills ?? 20}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            limitsBySection: {
-                                                                ...(prev.limitsBySection || {}),
-                                                                maxSkills: Number(e.target.value),
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-slate-600 mb-1">
-                                                    Max formations: {convertOptions.limitsBySection?.maxFormations ?? 5}
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="10"
-                                                    value={convertOptions.limitsBySection?.maxFormations ?? 5}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            limitsBySection: {
-                                                                ...(prev.limitsBySection || {}),
-                                                                maxFormations: Number(e.target.value),
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-slate-600 mb-1">
-                                                    Max langues: {convertOptions.limitsBySection?.maxLanguages ?? 5}
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="10"
-                                                    value={convertOptions.limitsBySection?.maxLanguages ?? 5}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            limitsBySection: {
-                                                                ...(prev.limitsBySection || {}),
-                                                                maxLanguages: Number(e.target.value),
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-slate-600 mb-1">
-                                                    Max certifications: {convertOptions.limitsBySection?.maxCertifications ?? 10}
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="15"
-                                                    value={convertOptions.limitsBySection?.maxCertifications ?? 10}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            limitsBySection: {
-                                                                ...(prev.limitsBySection || {}),
-                                                                maxCertifications: Number(e.target.value),
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-slate-600 mb-1">
-                                                    Max projets: {convertOptions.limitsBySection?.maxProjects ?? 5}
-                                                </label>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="10"
-                                                    value={convertOptions.limitsBySection?.maxProjects ?? 5}
-                                                    onChange={(e) =>
-                                                        setConvertOptions((prev) => ({
-                                                            ...prev,
-                                                            limitsBySection: {
-                                                                ...(prev.limitsBySection || {}),
-                                                                maxProjects: Number(e.target.value),
-                                                            },
-                                                        }))
-                                                    }
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </aside>
+                                                <div>
+                                                    <label className="block text-slate-600 mb-1">
+                                                        Max certifications: {convertOptions.limitsBySection?.maxCertifications ?? 10}
+                                                    </label>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="15"
+                                                        value={convertOptions.limitsBySection?.maxCertifications ?? 10}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                limitsBySection: {
+                                                                    ...(prev.limitsBySection || {}),
+                                                                    maxCertifications: Number(e.target.value),
+                                                                },
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-slate-600 mb-1">
+                                                        Max projets: {convertOptions.limitsBySection?.maxProjects ?? 5}
+                                                    </label>
+                                                    <input
+                                                        type="range"
+                                                        min="0"
+                                                        max="10"
+                                                        value={convertOptions.limitsBySection?.maxProjects ?? 5}
+                                                        onChange={(e) =>
+                                                            setConvertOptions((prev) => ({
+                                                                ...prev,
+                                                                limitsBySection: {
+                                                                    ...(prev.limitsBySection || {}),
+                                                                    maxProjects: Number(e.target.value),
+                                                                },
+                                                            }))
+                                                        }
+                                                        className="w-full"
+                                                    />
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </aside>
 
-                                {/* Main : Preview CV */}
-                                <div className="lg:col-span-3">
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-base">
-                                                Prévisualisation CV - {templateId} · {colorwayId} · {fontId} · {density}
-                                            </CardTitle>
-                                        </CardHeader>
-                                <CardContent className="bg-slate-100 flex items-center justify-center p-4 min-h-[800px]">
-                                    {reorderedCV || cvData ? (
-                                        <div id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
-                                            <CVRenderer
-                                                data={reorderedCV || cvData}
-                                                templateId={templateId}
-                                                colorwayId={colorwayId}
-                                                fontId={fontId}
-                                                density={density}
-                                                includePhoto={includePhoto}
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="w-full">
-                                            <CVSkeleton />
-                                        </div>
-                                    )}
-                                </CardContent>
-                                    </Card>
+                                    {/* Main : Preview CV */}
+                                    <div className="lg:col-span-3">
+                                        <Card>
+                                            <CardHeader>
+                                                <CardTitle className="text-base">
+                                                    Prévisualisation CV - {templateId} · {colorwayId} · {fontId} · {density}
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="bg-slate-100 flex items-center justify-center p-4 min-h-[800px]">
+                                                {reorderedCV || cvData ? (
+                                                    <div id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
+                                                        <CVRenderer
+                                                            data={reorderedCV || cvData}
+                                                            templateId={templateId}
+                                                            colorwayId={colorwayId}
+                                                            fontId={fontId}
+                                                            density={density}
+                                                            includePhoto={includePhoto}
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full">
+                                                        <CVSkeleton />
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
                         </>
                     </DraggableCV>
                 )}

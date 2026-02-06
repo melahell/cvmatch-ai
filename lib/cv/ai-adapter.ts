@@ -253,6 +253,56 @@ const cleanClientList = (items: unknown[], options?: { exclude?: string[]; max?:
     return sorted.slice(0, max);
 };
 
+// Helper pour formater "Client (Secteur)"
+const formatClientWithSector = (item: any): string => {
+    const name = normalizeClientName(typeof item === "string" ? item : (item as any)?.nom ?? (item as any)?.name);
+    if (!name) return "";
+
+    // Si l'objet source a un secteur, l'ajouter
+    const sector = (item as any)?.secteur || (item as any)?.sector || (item as any)?.industry;
+    if (sector && typeof sector === "string" && sector.length > 2) {
+        // Nettoyer le secteur (pas de parenthèses superflues)
+        const cleanSector = sector.replace(/[()]/g, "").trim();
+        return `${name} (${cleanSector})`;
+    }
+
+    return name;
+};
+
+// Version enrichie de cleanClientList qui préserve les secteurs
+const cleanClientListWithSectors = (items: unknown[], options?: { exclude?: string[]; max?: number }) => {
+    const excludeKeys = new Set((options?.exclude || []).map(normalizeKey).filter(Boolean));
+    const counts = new Map<string, { label: string; count: number }>();
+
+    for (const item of items) {
+        // [AUDIT-FIX 100%] Utiliser formatClientWithSector pour inclure le secteur
+        const label = formatClientWithSector(item);
+        if (!label) continue;
+
+        // Extraire nom de base pour exclusion
+        const baseName = label.split(" (")[0];
+        if (isBadClientName(baseName)) continue;
+
+        const key = normalizeKey(baseName);
+        if (!key) continue;
+        if (excludeKeys.has(key)) continue;
+
+        const prev = counts.get(key);
+        // Préférer le label le plus long (celui avec secteur)
+        if (!prev) counts.set(key, { label, count: 1 });
+        else counts.set(key, {
+            label: label.length > prev.label.length ? label : prev.label,
+            count: prev.count + 1
+        });
+    }
+
+    const sorted = Array.from(counts.values())
+        .sort((a, b) => (b.count - a.count) || a.label.localeCompare(b.label, "fr"))
+        .map((x) => x.label);
+    const max = options?.max ?? 30;
+    return sorted.slice(0, max);
+};
+
 /**
  * Fonction principale : convertit un payload AI_WIDGETS_SCHEMA
  * en schéma de CV consommable par le renderer (`RendererResumeSchema` / `CVData`).
@@ -620,20 +670,37 @@ function buildExperiences(
         // Réalisations = tous les textes restants
         const realisations = allTexts.slice(0, opts.maxBulletsPerExperience);
 
-        // Métadonnées depuis RAG
-        const date_debut = ragExp ? formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date) : "";
-        const date_fin = ragExp ? formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date) : undefined;
-        const lieu = ragExp?.lieu || ragExp?.location || undefined;
-        const actuel = ragExp?.actuel || ragExp?.current || false;
+        // [AUDIT-FIX 100%] Priorité aux dates/lieux du WIDGET (peuplés explicitement par l'IA)
+        // C'est beaucoup plus robuste que le matching RAG
+        const widgetHeader = widgets.find(w => w.type === "experience_header");
+        let date_debut = widgetHeader?.date_start || "";
+        let date_fin = widgetHeader?.date_end;
+        let lieu = widgetHeader?.location;
+        let actuel = widgetHeader?.is_current || false;
+
+        // Si dates manquantes dans widget, fallback sur RAG
+        if (!date_debut && ragExp) {
+            date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date);
+            date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date);
+            actuel = ragExp.actuel || ragExp.current || false;
+            if (actuel) date_fin = undefined;
+        }
+
+        if (!lieu && ragExp) {
+            lieu = ragExp.lieu || ragExp.location || undefined;
+        }
+
         const clientsRaw =
             (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
             (Array.isArray(ragExp?.clients) && ragExp.clients) ||
             (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
             [];
         const maxClientsPerExperience = opts.limitsBySection?.maxClientsPerExperience ?? 6;
-        let clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
+
+        // [AUDIT-FIX 100%] Utiliser la version avec secteurs
+        let clients = cleanClientListWithSectors(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
         if (clients.length === 0 && clientsRaw.length > 0) {
-            clients = cleanClientList(clientsRaw, { max: maxClientsPerExperience });
+            clients = cleanClientListWithSectors(clientsRaw, { max: maxClientsPerExperience });
         }
 
         const experience = {
@@ -704,9 +771,10 @@ function buildExperiences(
                     (Array.isArray(ragExp?.clientsReferences) && ragExp.clientsReferences) ||
                     [];
                 const maxClientsPerExperience = opts.limitsBySection?.maxClientsPerExperience ?? 6;
-                let clients = cleanClientList(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
+                // [AUDIT-FIX 100%] Utiliser la version avec secteurs
+                let clients = cleanClientListWithSectors(clientsRaw, { exclude: [entreprise], max: maxClientsPerExperience });
                 if (clients.length === 0 && clientsRaw.length > 0) {
-                    clients = cleanClientList(clientsRaw, { max: maxClientsPerExperience });
+                    clients = cleanClientListWithSectors(clientsRaw, { max: maxClientsPerExperience });
                 }
 
                 experiences.push({
