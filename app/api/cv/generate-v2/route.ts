@@ -297,14 +297,15 @@ export async function POST(req: Request) {
             rescoredCount: rescoredWidgets.length,
         });
 
+        // [AUDIT-FIX P1-1] Résoudre les options de données induites depuis le body
+        const resolvedInducedOpts: InducedDataOptions = inducedDataMode && INDUCED_DATA_PRESETS[inducedDataMode as keyof typeof INDUCED_DATA_PRESETS]
+            ? INDUCED_DATA_PRESETS[inducedDataMode as keyof typeof INDUCED_DATA_PRESETS]
+            : INDUCED_DATA_PRESETS.all;
+
         // 5. Convert widgets to CVData via bridge (AIAdapter)
         // PAS DE FILTRAGE : on inclut tout, l'utilisateur contrôle via l'UI
         let cvData;
         try {
-            // [AUDIT-FIX P1-1] Résoudre les options de données induites depuis le body
-            const resolvedInducedOpts: InducedDataOptions = inducedDataMode && INDUCED_DATA_PRESETS[inducedDataMode as keyof typeof INDUCED_DATA_PRESETS]
-                ? INDUCED_DATA_PRESETS[inducedDataMode as keyof typeof INDUCED_DATA_PRESETS]
-                : INDUCED_DATA_PRESETS.all;
 
             const convertOptions: ConvertOptions = {
                 // Pas de filtrage par défaut - tout est inclus
@@ -409,13 +410,13 @@ export async function POST(req: Request) {
             unit_stats: unitStats,
             loss_summary: lossReport
                 ? {
-                      removed_experiences_total:
-                          lossReport.removed.experiences.inputToPreselected.length +
-                          lossReport.removed.experiences.preselectedToPrelimited.length +
-                          lossReport.removed.experiences.prelimitedToAdapted.length,
-                      removed_realisations: lossReport.removed.realisations,
-                      template_omissions: lossReport.templateOmissions,
-                  }
+                    removed_experiences_total:
+                        lossReport.removed.experiences.inputToPreselected.length +
+                        lossReport.removed.experiences.preselectedToPrelimited.length +
+                        lossReport.removed.experiences.prelimitedToAdapted.length,
+                    removed_realisations: lossReport.removed.realisations,
+                    template_omissions: lossReport.templateOmissions,
+                }
                 : null,
             generation_duration_ms: generationTime,
             generator_type: "v2_widgets",
@@ -488,45 +489,45 @@ export async function POST(req: Request) {
 
         const debugPayload = debug
             ? {
-                  profile: {
-                      hasPhotoRef: !!ragPhotoRef,
-                      photoRefKind:
-                          typeof ragPhotoRef === "string"
-                              ? ragPhotoRef.startsWith("storage:")
-                                  ? "storage"
-                                  : (ragPhotoRef.startsWith("http://") || ragPhotoRef.startsWith("https://"))
-                                        ? "http"
-                                        : "other"
-                              : null,
-                      hasSignedPhotoUrl: !!photoUrl,
-                      ragClientsCount,
-                  },
-                  bridge: {
-                      clientsReferencesCount: bridgeClientsCount,
-                      photoKind:
-                          typeof bridgePhotoValue === "string"
-                              ? (bridgePhotoValue.startsWith("http://") || bridgePhotoValue.startsWith("https://"))
+                profile: {
+                    hasPhotoRef: !!ragPhotoRef,
+                    photoRefKind:
+                        typeof ragPhotoRef === "string"
+                            ? ragPhotoRef.startsWith("storage:")
+                                ? "storage"
+                                : (ragPhotoRef.startsWith("http://") || ragPhotoRef.startsWith("https://"))
                                     ? "http"
-                                    : bridgePhotoValue.startsWith("storage:")
-                                          ? "storage"
-                                          : "other"
-                              : null,
-                  },
-                  fit: {
-                      templateName: template || "modern",
-                      includePhotoEffective: includePhoto && !!photoUrl,
-                      clientsReferencesCount: finalClientsCount,
-                      photoKind:
-                          typeof finalPhotoValue === "string"
-                              ? (finalPhotoValue.startsWith("http://") || finalPhotoValue.startsWith("https://"))
-                                    ? "http"
-                                    : finalPhotoValue.startsWith("storage:")
-                                          ? "storage"
-                                          : "other"
-                              : null,
-                      lossReport,
-                  },
-              }
+                                    : "other"
+                            : null,
+                    hasSignedPhotoUrl: !!photoUrl,
+                    ragClientsCount,
+                },
+                bridge: {
+                    clientsReferencesCount: bridgeClientsCount,
+                    photoKind:
+                        typeof bridgePhotoValue === "string"
+                            ? (bridgePhotoValue.startsWith("http://") || bridgePhotoValue.startsWith("https://"))
+                                ? "http"
+                                : bridgePhotoValue.startsWith("storage:")
+                                    ? "storage"
+                                    : "other"
+                            : null,
+                },
+                fit: {
+                    templateName: template || "modern",
+                    includePhotoEffective: includePhoto && !!photoUrl,
+                    clientsReferencesCount: finalClientsCount,
+                    photoKind:
+                        typeof finalPhotoValue === "string"
+                            ? (finalPhotoValue.startsWith("http://") || finalPhotoValue.startsWith("https://"))
+                                ? "http"
+                                : finalPhotoValue.startsWith("storage:")
+                                    ? "storage"
+                                    : "other"
+                            : null,
+                    lossReport,
+                },
+            }
             : undefined;
 
         return NextResponse.json({
