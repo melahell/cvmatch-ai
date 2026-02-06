@@ -143,5 +143,5 @@ export function convertWidgetsToCVWithAdvancedScoring(
     };
 }
 
-export type { ConvertOptions };
+// Export types
 export type { ValidationResult, ValidationWarning };
