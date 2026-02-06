@@ -13,6 +13,7 @@ import { rescoreWidgetsWithAdvanced } from "@/lib/cv/advanced-scoring";
 import { checkNumbersGrounding } from "@/lib/cv/rag-grounding";
 import { trackCVGeneration } from "@/lib/cv/observability";
 import { detectSector } from "@/lib/cv/sector-customization";
+import { simulateLayout } from "@/lib/cv/layout-engine";
 import packageJson from "@/package.json";
 import { logger } from "@/lib/utils/logger";
 import { z } from "zod";
@@ -405,7 +406,7 @@ export async function POST(req: Request) {
             generator_version: APP_VERSION,
             generator_model: widgetsEnvelope.meta?.model || "gemini-3-pro-preview",
             compression_level_applied: compressionLevelApplied,
-            page_count: 1,
+            page_count: simulateLayout({ totalUnitsUsed: unitStats?.totalUnitsUsed || 0 } as any, template || "modern").totalPages,
             dense: !!dense,
             unit_stats: unitStats,
             loss_summary: lossReport

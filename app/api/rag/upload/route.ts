@@ -3,21 +3,23 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/utils/logger";
 import { normalizeDocumentType, normalizeDocumentTypeFromFilename, normalizeDocumentTypeFromMime } from "@/lib/rag/document-type";
 
-export const runtime = "edge";
+import { extractTextFromBuffer } from "@/lib/rag/text-extraction";
 
-// [CDC-1] Types MIME autorisés pour les fichiers CV
+export const runtime = "nodejs";
+
+// [CDC-1] Types MIME autorisés — alignés sur lib/rag/text-extraction (extraction réelle)
 const ALLOWED_MIME_TYPES = [
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
     'application/msword', // .doc
-    'application/rtf',
-    'text/rtf',
-    'application/vnd.oasis.opendocument.text', // .odt
     'text/plain',
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
 ];
 
 // [CDC-1] Extensions autorisées (fallback si MIME non fiable)
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.rtf', '.odt', '.txt'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg'];
 
 export async function POST(req: Request) {
     try {
@@ -77,14 +79,14 @@ export async function POST(req: Request) {
                     : normalizeDocumentTypeFromMime(file.type);
 
             if (!isMimeAllowed && !isExtensionAllowed) {
-                logger.warn("Rejected file: unsupported type", { 
-                    filename: file.name, 
+                logger.warn("Rejected file: unsupported type", {
+                    filename: file.name,
                     mimeType: file.type,
                     extension: fileExtension
                 });
                 uploads.push({
                     filename: file.name,
-                    error: `Type de fichier non supporté (${file.type || fileExtension}). Formats acceptés: PDF, DOCX, DOC, RTF, ODT.`,
+                    error: `Type de fichier non supporté (${file.type || fileExtension}). Formats acceptés: PDF, DOCX, DOC, TXT, images (PNG, JPG).`,
                     rejected: true
                 });
                 continue;
@@ -119,6 +121,30 @@ export async function POST(req: Request) {
                 continue;
             }
 
+            // [CDC-1] Extract text immediately (Synchronous for MVP)
+            let extractedText = "";
+            let extractionMethod = "pending";
+            let extractionStatus = "pending";
+            let extractionError: string | null = null;
+
+            try {
+                // Buffer.from is required in Node env from ArrayBuffer
+                const nodeBuffer = Buffer.from(buffer);
+                const result = await extractTextFromBuffer(nodeBuffer, file.type);
+                extractedText = result.text;
+                extractionMethod = result.method;
+                extractionStatus = "completed";
+
+                if (!extractedText.trim()) {
+                    warnings.push(`Le document "${file.name}" semble vide après extraction.`);
+                }
+            } catch (err: any) {
+                logger.error("Extraction error", { filename: file.name, error: err.message });
+                extractionStatus = "failed";
+                extractionError = err.message;
+                warnings.push(`Échec de l'extraction texte pour "${file.name}" (OCR).`);
+            }
+
             // Record in database
             const { data: inserted, error: dbError } = await supabase.from("uploaded_documents").insert({
                 user_id: userId,
@@ -126,14 +152,16 @@ export async function POST(req: Request) {
                 file_type: normalizedType === "unknown" ? normalizeDocumentType({ filename: file.name, mimeType: file.type }) : normalizedType,
                 file_size: file.size,
                 storage_path: path,
-                extraction_status: "pending",
+                extraction_status: extractionStatus,
+                extracted_text: extractedText, // Save text immediately
+                // We could also save metadata if columns existed, for now we assume they might not
             }).select("id, filename, file_type, extraction_status").single();
 
             if (dbError) {
                 logger.error("DB Insert error", { error: dbError.message, filename: file.name });
                 try {
                     await supabase.storage.from("documents").remove([path]);
-                } catch {}
+                } catch { }
                 uploads.push({ filename: file.name, error: "Database error: " + dbError.message });
             } else {
                 successCount++;
@@ -149,9 +177,9 @@ export async function POST(req: Request) {
             }, { status: 500 });
         }
 
-        return NextResponse.json({ 
-            success: true, 
-            successCount, 
+        return NextResponse.json({
+            success: true,
+            successCount,
             uploads,
             // [CDC-1] Ajouter warnings s'il y en a
             ...(warnings.length > 0 && { warnings })

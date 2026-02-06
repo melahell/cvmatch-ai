@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
-import { CV_TEMPLATES } from "@/lib/constants/app-constants";
+import { CV_TEMPLATES } from "@/components/cv/templates";
 
 interface TemplateGalleryProps {
     onSelectTemplate?: (templateId: string) => void;

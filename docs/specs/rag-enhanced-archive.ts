@@ -1,4 +1,15 @@
 /**
+ * =============================================================================
+ * SPEC CDC / NON UTILISÉE — Archivée le 2026-02-06
+ * =============================================================================
+ * Ce fichier contient les types "Enhanced RAG" issus de la spec ragCDC.md.
+ * Ils ne sont pas utilisés dans l'application (aucun import).
+ * Les types actifs pour le contexte enrichi sont dans types/rag-contexte-enrichi.ts.
+ * Conservé ici pour référence future si évolution vers ce schéma.
+ * =============================================================================
+ */
+
+/**
  * Enhanced RAG Types
  * Based on ragCDC.md specifications
  */

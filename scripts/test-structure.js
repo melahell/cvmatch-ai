@@ -1,6 +1,10 @@
 /**
  * Test de la structure du ragData tel que retourné par useRAGData
  * Simule ce que reçoit ai-adapter.ts comme ragProfile
+ *
+ * Source de vérité pour normalizeRAGData : lib/utils/normalize-rag.ts
+ * Ce script utilise une simplification locale pour exécution Node directe (node scripts/test-structure.js).
+ * Pour tester avec l'implémentation réelle : utiliser un script TypeScript avec ts-node ou exécuter depuis le contexte Next.
  */
 const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config({ path: '.env.local' });
@@ -10,13 +14,10 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
-// Copie de normalizeRAGData
+/** Simplification pour ce script ; ne pas maintenir à la main. Voir lib/utils/normalize-rag.ts */
 function normalizeRAGData(data) {
     if (!data) return null;
-
     let normalized = data;
-
-    // Si structure flat (nom, prenom, etc. à la racine), convertit en nested
     if (data.nom || data.prenom) {
         normalized = {
             profil: {
@@ -28,11 +29,9 @@ function normalizeRAGData(data) {
                 photo_url: data.photo_url,
                 contact: data.contact
             },
-            experiences: data.experiences || [],
-            // ... autres champs
+            experiences: data.experiences || []
         };
     }
-
     return normalized;
 }
 

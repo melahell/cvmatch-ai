@@ -1,6 +1,7 @@
 // CV Data Normalizer - Converts RAG data to template-friendly format
 
 import { CVData } from "./templates";
+import { logger } from "@/lib/utils/logger";
 
 interface RAGData {
     profil?: {
@@ -347,12 +348,12 @@ export function normalizeRAGToCV(raw: any): CVData {
     const experiences = (data.experiences || []).map((exp: any, i: number) => {
         // Phase 2 Diagnostic: Log avant normalisation
         const beforeCount = exp.realisations?.length || 0;
-        console.log(`[normalizeRAGToCV] Exp ${i}: ${beforeCount} realisations before filter`);
+        logger.debug(`[normalizeRAGToCV] Exp ${i}: ${beforeCount} realisations before filter`);
 
         // Phase 3 Diagnostic: Log données essentielles
         const hasEssentialData = !!(exp.poste && exp.entreprise && exp.date_debut);
         if (!hasEssentialData) {
-            console.warn(`[normalizeRAGToCV] Exp ${i} missing essential data`, {
+            logger.warn(`[normalizeRAGToCV] Exp ${i} missing essential data`, {
                 poste: exp.poste,
                 entreprise: exp.entreprise,
                 date_debut: exp.date_debut
@@ -385,7 +386,7 @@ export function normalizeRAGToCV(raw: any): CVData {
             });
 
         // Phase 2 Diagnostic: Log après sanitize
-        console.log(`[normalizeRAGToCV] Exp ${i}: ${realisations.length} realisations after sanitize`);
+        logger.debug(`[normalizeRAGToCV] Exp ${i}: ${realisations.length} realisations after sanitize`);
 
         return {
             poste: sanitizeText(exp.poste),
@@ -410,7 +411,7 @@ export function normalizeRAGToCV(raw: any): CVData {
         !exp.poste || !exp.entreprise || !exp.date_debut
     );
     if (incompleteExps.length > 0) {
-        console.warn(`[normalizeRAGToCV] ${incompleteExps.length} incomplete experiences before filter`, {
+        logger.warn(`[normalizeRAGToCV] ${incompleteExps.length} incomplete experiences before filter`, {
             incomplete: incompleteExps.map((e: any, i: number) => ({
                 index: i,
                 poste: e.poste,
@@ -433,7 +434,7 @@ export function normalizeRAGToCV(raw: any): CVData {
         const essentialFieldsCount = [hasPoste, hasEntreprise, hasDate].filter(Boolean).length;
         
         if (essentialFieldsCount < 2) {
-            console.warn(`[normalizeRAGToCV] Filtering out incomplete experience`, {
+            logger.warn(`[normalizeRAGToCV] Filtering out incomplete experience`, {
                 poste: exp.poste,
                 entreprise: exp.entreprise,
                 date_debut: exp.date_debut
@@ -458,7 +459,7 @@ export function normalizeRAGToCV(raw: any): CVData {
     if ((!data.competences || (data.competences && !data.competences.techniques && !data.competences.explicit)) && (data as any).skill_map) {
         const skillMap = (data as any).skill_map;
         // Phase 5 Diagnostic: Log extraction compétences
-        console.log(`[normalizeRAGToCV] Found skill_map with ${Object.keys(skillMap).length} skills`);
+        logger.debug(`[normalizeRAGToCV] Found skill_map with ${Object.keys(skillMap).length} skills`);
         const allSkills = Object.keys(skillMap);
         
         // Filtrer soft skills (mots-clés connus)
@@ -647,7 +648,7 @@ export function normalizeRAGToCV(raw: any): CVData {
                 .slice(0, CV_LIMITS.maxRealisationsPerExp)
                 .map((r: string) => truncateRealisation(r));
             // Phase 2 Diagnostic: Log après limite
-            console.log(`[normalizeRAGToCV] Exp ${i}: ${beforeSlice} -> ${afterSlice.length} realisations after slice(0, ${CV_LIMITS.maxRealisationsPerExp})`);
+            logger.debug(`[normalizeRAGToCV] Exp ${i}: ${beforeSlice} -> ${afterSlice.length} realisations after slice(0, ${CV_LIMITS.maxRealisationsPerExp})`);
             return {
                 ...exp,
                 realisations: afterSlice
@@ -657,7 +658,7 @@ export function normalizeRAGToCV(raw: any): CVData {
     const limitedTechniques = techniques.slice(0, CV_LIMITS.maxSkills);
     const limitedSoftSkills = softSkills.slice(0, CV_LIMITS.maxSoftSkills);
     // Phase 5 Diagnostic: Log après normalisation
-    console.log(`[normalizeRAGToCV] Limited techniques: ${limitedTechniques.length} (from ${techniques.length} total)`);
+    logger.debug(`[normalizeRAGToCV] Limited techniques: ${limitedTechniques.length} (from ${techniques.length} total)`);
     const limitedFormations = formations.slice(0, CV_LIMITS.maxFormations);
     const limitedLangues = langues.slice(0, CV_LIMITS.maxLangues);
 

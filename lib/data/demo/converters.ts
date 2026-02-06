@@ -1,61 +1,7 @@
 /**
- * Convertisseurs de données pour le module démo
- * 
- * Permet de convertir les types RAGComplete vers CVData
- * utilisé par les templates de CV.
+ * Helpers du module démo (formatage dates, durées).
+ * Pour RAGComplete → CVData, utiliser lib/utils/rag-to-cv-data.ts (ragToCVData).
  */
-
-import { RAGComplete } from "@/types/rag-complete";
-import { CVData } from "@/components/cv/templates";
-
-/**
- * Convertit un profil RAGComplete vers le format CVData
- * utilisé par les templates de CV.
- */
-export function ragToCVData(rag: RAGComplete): CVData {
-    return {
-        profil: {
-            prenom: rag.profil.prenom,
-            nom: rag.profil.nom,
-            titre_principal: rag.profil.titre_principal,
-            email: rag.profil.contact.email,
-            telephone: rag.profil.contact.telephone,
-            localisation: rag.profil.localisation,
-            linkedin: rag.profil.contact.linkedin,
-            elevator_pitch: rag.profil.elevator_pitch,
-            photo_url: rag.profil.photo_url,
-        },
-        experiences: rag.experiences.map(exp => ({
-            poste: exp.poste,
-            entreprise: exp.entreprise,
-            date_debut: exp.debut,
-            date_fin: exp.fin || undefined,
-            lieu: exp.lieu,
-            realisations: exp.realisations.map(r => r.description),
-        })),
-        competences: {
-            techniques: rag.competences.explicit.techniques.map(s =>
-                typeof s === 'string' ? s : s.nom
-            ),
-            soft_skills: rag.competences.explicit.soft_skills,
-        },
-        formations: rag.formations.map(f => ({
-            diplome: f.titre,
-            etablissement: f.organisme,
-            annee: f.annee,
-        })),
-        langues: rag.langues.map(l => ({
-            langue: l.langue,
-            niveau: l.niveau,
-        })),
-        certifications: rag.certifications.map(c => c.nom),
-        clients_references: {
-            clients: rag.references.clients
-                .filter(c => !c.confidentiel)
-                .map(c => c.nom),
-        },
-    };
-}
 
 /**
  * Formate une date pour l'affichage (YYYY-MM → Mois YYYY)

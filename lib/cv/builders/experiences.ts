@@ -135,11 +135,37 @@ export function buildExperiences(
         // Réalisations = tous les textes restants
         const realisations = allTexts.slice(0, opts.maxBulletsPerExperience);
 
-        // Métadonnées depuis RAG
-        const date_debut = ragExp ? formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date) : "";
-        const date_fin = ragExp ? formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date) : undefined;
-        const lieu = ragExp?.lieu || ragExp?.location || undefined;
-        const actuel = ragExp?.actuel || ragExp?.current || false;
+        // Métadonnées: Priorité Widget > RAG > Fallback
+
+        // 1. Chercher dans les widgets (metadata explicites)
+        const widgetMeta = widgets.find(w => w.date_start || w.date_end);
+
+        // 2. Chercher dans RAG
+        const ragDateDebut = ragExp ? (ragExp.debut || ragExp.date_debut || ragExp.start_date) : undefined;
+        const ragDateFin = ragExp ? (ragExp.fin || ragExp.date_fin || ragExp.end_date) : undefined;
+        const ragLieu = ragExp?.lieu || ragExp?.location;
+        const ragActuel = ragExp?.actuel || ragExp?.current;
+
+        // 3. Fallback Regex (si tout le reste échoue)
+        let regexStart = "";
+        let regexEnd = "";
+        if (!widgetMeta && !ragDateDebut) {
+            // Tentative d'extraction depuis le header "Poste - Entreprise (Jan 2020 - Présent)"
+            const dateMatch = headerText?.match(/\((.*?)\)/);
+            if (dateMatch) {
+                const datePart = dateMatch[1];
+                const parts = datePart.split(/[-–—]/).map(s => s.trim());
+                if (parts.length >= 1) regexStart = parts[0];
+                if (parts.length >= 2) regexEnd = parts[1];
+            }
+        }
+
+        // Consolidation
+        const date_debut = formatDate(widgetMeta?.date_start || ragDateDebut || regexStart);
+        const date_fin = formatDate(widgetMeta?.date_end || ragDateFin || regexEnd);
+        const lieu = widgetMeta?.location || ragLieu || undefined;
+        // La logique actuel est: soit explicite dans widget, soit explicit dans RAG, soit déduit si date_fin est "Présent" ou vide avec actuel=true
+        const isCurrent = widgetMeta?.is_current ?? ragActuel ?? (date_fin?.toLowerCase().includes("présent") || date_fin?.toLowerCase().includes("present"));
         const clientsRaw =
             (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
             (Array.isArray(ragExp?.clients) && ragExp.clients) ||
@@ -155,8 +181,8 @@ export function buildExperiences(
             poste,
             entreprise,
             date_debut,
-            date_fin: actuel ? undefined : date_fin,
-            actuel,
+            date_fin: isCurrent ? undefined : date_fin,
+            actuel: isCurrent,
             lieu,
             realisations,
             clients: clients.length > 0 ? clients : undefined,

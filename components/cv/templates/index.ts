@@ -262,6 +262,14 @@ export const TEMPLATES: TemplateInfo[] = [
     },
 ];
 
+/** Liste pour galerie / sélection : dérivée de TEMPLATES (source unique) */
+export const CV_TEMPLATES = TEMPLATES.filter(t => t.available).map(t => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    preview: t.preview,
+}));
+
 export function getTemplateById(id: string): TemplateInfo | undefined {
     return TEMPLATES.find(t => t.id === id);
 }

@@ -1,29 +1,4 @@
-export const CV_TEMPLATES = [
-    {
-        id: "modern",
-        name: "Moderne",
-        description: "Design épuré et professionnel",
-        preview: "/templates/modern.png"
-    },
-    {
-        id: "classic",
-        name: "Classique",
-        description: "Format traditionnel et sobre",
-        preview: "/templates/classic.png"
-    },
-    {
-        id: "creative",
-        name: "Créatif",
-        description: "Pour les profils artistiques",
-        preview: "/templates/creative.png"
-    },
-    {
-        id: "tech",
-        name: "Tech",
-        description: "Optimisé pour les développeurs",
-        preview: "/templates/tech.png"
-    }
-];
+// CV_TEMPLATES : source unique dans components/cv/templates (dérivé de TEMPLATES)
 
 export const STATUS_BADGES: Record<string, { label: string; color: string }> = {
     pending: { label: "À faire", color: "slate" },

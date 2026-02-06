@@ -82,33 +82,4 @@ export interface JobAnalysis {
     created_at?: string;
 }
 
-export interface CVData {
-    personalInfo: {
-        fullName: string;
-        email: string;
-        phone: string;
-        linkedin: string;
-        location: string;
-        title: string;
-        summary: string;
-    };
-    skills: {
-        hard: string[];
-        soft: string[];
-        tools: string[];
-    };
-    experience: Array<{
-        title: string;
-        company: string;
-        dates: string;
-        description: string;
-        achievements: string[];
-    }>;
-    education: Array<{
-        degree: string;
-        school: string;
-        year: string;
-    }>;
-    languages: string[];
-    interests: string[];
-}
+// CVData : type utilisé par les templates et le rendu CV → import depuis @/components/cv/templates
