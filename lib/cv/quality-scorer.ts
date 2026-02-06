@@ -24,7 +24,7 @@ export function calculateATSScore(cvData: CVData, jobOffer?: JobOfferContext | n
     if (!cvData.experiences || cvData.experiences.length === 0) penalties.push(20);
     if (!cvData.competences?.techniques || cvData.competences.techniques.length === 0) penalties.push(15);
     if (!cvData.formations || cvData.formations.length === 0) penalties.push(10);
-    if (!cvData.profil?.contact?.email) penalties.push(50); // Critical
+    if (!cvData.profil?.email) penalties.push(50); // Critical
 
     // 2. Keyword Match (if job offer)
     if (jobOffer && jobOffer.keywords && jobOffer.keywords.length > 0) {
