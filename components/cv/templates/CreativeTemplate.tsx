@@ -167,7 +167,7 @@ export default function CreativeTemplate({
                 <main className="flex-1 p-6">
                     {/* Summary with accent border */}
                     {profil.elevator_pitch && (
-                        <section className="mb-5">
+                        <section style={{ marginBottom: "var(--spacing-section)" }}>
                             <p
                                 className="text-slate-700 text-[9pt] leading-relaxed pl-4 italic"
                                 style={{ borderLeft: `4px solid ${COLORS.primary}` }}
@@ -180,8 +180,11 @@ export default function CreativeTemplate({
                     {/* Job context */}
                     {jobContext?.job_title && (
                         <div
-                            className="mb-5 px-4 py-2 rounded-lg text-[8pt]"
-                            style={{ background: `linear-gradient(90deg, ${COLORS.primary10}, ${COLORS.secondary10})` }}
+                            className="px-4 py-2 rounded-lg text-[8pt]"
+                            style={{
+                                background: `linear-gradient(90deg, ${COLORS.primary10}, ${COLORS.secondary10})`,
+                                marginBottom: "var(--spacing-section)"
+                            }}
                         >
                             <span style={{ color: COLORS.primary }}>✨</span>
                             <span className="ml-2 text-slate-700">
@@ -192,7 +195,7 @@ export default function CreativeTemplate({
                     )}
 
                     {/* Experiences with colorful timeline */}
-                    <section className="mb-5">
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h2
                             className="text-[12pt] font-extrabold mb-4 flex items-center gap-2"
                             style={{ color: COLORS.secondary }}
@@ -206,7 +209,7 @@ export default function CreativeTemplate({
                             Expériences
                         </h2>
 
-                        <div className="space-y-4">
+                        <div className="flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                             {limitedExperiences.map((exp, i) => {
                                 const colors = [COLORS.primary, COLORS.secondary, COLORS.accent];
                                 const color = colors[i % colors.length];
@@ -269,7 +272,7 @@ export default function CreativeTemplate({
                     style={{ background: "var(--cv-sidebar-bg)" }}
                 >
                     {/* Skills with colorful tags */}
-                    <section className="mb-5">
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h3
                             className="text-[10pt] font-extrabold mb-3 flex items-center gap-2"
                             style={{ color: COLORS.accent }}
@@ -295,7 +298,7 @@ export default function CreativeTemplate({
 
                     {/* Soft Skills */}
                     {limitedSoftSkills.length > 0 && (
-                        <section className="mb-5">
+                        <section style={{ marginBottom: "var(--spacing-section)" }}>
                             <h3
                                 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
                                 style={{ color: COLORS.secondary }}
@@ -317,7 +320,7 @@ export default function CreativeTemplate({
                     )}
 
                     {/* Formation */}
-                    <section className="mb-5">
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h3
                             className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
                             style={{ color: COLORS.accent }}
@@ -355,7 +358,7 @@ export default function CreativeTemplate({
 
                     {/* Certifications */}
                     {limitedCertifications.length > 0 && (
-                        <section className="mt-5">
+                        <section style={{ marginTop: "var(--spacing-section)" }}>
                             <h3
                                 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
                                 style={{ color: COLORS.primary }}
@@ -378,7 +381,7 @@ export default function CreativeTemplate({
 
                     {/* Clients */}
                     {limitedClients.length > 0 && (
-                        <section className="mt-5">
+                        <section style={{ marginTop: "var(--spacing-section)" }}>
                             <h3
                                 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
                                 style={{ color: COLORS.secondary }}
@@ -401,7 +404,7 @@ export default function CreativeTemplate({
 
                     {/* [CDC-21] Section Projets ajoutée */}
                     {projects && projects.length > 0 && (
-                        <section className="mt-5">
+                        <section style={{ marginTop: "var(--spacing-section)" }}>
                             <h3
                                 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
                                 style={{ color: COLORS.accent }}

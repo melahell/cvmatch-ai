@@ -108,7 +108,7 @@ export default function TechTemplate({
                 }}
             >
                 {/* Terminal Header */}
-                <div className="flex items-center gap-1.5 mb-4 pb-2 border-b border-slate-700">
+                <div className="flex items-center gap-1.5 pb-2 border-b border-slate-700" style={{ marginBottom: "var(--spacing-section)" }}>
                     <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
                     <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
@@ -116,7 +116,7 @@ export default function TechTemplate({
                 </div>
 
                 {/* Avatar */}
-                <div className="flex flex-col items-center text-center mb-4">
+                <div className="flex flex-col items-center text-center" style={{ marginBottom: "var(--spacing-section)" }}>
                     {includePhoto && hasValidPhoto ? (
                         <div
                             className="w-20 h-20 rounded-lg border-2 border-[color:var(--cv-primary)] p-0.5 mb-3 overflow-hidden shadow-level-3"
@@ -145,7 +145,7 @@ export default function TechTemplate({
                 </div>
 
                 {/* Contact - Terminal style */}
-                <div className="space-y-1.5 mb-4 text-[7pt] font-mono">
+                <div className="flex flex-col text-[7pt] font-mono" style={{ gap: "var(--spacing-item)", marginBottom: "var(--spacing-section)" }}>
                     <div className="text-[color:var(--cv-primary)] text-[6pt] mb-1">{'// contact'}</div>
                     {profil.email && (
                         <div className="flex items-center gap-2">
@@ -186,7 +186,7 @@ export default function TechTemplate({
                 </div>
 
                 {/* Skills by Category */}
-                <div className="space-y-3 flex-1">
+                <div className="flex-1 flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                     <div className="text-[color:var(--cv-primary)] text-[6pt] font-mono">{'// tech_stack'}</div>
 
                     {skillCategories.languages.length > 0 && (
@@ -292,7 +292,7 @@ export default function TechTemplate({
             {/* Main Content */}
             <main className="flex-1 p-5 bg-white overflow-hidden" style={{ fontFamily: "var(--cv-font-body)" }}>
                 {/* Header */}
-                <div className="mb-4 pb-3 border-b-2 border-[color:var(--cv-primary)]">
+                <div className="pb-3 border-b-2 border-[color:var(--cv-primary)]" style={{ marginBottom: "var(--spacing-section)" }}>
                     <h1 className="text-xl font-extrabold text-slate-900">{profil.prenom} {profil.nom}</h1>
                     <p className="text-[color:var(--cv-primary)] font-semibold text-[10pt]">{profil.titre_principal}</p>
 
@@ -310,7 +310,7 @@ export default function TechTemplate({
 
                 {/* Summary */}
                 {profil.elevator_pitch && (
-                    <section className="mb-4">
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <p className="text-slate-700 text-[9pt] leading-relaxed border-l-3 border-[color:var(--cv-primary)] pl-3 italic">
                             {profil.elevator_pitch}
                         </p>
@@ -318,14 +318,14 @@ export default function TechTemplate({
                 )}
 
                 {/* Experiences */}
-                <section className="mb-4">
+                <section style={{ marginBottom: "var(--spacing-section)" }}>
                     <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
                         <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                         Experience
                         <span className="text-[color:var(--cv-primary)] font-mono">{'>'}</span>
                     </h2>
 
-                    <div className="space-y-3">
+                    <div className="flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                         {limitedExperiences.map((exp, i) => (
                             <div
                                 key={i}
@@ -371,7 +371,7 @@ export default function TechTemplate({
 
                 {/* Clients */}
                 {clients_references?.clients && clients_references.clients.length > 0 && (
-                    <section className="mb-4">
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
                             <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Clients
@@ -393,7 +393,7 @@ export default function TechTemplate({
 
                 {/* Certifications */}
                 {certifications && certifications.length > 0 && (
-                    <section className="mb-4">
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
                             <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Certifications
@@ -415,13 +415,13 @@ export default function TechTemplate({
 
                 {/* Education - Moved to white section for better readability */}
                 {limitedFormations.length > 0 && (
-                    <section>
+                    <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
                             <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Education
                             <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
-                        <div className="space-y-2">
+                        <div className="flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                             {limitedFormations.map((edu, i) => (
                                 <div
                                     key={i}
@@ -448,7 +448,7 @@ export default function TechTemplate({
 
                 {/* [CDC-21] Section Projets ajoutée */}
                 {projects && projects.length > 0 && (
-                    <section className="mt-4">
+                    <section style={{ marginTop: "var(--spacing-section)" }}>
                         <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
                             <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
                             Projects
