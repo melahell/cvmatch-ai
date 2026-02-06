@@ -352,17 +352,11 @@ RÈGLES :
 - Variété de secteurs
 - Fourchette salariale réaliste France/Europe 2025 (en k€)
 
-OUTPUT (JSON Array) :
+OUTPUT : Réponds UNIQUEMENT par un tableau JSON valide (aucun texte avant ou après). Pas de virgule après le dernier élément. Pas de commentaires.
+Format exact :
 [
-  {
-    "rang": 1,
-    "titre_poste": "string",
-    "match_score": 0-100,
-    "salaire_min": number,
-    "salaire_max": number,
-    "raison": "string (court)",
-    "secteurs": ["string"]
-  }
+  {"rang": 1, "titre_poste": "...", "match_score": 80, "salaire_min": 45, "salaire_max": 55, "raison": "...", "secteurs": ["Tech"]},
+  ...
 ]
 `;
 

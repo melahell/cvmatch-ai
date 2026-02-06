@@ -80,33 +80,49 @@ export function safeParseJSON<T>(
 }
 
 /**
- * Tente de réparer des erreurs JSON courantes
+ * Tente de réparer des erreurs JSON courantes (LLM : virgules manquantes, etc.)
  */
 function attemptRepair(raw: string): string {
     let cleaned = cleanLLMJson(raw);
-    
-    // Tenter d'extraire un objet JSON valide
-    const objectMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (objectMatch) {
-        cleaned = objectMatch[0];
+
+    // Extraire tableau ou objet principal
+    const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
+    if (arrayMatch) {
+        cleaned = arrayMatch[0];
     } else {
-        // Tenter d'extraire un tableau JSON valide
-        const arrayMatch = cleaned.match(/\[[\s\S]*\]/);
-        if (arrayMatch) {
-            cleaned = arrayMatch[0];
+        const objectMatch = cleaned.match(/\{[\s\S]*\}/);
+        if (objectMatch) {
+            cleaned = objectMatch[0];
         }
     }
-    
+
+    // Réparer virgules manquantes (cause fréquente "Expected ',' or '}' after property value")
+    // 1) Entre deux objets dans un tableau : } \n { -> }, \n {
+    cleaned = cleaned.replace(/\}\s*\{/g, "},{");
+    // 2) Après une chaîne fermante, avant newline puis nouvelle clé "key" : "val" \n " -> "val", \n "
+    cleaned = cleaned.replace(/"([^"\\]|\\.)*"\s*\n\s*"/g, (m) => m.replace(/\s*\n\s*"$/, ",\n  \""));
+    // 3) Après un nombre, avant newline puis " : 42 \n " -> 42, \n "
+    cleaned = cleaned.replace(/(\d)\s*\n\s*"/g, "$1,\n  \"");
+    // 4) Après true/false/null, avant newline puis "
+    cleaned = cleaned.replace(/(true|false|null)\s*\n\s*"/g, "$1,\n  \"");
+    // 5) Entre deux éléments de tableau ] [ -> ], [
+    cleaned = cleaned.replace(/\]\s*\[/g, "],[");
+    // 5b) Après ] (fin de tableau dans un objet) avant newline et } : ], }
+    cleaned = cleaned.replace(/\]\s*\n\s*\}/g, "],\n  }");
+    // 6) Après } avant newline puis " (objet fermé, prochaine clé)
+    cleaned = cleaned.replace(/\}\s*\n\s*"/g, "},\n  \"");
+    // 7) Deuxième passe (plusieurs virgules manquantes)
+    cleaned = cleaned.replace(/\}\s*\{/g, "},{");
+    cleaned = cleaned.replace(/"([^"\\]|\\.)*"\s*\n\s*"/g, (m) => m.replace(/\s*\n\s*"$/, ",\n  \""));
+
     // Équilibrer les accolades/crochets
     const openBraces = (cleaned.match(/\{/g) || []).length;
     const closeBraces = (cleaned.match(/\}/g) || []).length;
     const openBrackets = (cleaned.match(/\[/g) || []).length;
     const closeBrackets = (cleaned.match(/\]/g) || []).length;
-    
-    // Ajouter les fermants manquants
-    cleaned += '}'.repeat(Math.max(0, openBraces - closeBraces));
-    cleaned += ']'.repeat(Math.max(0, openBrackets - closeBrackets));
-    
+    cleaned += "}".repeat(Math.max(0, openBraces - closeBraces));
+    cleaned += "]".repeat(Math.max(0, openBrackets - closeBrackets));
+
     return cleaned;
 }
 
