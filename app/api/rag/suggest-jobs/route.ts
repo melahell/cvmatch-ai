@@ -12,10 +12,35 @@ import { getTopJobsPrompt } from "@/lib/ai/prompts";
 import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/utils/rate-limit";
 import { logger } from "@/lib/utils/logger";
 import { safeParseJSON } from "@/lib/ai/safe-json-parser";
-import { jobSuggestionsArraySchema, jobSuggestionsResponseSchema } from "@/lib/ai/schemas";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // 1 minute should be enough
+
+/** Normalise un objet brut IA vers le format attendu par l’UI (tolérant aux clés et types). */
+function normalizeJobSuggestion(item: Record<string, unknown>): Record<string, unknown> {
+    const str = (v: unknown) => (v != null && typeof v === "string" ? v : typeof v === "number" ? String(v) : Array.isArray(v) ? v.map(String).join(", ") : "");
+    const num = (v: unknown) => (typeof v === "number" && !Number.isNaN(v) ? v : typeof v === "string" ? parseInt(v, 10) : undefined);
+    const arr = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => (typeof x === "string" ? x : String(x))) : typeof v === "string" ? [v] : []);
+
+    const raisons0 = Array.isArray(item.raisons) ? item.raisons[0] : undefined;
+    const titre =
+        str(item.titre_poste || item.titre || item.ligne || item.title || item.job_title || item.poste || item.name) ||
+        str(item.titre_poste) || str(item.titre) || str(item.ligne);
+    const secteurs = arr(item.secteurs ?? item.secteur).length ? arr(item.secteurs ?? item.secteur) : (item.secteur ? [str(item.secteur)] : []);
+
+    return {
+        ...item,
+        rang: num(item.rang) ?? undefined,
+        titre_poste: titre || undefined,
+        titre: titre || undefined,
+        match_score: num(item.match_score) ?? num(item.score) ?? undefined,
+        salaire_min: num(item.salaire_min) ?? num(item.salary_min) ?? undefined,
+        salaire_max: num(item.salaire_max) ?? num(item.salary_max) ?? undefined,
+        raison: str(item.raison ?? raisons0) || str(item.description) || undefined,
+        secteurs: secteurs.length ? secteurs : undefined,
+        secteur: str(item.secteur) || secteurs[0] || undefined,
+    };
+}
 
 export async function POST(req: Request) {
     try {
@@ -73,33 +98,36 @@ export async function POST(req: Request) {
             return text;
         }, 3);
 
-        // Parse avec validation Zod (accepte tableau ou { suggestions: [...] })
-        let top10Jobs: Array<Record<string, unknown>>;
-        const parseArray = safeParseJSON(responseText, jobSuggestionsArraySchema);
-        if (parseArray.success) {
-            top10Jobs = parseArray.data;
-        } else {
-            const parseEnvelope = safeParseJSON(responseText, jobSuggestionsResponseSchema);
-            if (parseEnvelope.success && Array.isArray(parseEnvelope.data.suggestions)) {
-                top10Jobs = parseEnvelope.data.suggestions;
-            } else {
-                logger.error("Top jobs parse error", {
-                    responseLength: responseText.length,
-                    error: parseArray.error
-                });
-                return NextResponse.json({
-                    error: "AI returned invalid format for job suggestions",
-                    errorCode: "PARSE_ERROR",
-                    details: parseArray.error
-                }, { status: 500 });
-            }
-        }
-        
-        // Validate non-empty
-        if (!Array.isArray(top10Jobs) || top10Jobs.length === 0) {
-            logger.error("Top jobs empty response");
+        // Parse JSON sans schéma strict (l’IA peut renvoyer nombres en string, clés variées)
+        const parsed = safeParseJSON<unknown>(responseText);
+        if (!parsed.success) {
+            logger.error("Top jobs JSON parse error", { error: parsed.error, preview: responseText.slice(0, 300) });
             return NextResponse.json({
-                error: "AI returned empty job suggestions",
+                error: "AI returned invalid JSON for job suggestions",
+                errorCode: "PARSE_ERROR",
+                details: parsed.error
+            }, { status: 500 });
+        }
+
+        const raw = parsed.data;
+        let rawList: unknown[] = [];
+        if (Array.isArray(raw)) {
+            rawList = raw;
+        } else if (raw && typeof raw === "object" && "suggestions" in raw && Array.isArray((raw as { suggestions: unknown[] }).suggestions)) {
+            rawList = (raw as { suggestions: unknown[] }).suggestions;
+        } else if (raw && typeof raw === "object" && "jobs" in raw && Array.isArray((raw as { jobs: unknown[] }).jobs)) {
+            rawList = (raw as { jobs: unknown[] }).jobs;
+        }
+
+        const top10Jobs = rawList
+            .filter((item): item is Record<string, unknown> => item != null && typeof item === "object" && !Array.isArray(item))
+            .map(normalizeJobSuggestion)
+            .filter((j) => j.titre_poste || j.titre || j.ligne);
+
+        if (top10Jobs.length === 0) {
+            logger.error("Top jobs: no valid items after normalize", { rawListLength: rawList.length, preview: responseText.slice(0, 400) });
+            return NextResponse.json({
+                error: "AI returned no valid job suggestions",
                 errorCode: "EMPTY_RESPONSE"
             }, { status: 500 });
         }
