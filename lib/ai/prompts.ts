@@ -593,6 +593,24 @@ WIDGET 4 - Skill Item :
   }
 }
 
+WIDGET 5 - Project Item :
+{
+  "id": "w5",
+  "type": "project_item",
+  "section": "projects",
+  "text": "Dashboard Analytics - Refonte complète du tableau de bord client avec React/D3.js [React, D3.js]",
+  "relevance_score": 85,
+  "tags": ["frontend", "dataviz"],
+  "sources": {
+    "rag_path": "projets[0]"
+  },
+  "quality": {
+    "has_numbers": false,
+    "length": 85,
+    "grounded": true
+  }
+}
+
 ═══════════════════════════════════════════════════════════════
 STRATÉGIE DE GÉNÉRATION COMPLÈTE
 ═══════════════════════════════════════════════════════════════
@@ -630,7 +648,13 @@ STRATÉGIE DE GÉNÉRATION COMPLÈTE
    - 1 widget "reference_item" par client / référence
    - section = "references"
 
-8. CONTEXTE ENRICHI (SI PRÉSENT) :
+8. PROJETS (TOUS, si présents dans le RAG) :
+   - 1 widget "project_item" par projet
+   - section = "projects"
+   - format: "Nom du projet - Description [Technologies]"
+   - Scorer selon pertinence avec l'offre
+
+9. CONTEXTE ENRICHI (SI PRÉSENT) :
    - Si RAG.contexte_enrichi existe, générer des widgets "skill_item" (section="skills")
      à partir des compétences tacites et soft skills déduites (sans inventer, uniquement depuis contexte_enrichi)
 

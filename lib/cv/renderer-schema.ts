@@ -10,5 +10,15 @@
 
 import type { CVData } from "@/components/cv/templates";
 
-export type RendererResumeSchema = CVData;
+// Extension du type CVData pour inclure les projets (manquant dans le type de base)
+export interface CVProject {
+    nom: string;
+    description: string;
+    technologies?: string[];
+    lien?: string;
+}
+
+export type RendererResumeSchema = CVData & {
+    projects?: CVProject[];
+};
 

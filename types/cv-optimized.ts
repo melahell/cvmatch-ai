@@ -239,7 +239,7 @@ export const SENIORITY_RULES: Record<SeniorityLevel, SeniorityRules> = {
         elevatorPitchMaxChars: 200,
         formationFirstPosition: true,
         maxExperiences: 4,
-        maxBulletsPerExperience: 4,
+        maxBulletsPerExperience: 8, // Augmenté de 4 à 8
         maxBulletChars: 180,
         showClientReferences: false,
         allowCondensation: false
@@ -250,7 +250,7 @@ export const SENIORITY_RULES: Record<SeniorityLevel, SeniorityRules> = {
         elevatorPitchMaxChars: 280,
         formationFirstPosition: false,
         maxExperiences: 5,
-        maxBulletsPerExperience: 5,
+        maxBulletsPerExperience: 10, // Augmenté de 5 à 10
         maxBulletChars: 200,
         showClientReferences: true,
         allowCondensation: true
@@ -261,7 +261,7 @@ export const SENIORITY_RULES: Record<SeniorityLevel, SeniorityRules> = {
         elevatorPitchMaxChars: 350,
         formationFirstPosition: false,
         maxExperiences: 6,
-        maxBulletsPerExperience: 5,
+        maxBulletsPerExperience: 12, // Augmenté de 5 à 12
         maxBulletChars: 220,
         showClientReferences: true,
         allowCondensation: true
@@ -272,7 +272,7 @@ export const SENIORITY_RULES: Record<SeniorityLevel, SeniorityRules> = {
         elevatorPitchMaxChars: 400,
         formationFirstPosition: false,
         maxExperiences: 8,
-        maxBulletsPerExperience: 6,
+        maxBulletsPerExperience: 15, // Augmenté de 6 à 15
         maxBulletChars: 250,
         showClientReferences: true,
         allowCondensation: true

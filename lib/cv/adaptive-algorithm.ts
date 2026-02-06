@@ -63,13 +63,13 @@ function computeSkillLines(cvData: CVData) {
 
 function sliceText(text: string, maxChars: number) {
     if (text.length <= maxChars) return text;
-    
+
     // Solution 4.2: Couper au dernier espace avant maxChars pour éviter de couper les mots
     const truncated = text.slice(0, Math.max(0, maxChars - 3));
     const lastSpace = truncated.lastIndexOf(' ');
     const lastPeriod = truncated.lastIndexOf('.');
     const breakPoint = Math.max(lastSpace, lastPeriod);
-    
+
     if (breakPoint > maxChars * 0.7) {
         // Si on trouve un bon point de rupture (dans les 70% de la limite)
         const sliced = text.slice(0, breakPoint + 1).trimEnd();
@@ -79,7 +79,7 @@ function sliceText(text: string, maxChars: number) {
         console.log(`[sliceText] Truncated at word boundary "${before}..." to "${after}..." (maxChars: ${maxChars})`);
         return sliced ? sliced + "..." : "";
     }
-    
+
     // Sinon, couper au caractère mais essayer de garder les mots complets
     const sliced = truncated.trimEnd();
     // Phase 4 Diagnostic: Log sliceText
@@ -96,13 +96,15 @@ function applyExperienceFormat(exp: CVData["experiences"][number], format: Exper
     // detailed=12, standard=8, compact=3, minimal=0
     // Note: maxBullets from theme is used as fallback but CDC takes priority
     const formatLimits: Record<ExperienceFormat, number> = {
-        detailed: 12,   // Augmenté de 5 à 12
-        standard: 8,    // Augmenté de 3 à 8
-        compact: 3,     // Augmenté de 1 à 3
+        detailed: 25,   // Augmenté pour éviter tout capping arbitraire
+        standard: 15,   // Standard large
+        compact: 5,     // Compact mais informatif
         minimal: 0,
     };
 
-    const limit = formatLimits[format] ?? 3;
+    // Use the larger of format limit or passed maxBullets (if we want to respect theme config)
+    // But mainly we want to avoid arbitrary cutting.
+    const limit = formatLimits[format] ?? 5;
     const effectiveLimit = Math.min(limit, bullets.length);
 
     // Phase 2 Diagnostic: Log dans adaptive algorithm
