@@ -137,12 +137,22 @@ export async function POST(req: Request) {
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
             const path = `${userId}/${timestamp}_${safeName}`;
 
-            // Upload to storage
+            // Validate file size (Vercel payload limit is 4.5MB)
+            const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024;
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                uploads.push({
+                    filename: file.name,
+                    error: `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum autorisé : 4.5 MB.`,
+                    rejected: true
+                });
+                continue;
+            }
+
+            // Upload to storage (no upsert — timestamp in path guarantees uniqueness)
             const { data, error } = await supabase.storage
                 .from("documents")
                 .upload(path, buffer, {
                     contentType: file.type,
-                    upsert: true,
                 });
 
             if (error) {
@@ -189,7 +199,7 @@ export async function POST(req: Request) {
                 extraction_status: extractionStatus,
                 extracted_text: extractedText, // Save text immediately
                 // We could also save metadata if columns existed, for now we assume they might not
-            }).select("id, filename, file_type, extraction_status").single();
+            }).select("id, filename, file_type, extraction_status").maybeSingle();
 
             if (dbError) {
                 logger.error("DB Insert error", { error: dbError.message, filename: file.name });

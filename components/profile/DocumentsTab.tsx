@@ -95,10 +95,23 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
         }
     };
 
+    const MAX_FILE_SIZE_MB = 4.5;
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const fileList = e.target.files;
         if (!fileList?.length) return;
         const files = Array.from(fileList);
+
+        const oversized = files.filter(f => f.size > MAX_FILE_SIZE_BYTES);
+        if (oversized.length > 0) {
+            toast.error(
+                `${oversized.map(f => f.name).join(", ")} : fichier(s) trop volumineux (max ${MAX_FILE_SIZE_MB} MB)`
+            );
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
+
         await onUpload(files);
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
