@@ -404,7 +404,7 @@ function ProfileContent() {
 
                         if (genRes?.status === 429) {
                             const retryAfterSec =
-                                Number(genErr?.retryAfter) ?? Number(genRes?.headers.get("Retry-After")) ?? 0;
+                                Number(genErr?.retryAfter) || Number(genRes?.headers.get("Retry-After")) || 0;
                             if (retryAfterSec > 0) await sleep((retryAfterSec + 1) * 1000);
                             continue;
                         }
@@ -463,9 +463,14 @@ function ProfileContent() {
             } else {
                 toast.error("Erreur lors de la réinitialisation");
             }
-        } catch (e) {
+        } catch (e: any) {
             logger.error("Error resetting profile:", e);
-            toast.error("Erreur réseau");
+            const msg = e?.message || String(e);
+            if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+                toast.error("Erreur réseau : vérifiez votre connexion.");
+            } else {
+                toast.error("Erreur lors de la réinitialisation : " + msg);
+            }
         }
     };
 

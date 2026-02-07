@@ -109,15 +109,23 @@ export default function OnboardingPage() {
             const formData = new FormData();
             files.forEach((file) => formData.append("files", file));
 
+            const authHeaders = await getSupabaseAuthHeader();
+            if (!authHeaders.Authorization) {
+                toast.error("Session expirée. Veuillez vous reconnecter.");
+                setUploading(false);
+                return;
+            }
+
             const uploadRes = await fetch("/api/rag/upload", {
                 method: "POST",
-                headers: {
-                    ...(await getSupabaseAuthHeader()),
-                },
+                headers: authHeaders,
                 body: formData,
             });
 
-            if (!uploadRes.ok) throw new Error("Upload failed");
+            if (!uploadRes.ok) {
+                const err = await uploadRes.json().catch(() => null);
+                throw new Error(err?.error || `Échec de l'upload (${uploadRes.status})`);
+            }
 
             setProgress(50);
             setUploading(false);

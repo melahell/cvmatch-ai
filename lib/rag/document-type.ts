@@ -17,6 +17,7 @@ const MIME_TO_TYPE: Record<string, NormalizedDocumentType> = {
     "application/vnd.oasis.opendocument.text": "odt",
     "text/plain": "txt",
     "text/markdown": "txt",
+    "text/x-markdown": "txt",
 };
 
 export function normalizeDocumentTypeFromFilename(filename: string | null | undefined): NormalizedDocumentType {
