@@ -3,9 +3,8 @@ import { NextResponse } from "next/server";
 import { logger } from "@/lib/utils/logger";
 import { normalizeDocumentType, normalizeDocumentTypeFromFilename, normalizeDocumentTypeFromMime } from "@/lib/rag/document-type";
 
-import { extractTextFromBuffer } from "@/lib/rag/text-extraction";
-
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 // [CDC-1] Types MIME autorisés — alignés sur lib/rag/text-extraction (extraction réelle)
 const ALLOWED_MIME_TYPES = [
@@ -28,6 +27,14 @@ const CORS_HEADERS = {
     "Access-Control-Max-Age": "86400",
 } as const;
 
+/** Builds response headers with CORS for POST responses. */
+function postResponseHeaders(req: Request): Record<string, string> {
+    const h: Record<string, string> = { ...CORS_HEADERS };
+    const origin = req.headers.get("Origin");
+    if (origin) h["Access-Control-Allow-Origin"] = origin;
+    return h;
+}
+
 /** Preflight CORS : permet au navigateur d’envoyer le POST après OPTIONS. */
 export async function OPTIONS(req: Request) {
     logger.info("rag/upload request", { method: req.method, url: req.url });
@@ -48,16 +55,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     logger.info("rag/upload request", { method: req.method, url: req.url });
-    if (req.method !== "POST") {
-        return NextResponse.json(
-            { error: "Method Not Allowed", expected: "POST" },
-            { status: 405, headers: { ...CORS_HEADERS } }
-        );
-    }
+    const headers = postResponseHeaders(req);
     try {
         const auth = await requireSupabaseUser(req);
         if (auth.error || !auth.user || !auth.token) {
-            return NextResponse.json({ error: "Non autorisé" }, { status: 401 });
+            return NextResponse.json({ error: "Non autorisé" }, { status: 401, headers });
         }
 
         const formData = await req.formData();
@@ -65,7 +67,7 @@ export async function POST(req: Request) {
         const userId = auth.user.id;
 
         if (!files.length || !userId) {
-            return NextResponse.json({ error: "Missing files or userId" }, { status: 400 });
+            return NextResponse.json({ error: "Missing files or userId" }, { status: 400, headers });
         }
 
         const supabase = createSupabaseUserClient(auth.token);
@@ -153,14 +155,14 @@ export async function POST(req: Request) {
                 continue;
             }
 
-            // [CDC-1] Extract text immediately (Synchronous for MVP)
+            // [CDC-1] Extract text immediately (lazy-load to avoid cold-start 405 on Vercel)
             let extractedText = "";
             let extractionMethod = "pending";
             let extractionStatus = "pending";
             let extractionError: string | null = null;
 
             try {
-                // Buffer.from is required in Node env from ArrayBuffer
+                const { extractTextFromBuffer } = await import("@/lib/rag/text-extraction");
                 const nodeBuffer = Buffer.from(buffer);
                 const result = await extractTextFromBuffer(nodeBuffer, file.type);
                 extractedText = result.text;
@@ -206,7 +208,7 @@ export async function POST(req: Request) {
                 success: false,
                 error: "All uploads failed",
                 uploads
-            }, { status: 500 });
+            }, { status: 500, headers });
         }
 
         return NextResponse.json({
@@ -215,9 +217,9 @@ export async function POST(req: Request) {
             uploads,
             // [CDC-1] Ajouter warnings s'il y en a
             ...(warnings.length > 0 && { warnings })
-        });
+        }, { headers });
     } catch (error: any) {
         logger.error("Upload server error", { error: error?.message });
-        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500, headers });
     }
 }
