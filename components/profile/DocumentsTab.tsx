@@ -21,7 +21,8 @@ interface Document {
 interface DocumentsTabProps {
     documents: Document[];
     onDelete: (id: string) => Promise<void | boolean>;
-    onUpload: (file: File) => Promise<void>;
+    /** Un ou plusieurs fichiers ; un seul POST est envoyé si plusieurs fichiers. */
+    onUpload: (files: File[]) => Promise<void>;
     uploading?: boolean;
 }
 
@@ -95,14 +96,11 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
     };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            await onUpload(file);
-            // Reset input
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
-        }
+        const fileList = e.target.files;
+        if (!fileList?.length) return;
+        const files = Array.from(fileList);
+        await onUpload(files);
+        if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
     const formatDate = (dateStr: string) => {
@@ -173,6 +171,7 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                         ref={fileInputRef}
                         type="file"
                         accept=".pdf,.docx,.txt"
+                        multiple
                         onChange={handleFileSelect}
                         className="hidden"
                     />
@@ -188,13 +187,13 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                         ) : (
                             <>
                                 <Upload className="w-4 h-4 mr-2" />
-                                Choisir un fichier
+                                Choisir un ou plusieurs fichiers
                             </>
                         )}
                     </Button>
                     {uploading && (
                         <p className="text-xs text-blue-600 mt-3 animate-pulse">
-                            Extraction et analyse IA du document, cela peut prendre quelques secondes...
+                            Extraction et analyse IA des documents, cela peut prendre quelques secondes...
                         </p>
                     )}
                 </CardContent>

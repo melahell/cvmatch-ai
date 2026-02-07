@@ -78,7 +78,7 @@ function ProfileContent() {
                     .from("rag_metadata")
                     .select("custom_notes")
                     .eq("user_id", userId)
-                    .single();
+                    .maybeSingle();
                 if (data?.custom_notes) setCustomNotes(data.custom_notes);
             };
             loadNotes();
@@ -315,83 +315,105 @@ function ProfileContent() {
 
     };
 
-    const handleUpload = async (file: File) => {
-        if (!userId) return;
+    const handleUpload = async (files: File[]) => {
+        if (!userId || files.length === 0) return;
 
         setUploading(true);
         try {
             const formData = new FormData();
-            formData.append("files", file);
+            files.forEach((f) => formData.append("files", f));
             const authHeaders = await getSupabaseAuthHeader();
+            const UPLOAD_URL = "/api/rag/upload";
+            const UPLOAD_METHOD = "POST" as const;
 
-            const res = await fetch("/api/rag/upload", {
-                method: "POST",
+            const res = await fetch(UPLOAD_URL, {
+                method: UPLOAD_METHOD,
                 headers: authHeaders,
                 credentials: "include",
                 body: formData,
             });
 
-            if (res.ok) {
-                const payload = await res.json().catch(() => null);
-                await refetchDocs();
-                const uploaded = Array.isArray(payload?.uploads) ? payload.uploads : [];
-                const docId = uploaded.find((u: any) => u?.success && u?.documentId)?.documentId as string | undefined;
-
-                if (docId) {
-                    toast.success("Document uploadé. Analyse IA en cours…", { duration: 8000 });
-
-                    try {
-                        const authHeaders2 = await getSupabaseAuthHeader();
-                        let genRes: Response | null = null;
-                        let genErr: any = null;
-
-                        for (let attempt = 0; attempt < 3; attempt++) {
-                            genRes = await fetch("/api/rag/generate-incremental", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json", ...authHeaders2 },
-                                credentials: "include",
-                                body: JSON.stringify({ documentId: docId, mode: "completion", isFirstDocument: true, isLastDocument: true }),
-                            });
-                            if (genRes.ok) break;
-                            genErr = await genRes.json().catch(() => null);
-
-                            if (genRes.status === 429) {
-                                const retryAfterSec =
-                                    Number(genErr?.retryAfter) ||
-                                    Number(genRes.headers.get("Retry-After")) ||
-                                    0;
-                                if (retryAfterSec > 0) {
-                                    await sleep((retryAfterSec + 1) * 1000);
-                                    continue;
-                                }
-                            }
-
-                            const errorCode = genErr?.errorCode || genErr?.code || null;
-                            if (genRes.status === 503 && errorCode === "GEMINI_TIMEOUT") {
-                                await sleep((attempt + 1) * 2000);
-                                continue;
-                            }
-
-                            break;
-                        }
-
-                        if (!genRes || !genRes.ok) {
-                            toast.warning(`Génération du profil échouée: ${genErr?.error || "réessayez"}`);
-                        } else {
-                            await refetch();
-                            await refetchDocs();
-                            toast.success("Profil mis à jour !");
-                        }
-                    } catch (e) {
-                        logger.error("Post-upload RAG generation failed", e);
-                        toast.warning("Document uploadé, génération RAG à relancer.");
-                    }
-                } else {
-                    toast.success("Document uploadé avec succès ! Régénérez le profil pour l'inclure.");
-                }
-            } else {
+            if (!res.ok) {
                 const error = await res.json();
                 toast.error("Erreur: " + (error.error || "Échec de l'upload"));
+                return;
+            }
+
+            const payload = await res.json().catch(() => null);
+            await refetchDocs();
+            const uploaded = Array.isArray(payload?.uploads) ? payload.uploads : [];
+            const docIds = uploaded
+                .filter((u: any) => u?.success && u?.documentId)
+                .map((u: any) => u.documentId as string);
+
+            if (docIds.length === 0) {
+                toast.success("Document(s) uploadé(s). Régénérez le profil pour les inclure.");
+                return;
+            }
+
+            toast.success(
+                docIds.length > 1
+                    ? `${docIds.length} documents uploadés. Analyse IA en cours…`
+                    : "Document uploadé. Analyse IA en cours…",
+                { duration: 8000 }
+            );
+
+            try {
+                const authHeaders2 = await getSupabaseAuthHeader();
+                let lastGenErr: any = null;
+                let successCount = 0;
+
+                for (let i = 0; i < docIds.length; i++) {
+                    const docId = docIds[i];
+                    const isFirst = i === 0;
+                    const isLast = i === docIds.length - 1;
+                    let genRes: Response | null = null;
+                    let genErr: any = null;
+
+                    for (let attempt = 0; attempt < 3; attempt++) {
+                        genRes = await fetch("/api/rag/generate-incremental", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", ...authHeaders2 },
+                            credentials: "include",
+                            body: JSON.stringify({
+                                documentId: docId,
+                                mode: "completion",
+                                isFirstDocument: isFirst,
+                                isLastDocument: isLast,
+                            }),
+                        });
+                        if (genRes?.ok) break;
+                        genErr = await genRes?.json().catch(() => null);
+                        lastGenErr = genErr;
+
+                        if (genRes?.status === 429) {
+                            const retryAfterSec =
+                                Number(genErr?.retryAfter) ?? Number(genRes?.headers.get("Retry-After")) ?? 0;
+                            if (retryAfterSec > 0) await sleep((retryAfterSec + 1) * 1000);
+                            continue;
+                        }
+                        if (genRes?.status === 503 && (genErr?.errorCode === "GEMINI_TIMEOUT" || genErr?.code === "GEMINI_TIMEOUT")) {
+                            await sleep((attempt + 1) * 2000);
+                            continue;
+                        }
+                        break;
+                    }
+
+                    if (genRes?.ok) successCount++;
+                }
+
+                await refetch();
+                await refetchDocs();
+                if (successCount === docIds.length) {
+                    toast.success("Profil mis à jour !");
+                } else if (successCount > 0) {
+                    toast.warning(`${successCount}/${docIds.length} document(s) analysé(s). Réessayez la régénération pour les autres.`);
+                } else {
+                    toast.warning(`Génération du profil échouée: ${lastGenErr?.error ?? "réessayez"}`);
+                }
+            } catch (e) {
+                logger.error("Post-upload RAG generation failed", e);
+                toast.warning("Document(s) uploadé(s), génération RAG à relancer.");
             }
         } catch (e) {
             logger.error("Error uploading document:", e);

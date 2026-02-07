@@ -299,9 +299,22 @@ export async function POST(req: Request) {
         let responseText: string;
         let modelUsed: string | null = null;
 
+        const GEMINI_TIMEOUT_MS = 120000;
+        const isTimeoutError = (e: unknown) => (e instanceof Error && e.message.includes("Timeout")) || (typeof (e as any)?.message === "string" && (e as any).message.includes("Timeout"));
+
         try {
             const prompt = getRAGExtractionPrompt(docForPrompt, existingRAGContext);
-            const cascade = await callWithRetry(() => callWithTimeout(generateWithCascade(prompt), 30000), 1);
+            let cascade: { result: any; modelUsed: string };
+            try {
+                cascade = await callWithRetry(() => callWithTimeout(generateWithCascade(prompt), GEMINI_TIMEOUT_MS), 1);
+            } catch (firstError: any) {
+                if (isTimeoutError(firstError)) {
+                    logger.warn("Gemini timeout, retrying once", { filename: doc.filename });
+                    cascade = await callWithRetry(() => callWithTimeout(generateWithCascade(prompt), GEMINI_TIMEOUT_MS), 1);
+                } else {
+                    throw firstError;
+                }
+            }
             modelUsed = cascade.modelUsed;
             responseText = cascade.result.response.text();
 

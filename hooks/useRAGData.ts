@@ -59,10 +59,9 @@ export function useRAGData(userId: string | null): UseRAGDataReturn {
                 .from("rag_metadata")
                 .select("completeness_details,top_10_jobs,completeness_score,custom_notes")
                 .eq("user_id", userId)
-                .single();
+                .maybeSingle();
 
             if (ragError) {
-                // Not found is not an error for new users
                 if (ragError.code === 'PGRST116') {
                     logger.debug('No RAG data found for user (expected for new users)');
                     setData(null);

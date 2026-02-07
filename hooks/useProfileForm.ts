@@ -38,10 +38,9 @@ export function useProfileForm(userId: string | null) {
                 .from("rag_metadata")
                 .select("completeness_details, completeness_score")
                 .eq("user_id", userId)
-                .single();
+                .maybeSingle();
 
             if (error) {
-                // Not found is not an error for new users
                 if (error.code === 'PGRST116') {
                     logger.debug('No RAG data found for user');
                     setData(null);
@@ -53,7 +52,7 @@ export function useProfileForm(userId: string | null) {
 
             // Data is in completeness_details field
             const profileData = ragData?.completeness_details || null;
-            setData(profileData ? { ...profileData, score: ragData.completeness_score || 0 } : null);
+            setData(profileData ? { ...profileData, score: ragData?.completeness_score ?? 0 } : null);
         } catch (error: any) {
             logger.error("Profile fetch error:", error);
             setErrors({ fetch: error.message });

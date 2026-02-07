@@ -21,7 +21,39 @@ const ALLOWED_MIME_TYPES = [
 // [CDC-1] Extensions autorisées (fallback si MIME non fiable)
 const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg'];
 
+const CORS_HEADERS = {
+    "Allow": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400",
+} as const;
+
+/** Preflight CORS : permet au navigateur d’envoyer le POST après OPTIONS. */
+export async function OPTIONS(req: Request) {
+    logger.info("rag/upload request", { method: req.method, url: req.url });
+    const origin = req.headers.get("Origin");
+    const headers = new Headers(CORS_HEADERS);
+    if (origin) headers.set("Access-Control-Allow-Origin", origin);
+    return new NextResponse(null, { status: 200, headers });
+}
+
+/** Méthode non autorisée : seule POST est acceptée pour l'upload. */
+export async function GET(req: Request) {
+    logger.info("rag/upload request", { method: req.method, url: req.url });
+    return NextResponse.json(
+        { error: "Method Not Allowed", message: "Use POST to upload documents." },
+        { status: 405, headers: { ...CORS_HEADERS } }
+    );
+}
+
 export async function POST(req: Request) {
+    logger.info("rag/upload request", { method: req.method, url: req.url });
+    if (req.method !== "POST") {
+        return NextResponse.json(
+            { error: "Method Not Allowed", expected: "POST" },
+            { status: 405, headers: { ...CORS_HEADERS } }
+        );
+    }
     try {
         const auth = await requireSupabaseUser(req);
         if (auth.error || !auth.user || !auth.token) {
