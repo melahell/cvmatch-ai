@@ -325,7 +325,7 @@ export default function OnboardingPage() {
                                 className="hidden"
                                 id="file-upload"
                                 onChange={handleChange}
-                                accept=".pdf,.docx,.txt"
+                                accept=".pdf,.docx,.txt,.md"
                             />
 
                             <div className="flex flex-col items-center gap-4">
@@ -341,7 +341,7 @@ export default function OnboardingPage() {
                                     </label>
                                     <span className="text-slate-600"> ou glisse tes fichiers ici</span>
                                 </div>
-                                <p className="text-xs text-slate-600">PDF, DOCX acceptés (Max 10MB)</p>
+                                <p className="text-xs text-slate-600">PDF, DOCX, TXT, MD acceptés (Max 4.5 MB)</p>
                             </div>
                         </div>
 

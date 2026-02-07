@@ -8,6 +8,8 @@ export const SUPPORTED_MIME_TYPES = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // docx
     'application/msword', // doc
     'text/plain',
+    'text/markdown',      // .md
+    'text/x-markdown',    // .md (fallback)
     'image/png',
     'image/jpeg',
     'image/jpg'
@@ -44,7 +46,7 @@ export async function extractTextFromBuffer(buffer: Buffer, mimeType: string): P
             return await extractFromImage(buffer);
         }
 
-        if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
+        if (mimeType === 'text/plain' || mimeType === 'text/markdown' || mimeType === 'text/x-markdown') {
             return { text: buffer.toString('utf-8'), method: 'text' };
         }
 

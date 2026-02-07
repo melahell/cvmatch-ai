@@ -178,12 +178,12 @@ export function DocumentsTab({ documents, onDelete, onUpload, uploading }: Docum
                     <Upload className="w-12 h-12 mx-auto text-slate-600 mb-4" />
                     <h3 className="font-medium mb-2">Uploader un document</h3>
                     <p className="text-sm text-slate-600 mb-4">
-                        CV, lettre de motivation, certificats... (PDF, DOCX, TXT)
+                        CV, lettre de motivation, certificats... (PDF, DOCX, TXT, MD)
                     </p>
                     <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".pdf,.docx,.txt"
+                        accept=".pdf,.docx,.txt,.md"
                         multiple
                         onChange={handleFileSelect}
                         className="hidden"

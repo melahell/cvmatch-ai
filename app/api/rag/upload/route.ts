@@ -12,13 +12,15 @@ const ALLOWED_MIME_TYPES = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
     'application/msword', // .doc
     'text/plain',
+    'text/markdown',      // .md
+    'text/x-markdown',    // .md (fallback MIME)
     'image/png',
     'image/jpeg',
     'image/jpg',
 ];
 
 // [CDC-1] Extensions autorisées (fallback si MIME non fiable)
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.md', '.png', '.jpg', '.jpeg'];
 
 const CORS_HEADERS = {
     "Allow": "POST, OPTIONS",
@@ -120,7 +122,7 @@ export async function POST(req: Request) {
                 });
                 uploads.push({
                     filename: file.name,
-                    error: `Type de fichier non supporté (${file.type || fileExtension}). Formats acceptés: PDF, DOCX, DOC, TXT, images (PNG, JPG).`,
+                    error: `Type de fichier non supporté (${file.type || fileExtension}). Formats acceptés: PDF, DOCX, DOC, TXT, MD, images (PNG, JPG).`,
                     rejected: true
                 });
                 continue;
