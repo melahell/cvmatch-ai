@@ -22,6 +22,18 @@ const ALLOWED_MIME_TYPES = [
 // [CDC-1] Extensions autorisées (fallback si MIME non fiable)
 const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.md', '.png', '.jpg', '.jpeg'];
 
+// Map extension → MIME correct (les navigateurs envoient souvent "" ou "application/octet-stream" pour .md, .txt, etc.)
+const EXTENSION_TO_MIME: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.doc': 'application/msword',
+    '.txt': 'text/plain',
+    '.md': 'text/markdown',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+};
+
 const CORS_HEADERS = {
     "Allow": "POST, OPTIONS",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -128,6 +140,9 @@ export async function POST(req: Request) {
                 continue;
             }
 
+            // Resolve correct MIME type from extension (browsers often send "" or "application/octet-stream" for .md, etc.)
+            const resolvedMime = isMimeAllowed ? file.type : (EXTENSION_TO_MIME[fileExtension] || file.type);
+
             // [CDC-1] Warning si fichier très petit (potentiellement vide/corrompu)
             if (file.size < 1000) {
                 warnings.push(`Le fichier "${file.name}" est très petit (${file.size} octets) et pourrait être vide ou corrompu.`);
@@ -154,7 +169,7 @@ export async function POST(req: Request) {
             const { data, error } = await supabase.storage
                 .from("documents")
                 .upload(path, buffer, {
-                    contentType: file.type,
+                    contentType: resolvedMime,
                 });
 
             if (error) {
@@ -176,7 +191,7 @@ export async function POST(req: Request) {
             try {
                 const { extractTextFromBuffer } = await import("@/lib/rag/text-extraction");
                 const nodeBuffer = Buffer.from(buffer);
-                const result = await extractTextFromBuffer(nodeBuffer, file.type);
+                const result = await extractTextFromBuffer(nodeBuffer, resolvedMime);
                 extractedText = result.text;
                 extractionMethod = result.method;
                 extractionStatus = "completed";
