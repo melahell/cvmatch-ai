@@ -10,29 +10,20 @@ import { logger } from "@/lib/utils/logger";
 import { resolveCVStyle } from "@/lib/cv/style/resolve-style";
 import type { CVDensity } from "@/lib/cv/style/density";
 
-// Dynamic imports for templates — all 20
+// Dynamic imports — 10 distinct templates
+// Originals (4)
 const ModernTemplate = dynamic(() => import("./templates/ModernTemplate"), { ssr: false });
 const TechTemplate = dynamic(() => import("./templates/TechTemplate"), { ssr: false });
 const ClassicTemplate = dynamic(() => import("./templates/ClassicTemplate"), { ssr: false });
 const CreativeTemplate = dynamic(() => import("./templates/CreativeTemplate"), { ssr: false });
 
-// Templates Reactive Resume (13)
-const OnyxTemplate = dynamic(() => import("./templates/rr/OnyxTemplate"), { ssr: false });
+// Reactive Resume inspired (6)
 const PikachuTemplate = dynamic(() => import("./templates/rr/PikachuTemplate"), { ssr: false });
 const BronzorTemplate = dynamic(() => import("./templates/rr/BronzorTemplate"), { ssr: false });
-const AzurillTemplate = dynamic(() => import("./templates/rr/AzurillTemplate"), { ssr: false });
 const ChikoritaTemplate = dynamic(() => import("./templates/rr/ChikoritaTemplate"), { ssr: false });
-const DitgarTemplate = dynamic(() => import("./templates/rr/DitgarTemplate"), { ssr: false });
 const DittoTemplate = dynamic(() => import("./templates/rr/DittoTemplate"), { ssr: false });
 const GengarTemplate = dynamic(() => import("./templates/rr/GengarTemplate"), { ssr: false });
-const GlalieTemplate = dynamic(() => import("./templates/rr/GlalieTemplate"), { ssr: false });
-const KakunaTemplate = dynamic(() => import("./templates/rr/KakunaTemplate"), { ssr: false });
 const LaprasTemplate = dynamic(() => import("./templates/rr/LaprasTemplate"), { ssr: false });
-const LeafishTemplate = dynamic(() => import("./templates/rr/LeafishTemplate"), { ssr: false });
-const RhyhornTemplate = dynamic(() => import("./templates/rr/RhyhornTemplate"), { ssr: false });
-const UmbreonTemplate = dynamic(() => import("./templates/rr/UmbreonTemplate"), { ssr: false });
-const EeveeTemplate = dynamic(() => import("./templates/rr/EeveeTemplate"), { ssr: false });
-const AltariaTemplate = dynamic(() => import("./templates/rr/AltariaTemplate"), { ssr: false });
 
 export interface CVRendererProps {
     data: any; // Accept raw data from API, will normalize
@@ -55,28 +46,18 @@ export interface CVRendererProps {
 }
 
 const TEMPLATE_COMPONENTS: Record<string, React.ComponentType<TemplateProps>> = {
-    // Templates originaux CV-Crush (4)
+    // Originals (4)
     modern: ModernTemplate,
     tech: TechTemplate,
     classic: ClassicTemplate,
     creative: CreativeTemplate,
-    // Templates Reactive Resume (13)
-    onyx: OnyxTemplate,
+    // Reactive Resume inspired (6)
     pikachu: PikachuTemplate,
     bronzor: BronzorTemplate,
-    azurill: AzurillTemplate,
     chikorita: ChikoritaTemplate,
-    ditgar: DitgarTemplate,
     ditto: DittoTemplate,
     gengar: GengarTemplate,
-    glalie: GlalieTemplate,
-    kakuna: KakunaTemplate,
     lapras: LaprasTemplate,
-    leafish: LeafishTemplate,
-    rhyhorn: RhyhornTemplate,
-    umbreon: UmbreonTemplate,
-    eevee: EeveeTemplate,
-    altaria: AltariaTemplate,
 };
 
 /** All available template IDs */
@@ -87,22 +68,12 @@ const TEMPLATE_IMPORTERS: Record<string, () => Promise<unknown>> = {
     tech: () => import("./templates/TechTemplate"),
     classic: () => import("./templates/ClassicTemplate"),
     creative: () => import("./templates/CreativeTemplate"),
-    onyx: () => import("./templates/rr/OnyxTemplate"),
     pikachu: () => import("./templates/rr/PikachuTemplate"),
     bronzor: () => import("./templates/rr/BronzorTemplate"),
-    azurill: () => import("./templates/rr/AzurillTemplate"),
     chikorita: () => import("./templates/rr/ChikoritaTemplate"),
-    ditgar: () => import("./templates/rr/DitgarTemplate"),
     ditto: () => import("./templates/rr/DittoTemplate"),
     gengar: () => import("./templates/rr/GengarTemplate"),
-    glalie: () => import("./templates/rr/GlalieTemplate"),
-    kakuna: () => import("./templates/rr/KakunaTemplate"),
     lapras: () => import("./templates/rr/LaprasTemplate"),
-    leafish: () => import("./templates/rr/LeafishTemplate"),
-    rhyhorn: () => import("./templates/rr/RhyhornTemplate"),
-    umbreon: () => import("./templates/rr/UmbreonTemplate"),
-    eevee: () => import("./templates/rr/EeveeTemplate"),
-    altaria: () => import("./templates/rr/AltariaTemplate"),
 };
 
 export function preloadCVTemplate(templateId: string) {
@@ -207,8 +178,6 @@ export default function CVRenderer({
 // Export all template components for direct use
 export {
     ModernTemplate, TechTemplate, ClassicTemplate, CreativeTemplate,
-    OnyxTemplate, PikachuTemplate, BronzorTemplate,
-    AzurillTemplate, ChikoritaTemplate, DitgarTemplate, DittoTemplate,
-    GengarTemplate, GlalieTemplate, KakunaTemplate,
-    LaprasTemplate, LeafishTemplate, RhyhornTemplate,
+    PikachuTemplate, BronzorTemplate, ChikoritaTemplate,
+    DittoTemplate, GengarTemplate, LaprasTemplate,
 };
