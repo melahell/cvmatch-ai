@@ -12,13 +12,27 @@ const ALLOWED_MIME_TYPES = [
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
     'application/msword', // .doc
     'text/plain',
+    'text/markdown',      // .md
+    'text/x-markdown',    // .md (fallback MIME)
     'image/png',
     'image/jpeg',
     'image/jpg',
 ];
 
 // [CDC-1] Extensions autorisées (fallback si MIME non fiable)
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.png', '.jpg', '.jpeg'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.txt', '.md', '.png', '.jpg', '.jpeg'];
+
+// Map extension → MIME correct (les navigateurs envoient souvent "" ou "application/octet-stream" pour .md, .txt, etc.)
+const EXTENSION_TO_MIME: Record<string, string> = {
+    '.pdf': 'application/pdf',
+    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    '.doc': 'application/msword',
+    '.txt': 'text/plain',
+    '.md': 'text/markdown',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+};
 
 const CORS_HEADERS = {
     "Allow": "POST, OPTIONS",
@@ -120,11 +134,14 @@ export async function POST(req: Request) {
                 });
                 uploads.push({
                     filename: file.name,
-                    error: `Type de fichier non supporté (${file.type || fileExtension}). Formats acceptés: PDF, DOCX, DOC, TXT, images (PNG, JPG).`,
+                    error: `Type de fichier non supporté (${file.type || fileExtension}). Formats acceptés: PDF, DOCX, DOC, TXT, MD, images (PNG, JPG).`,
                     rejected: true
                 });
                 continue;
             }
+
+            // Resolve correct MIME type from extension (browsers often send "" or "application/octet-stream" for .md, etc.)
+            const resolvedMime = isMimeAllowed ? file.type : (EXTENSION_TO_MIME[fileExtension] || file.type);
 
             // [CDC-1] Warning si fichier très petit (potentiellement vide/corrompu)
             if (file.size < 1000) {
@@ -137,12 +154,22 @@ export async function POST(req: Request) {
             const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
             const path = `${userId}/${timestamp}_${safeName}`;
 
-            // Upload to storage
+            // Validate file size (Vercel payload limit is 4.5MB)
+            const MAX_FILE_SIZE_BYTES = 4.5 * 1024 * 1024;
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                uploads.push({
+                    filename: file.name,
+                    error: `Fichier trop volumineux (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum autorisé : 4.5 MB.`,
+                    rejected: true
+                });
+                continue;
+            }
+
+            // Upload to storage (no upsert — timestamp in path guarantees uniqueness)
             const { data, error } = await supabase.storage
                 .from("documents")
                 .upload(path, buffer, {
-                    contentType: file.type,
-                    upsert: true,
+                    contentType: resolvedMime,
                 });
 
             if (error) {
@@ -164,7 +191,7 @@ export async function POST(req: Request) {
             try {
                 const { extractTextFromBuffer } = await import("@/lib/rag/text-extraction");
                 const nodeBuffer = Buffer.from(buffer);
-                const result = await extractTextFromBuffer(nodeBuffer, file.type);
+                const result = await extractTextFromBuffer(nodeBuffer, resolvedMime);
                 extractedText = result.text;
                 extractionMethod = result.method;
                 extractionStatus = "completed";
@@ -189,7 +216,7 @@ export async function POST(req: Request) {
                 extraction_status: extractionStatus,
                 extracted_text: extractedText, // Save text immediately
                 // We could also save metadata if columns existed, for now we assume they might not
-            }).select("id, filename, file_type, extraction_status").single();
+            }).select("id, filename, file_type, extraction_status").maybeSingle();
 
             if (dbError) {
                 logger.error("DB Insert error", { error: dbError.message, filename: file.name });

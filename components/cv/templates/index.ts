@@ -59,11 +59,23 @@ export interface JobContext {
     keywords?: string[];
 }
 
+export interface DisplayLimits {
+    maxSkills?: number;
+    maxSoftSkills?: number;
+    maxRealisationsPerExp?: number;
+    maxClientsPerExp?: number;
+    maxClientsReferences?: number;
+    maxCertifications?: number;
+    maxProjects?: number;
+    maxFormations?: number;
+}
+
 export interface TemplateProps {
     data: CVData;
     includePhoto?: boolean;
     jobContext?: JobContext;
     dense?: boolean;
+    displayLimits?: DisplayLimits;
 }
 
 export interface TemplateInfo {
@@ -76,12 +88,13 @@ export interface TemplateInfo {
     recommended?: string[];
 }
 
-// Template Registry
+// Template Registry — 10 distinct templates, each with a unique layout
 export const TEMPLATES: TemplateInfo[] = [
+    // ── Originals (4) ──
     {
         id: 'modern',
-        name: 'Modern',
-        description: 'Design épuré et professionnel, idéal pour la plupart des postes',
+        name: 'Sidebar Pro',
+        description: 'Sidebar sombre, accents colorés — management & conseil',
         category: 'modern',
         preview: '/templates/modern-preview.png',
         available: true,
@@ -89,8 +102,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'tech',
-        name: 'Tech',
-        description: 'Optimisé pour les profils techniques, focus sur les compétences',
+        name: 'Développeur',
+        description: 'Profils techniques, compétences catégorisées',
         category: 'tech',
         preview: '/templates/tech-preview.png',
         available: true,
@@ -98,8 +111,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'classic',
-        name: 'Classic',
-        description: 'Format traditionnel, sobre et formel',
+        name: 'Classique',
+        description: 'Deux colonnes, format traditionnel et sobre',
         category: 'classic',
         preview: '/templates/classic-preview.png',
         available: true,
@@ -107,158 +120,67 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'creative',
-        name: 'Creative',
-        description: 'Design moderne et coloré pour les profils créatifs',
+        name: 'Créatif',
+        description: 'Design coloré, sidebar droite, timeline dynamique',
         category: 'creative',
         preview: '/templates/creative-preview.png',
         available: true,
         recommended: ['Design', 'Marketing', 'Communication'],
     },
-    // [CDC Sprint 4.2] Templates Reactive Resume
-    {
-        id: 'onyx',
-        name: 'Onyx',
-        description: 'Design professionnel avec sidebar, inspiré de Reactive Resume',
-        category: 'professional',
-        preview: '/templates/onyx-preview.png',
-        available: true,
-        recommended: ['Consulting', 'Management', 'Finance'],
-    },
+    // ── Reactive Resume inspired (6) ──
     {
         id: 'pikachu',
-        name: 'Pikachu',
-        description: 'Design moderne et dynamique avec header coloré',
+        name: 'Gradient Moderne',
+        description: 'Header dégradé, timeline, une colonne impactante',
         category: 'modern',
         preview: '/templates/pikachu-preview.png',
         available: true,
-        recommended: ['Marketing', 'Design', 'Startup'],
+        recommended: ['Marketing', 'Startup', 'Digital'],
     },
     {
         id: 'bronzor',
-        name: 'Bronzor',
-        description: 'Design minimaliste et élégant, typographie épurée',
+        name: 'Élégant Minimal',
+        description: 'Minimaliste sans sidebar, typographie raffinée',
         category: 'minimal',
         preview: '/templates/bronzor-preview.png',
         available: true,
         recommended: ['Juridique', 'Académique', 'Direction'],
     },
-    // Templates Reactive Resume complets
-    {
-        id: 'azurill',
-        name: 'Azurill',
-        description: 'Header centré avec timeline, design équilibré',
-        category: 'professional',
-        preview: '/templates/azurill-preview.png',
-        available: true,
-        recommended: ['Tech', 'Engineering', 'Consulting'],
-    },
-    {
-        id: 'chikorita',
-        name: 'Chikorita',
-        description: 'Header gradient frais, two-columns moderne',
-        category: 'modern',
-        preview: '/templates/chikorita-preview.png',
-        available: true,
-        recommended: ['Marketing', 'UX/UI', 'Growth'],
-    },
-    {
-        id: 'ditgar',
-        name: 'Ditgar',
-        description: 'Sidebar sombre mystérieuse, accents violets',
-        category: 'professional',
-        preview: '/templates/ditgar-preview.png',
-        available: true,
-        recommended: ['Security', 'DevOps', 'Backend'],
-    },
-    {
-        id: 'ditto',
-        name: 'Ditto',
-        description: 'Header violet élégant avec sidebar compacte',
-        category: 'modern',
-        preview: '/templates/ditto-preview.png',
-        available: true,
-        recommended: ['Creative', 'Digital', 'Startup'],
-    },
     {
         id: 'gengar',
-        name: 'Gengar',
-        description: 'Sidebar colorée avec header intégré, style indigo',
+        name: 'Pro Sombre',
+        description: 'Sidebar intégrée au header, fond sombre contrasté',
         category: 'professional',
         preview: '/templates/gengar-preview.png',
         available: true,
         recommended: ['Tech', 'Data', 'Product'],
     },
     {
-        id: 'glalie',
-        name: 'Glalie',
-        description: 'Photo centrée avec sidebar minimaliste, style bleu ciel',
-        category: 'minimal',
-        preview: '/templates/glalie-preview.png',
+        id: 'chikorita',
+        name: 'Sidebar Couleur',
+        description: 'Sidebar droite colorée, texte blanc, look vibrant',
+        category: 'modern',
+        preview: '/templates/chikorita-preview.png',
         available: true,
-        recommended: ['Healthcare', 'Education', 'HR'],
+        recommended: ['UX/UI', 'Growth', 'Consulting'],
     },
     {
-        id: 'kakuna',
-        name: 'Kakuna',
-        description: 'Layout full-width épuré, vert émeraude',
-        category: 'minimal',
-        preview: '/templates/kakuna-preview.png',
+        id: 'ditto',
+        name: 'ATS Classique',
+        description: 'Bannière pleine largeur, compatible ATS, polyvalent',
+        category: 'professional',
+        preview: '/templates/ditto-preview.png',
         available: true,
-        recommended: ['Environment', 'Sciences', 'R&D'],
+        recommended: ['Engineering', 'Généraliste', 'Corporate'],
     },
     {
         id: 'lapras',
-        name: 'Lapras',
-        description: 'Header avec effet vague, style aquatique cyan',
+        name: 'Vague Moderne',
+        description: 'Header avec effet vague, deux colonnes élégantes',
         category: 'modern',
         preview: '/templates/lapras-preview.png',
         available: true,
         recommended: ['Tech', 'SaaS', 'Innovation'],
-    },
-    {
-        id: 'leafish',
-        name: 'Leafish',
-        description: 'Design nature avec coins arrondis, vert frais',
-        category: 'modern',
-        preview: '/templates/leafish-preview.png',
-        available: true,
-        recommended: ['Sustainability', 'Bio', 'Wellness'],
-    },
-    {
-        id: 'rhyhorn',
-        name: 'Rhyhorn',
-        description: 'Style robuste avec accents gris ardoise',
-        category: 'professional',
-        preview: '/templates/rhyhorn-preview.png',
-        available: true,
-        recommended: ['Industrial', 'Operations', 'Logistics'],
-    },
-    {
-        id: 'umbreon',
-        name: 'Umbreon',
-        description: 'Sidebar sombre contrastée, style tech premium',
-        category: 'professional',
-        preview: '/templates/umbreon-preview.png',
-        available: true,
-        recommended: ['Security', 'Engineering', 'Product'],
-    },
-    {
-        id: 'eevee',
-        name: 'Eevee',
-        description: 'Minimal mono-colonne, header typographique',
-        category: 'minimal',
-        preview: '/templates/eevee-preview.png',
-        available: true,
-        recommended: ['Consulting', 'Management', 'Generalist'],
-    },
-    {
-        id: 'altaria',
-        name: 'Altaria',
-        description: 'Two-column léger, beaucoup d’air, très lisible',
-        category: 'professional',
-        preview: '/templates/altaria-preview.png',
-        available: true,
-        recommended: ['Consulting', 'Data', 'HR'],
     },
 ];
 

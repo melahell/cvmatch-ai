@@ -318,11 +318,26 @@ function ProfileContent() {
     const handleUpload = async (files: File[]) => {
         if (!userId || files.length === 0) return;
 
+        // Client-side file size check (Vercel limit: 4.5 MB)
+        const MAX_SIZE = 4.5 * 1024 * 1024;
+        const oversized = files.filter(f => f.size > MAX_SIZE);
+        if (oversized.length > 0) {
+            toast.error(`Fichier(s) trop volumineux (max 4.5 MB) : ${oversized.map(f => f.name).join(", ")}`);
+            return;
+        }
+
         setUploading(true);
         try {
             const formData = new FormData();
             files.forEach((f) => formData.append("files", f));
             const authHeaders = await getSupabaseAuthHeader();
+
+            if (!authHeaders.Authorization) {
+                toast.error("Session expirée. Veuillez vous reconnecter.");
+                setUploading(false);
+                return;
+            }
+
             const UPLOAD_URL = "/api/rag/upload";
             const UPLOAD_METHOD = "POST" as const;
 
@@ -334,8 +349,9 @@ function ProfileContent() {
             });
 
             if (!res.ok) {
-                const error = await res.json();
-                toast.error("Erreur: " + (error.error || "Échec de l'upload"));
+                const error = await res.json().catch(() => null);
+                const message = error?.error || `Échec de l'upload (${res.status})`;
+                toast.error("Erreur: " + message);
                 return;
             }
 
@@ -388,7 +404,7 @@ function ProfileContent() {
 
                         if (genRes?.status === 429) {
                             const retryAfterSec =
-                                Number(genErr?.retryAfter) ?? Number(genRes?.headers.get("Retry-After")) ?? 0;
+                                Number(genErr?.retryAfter) || Number(genRes?.headers.get("Retry-After")) || 0;
                             if (retryAfterSec > 0) await sleep((retryAfterSec + 1) * 1000);
                             continue;
                         }
@@ -415,9 +431,14 @@ function ProfileContent() {
                 logger.error("Post-upload RAG generation failed", e);
                 toast.warning("Document(s) uploadé(s), génération RAG à relancer.");
             }
-        } catch (e) {
+        } catch (e: any) {
             logger.error("Error uploading document:", e);
-            toast.error("Erreur réseau");
+            const msg = e?.message || String(e);
+            if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+                toast.error("Erreur réseau : vérifiez votre connexion ou réduisez la taille du fichier (max 4.5 MB).");
+            } else {
+                toast.error("Erreur lors de l'upload : " + msg);
+            }
         } finally {
             setUploading(false);
         }
@@ -442,9 +463,14 @@ function ProfileContent() {
             } else {
                 toast.error("Erreur lors de la réinitialisation");
             }
-        } catch (e) {
+        } catch (e: any) {
             logger.error("Error resetting profile:", e);
-            toast.error("Erreur réseau");
+            const msg = e?.message || String(e);
+            if (msg.includes("Failed to fetch") || msg.includes("NetworkError") || msg.includes("network")) {
+                toast.error("Erreur réseau : vérifiez votre connexion.");
+            } else {
+                toast.error("Erreur lors de la réinitialisation : " + msg);
+            }
         }
     };
 

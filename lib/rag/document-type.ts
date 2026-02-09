@@ -2,6 +2,12 @@ export type NormalizedDocumentType = "pdf" | "docx" | "txt" | "doc" | "rtf" | "o
 
 const SUPPORTED_EXTENSIONS = new Set(["pdf", "docx", "txt", "doc", "rtf", "odt"]);
 
+// Extensions that map to a different normalized type
+const EXTENSION_ALIASES: Record<string, NormalizedDocumentType> = {
+    "md": "txt",
+    "markdown": "txt",
+};
+
 const MIME_TO_TYPE: Record<string, NormalizedDocumentType> = {
     "application/pdf": "pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
@@ -11,6 +17,7 @@ const MIME_TO_TYPE: Record<string, NormalizedDocumentType> = {
     "application/vnd.oasis.opendocument.text": "odt",
     "text/plain": "txt",
     "text/markdown": "txt",
+    "text/x-markdown": "txt",
 };
 
 export function normalizeDocumentTypeFromFilename(filename: string | null | undefined): NormalizedDocumentType {
@@ -19,6 +26,7 @@ export function normalizeDocumentTypeFromFilename(filename: string | null | unde
     if (idx <= 0 || idx === name.length - 1) return "unknown";
     const ext = name.slice(idx + 1);
     if (SUPPORTED_EXTENSIONS.has(ext)) return ext as NormalizedDocumentType;
+    if (ext in EXTENSION_ALIASES) return EXTENSION_ALIASES[ext];
     return "unknown";
 }
 

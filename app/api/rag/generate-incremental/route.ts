@@ -156,10 +156,14 @@ export async function POST(req: Request) {
                     let parsedText = "";
 
                     try {
-                        const mod: any = await import("pdf-parse");
-                        const pdfParse = mod?.default ?? mod;
-                        const parsed: any = await callWithTimeout(pdfParse(buffer), 15000);
-                        parsedText = typeof parsed?.text === "string" ? parsed.text : "";
+                        const { PDFParse } = await import("pdf-parse");
+                        const parser = new PDFParse({ data: buffer });
+                        try {
+                            const textResult: any = await callWithTimeout(parser.getText(), 15000);
+                            parsedText = typeof textResult?.text === "string" ? textResult.text : "";
+                        } finally {
+                            await parser.destroy().catch(() => {});
+                        }
                     } catch (e: any) {
                         logger.warn("pdf-parse failed, falling back to unpdf", {
                             filename: doc.filename,
@@ -262,6 +266,8 @@ export async function POST(req: Request) {
             .from("rag_metadata")
             .select("completeness_details")
             .eq("user_id", userId)
+            .order("last_updated", { ascending: false })
+            .limit(1)
             .maybeSingle();
 
         let existingRAGContext: string | undefined = undefined;
@@ -368,6 +374,8 @@ export async function POST(req: Request) {
                 .from("rag_metadata")
                 .select("completeness_details")
                 .eq("user_id", userId)
+                .order("last_updated", { ascending: false })
+                .limit(1)
                 .maybeSingle();
             existingRagForMerge = fetched;
         }

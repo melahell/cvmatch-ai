@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { createSupabaseClient, getSupabaseAuthHeader } from "@/lib/supabase";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ContextualLoader } from "@/components/loading/ContextualLoader";
+import { toast } from "sonner";
 
 export default function OnboardingPage() {
     const router = useRouter();
@@ -20,6 +21,9 @@ export default function OnboardingPage() {
     const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [showLinkedInGuide, setShowLinkedInGuide] = useState(false);
+
+    const MAX_FILE_SIZE_MB = 4.5;
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
     // Initialisation Supabase
     const supabase = createSupabaseClient();
@@ -45,21 +49,31 @@ export default function OnboardingPage() {
         }
     };
 
+    const validateFileSizes = (newFiles: File[]): File[] => {
+        const oversized = newFiles.filter(f => f.size > MAX_FILE_SIZE_BYTES);
+        if (oversized.length > 0) {
+            toast.error(
+                `${oversized.map(f => f.name).join(", ")} : fichier(s) trop volumineux (max ${MAX_FILE_SIZE_MB} MB)`
+            );
+        }
+        return newFiles.filter(f => f.size <= MAX_FILE_SIZE_BYTES);
+    };
+
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const newFiles = Array.from(e.dataTransfer.files);
-            setFiles((prev) => [...prev, ...newFiles]);
+            const valid = validateFileSizes(Array.from(e.dataTransfer.files));
+            if (valid.length > 0) setFiles((prev) => [...prev, ...valid]);
         }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.preventDefault();
         if (e.target.files && e.target.files[0]) {
-            const newFiles = Array.from(e.target.files);
-            setFiles((prev) => [...prev, ...newFiles]);
+            const valid = validateFileSizes(Array.from(e.target.files));
+            if (valid.length > 0) setFiles((prev) => [...prev, ...valid]);
         }
     };
 
@@ -95,15 +109,23 @@ export default function OnboardingPage() {
             const formData = new FormData();
             files.forEach((file) => formData.append("files", file));
 
+            const authHeaders = await getSupabaseAuthHeader();
+            if (!authHeaders.Authorization) {
+                toast.error("Session expirée. Veuillez vous reconnecter.");
+                setUploading(false);
+                return;
+            }
+
             const uploadRes = await fetch("/api/rag/upload", {
                 method: "POST",
-                headers: {
-                    ...(await getSupabaseAuthHeader()),
-                },
+                headers: authHeaders,
                 body: formData,
             });
 
-            if (!uploadRes.ok) throw new Error("Upload failed");
+            if (!uploadRes.ok) {
+                const err = await uploadRes.json().catch(() => null);
+                throw new Error(err?.error || `Échec de l'upload (${uploadRes.status})`);
+            }
 
             setProgress(50);
             setUploading(false);
@@ -152,7 +174,7 @@ export default function OnboardingPage() {
 
         } catch (error) {
             console.error(error);
-            alert("Une erreur est survenue.");
+            toast.error("Une erreur est survenue lors de l'upload. Veuillez réessayer.");
             setUploading(false);
             setProcessing(false);
         }
@@ -311,7 +333,7 @@ export default function OnboardingPage() {
                                 className="hidden"
                                 id="file-upload"
                                 onChange={handleChange}
-                                accept=".pdf,.docx,.txt"
+                                accept=".pdf,.docx,.txt,.md"
                             />
 
                             <div className="flex flex-col items-center gap-4">
@@ -327,7 +349,7 @@ export default function OnboardingPage() {
                                     </label>
                                     <span className="text-slate-600"> ou glisse tes fichiers ici</span>
                                 </div>
-                                <p className="text-xs text-slate-600">PDF, DOCX acceptés (Max 10MB)</p>
+                                <p className="text-xs text-slate-600">PDF, DOCX, TXT, MD acceptés (Max 4.5 MB)</p>
                             </div>
                         </div>
 

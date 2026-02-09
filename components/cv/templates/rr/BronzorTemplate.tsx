@@ -31,7 +31,7 @@ const defaultColors: BronzorColors = {
     line: CV_THEME_VARS.border,
 };
 
-export default function BronzorTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
+export default function BronzorTemplate({ data, includePhoto = true, dense = false, displayLimits: dl }: TemplateProps) {
     const colors = defaultColors;
     const padding = dense ? "px-8 py-6" : "px-12 py-8";
     const gap = dense ? "gap-4" : "gap-6";
@@ -171,7 +171,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             className={`space-y-1 ${textSize}`}
                                             style={{ color: colors.muted }}
                                         >
-                                            {exp.realisations.slice(0, 4).map((real: string, ridx: number) => (
+                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 4).map((real: string, ridx: number) => (
                                                 <li key={ridx} className="flex items-start">
                                                     <span className="mr-2">—</span>
                                                     <span>{sanitizeText(real)}</span>
@@ -186,7 +186,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             style={{ color: colors.muted }}
                                         >
                                             <span className="font-medium">Clients : </span>
-                                            {exp.clients.slice(0, 4).join(", ")}
+                                            {exp.clients.slice(0, dl?.maxClientsPerExp ?? 4).join(", ")}
                                         </p>
                                     )}
                                 </article>
@@ -238,7 +238,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Compétences
                         </h2>
                         <div className="grid grid-cols-3 gap-x-8 gap-y-2">
-                            {[...technicalSkills, ...softSkills].slice(0, 18).map((skill: string, idx: number) => (
+                            {[...technicalSkills, ...softSkills].slice(0, dl?.maxSkills ?? 18).map((skill: string, idx: number) => (
                                 <span 
                                     key={idx}
                                     className={`${textSize}`}
@@ -284,7 +284,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                 Certifications
                             </h2>
                             <div className="space-y-1">
-                                {certifications.slice(0, 5).map((cert: string, idx: number) => (
+                                {certifications.slice(0, dl?.maxCertifications ?? 5).map((cert: string, idx: number) => (
                                     <p 
                                         key={idx}
                                         className={`${textSize}`}
@@ -308,7 +308,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Projets
                         </h2>
                         <div className="space-y-4">
-                            {projects.slice(0, 3).map((proj: any, idx: number) => (
+                            {projects.slice(0, dl?.maxProjects ?? 3).map((proj: any, idx: number) => (
                                 <article key={idx} className="break-inside-avoid">
                                     <div className="flex items-baseline gap-2 mb-1">
                                         <h3 className="font-semibold">{sanitizeText(proj.nom)}</h3>
@@ -345,13 +345,13 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Clients Références
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {clientsReferences.clients.slice(0, 10).map((client: string, idx: number) => (
+                            {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 10).map((client: string, idx: number, arr: string[]) => (
                                 <span
                                     key={idx}
                                     className={`${textSize}`}
                                     style={{ color: colors.muted }}
                                 >
-                                    {client}{idx < clientsReferences.clients.slice(0, 10).length - 1 ? " •" : ""}
+                                    {client}{idx < arr.length - 1 ? " •" : ""}
                                 </span>
                             ))}
                         </div>

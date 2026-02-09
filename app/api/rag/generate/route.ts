@@ -343,7 +343,9 @@ export async function POST(req: Request) {
             .from("rag_metadata")
             .select("id, completeness_details")
             .eq("user_id", userId)
-            .single();
+            .order("last_updated", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
         const existingNormalized = existingRag?.completeness_details
             ? normalizeRAGData(existingRag.completeness_details)
