@@ -29,6 +29,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
         border: CV_THEME_VARS.border,
     };
     const sp = dense ? "px-6 py-3" : "px-8 py-5";
+    const px = dense ? "px-6" : "px-8";
     const ts = dense ? "text-xs" : "text-sm";
 
     const profil = data.profil || {};
@@ -53,7 +54,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
             style={{ fontFamily: "var(--cv-font-body)", color: c.text }}
         >
             {/* ─── BANNER HEADER ─── */}
-            <header className="px-8 py-6" style={{ backgroundColor: c.primary }}>
+            <header className={sp} style={{ backgroundColor: c.primary }}>
                 <div className="flex items-center gap-6">
                     {includePhoto && (
                         <ProfilePicture
@@ -79,7 +80,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
             </header>
 
             {/* ─── CONTACT BAR ─── */}
-            <div className="px-8 py-2.5 border-b flex items-center" style={{ backgroundColor: c.p08, borderColor: c.border }}>
+            <div className={`${px} py-2.5 border-b flex items-center`} style={{ backgroundColor: c.p08, borderColor: c.border }}>
                 <ContactInfo
                     email={profil.email}
                     telephone={profil.telephone}
