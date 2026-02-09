@@ -40,7 +40,7 @@ import { DraggableCV } from "@/components/cv/DraggableCV";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ExperienceEditor } from "@/components/cv/ExperienceEditor";
 // WidgetScoreVisualizer removed from UI (dev-only)
-import { WidgetEditor } from "@/components/cv/WidgetEditor";
+// WidgetEditor removed from UI (dev-only)
 import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
 import { useCVReorder } from "@/hooks/useCVReorder";
@@ -101,12 +101,10 @@ function CVBuilderContent() {
     const [validationResult, setValidationResult] = useState<any>(null);
     const [viewMode, setViewMode] = useState<"single" | "multi">("single");
     const [showEditor, setShowEditor] = useState<boolean>(false);
-    const [showWidgetEditor, setShowWidgetEditor] = useState<boolean>(false);
     const [loadingStep, setLoadingStep] = useState<string | null>(null);
     const [errorAction, setErrorAction] = useState<{ action?: string; actionLabel?: string } | null>(null);
     const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
     const [advancedFiltersEnabled, setAdvancedFiltersEnabled] = useState<boolean>(false);
-    const [showDiagnostics, setShowDiagnostics] = useState<boolean>(false);
     const [cvCacheHit, setCvCacheHit] = useState<boolean>(false);
     // [CDC-23] Toggles pour photo et mode dense
     const [includePhoto, setIncludePhoto] = useState<boolean>(true);
@@ -874,7 +872,7 @@ function CVBuilderContent() {
                             <AlertCircle className="w-12 h-12 text-amber-500" />
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-900 mb-2">
-                                    Analysis ID requis
+                                    Analyse requise
                                 </h2>
                                 <p className="text-sm text-slate-600">
                                     Veuillez accéder à cette page depuis une analyse d'emploi.
@@ -1053,6 +1051,7 @@ function CVBuilderContent() {
                                 size="sm"
                                 onClick={handleRefresh}
                                 disabled={state.isLoading}
+                                title="Relancer la génération IA et vider le cache"
                             >
                                 <RefreshCw className={`w-4 h-4 mr-1 ${state.isLoading ? "animate-spin" : ""}`} />
                                 Régénérer
@@ -1120,22 +1119,11 @@ function CVBuilderContent() {
                     </div>
                 )}
 
-                {/* Widget Editor */}
-                {showWidgetEditor && state.widgets && (
-                    <div className="mb-6">
-                        <WidgetEditor
-                            widgets={state.widgets}
-                            onUpdate={(updatedWidgets) => {
-                                setState(prev => ({ ...prev, widgets: updatedWidgets }));
-                                // Sauvegarder dans cache
-                                if (state.metadata) {
-                                    saveWidgetsToCache(analysisId, updatedWidgets, state.metadata);
-                                }
-                                // Reconvertir avec nouveaux widgets
-                                convertWidgetsToCVData(updatedWidgets, templateId, convertOptions, state.jobOfferContext);
-                                toast.success("Widgets mis à jour", { duration: 2000 });
-                            }}
-                        />
+                {/* Avertissement quand pas de contexte d'offre d'emploi */}
+                {state.widgets && !state.jobOfferContext && (
+                    <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                        <p>Aucune offre d'emploi associée — le CV affiche tout votre profil. Les filtres par pertinence n'auront pas d'effet.</p>
                     </div>
                 )}
 
@@ -1157,6 +1145,7 @@ function CVBuilderContent() {
                                             toast.success("Ordre sauvegardé", { duration: 2000 });
                                         }}
                                         onReorderBullets={reorderExperienceBullets}
+                                        onReset={resetOrder}
                                     />
                                 </div>
                             )}
@@ -1171,26 +1160,24 @@ function CVBuilderContent() {
                                     <aside className="space-y-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-1">
                                         <Card>
                                             <CardHeader>
-                                                <CardTitle className="text-sm">Template</CardTitle>
+                                                <CardTitle className="text-sm">Modèle</CardTitle>
                                             </CardHeader>
                                             <CardContent className="space-y-2">
-                                                <Input
-                                                    value={templateQuery}
-                                                    onChange={(e) => setTemplateQuery(e.target.value)}
-                                                    placeholder="Rechercher un template…"
-                                                />
-                                                {filteredTemplates.map((template) => (
-                                                    <Button
-                                                        key={template.id}
-                                                        variant={templateId === template.id ? "primary" : "outline"}
-                                                        size="sm"
-                                                        className="w-full justify-start"
-                                                        onClick={() => handleTemplateChange(template.id)}
-                                                        onMouseEnter={() => preloadCVTemplate(template.id)}
-                                                    >
-                                                        {template.name}
-                                                    </Button>
-                                                ))}
+                                                <div className="grid grid-cols-2 gap-1.5">
+                                                    {filteredTemplates.map((template) => (
+                                                        <Button
+                                                            key={template.id}
+                                                            variant={templateId === template.id ? "primary" : "outline"}
+                                                            size="sm"
+                                                            className="justify-start text-xs"
+                                                            onClick={() => handleTemplateChange(template.id)}
+                                                            onMouseEnter={() => preloadCVTemplate(template.id)}
+                                                            title={template.description}
+                                                        >
+                                                            {template.name}
+                                                        </Button>
+                                                    ))}
+                                                </div>
                                                 <div className="pt-2 space-y-3">
                                                     <Button
                                                         variant={isFavoriteCurrent ? "primary" : "outline"}
@@ -1231,7 +1218,7 @@ function CVBuilderContent() {
                                                             ))}
                                                         </div>
                                                         <Button variant="outline" size="sm" className="w-full" onClick={applyRandomPreset}>
-                                                            Proposer un style
+                                                            Style aléatoire
                                                         </Button>
                                                     </div>
                                                     <div className="space-y-1">
@@ -1399,7 +1386,7 @@ function CVBuilderContent() {
                                                                 <div key={row.key}>
                                                                     <div className="flex items-center justify-between mb-1">
                                                                         <label className="block text-slate-700">
-                                                                            Seuil {row.label}: {advancedMinScoreBySection[row.key] ?? 0}
+                                                                            Pertinence {row.label} : {advancedMinScoreBySection[row.key] ?? 0}%
                                                                         </label>
                                                                     </div>
                                                                     <input

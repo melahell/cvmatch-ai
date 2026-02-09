@@ -23,6 +23,7 @@ interface ExperienceEditorProps {
     experiences: RendererResumeSchema["experiences"];
     onReorder: (newOrder: number[]) => void;
     onReorderBullets: (expIndex: number, newOrder: number[]) => void;
+    onReset?: () => void;
     className?: string;
 }
 
@@ -100,6 +101,7 @@ export function ExperienceEditor({
     experiences,
     onReorder,
     onReorderBullets,
+    onReset,
     className,
 }: ExperienceEditorProps) {
     const experienceIds = experiences.map((_, i) => `exp-${i}`);
@@ -112,7 +114,7 @@ export function ExperienceEditor({
             const helpShown = localStorage.getItem("cv-editor-help-shown");
             if (!helpShown) {
                 setTimeout(() => {
-                    toast.info("💡 Glissez les expériences pour réorganiser l'ordre dans votre CV", {
+                    toast.info("Glissez les expériences pour réorganiser l'ordre dans votre CV", {
                         duration: 5000,
                     });
                     localStorage.setItem("cv-editor-help-shown", "true");
@@ -138,7 +140,7 @@ export function ExperienceEditor({
             <CardHeader>
                 <CardTitle className="text-sm flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span>Éditeur d'Expériences</span>
+                        <span>Ordre des expériences</span>
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -152,9 +154,16 @@ export function ExperienceEditor({
                             </Tooltip>
                         </TooltipProvider>
                     </div>
-                    <Badge variant="info" className="text-xs">
-                        {experiences.length} expériences
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                        {onReset && (
+                            <Button variant="outline" size="sm" className="text-xs h-6" onClick={() => { onReset(); toast.success("Ordre réinitialisé"); }}>
+                                Réinitialiser
+                            </Button>
+                        )}
+                        <Badge variant="info" className="text-xs">
+                            {experiences.length} exp.
+                        </Badge>
+                    </div>
                 </CardTitle>
             </CardHeader>
             <CardContent>

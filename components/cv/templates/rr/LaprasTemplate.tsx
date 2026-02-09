@@ -125,9 +125,9 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                             <h2 className="text-base font-bold mb-4 pb-1 border-b-2" style={{ color: colors.primary, borderColor: colors.primary }}>
                                 Expérience Professionnelle
                             </h2>
-                            <div className="space-y-4">
+                            <div className="space-y-4 divide-y" style={{ borderColor: colors.primary08 }}>
                                 {experiences.map((exp: any, idx: number) => (
-                                    <article key={idx} className="break-inside-avoid">
+                                    <article key={idx} className={`break-inside-avoid ${idx > 0 ? "pt-4" : ""}`}>
                                         <div className="flex justify-between items-start mb-1">
                                             <div>
                                                 <h3 className="font-bold">{sanitizeText(exp.poste)}</h3>

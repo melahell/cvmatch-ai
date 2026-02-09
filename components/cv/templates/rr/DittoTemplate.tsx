@@ -133,9 +133,9 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                         <h2 className="text-xs font-bold uppercase tracking-wider mb-3 pb-1 border-b" style={{ color: c.primary, borderColor: c.border }}>
                             Expérience Professionnelle
                         </h2>
-                        <div className="space-y-4">
+                        <div className="space-y-4 divide-y" style={{ borderColor: c.border }}>
                             {experiences.map((exp: any, i: number) => (
-                                <article key={i} className="break-inside-avoid">
+                                <article key={i} className={`break-inside-avoid ${i > 0 ? "pt-4" : ""}`}>
                                     <div className="flex justify-between items-baseline">
                                         <div>
                                             <h3 className="font-bold text-sm">{sanitizeText(exp.poste)}</h3>
@@ -211,7 +211,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                                 <h2 className="text-xs font-bold uppercase tracking-wider mb-2.5 pb-1 border-b" style={{ color: c.primary, borderColor: c.border }}>
                                     Certifications
                                 </h2>
-                                <ul className="space-y-0.5 text-xs">
+                                <ul className="space-y-0.5 text-xs list-disc list-inside">
                                     {certifications.slice(0, dl?.maxCertifications ?? 5).map((cert: string, i: number) => (
                                         <li key={i}>{sanitizeText(cert)}</li>
                                     ))}

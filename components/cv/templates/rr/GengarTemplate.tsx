@@ -197,9 +197,9 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                         <h2 className="text-sm font-bold uppercase tracking-wide mb-4 pb-1.5 border-b-2" style={{ color: c.primary, borderColor: c.primary }}>
                             Expérience Professionnelle
                         </h2>
-                        <div className="space-y-4">
+                        <div className="space-y-4 divide-y" style={{ borderColor: `${c.primary}20` }}>
                             {experiences.map((exp: any, i: number) => (
-                                <article key={i} className="break-inside-avoid">
+                                <article key={i} className={`break-inside-avoid ${i > 0 ? "pt-4" : ""}`}>
                                     <div className="flex justify-between items-baseline mb-0.5">
                                         <h3 className="font-bold text-sm">{sanitizeText(exp.poste)}</h3>
                                         <span className="text-[10px] text-gray-400 shrink-0 ml-2">
@@ -239,8 +239,8 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                         <div className="grid grid-cols-2 gap-2">
                             {projects.slice(0, dl?.maxProjects ?? 4).map((p: any, i: number) => (
                                 <div key={i} className="p-2.5 rounded border" style={{ borderColor: c.p30 }}>
-                                    <h3 className="font-semibold text-xs">{sanitizeText(p.nom)}</h3>
-                                    {p.description && <p className="text-[10px] text-gray-500 mt-0.5">{sanitizeText(p.description)}</p>}
+                                    <h3 className="font-semibold text-xs truncate" title={p.nom}>{sanitizeText(p.nom)}</h3>
+                                    {p.description && <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2">{sanitizeText(p.description)}</p>}
                                 </div>
                             ))}
                         </div>
