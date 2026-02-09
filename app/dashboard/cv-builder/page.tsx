@@ -16,7 +16,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { AlertCircle, Loader2, Sparkles, Zap, RefreshCw, Download, FileJson, ChevronDown, ChevronUp, SlidersHorizontal, Info } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles, RefreshCw, ChevronDown, ChevronUp, SlidersHorizontal, Info } from "lucide-react";
 import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions, type ValidationWarning } from "@/lib/cv/client-bridge";
 import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { validateAIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
@@ -37,6 +37,7 @@ import { ValidationWarnings } from "@/components/cv/ValidationWarnings";
 import { MultiTemplatePreview } from "@/components/cv/MultiTemplatePreview";
 import { ExportMenu } from "@/components/cv/ExportMenu";
 import { DraggableCV } from "@/components/cv/DraggableCV";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ExperienceEditor } from "@/components/cv/ExperienceEditor";
 import { WidgetScoreVisualizer } from "@/components/cv/WidgetScoreVisualizer";
 import { WidgetEditor } from "@/components/cv/WidgetEditor";
@@ -890,83 +891,23 @@ function CVBuilderContent() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-12">
-            <header className="border-b bg-white sticky top-0 z-10">
+        <DashboardLayout>
+        <div className="pb-12">
+            <header className="border-b bg-white z-10">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-indigo-600" />
                             <div>
                                 <h1 className="text-base sm:text-lg font-semibold text-slate-900">
-                                    CV Builder V2 - Architecture Client-Side
+                                    CV Builder
                                 </h1>
                                 <p className="text-xs sm:text-sm text-slate-600">
-                                    Génération widgets une fois, tout le reste côté client (switch thème instantané)
+                                    Personnalisez et exportez votre CV
                                 </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            {buildInfo?.sha && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 border border-slate-200 cursor-help">
-                                                <Info className="w-3 h-3" />
-                                                {buildInfo.env ?? "vercel"} {buildInfo.sha.slice(0, 7)}
-                                            </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent side="bottom" className="max-w-xs">
-                                            <div className="space-y-1 text-xs">
-                                                <p className="font-semibold">Build</p>
-                                                <p className="text-slate-600">Env: {buildInfo.env ?? "—"}</p>
-                                                <p className="text-slate-600">Branche: {buildInfo.ref ?? "—"}</p>
-                                                <p className="text-slate-600">Commit: {buildInfo.sha ?? "—"}</p>
-                                                <p className="text-slate-600">Deployment: {buildInfo.deploymentId ?? "—"}</p>
-                                            </div>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
-                            )}
-                            {state.metadata && state.widgets && (
-                                <>
-                                    <WidgetScoreVisualizer widgets={state.widgets} showDetails={false} />
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 border border-indigo-100 cursor-help">
-                                                    <Zap className="w-3 h-3" />
-                                                    {state.metadata.widgetsCount} widgets
-                                                    {getWidgetsFromCache(analysisId) && (
-                                                        <span className="ml-1 text-[10px] opacity-70">(cache)</span>
-                                                    )}
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="bottom" className="max-w-xs">
-                                                <div className="space-y-2 text-xs">
-                                                    <p className="font-semibold">Widgets IA</p>
-                                                    <p className="text-slate-600">
-                                                        Les widgets sont des éléments de contenu générés par l'IA (expériences, compétences, réalisations) avec scores de pertinence.
-                                                    </p>
-                                                    <p className="text-slate-600">
-                                                        Ils sont convertis en CV selon le template choisi. Plus le score est élevé, plus l'élément est pertinent pour l'offre d'emploi.
-                                                    </p>
-                                                    {getWidgetsFromCache(analysisId) && (
-                                                        <p className="text-green-600 font-medium">
-                                                            ✓ Chargé depuis le cache (instantané)
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                    {cvCacheHit && (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 border border-emerald-100">
-                                            <Zap className="w-3 h-3" />
-                                            Préview instantanée
-                                        </span>
-                                    )}
-                                </>
-                            )}
                             <Button
                                 variant={viewMode === "multi" ? "primary" : "outline"}
                                 size="sm"
@@ -987,8 +928,25 @@ function CVBuilderContent() {
                                 <>
                                     <ExportMenu
                                         cvData={reorderedCV || cvData || {} as RendererResumeSchema}
+                                        widgets={state.widgets ?? undefined}
                                         template={templateId}
                                         filename="CV"
+                                        jobAnalysisId={analysisId}
+                                        onWidgetsExport={state.widgets ? async () => {
+                                            const validation = validateAIWidgetsEnvelope(state.widgets!);
+                                            if (!validation.success) { toast.error("Format widgets invalide"); return; }
+                                            const dataStr = JSON.stringify(state.widgets, null, 2);
+                                            const dataBlob = new Blob([dataStr], { type: "application/json" });
+                                            const url = URL.createObjectURL(dataBlob);
+                                            const link = document.createElement("a");
+                                            link.href = url;
+                                            link.download = `widgets_${analysisId}_${new Date().toISOString().split("T")[0]}.json`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            URL.revokeObjectURL(url);
+                                            toast.success("Widgets JSON exportés", { duration: 2000 });
+                                        } : undefined}
                                         onPDFDownload={async () => {
                                             const authHeaders = await getSupabaseAuthHeader();
                                             const headers: Record<string, string> = {
@@ -1089,58 +1047,6 @@ function CVBuilderContent() {
                                         }}
                                     />
                                 </>
-                            )}
-                            {state.widgets && (
-                                <TooltipProvider>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                    if (!state.widgets) {
-                                                        toast.error("Aucun widget à exporter");
-                                                        return;
-                                                    }
-
-                                                    try {
-                                                        // Valider le format avant export
-                                                        const validation = validateAIWidgetsEnvelope(state.widgets);
-                                                        if (!validation.success) {
-                                                            logger.error("Export JSON: widgets invalides", {
-                                                                errors: validation.error.errors
-                                                            });
-                                                            toast.error("Format widgets invalide, impossible d'exporter");
-                                                            return;
-                                                        }
-
-                                                        const dataStr = JSON.stringify(state.widgets, null, 2);
-                                                        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                                                        const url = URL.createObjectURL(dataBlob);
-                                                        const link = document.createElement('a');
-                                                        link.href = url;
-                                                        link.download = `widgets_${analysisId}_${new Date().toISOString().split('T')[0]}.json`;
-                                                        document.body.appendChild(link);
-                                                        link.click();
-                                                        document.body.removeChild(link);
-                                                        URL.revokeObjectURL(url);
-                                                        toast.success("Widgets JSON exportés", { duration: 2000 });
-                                                    } catch (error: any) {
-                                                        logger.error("Erreur export JSON", { error });
-                                                        toast.error("Erreur lors de l'export JSON");
-                                                    }
-                                                }}
-                                                aria-label="Exporter les widgets JSON bruts"
-                                            >
-                                                <FileJson className="w-4 h-4 mr-1" />
-                                                Export JSON
-                                            </Button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p className="text-xs">Télécharger les widgets JSON bruts pour analyse</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-                                </TooltipProvider>
                             )}
                             <Button
                                 variant="outline"
@@ -1260,9 +1166,9 @@ function CVBuilderContent() {
                                     onTemplateSelect={handleMultiPreviewSelect}
                                 />
                             ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                                    {/* Sidebar : Contrôles */}
-                                    <aside className="space-y-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+                                    {/* Sidebar : Contrôles (scrollable) */}
+                                    <aside className="space-y-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-1">
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="text-sm">Template</CardTitle>
@@ -1903,12 +1809,12 @@ function CVBuilderContent() {
                                         </Card>
                                     </aside>
 
-                                    {/* Main : Preview CV */}
-                                    <div className="lg:col-span-3">
+                                    {/* Main : Preview CV (sticky - toujours visible) */}
+                                    <div className="lg:col-span-3 lg:sticky lg:top-20 self-start">
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="text-base">
-                                                    Prévisualisation CV - {templateId} · {colorwayId} · {fontId} · {density}
+                                                    Prévisualisation
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="bg-slate-100 flex items-center justify-center p-4 min-h-[800px]">
@@ -1922,6 +1828,16 @@ function CVBuilderContent() {
                                                             fontId={fontId}
                                                             density={density}
                                                             includePhoto={includePhoto}
+                                                            displayLimits={{
+                                                                maxSkills: convertOptions.limitsBySection?.maxSkills,
+                                                                maxSoftSkills: convertOptions.limitsBySection?.maxSkills ? Math.ceil((convertOptions.limitsBySection.maxSkills) / 3) : undefined,
+                                                                maxRealisationsPerExp: convertOptions.maxBulletsPerExperience,
+                                                                maxClientsPerExp: convertOptions.limitsBySection?.maxClientsPerExperience,
+                                                                maxClientsReferences: convertOptions.limitsBySection?.maxClientsReferences,
+                                                                maxCertifications: convertOptions.limitsBySection?.maxCertifications,
+                                                                maxProjects: convertOptions.limitsBySection?.maxProjects,
+                                                                maxFormations: convertOptions.limitsBySection?.maxFormations,
+                                                            }}
                                                         />
                                                     </div>
                                                 ) : (
@@ -1939,6 +1855,7 @@ function CVBuilderContent() {
                 )}
             </main>
         </div>
+        </DashboardLayout>
     );
 }
 

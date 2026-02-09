@@ -15,7 +15,7 @@ import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
-export default function ChikoritaTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
+export default function ChikoritaTemplate({ data, includePhoto = true, dense = false, displayLimits: dl }: TemplateProps) {
     const c = {
         primary: CV_THEME_VARS.primary,
         accent: CV_THEME_VARS.sidebarAccent,
@@ -103,7 +103,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                             </h2>
                             <div className="space-y-4">
                                 {experiences.map((exp: any, i: number) => (
-                                    <article key={i} className="relative pl-3 border-l-2" style={{ borderColor: c.p20 }}>
+                                    <article key={i} className="relative pl-3 border-l-2 break-inside-avoid" style={{ borderColor: c.p20 }}>
                                         <div className="flex justify-between items-baseline mb-0.5">
                                             <h3 className="font-bold text-sm">{sanitizeText(exp.poste)}</h3>
                                             <span className="text-[10px] text-gray-400 shrink-0 ml-2">
@@ -115,7 +115,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                         </p>
                                         {exp.realisations?.length > 0 && (
                                             <ul className={`space-y-0.5 ${ts} text-gray-600`}>
-                                                {exp.realisations.slice(0, 5).map((r: string, ri: number) => (
+                                                {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 5).map((r: string, ri: number) => (
                                                     <li key={ri} className="flex items-start gap-1.5">
                                                         <span style={{ color: c.primary }}>›</span>
                                                         <span>{sanitizeText(r)}</span>
@@ -125,7 +125,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                         )}
                                         {exp.clients?.length > 0 && (
                                             <p className="mt-1 text-[10px] text-gray-400">
-                                                Clients : {exp.clients.slice(0, 4).join(", ")}
+                                                Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 4).join(", ")}
                                             </p>
                                         )}
                                     </article>
@@ -141,7 +141,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                 Projets
                             </h2>
                             <div className="space-y-2">
-                                {projects.slice(0, 4).map((p: any, i: number) => (
+                                {projects.slice(0, dl?.maxProjects ?? 4).map((p: any, i: number) => (
                                     <div key={i}>
                                         <h3 className="font-semibold text-xs">{sanitizeText(p.nom)}</h3>
                                         {p.description && <p className="text-[10px] text-gray-500">{sanitizeText(p.description)}</p>}
@@ -158,7 +158,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                 Références Clients
                             </h2>
                             <div className="flex flex-wrap gap-1.5">
-                                {clients.clients.slice(0, 8).map((cl: string, i: number) => (
+                                {clients.clients.slice(0, dl?.maxClientsReferences ?? 8).map((cl: string, i: number) => (
                                     <span key={i} className="px-2 py-0.5 rounded text-xs border" style={{ borderColor: c.primary }}>
                                         {cl}
                                     </span>
@@ -181,7 +181,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                     Compétences Techniques
                                 </h3>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {techSkills.slice(0, 12).map((skill: string, i: number) => (
+                                    {techSkills.slice(0, dl?.maxSkills ?? 12).map((skill: string, i: number) => (
                                         <span key={i} className="px-2 py-0.5 rounded text-xs bg-white/15">
                                             {sanitizeText(skill)}
                                         </span>
@@ -197,7 +197,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                     Savoir-être
                                 </h3>
                                 <ul className="space-y-1 text-xs text-white/85">
-                                    {softSkills.slice(0, 6).map((skill: string, i: number) => (
+                                    {softSkills.slice(0, dl?.maxSoftSkills ?? 6).map((skill: string, i: number) => (
                                         <li key={i} className="flex items-center gap-1.5">
                                             <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
                                             {sanitizeText(skill)}
@@ -249,7 +249,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                     Certifications
                                 </h3>
                                 <ul className="space-y-1 text-xs text-white/85">
-                                    {certifications.slice(0, 5).map((cert: string, i: number) => (
+                                    {certifications.slice(0, dl?.maxCertifications ?? 5).map((cert: string, i: number) => (
                                         <li key={i} className="flex items-start gap-1.5">
                                             <span className="text-white/60">✓</span>
                                             {sanitizeText(cert)}

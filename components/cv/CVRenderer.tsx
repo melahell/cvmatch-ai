@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
-import { CVData, JobContext, TemplateProps } from "./templates";
+import { CVData, JobContext, TemplateProps, DisplayLimits } from "./templates";
 import { normalizeRAGToCV } from "./normalizeData";
 import { generateCSSVariables, cssVariablesToStyle } from "@/lib/cv/css-variables";
 import { getThemeVariables, themeToStyle } from "@/lib/cv/cv-theme-variables";
@@ -43,6 +43,7 @@ export interface CVRendererProps {
         percentage: number;
     };
     dynamicCssVariables?: Record<string, string>;
+    displayLimits?: DisplayLimits;
 }
 
 const TEMPLATE_COMPONENTS: Record<string, React.ComponentType<TemplateProps>> = {
@@ -97,6 +98,7 @@ export default function CVRenderer({
     customCSS,
     unitStats,
     dynamicCssVariables,
+    displayLimits,
 }: CVRendererProps) {
     const resolvedStyle = useMemo(
         () => resolveCVStyle({ templateId, colorwayId, fontId, density, printSafe }),
@@ -161,6 +163,7 @@ export default function CVRenderer({
                 includePhoto={includePhoto}
                 jobContext={jobContext}
                 dense={effectiveDense}
+                displayLimits={displayLimits}
             />
             {customCSS && (
                 <style dangerouslySetInnerHTML={{

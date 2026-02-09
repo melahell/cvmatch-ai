@@ -31,6 +31,7 @@ interface ExportMenuProps {
     jobAnalysisId?: string;
     onPDFDownload?: () => void | Promise<void>;
     onPDFExport?: () => void | Promise<void>;
+    onWidgetsExport?: () => void | Promise<void>;
 }
 
 export function ExportMenu({
@@ -41,6 +42,7 @@ export function ExportMenu({
     jobAnalysisId,
     onPDFDownload,
     onPDFExport,
+    onWidgetsExport,
 }: ExportMenuProps) {
     const [exporting, setExporting] = useState<string | null>(null);
 
@@ -167,7 +169,7 @@ export function ExportMenu({
                 {onPDFExport && (
                     <DropdownMenuItem onClick={handlePrintDebug} disabled={!!exporting}>
                         <FileText className="w-4 h-4 mr-2" />
-                        Imprimer (debug)
+                        PDF (navigateur)
                     </DropdownMenuItem>
                 )}
                 {!onPDFDownload && !onPDFExport && (
@@ -188,6 +190,15 @@ export function ExportMenu({
                     <FileJson className="w-4 h-4 mr-2" />
                     JSON (.json)
                 </DropdownMenuItem>
+                {onWidgetsExport && (
+                    <DropdownMenuItem onClick={async () => {
+                        setExporting("widgets");
+                        try { await onWidgetsExport(); } catch (e: any) { toast.error(`Erreur: ${e.message}`); } finally { setExporting(null); }
+                    }} disabled={!!exporting}>
+                        <FileJson className="w-4 h-4 mr-2" />
+                        Widgets bruts (.json)
+                    </DropdownMenuItem>
+                )}
             </DropdownMenuContent>
             </DropdownMenu>
         </>

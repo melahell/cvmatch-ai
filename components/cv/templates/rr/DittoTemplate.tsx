@@ -16,7 +16,7 @@ import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
-export default function DittoTemplate({ data, includePhoto = true, dense = false }: TemplateProps) {
+export default function DittoTemplate({ data, includePhoto = true, dense = false, displayLimits: dl }: TemplateProps) {
     const c = {
         primary: CV_THEME_VARS.primary,
         accent: CV_THEME_VARS.sidebarAccent,
@@ -113,12 +113,12 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                             Compétences
                         </h2>
                         <div className="flex flex-wrap gap-1.5">
-                            {techSkills.slice(0, 15).map((skill: string, i: number) => (
+                            {techSkills.slice(0, dl?.maxSkills ?? 15).map((skill: string, i: number) => (
                                 <span key={i} className="px-2.5 py-0.5 rounded text-xs" style={{ backgroundColor: c.p10, color: c.text }}>
                                     {sanitizeText(skill)}
                                 </span>
                             ))}
-                            {softSkills.slice(0, 5).map((skill: string, i: number) => (
+                            {softSkills.slice(0, dl?.maxSoftSkills ?? 5).map((skill: string, i: number) => (
                                 <span key={`s${i}`} className="px-2.5 py-0.5 rounded text-xs border" style={{ borderColor: c.p20, color: c.muted }}>
                                     {sanitizeText(skill)}
                                 </span>
@@ -135,7 +135,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                         </h2>
                         <div className="space-y-4">
                             {experiences.map((exp: any, i: number) => (
-                                <article key={i}>
+                                <article key={i} className="break-inside-avoid">
                                     <div className="flex justify-between items-baseline">
                                         <div>
                                             <h3 className="font-bold text-sm">{sanitizeText(exp.poste)}</h3>
@@ -149,7 +149,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                                     </div>
                                     {exp.realisations?.length > 0 && (
                                         <ul className={`mt-1.5 space-y-0.5 ${ts} text-gray-600`}>
-                                            {exp.realisations.slice(0, 5).map((r: string, ri: number) => (
+                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 5).map((r: string, ri: number) => (
                                                 <li key={ri} className="flex items-start gap-1.5">
                                                     <span className="text-gray-300 mt-0.5">—</span>
                                                     <span>{sanitizeText(r)}</span>
@@ -159,7 +159,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                                     )}
                                     {exp.clients?.length > 0 && (
                                         <p className="mt-1 text-[10px] text-gray-400">
-                                            Clients : {exp.clients.slice(0, 4).join(", ")}
+                                            Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 4).join(", ")}
                                         </p>
                                     )}
                                 </article>
@@ -212,7 +212,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                                     Certifications
                                 </h2>
                                 <ul className="space-y-0.5 text-xs">
-                                    {certifications.slice(0, 5).map((cert: string, i: number) => (
+                                    {certifications.slice(0, dl?.maxCertifications ?? 5).map((cert: string, i: number) => (
                                         <li key={i}>{sanitizeText(cert)}</li>
                                     ))}
                                 </ul>
@@ -228,7 +228,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                             Projets
                         </h2>
                         <div className="grid grid-cols-2 gap-3">
-                            {projects.slice(0, 4).map((p: any, i: number) => (
+                            {projects.slice(0, dl?.maxProjects ?? 4).map((p: any, i: number) => (
                                 <div key={i}>
                                     <h3 className="font-semibold text-xs">{sanitizeText(p.nom)}</h3>
                                     {p.description && <p className="text-[10px] text-gray-500">{sanitizeText(p.description)}</p>}
@@ -245,7 +245,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                             Références Clients
                         </h2>
                         <div className="flex flex-wrap gap-1.5">
-                            {clients.clients.slice(0, 10).map((cl: string, i: number) => (
+                            {clients.clients.slice(0, dl?.maxClientsReferences ?? 10).map((cl: string, i: number) => (
                                 <span key={i} className="px-2 py-0.5 rounded text-xs" style={{ backgroundColor: c.p08 }}>
                                     {cl}
                                 </span>

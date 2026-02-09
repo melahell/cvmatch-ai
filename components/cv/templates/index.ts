@@ -59,11 +59,23 @@ export interface JobContext {
     keywords?: string[];
 }
 
+export interface DisplayLimits {
+    maxSkills?: number;
+    maxSoftSkills?: number;
+    maxRealisationsPerExp?: number;
+    maxClientsPerExp?: number;
+    maxClientsReferences?: number;
+    maxCertifications?: number;
+    maxProjects?: number;
+    maxFormations?: number;
+}
+
 export interface TemplateProps {
     data: CVData;
     includePhoto?: boolean;
     jobContext?: JobContext;
     dense?: boolean;
+    displayLimits?: DisplayLimits;
 }
 
 export interface TemplateInfo {

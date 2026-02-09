@@ -405,26 +405,50 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
 
     // [AUDIT-FIX P0-4] Validation dates : aucune expérience ne doit avoir date_debut vide
     // Si le re-matching widget/RAG a échoué, forcer un 2ème passage depuis le RAG
+    // [FIX] Utiliser matching fuzzy (includes) au lieu d'exact match
     if (opts.ragProfile?.experiences && Array.isArray(opts.ragProfile.experiences)) {
         for (const exp of experiences) {
             if (!exp.date_debut || exp.date_debut.trim() === "") {
-                // Tentative de re-matching par poste+entreprise
-                const expKey = normalizeKey(exp.poste) + "|" + normalizeKey(exp.entreprise);
+                const expPoste = normalizeKey(exp.poste);
+                const expEntreprise = normalizeKey(exp.entreprise);
+
+                let bestMatch: any = null;
+
                 for (const ragExp of opts.ragProfile.experiences) {
-                    const ragKey = normalizeKey(ragExp.poste || ragExp.titre || "") + "|" + normalizeKey(ragExp.entreprise || ragExp.client || "");
-                    if (expKey === ragKey) {
-                        exp.date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date || "");
-                        if (!exp.date_fin && !exp.actuel) {
-                            const fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
-                            if (fin) exp.date_fin = fin;
-                        }
-                        if (ragExp.actuel || ragExp.current) {
-                            (exp as any).actuel = true;
-                            exp.date_fin = undefined;
-                        }
+                    const ragPoste = normalizeKey(ragExp.poste || ragExp.titre || "");
+                    const ragEntreprise = normalizeKey(ragExp.entreprise || ragExp.client || "");
+
+                    // Exact match poste+entreprise
+                    if (expPoste === ragPoste && expEntreprise === ragEntreprise) {
+                        bestMatch = ragExp;
                         break;
                     }
+                    // Fuzzy: poste contains or is contained
+                    if (ragPoste && expPoste && (expPoste.includes(ragPoste) || ragPoste.includes(expPoste))) {
+                        // Bonus if entreprise also matches partially
+                        if (ragEntreprise && expEntreprise && (expEntreprise.includes(ragEntreprise) || ragEntreprise.includes(expEntreprise))) {
+                            bestMatch = ragExp;
+                            break;
+                        }
+                        // Accept poste-only match if poste is specific enough (>15 chars)
+                        if (!bestMatch && ragPoste.length > 15) {
+                            bestMatch = ragExp;
+                        }
+                    }
                 }
+
+                if (bestMatch) {
+                    exp.date_debut = formatDate(bestMatch.debut || bestMatch.date_debut || bestMatch.start_date || "");
+                    if (!exp.date_fin && !exp.actuel) {
+                        const fin = formatDate(bestMatch.fin || bestMatch.date_fin || bestMatch.end_date || "");
+                        if (fin) exp.date_fin = fin;
+                    }
+                    if (bestMatch.actuel || bestMatch.current) {
+                        (exp as any).actuel = true;
+                        exp.date_fin = undefined;
+                    }
+                }
+
                 // Si toujours vide après 2ème passage, logger un warning
                 if (!exp.date_debut || exp.date_debut.trim() === "") {
                     console.warn(`[AUDIT-FIX P0-4] ⚠️ Date manquante pour "${exp.poste} @ ${exp.entreprise}" - aucun match RAG trouvé`);
@@ -657,6 +681,16 @@ function buildExperiences(
             }
         }
 
+        // [FIX] Détecter les types de contrat mis comme nom d'entreprise
+        // Ex: "(CDI)", "CDD", "Freelance", "(Contract)" → pas un nom d'entreprise
+        const CONTRACT_KEYWORDS = ["cdi", "cdd", "cdic", "freelance", "stage", "alternance", "interim", "consultant", "contractuel", "contract", "full-time", "part-time"];
+        if (entreprise) {
+            const cleanEntreprise = entreprise.replace(/[()]/g, "").trim().toLowerCase();
+            if (CONTRACT_KEYWORDS.includes(cleanEntreprise) || /^\([^)]*\)$/.test(entreprise.trim())) {
+                entreprise = ""; // Reset — will be enriched from RAG below
+            }
+        }
+
         // Enrichir depuis RAG si disponible
         if (ragExp) {
             if (!poste) poste = ragExp.poste || ragExp.titre || "";
@@ -796,8 +830,19 @@ function buildExperiences(
         }
     }
 
-    // Trier par score décroissant (cast pour accéder aux métadonnées)
-    (experiences as any[]).sort((a, b) => (b._relevance_score || 0) - (a._relevance_score || 0));
+    // [FIX] Trier par date_debut décroissant (plus récent en premier), score en secondaire
+    // YYYY-MM se trie correctement par comparaison lexicographique (2024-12 > 2023-04 > 2016-10)
+    (experiences as any[]).sort((a, b) => {
+        const dateA = a.date_debut || "";
+        const dateB = b.date_debut || "";
+        // Expériences avec date avant celles sans date
+        if (dateB && !dateA) return 1;
+        if (dateA && !dateB) return -1;
+        // Plus récent en premier
+        if (dateB !== dateA) return dateB.localeCompare(dateA);
+        // Tie-breaker: score de pertinence
+        return (b._relevance_score || 0) - (a._relevance_score || 0);
+    });
 
     // Appliquer la limite max (mais par défaut = 999, donc pas de limite)
     const limited = experiences.slice(0, opts.maxExperiences);
