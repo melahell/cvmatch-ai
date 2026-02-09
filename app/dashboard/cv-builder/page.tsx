@@ -39,7 +39,7 @@ import { ExportMenu } from "@/components/cv/ExportMenu";
 import { DraggableCV } from "@/components/cv/DraggableCV";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ExperienceEditor } from "@/components/cv/ExperienceEditor";
-import { WidgetScoreVisualizer } from "@/components/cv/WidgetScoreVisualizer";
+// WidgetScoreVisualizer removed from UI (dev-only)
 import { WidgetEditor } from "@/components/cv/WidgetEditor";
 import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
@@ -914,7 +914,7 @@ function CVBuilderContent() {
                                 onClick={() => setViewMode(viewMode === "single" ? "multi" : "single")}
                                 disabled={!cvData}
                             >
-                                {viewMode === "single" ? "Comparer templates" : "Vue single"}
+                                {viewMode === "single" ? "Comparer les modèles" : "Vue unique"}
                             </Button>
                             <Button
                                 variant={showEditor ? "primary" : "outline"}
@@ -922,7 +922,7 @@ function CVBuilderContent() {
                                 onClick={() => setShowEditor(!showEditor)}
                                 disabled={!cvData}
                             >
-                                {showEditor ? "Masquer éditeur" : "Éditer ordre"}
+                                {showEditor ? "Masquer" : "Réorganiser"}
                             </Button>
                             {cvData && (
                                 <>
@@ -1210,13 +1210,13 @@ function CVBuilderContent() {
                                                                     className="w-full justify-start"
                                                                     onClick={() => applyStyle(f)}
                                                                 >
-                                                                    {f.templateId} · {f.colorwayId} · {f.fontId} · {f.density}
+                                                                    {TEMPLATES.find(t => t.id === f.templateId)?.name ?? f.templateId} · {f.colorwayId}
                                                                 </Button>
                                                             ))}
                                                         </div>
                                                     )}
                                                     <div className="space-y-2">
-                                                        <div className="text-xs text-slate-600">Presets</div>
+                                                        <div className="text-xs text-slate-600">Styles suggérés</div>
                                                         <div className="grid grid-cols-2 gap-2">
                                                             {presets.map((p) => (
                                                                 <Button
@@ -1226,7 +1226,7 @@ function CVBuilderContent() {
                                                                     className="justify-start"
                                                                     onClick={() => applyStyle(p)}
                                                                 >
-                                                                    {p.templateId} · {p.colorwayId}
+                                                                    {TEMPLATES.find(t => t.id === p.templateId)?.name ?? p.templateId} · {p.colorwayId}
                                                                 </Button>
                                                             ))}
                                                         </div>
@@ -1259,7 +1259,7 @@ function CVBuilderContent() {
                                                         </div>
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <div className="text-xs text-slate-600">Densité</div>
+                                                        <div className="text-xs text-slate-600">Espacement</div>
                                                         <div className="flex gap-2">
                                                             {CV_DENSITIES.map((d) => (
                                                                 <Button
@@ -1294,67 +1294,11 @@ function CVBuilderContent() {
                                             </CardContent>
                                         </Card>
 
-                                        {/* Widget Scores Visualization */}
-                                        {state.widgets && (
-                                            <Card>
-                                                <CardHeader>
-                                                    <CardTitle className="text-sm">Scores de Pertinence</CardTitle>
-                                                </CardHeader>
-                                                <CardContent>
-                                                    <WidgetScoreVisualizer widgets={state.widgets} showDetails={true} />
-                                                </CardContent>
-                                            </Card>
-                                        )}
-
-                                        {ragData?.contexte_enrichi && (
-                                            <Card>
-                                                <CardHeader>
-                                                    <CardTitle className="text-sm flex items-center gap-2">
-                                                        <Info className="w-4 h-4 text-slate-500" />
-                                                        <span>Contexte enrichi</span>
-                                                    </CardTitle>
-                                                </CardHeader>
-                                                <CardContent className="text-xs space-y-2">
-                                                    <div className="text-slate-600">
-                                                        Présent: <span className="font-medium text-slate-900">Oui</span>
-                                                    </div>
-                                                    <div className="text-slate-600">
-                                                        Compétences tacites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites.length : 0}</span>
-                                                    </div>
-                                                    <div className="text-slate-600">
-                                                        Soft skills déduites: <span className="font-medium text-slate-900">{Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites.length : 0}</span>
-                                                    </div>
-                                                    <div className="text-slate-600">
-                                                        Injectées dans le CV (skills):{" "}
-                                                        <span className="font-medium text-slate-900">
-                                                            {(() => {
-                                                                const cvSkills = new Set<string>([
-                                                                    ...((cvData as any)?.competences?.techniques || []),
-                                                                    ...((cvData as any)?.competences?.soft_skills || []),
-                                                                ].map((s: any) => String(s || "").toLowerCase().trim()).filter(Boolean));
-                                                                const tac = Array.isArray((ragData as any)?.contexte_enrichi?.competences_tacites) ? (ragData as any).contexte_enrichi.competences_tacites : [];
-                                                                const soft = Array.isArray((ragData as any)?.contexte_enrichi?.soft_skills_deduites) ? (ragData as any).contexte_enrichi.soft_skills_deduites : [];
-                                                                const all = [...tac, ...soft].map((x: any) => String(typeof x === "string" ? x : x?.nom || x?.name || "").toLowerCase().trim()).filter(Boolean);
-                                                                let matched = 0;
-                                                                for (const item of all) {
-                                                                    if (cvSkills.has(item)) matched++;
-                                                                }
-                                                                return matched;
-                                                            })()}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-slate-500">
-                                                        Preuve: le compteur compare les items du contexte enrichi et les compétences réellement présentes dans le CV rendu.
-                                                    </p>
-                                                </CardContent>
-                                            </Card>
-                                        )}
-
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="text-sm flex items-center justify-between gap-2">
                                                     <span className="flex items-center gap-2">
-                                                        <span>Options de Filtrage</span>
+                                                        <span>Contenu du CV</span>
                                                         <TooltipProvider>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
@@ -1362,9 +1306,9 @@ function CVBuilderContent() {
                                                                 </TooltipTrigger>
                                                                 <TooltipContent side="right" className="max-w-xs">
                                                                     <div className="space-y-2 text-xs">
-                                                                        <p className="font-semibold">Options de filtrage</p>
+                                                                        <p className="font-semibold">Ajuster le contenu</p>
                                                                         <p className="text-slate-600">
-                                                                            Le score global s'applique à toutes les sections. Les filtres avancés permettent de définir des seuils distincts par section (expériences, compétences, etc.).
+                                                                            Contrôlez combien d'éléments apparaissent dans chaque section du CV. Utilisez les filtres avancés pour un contrôle par section.
                                                                         </p>
                                                                     </div>
                                                                 </TooltipContent>
@@ -1384,57 +1328,11 @@ function CVBuilderContent() {
                                                 </CardTitle>
                                             </CardHeader>
                                             <CardContent className="space-y-4 text-xs">
-                                                <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                                                    <div className="space-y-0.5">
-                                                        <p className="text-slate-800 font-medium">Diagnostics</p>
-                                                        <p className="text-slate-500">Vérifier build, cache et clients détectés.</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-slate-600">{showDiagnostics ? "Affichés" : "Masqués"}</span>
-                                                        <Switch checked={showDiagnostics} onCheckedChange={setShowDiagnostics} />
-                                                    </div>
-                                                </div>
-                                                {showDiagnostics && (
-                                                    <div className="space-y-2 rounded-md border border-slate-200 bg-white px-3 py-3">
-                                                        <div className="grid grid-cols-1 gap-1">
-                                                            <p className="text-slate-700">
-                                                                Build: {(buildInfo?.env ?? "local")} {(buildInfo?.sha ? buildInfo.sha.slice(0, 12) : "—")} {(buildInfo?.ref ? `(${buildInfo.ref})` : "")}
-                                                            </p>
-                                                            <p className="text-slate-700">
-                                                                Cache CV: {cvCacheHit ? "hit" : "miss"} • Cache widgets: {getWidgetsFromCache(analysisId) ? "hit" : "miss"}
-                                                            </p>
-
-                                                            {/* Quality Metrics Display */}
-                                                            {qualityMetrics && (
-                                                                <div className="mt-2 border-t pt-2 grid grid-cols-2 gap-2 text-xs">
-                                                                    <div>
-                                                                        <div className="font-semibold text-slate-800">Score ATS</div>
-                                                                        <div className={`${qualityMetrics.globalScore >= 70 ? "text-green-600" : "text-amber-600"} font-bold`}>
-                                                                            {qualityMetrics.globalScore}/100
-                                                                        </div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="font-semibold text-slate-800">Densité</div>
-                                                                        <div className="text-slate-600">
-                                                                            {qualityMetrics.density?.contentDensity.toFixed(2) ?? "?"} chars/unit
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            <div className="mt-2 border-t pt-2 text-xs text-slate-500">
-                                                                <p>Clients RAG: {Array.isArray((ragData as any)?.references?.clients) ? (ragData as any).references.clients.length : 0}</p>
-                                                                <p>Clients CV: {Array.isArray((cvData as any)?.clients_references?.clients) ? (cvData as any).clients_references.clients.length : 0}</p>
-                                                                <p>Expériences avec clients: {Array.isArray((cvData as any)?.experiences) ? (cvData as any).experiences.filter((e: any) => Array.isArray(e?.clients) && e.clients.length > 0).length : 0}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
                                                 {showAdvancedFilters && (
                                                     <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
                                                         <div className="space-y-0.5">
-                                                            <p className="text-slate-800 font-medium">Filtres avancés</p>
-                                                            <p className="text-slate-500">Seuils distincts par section (au lieu d'un seul filtre global).</p>
+                                                            <p className="text-slate-800 font-medium">Filtrage par section</p>
+                                                            <p className="text-slate-500">Ajuster la pertinence minimum pour chaque type de contenu.</p>
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-slate-600">{advancedFiltersEnabled ? "Activés" : "Désactivés"}</span>
@@ -1445,7 +1343,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Score global minimum: {convertOptions.minScore}
+                                                            Pertinence minimum : {convertOptions.minScore}%
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1524,7 +1422,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Max expériences: {convertOptions.maxExperiences}
+                                                            Expériences affichées : {convertOptions.maxExperiences}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1567,7 +1465,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Max bullets/exp: {convertOptions.maxBulletsPerExperience}
+                                                            Réalisations par expérience : {convertOptions.maxBulletsPerExperience}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1612,7 +1510,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Max clients/exp: {convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                            Clients par expérience : {convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1653,7 +1551,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Max clients (références): {convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                            Clients références : {convertOptions.limitsBySection?.maxClientsReferences ?? 25}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1702,7 +1600,7 @@ function CVBuilderContent() {
                                                 {/* [CDC-23] Sliders manquants ajoutés */}
                                                 <div>
                                                     <label className="block text-slate-600 mb-1">
-                                                        Max compétences: {convertOptions.limitsBySection?.maxSkills ?? 20}
+                                                        Compétences affichées : {convertOptions.limitsBySection?.maxSkills ?? 20}
                                                     </label>
                                                     <input
                                                         type="range"
@@ -1723,7 +1621,7 @@ function CVBuilderContent() {
                                                 </div>
                                                 <div>
                                                     <label className="block text-slate-600 mb-1">
-                                                        Max formations: {convertOptions.limitsBySection?.maxFormations ?? 5}
+                                                        Formations affichées : {convertOptions.limitsBySection?.maxFormations ?? 5}
                                                     </label>
                                                     <input
                                                         type="range"
@@ -1744,7 +1642,7 @@ function CVBuilderContent() {
                                                 </div>
                                                 <div>
                                                     <label className="block text-slate-600 mb-1">
-                                                        Max langues: {convertOptions.limitsBySection?.maxLanguages ?? 5}
+                                                        Langues affichées : {convertOptions.limitsBySection?.maxLanguages ?? 5}
                                                     </label>
                                                     <input
                                                         type="range"
@@ -1765,7 +1663,7 @@ function CVBuilderContent() {
                                                 </div>
                                                 <div>
                                                     <label className="block text-slate-600 mb-1">
-                                                        Max certifications: {convertOptions.limitsBySection?.maxCertifications ?? 10}
+                                                        Certifications affichées : {convertOptions.limitsBySection?.maxCertifications ?? 10}
                                                     </label>
                                                     <input
                                                         type="range"
@@ -1786,7 +1684,7 @@ function CVBuilderContent() {
                                                 </div>
                                                 <div>
                                                     <label className="block text-slate-600 mb-1">
-                                                        Max projets: {convertOptions.limitsBySection?.maxProjects ?? 5}
+                                                        Projets affichés : {convertOptions.limitsBySection?.maxProjects ?? 5}
                                                     </label>
                                                     <input
                                                         type="range"
@@ -1805,6 +1703,25 @@ function CVBuilderContent() {
                                                         className="w-full"
                                                     />
                                                 </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full mt-2"
+                                                    onClick={() => {
+                                                        setConvertOptions({
+                                                            minScore: 0,
+                                                            maxExperiences: 20,
+                                                            maxBulletsPerExperience: 10,
+                                                            limitsBySection: { maxClientsPerExperience: 6, maxClientsReferences: 25 },
+                                                        });
+                                                        setIncludePhoto(true);
+                                                        setAdvancedFiltersEnabled(false);
+                                                        setAdvancedMinScoreBySection({ header: 0, summary: 0, experiences: 0, skills: 0, education: 0, languages: 0, references: 0, projects: 0 });
+                                                        toast.success("Filtres réinitialisés");
+                                                    }}
+                                                >
+                                                    Réinitialiser les filtres
+                                                </Button>
                                             </CardContent>
                                         </Card>
                                     </aside>

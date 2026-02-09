@@ -93,8 +93,8 @@ export const TEMPLATES: TemplateInfo[] = [
     // ── Originals (4) ──
     {
         id: 'modern',
-        name: 'Modern',
-        description: 'Sidebar gauche sombre avec accents colorés, layout professionnel',
+        name: 'Sidebar Pro',
+        description: 'Sidebar sombre, accents colorés — management & conseil',
         category: 'modern',
         preview: '/templates/modern-preview.png',
         available: true,
@@ -102,8 +102,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'tech',
-        name: 'Tech',
-        description: 'Style terminal, catégorisation des compétences, optimisé développeurs',
+        name: 'Développeur',
+        description: 'Profils techniques, compétences catégorisées',
         category: 'tech',
         preview: '/templates/tech-preview.png',
         available: true,
@@ -111,8 +111,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'classic',
-        name: 'Classic',
-        description: 'Header formel avec deux colonnes, format traditionnel',
+        name: 'Classique',
+        description: 'Deux colonnes, format traditionnel et sobre',
         category: 'classic',
         preview: '/templates/classic-preview.png',
         available: true,
@@ -120,8 +120,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'creative',
-        name: 'Creative',
-        description: 'Sidebar droite colorée, timeline avec émojis, design artistique',
+        name: 'Créatif',
+        description: 'Design coloré, sidebar droite, timeline dynamique',
         category: 'creative',
         preview: '/templates/creative-preview.png',
         available: true,
@@ -130,8 +130,8 @@ export const TEMPLATES: TemplateInfo[] = [
     // ── Reactive Resume inspired (6) ──
     {
         id: 'pikachu',
-        name: 'Pikachu',
-        description: 'Header gradient avec timeline dots, single-column dynamique',
+        name: 'Gradient Moderne',
+        description: 'Header dégradé, timeline, une colonne impactante',
         category: 'modern',
         preview: '/templates/pikachu-preview.png',
         available: true,
@@ -139,8 +139,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'bronzor',
-        name: 'Bronzor',
-        description: 'Single-column minimaliste, typographie élégante, sans sidebar',
+        name: 'Élégant Minimal',
+        description: 'Minimaliste sans sidebar, typographie raffinée',
         category: 'minimal',
         preview: '/templates/bronzor-preview.png',
         available: true,
@@ -148,8 +148,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'gengar',
-        name: 'Gengar',
-        description: 'Sidebar gauche avec header intégré dans la couleur, fond sombre',
+        name: 'Pro Sombre',
+        description: 'Sidebar intégrée au header, fond sombre contrasté',
         category: 'professional',
         preview: '/templates/gengar-preview.png',
         available: true,
@@ -157,8 +157,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'chikorita',
-        name: 'Chikorita',
-        description: 'Sidebar DROITE avec fond coloré solide et texte blanc',
+        name: 'Sidebar Couleur',
+        description: 'Sidebar droite colorée, texte blanc, look vibrant',
         category: 'modern',
         preview: '/templates/chikorita-preview.png',
         available: true,
@@ -166,8 +166,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'ditto',
-        name: 'Ditto',
-        description: 'Bannière header pleine largeur, body single-column ATS-friendly',
+        name: 'ATS Classique',
+        description: 'Bannière pleine largeur, compatible ATS, polyvalent',
         category: 'professional',
         preview: '/templates/ditto-preview.png',
         available: true,
@@ -175,8 +175,8 @@ export const TEMPLATES: TemplateInfo[] = [
     },
     {
         id: 'lapras',
-        name: 'Lapras',
-        description: 'Header gradient avec effet vague, deux colonnes aquatiques',
+        name: 'Vague Moderne',
+        description: 'Header avec effet vague, deux colonnes élégantes',
         category: 'modern',
         preview: '/templates/lapras-preview.png',
         available: true,
