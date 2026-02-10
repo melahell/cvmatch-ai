@@ -891,7 +891,7 @@ function CVBuilderContent() {
     return (
         <DashboardLayout>
         <div className="pb-12">
-            <header className="border-b bg-white z-10">
+            <header className="border-b bg-white z-30 sticky top-16">
                 <div className="container mx-auto px-4 py-4">
                     <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
@@ -1157,7 +1157,7 @@ function CVBuilderContent() {
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                                     {/* Sidebar : Contrôles (scrollable) */}
-                                    <aside className="space-y-4 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto lg:pr-1">
+                                    <aside className="space-y-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1">
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="text-sm">Modèle</CardTitle>
@@ -1223,7 +1223,7 @@ function CVBuilderContent() {
                                                     </div>
                                                     <div className="space-y-1">
                                                         <div className="text-xs text-slate-600">Couleurs</div>
-                                                        <div className="grid grid-cols-10 gap-1">
+                                                        <div className="flex flex-wrap gap-1">
                                                             <button
                                                                 key="default"
                                                                 type="button"
@@ -1714,7 +1714,7 @@ function CVBuilderContent() {
                                     </aside>
 
                                     {/* Main : Preview CV (sticky - toujours visible) */}
-                                    <div className="lg:col-span-3 lg:sticky lg:top-20 self-start">
+                                    <div className="lg:col-span-3 lg:sticky lg:top-[8.5rem] self-start">
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="text-base">

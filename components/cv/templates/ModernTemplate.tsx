@@ -261,13 +261,15 @@ export default function ModernTemplate({
                                             )}
                                         </div>
                                         <span className="text-[color:var(--cv-primary)] font-bold bg-[var(--cv-primary-light)] px-2 py-0.5 rounded text-[7pt]">
-                                            {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
+                                            {exp.date_debut ? `${sanitizeText(exp.date_debut)} - ${exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}` : (exp.date_fin ? sanitizeText(exp.date_fin) : "")}
                                         </span>
                                     </div>
-                                    <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
-                                        {sanitizeText(exp.entreprise)}
-                                        {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
-                                    </p>
+                                    {exp.entreprise && exp.entreprise !== "—" && (
+                                        <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
+                                            {sanitizeText(exp.entreprise)}
+                                            {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
+                                        </p>
+                                    )}
                                     {exp.clients && exp.clients.length > 0 && (
                                         <p className="text-slate-500 text-[7pt] mb-1">
                                             Clients : {exp.clients.map(sanitizeText).join(", ")}

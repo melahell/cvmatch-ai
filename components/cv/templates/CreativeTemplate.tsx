@@ -229,7 +229,7 @@ export default function CreativeTemplate({
                                         />
 
                                         <div className="text-[8pt] font-bold" style={{ color }}>
-                                            {exp.date_debut} - {exp.date_fin || 'Présent'}
+                                            {exp.date_debut ? `${exp.date_debut} - ${exp.date_fin || 'Présent'}` : (exp.date_fin || "")}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <h4 className="text-[10pt] font-extrabold text-slate-900">{exp.poste}</h4>
@@ -242,7 +242,9 @@ export default function CreativeTemplate({
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}</p>
+                                        {exp.entreprise && exp.entreprise !== "—" && (
+                                            <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}</p>
+                                        )}
                                         {exp.clients && exp.clients.length > 0 && (
                                             <p className="text-[7pt] text-slate-600 mb-1.5">
                                                 Clients : {exp.clients.map(safeString).join(", ")}

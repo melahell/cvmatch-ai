@@ -174,12 +174,14 @@ export default function ClassicTemplate({
                                         )}
                                     </div>
                                     <span className="text-[8pt] text-slate-600 italic">
-                                        {exp.date_debut} - {exp.date_fin || 'Présent'}
+                                        {exp.date_debut ? `${exp.date_debut} - ${exp.date_fin || 'Présent'}` : (exp.date_fin || "")}
                                     </span>
                                 </div>
-                                <p className="text-[9pt] italic text-slate-600 mb-2">
-                                    {exp.entreprise}{exp.lieu && `, ${exp.lieu}`}
-                                </p>
+                                {exp.entreprise && exp.entreprise !== "—" && (
+                                    <p className="text-[9pt] italic text-slate-600 mb-2">
+                                        {exp.entreprise}{exp.lieu && `, ${exp.lieu}`}
+                                    </p>
+                                )}
                                 {exp.clients && exp.clients.length > 0 && (
                                     <p className="text-[8pt] text-slate-600 mb-2">
                                         Clients : {exp.clients.join(", ")}

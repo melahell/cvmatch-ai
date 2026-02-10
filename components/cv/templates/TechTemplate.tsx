@@ -342,12 +342,14 @@ export default function TechTemplate({
                                         )}
                                     </div>
                                     <span className="text-[7pt] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                                        {exp.date_debut} → {exp.date_fin || 'now'}
+                                        {exp.date_debut ? `${exp.date_debut} → ${exp.date_fin || 'now'}` : (exp.date_fin || "")}
                                     </span>
                                 </div>
-                                <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
-                                    @ {exp.entreprise}
-                                </p>
+                                {exp.entreprise && exp.entreprise !== "—" && (
+                                    <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
+                                        {exp.entreprise}
+                                    </p>
+                                )}
                                 {exp.clients && exp.clients.length > 0 && (
                                     <p className="text-[7pt] text-slate-600 mt-0.5">
                                         Clients : {exp.clients.join(", ")}

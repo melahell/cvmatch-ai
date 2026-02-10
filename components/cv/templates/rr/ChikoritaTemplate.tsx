@@ -107,12 +107,14 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                         <div className="flex justify-between items-baseline mb-0.5">
                                             <h3 className="font-bold text-sm">{sanitizeText(exp.poste)}</h3>
                                             <span className="text-[10px] text-gray-400 shrink-0 ml-2">
-                                                {exp.date_debut}{exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}
+                                                {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}
                                             </span>
                                         </div>
-                                        <p className="text-xs font-medium mb-1" style={{ color: c.accent }}>
-                                            {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
-                                        </p>
+                                        {exp.entreprise && exp.entreprise !== "—" && (
+                                            <p className="text-xs font-medium mb-1" style={{ color: c.accent }}>
+                                                {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
+                                            </p>
+                                        )}
                                         {exp.realisations?.length > 0 && (
                                             <ul className={`space-y-0.5 ${ts} text-gray-600`}>
                                                 {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 5).map((r: string, ri: number) => (
