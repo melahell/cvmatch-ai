@@ -671,11 +671,15 @@ function buildExperiences(
         let entreprise = "";
 
         if (headerText) {
-            // Essayer de parser "Poste - Entreprise" depuis le header
-            const separatorIndex = headerText.indexOf(" - ");
+            // Essayer de parser "Poste - Entreprise" ou "Poste @ Entreprise" depuis le header
+            const dashIndex = headerText.indexOf(" - ");
+            const atIndex = headerText.indexOf(" @ ");
+            // Utiliser le premier séparateur trouvé
+            const separatorIndex = dashIndex !== -1 ? dashIndex : atIndex;
+            const separatorLen = dashIndex !== -1 ? 3 : 3; // " - " ou " @ " = 3 chars
             if (separatorIndex !== -1) {
                 poste = headerText.slice(0, separatorIndex).trim();
-                entreprise = headerText.slice(separatorIndex + 3).trim();
+                entreprise = headerText.slice(separatorIndex + separatorLen).trim();
             } else {
                 poste = headerText;
             }
@@ -699,7 +703,6 @@ function buildExperiences(
 
         // Fallback si toujours vide
         if (!poste) poste = "Expérience";
-        if (!entreprise) entreprise = "—";
 
         // Réalisations = tous les textes restants
         const realisations = allTexts.slice(0, opts.maxBulletsPerExperience);
@@ -782,7 +785,7 @@ function buildExperiences(
                 debugLog(`[buildExperiences] FALLBACK: exp RAG "${ragPoste} @ ${ragEntreprise}" non couverte par Gemini, création depuis RAG`);
 
                 const poste = ragExp.poste || ragExp.titre || "Expérience";
-                const entreprise = ragExp.entreprise || ragExp.client || "—";
+                const entreprise = ragExp.entreprise || ragExp.client || "";
                 const realisations: string[] = [];
 
                 if (Array.isArray(ragExp.realisations)) {

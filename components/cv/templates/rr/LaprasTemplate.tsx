@@ -131,12 +131,16 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                         <div className="flex justify-between items-start mb-1">
                                             <div>
                                                 <h3 className="font-bold">{sanitizeText(exp.poste)}</h3>
-                                                <p className="font-medium text-sm" style={{ color: colors.secondary }}>
-                                                    {sanitizeText(exp.entreprise)}
-                                                </p>
+                                                {(exp.entreprise && exp.entreprise !== "—") ? (
+                                                    <p className="font-medium text-sm" style={{ color: colors.secondary }}>
+                                                        {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
+                                                    </p>
+                                                ) : exp.lieu ? (
+                                                    <p className="font-medium text-sm" style={{ color: colors.secondary }}>{exp.lieu}</p>
+                                                ) : null}
                                             </div>
                                             <span className="text-xs text-gray-500 shrink-0">
-                                                {exp.date_debut}{exp.date_fin ? ` - ${exp.date_fin}` : " - Présent"}
+                                                {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` - ${exp.date_fin}` : " - Présent"}` : (exp.date_fin || "")}
                                             </span>
                                         </div>
 

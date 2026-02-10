@@ -19,7 +19,8 @@ export default function CreativeTemplate({
     data,
     includePhoto = true,
     jobContext,
-    dense = false
+    dense = false,
+    displayLimits: dl
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
@@ -41,13 +42,14 @@ export default function CreativeTemplate({
     };
 
     const limitedExperiences = experiences || [];
-    const rawSkills = competences?.techniques || [];
+    const rawSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
     const limitedSkills = rawSkills.map(safeString);
-    const rawSoftSkills = competences?.soft_skills || [];
+    const rawSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
     const limitedSoftSkills = rawSoftSkills.map(safeString);
-    const limitedFormations = formations || [];
-    const limitedCertifications = (certifications || []).map(safeString);
-    const limitedClients = (clients_references?.clients || []).map(safeString);
+    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
+    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10).map(safeString);
+    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 25).map(safeString);
+    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
@@ -55,9 +57,7 @@ export default function CreativeTemplate({
             className="cv-page bg-white shadow-2xl rounded-2xl overflow-hidden text-[9pt]"
             style={{
                 width: '210mm',
-                height: '297mm',
-                maxHeight: '297mm',
-                overflow: 'hidden',
+                minHeight: '297mm',
                 boxSizing: 'border-box',
                 fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8.5pt' : '9pt',
@@ -216,7 +216,7 @@ export default function CreativeTemplate({
                                 return (
                                     <div
                                         key={i}
-                                        className="pl-5 py-3 rounded-r-xl relative"
+                                        className="pl-5 py-3 rounded-r-xl relative break-inside-avoid"
                                         style={{
                                             borderLeft: `4px solid ${color}`,
                                             background: `linear-gradient(90deg, ${color}08, transparent)`
@@ -229,7 +229,7 @@ export default function CreativeTemplate({
                                         />
 
                                         <div className="text-[8pt] font-bold" style={{ color }}>
-                                            {exp.date_debut} - {exp.date_fin || 'Présent'}
+                                            {exp.date_debut ? `${exp.date_debut} - ${exp.date_fin || 'Présent'}` : (exp.date_fin || "")}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <h4 className="text-[10pt] font-extrabold text-slate-900">{exp.poste}</h4>
@@ -242,17 +242,20 @@ export default function CreativeTemplate({
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}</p>
+                                        {(exp.entreprise && exp.entreprise !== "—") ? (
+                                            <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}{exp.lieu && ` · ${exp.lieu}`}</p>
+                                        ) : exp.lieu ? (
+                                            <p className="text-[8pt] text-slate-600 mb-1.5">{exp.lieu}</p>
+                                        ) : null}
                                         {exp.clients && exp.clients.length > 0 && (
                                             <p className="text-[7pt] text-slate-600 mb-1.5">
-                                                Clients : {exp.clients.map(safeString).join(", ")}
+                                                Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).map(safeString).join(", ")}
                                             </p>
                                         )}
 
-                                        {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                         {exp.realisations && exp.realisations.length > 0 && (
                                             <ul className="text-[8pt] text-slate-700 space-y-0.5">
-                                                {exp.realisations.map((r, j) => (
+                                                {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
                                                     <li key={j} className="flex items-start gap-1.5">
                                                         <span style={{ color }}>→</span> {safeString(r)}
                                                     </li>
@@ -403,7 +406,7 @@ export default function CreativeTemplate({
                     )}
 
                     {/* [CDC-21] Section Projets ajoutée */}
-                    {projects && projects.length > 0 && (
+                    {limitedProjects.length > 0 && (
                         <section style={{ marginTop: "var(--spacing-section)" }}>
                             <h3
                                 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2"
@@ -412,7 +415,7 @@ export default function CreativeTemplate({
                                 🚀 Projets
                             </h3>
                             <div className="space-y-2">
-                                {projects.map((project, i) => (
+                                {limitedProjects.map((project, i) => (
                                     <div key={i} className="mb-2">
                                         <div className="text-[8pt] font-bold text-slate-900 flex items-center gap-1">
                                             {project.nom}

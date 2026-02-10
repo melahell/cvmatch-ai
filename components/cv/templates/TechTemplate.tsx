@@ -22,7 +22,8 @@ export default function TechTemplate({
     data,
     includePhoto = false, // Default false for tech
     jobContext,
-    dense = false
+    dense = false,
+    displayLimits: dl
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
@@ -43,11 +44,14 @@ export default function TechTemplate({
         return sanitizeText(String(val || ''));
     };
 
-    // Show all data - let CDC Pipeline handle optimization
     const limitedExperiences = experiences || [];
-    const rawSkills = competences?.techniques || [];
+    const rawSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
     const limitedSkills = rawSkills.map(safeString);
-    const limitedFormations = formations || [];
+    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
+    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
+    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10);
+    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 25);
+    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
 
     // Categorize skills
     const categorizeSkills = (skills: string[]) => {
@@ -90,9 +94,7 @@ export default function TechTemplate({
             className="cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex text-[9pt]"
             style={{
                 width: '210mm',
-                height: '297mm',
-                maxHeight: '297mm',
-                overflow: 'hidden',
+                minHeight: '297mm',
                 boxSizing: 'border-box',
                 fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8.5pt' : '9pt',
@@ -257,12 +259,11 @@ export default function TechTemplate({
                     )}
                 </div>
 
-                {/* [CDC-21] Soft Skills ajoutés */}
-                {competences?.soft_skills && competences.soft_skills.length > 0 && (
+                {limitedSoftSkills.length > 0 && (
                     <div className="pt-3 border-t border-slate-700 mt-3">
                         <div className="text-[color:var(--cv-primary)] text-[6pt] font-mono mb-1">{'// soft_skills'}</div>
                         <div className="flex flex-wrap gap-1">
-                            {competences.soft_skills.map(safeString).map((skill, i) => (
+                            {limitedSoftSkills.map(safeString).map((skill, i) => (
                                 <span
                                     key={i}
                                     className="px-1.5 py-0.5 text-[6pt] rounded font-mono bg-[var(--cv-primary-light)] text-[color:var(--cv-sidebar-accent)]"
@@ -329,7 +330,7 @@ export default function TechTemplate({
                         {limitedExperiences.map((exp, i) => (
                             <div
                                 key={i}
-                                className="pl-4 border-l-2 py-2"
+                                className="pl-4 border-l-2 py-2 break-inside-avoid"
                                 style={{ borderColor: i === 0 ? COLORS.primary : i === 1 ? COLORS.secondary : COLORS.accent }}
                             >
                                 <div className="flex justify-between items-start">
@@ -342,21 +343,24 @@ export default function TechTemplate({
                                         )}
                                     </div>
                                     <span className="text-[7pt] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                                        {exp.date_debut} → {exp.date_fin || 'now'}
+                                        {exp.date_debut ? `${exp.date_debut} → ${exp.date_fin || 'now'}` : (exp.date_fin || "")}
                                     </span>
                                 </div>
-                                <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
-                                    @ {exp.entreprise}
-                                </p>
+                                {(exp.entreprise && exp.entreprise !== "—") ? (
+                                    <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
+                                        {exp.entreprise}{exp.lieu && ` · ${exp.lieu}`}
+                                    </p>
+                                ) : exp.lieu ? (
+                                    <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>{exp.lieu}</p>
+                                ) : null}
                                 {exp.clients && exp.clients.length > 0 && (
                                     <p className="text-[7pt] text-slate-600 mt-0.5">
-                                        Clients : {exp.clients.join(", ")}
+                                        Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
                                     </p>
                                 )}
-                                {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="mt-1.5 space-y-0.5 text-[8pt] text-slate-700">
-                                        {exp.realisations.map((r, j) => (
+                                        {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
                                             <li key={j} className="flex items-start gap-1.5">
                                                 <span className="text-[color:var(--cv-primary)] mt-0.5">→</span>
                                                 {safeString(r)}
@@ -370,7 +374,7 @@ export default function TechTemplate({
                 </section>
 
                 {/* Clients */}
-                {clients_references?.clients && clients_references.clients.length > 0 && (
+                {limitedClients.length > 0 && (
                     <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
                             <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
@@ -378,7 +382,7 @@ export default function TechTemplate({
                             <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {clients_references.clients.map((client, i) => (
+                            {limitedClients.map((client, i) => (
                                 <div
                                     key={i}
                                     className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded border border-slate-200"
@@ -392,7 +396,7 @@ export default function TechTemplate({
                 )}
 
                 {/* Certifications */}
-                {certifications && certifications.length > 0 && (
+                {limitedCertifications.length > 0 && (
                     <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <h2 className="text-[11pt] font-extrabold mb-2 text-slate-900 flex items-center gap-2">
                             <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
@@ -400,7 +404,7 @@ export default function TechTemplate({
                             <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {certifications.map((cert, i) => (
+                            {limitedCertifications.map((cert, i) => (
                                 <div
                                     key={i}
                                     className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded border border-slate-200"
@@ -447,15 +451,15 @@ export default function TechTemplate({
                 )}
 
                 {/* [CDC-21] Section Projets ajoutée */}
-                {projects && projects.length > 0 && (
+                {limitedProjects.length > 0 && (
                     <section style={{ marginTop: "var(--spacing-section)" }}>
                         <h2 className="text-[11pt] font-extrabold mb-3 text-slate-900 flex items-center gap-2">
                             <span className="text-[color:var(--cv-primary)] font-mono">{'<'}</span>
-                            Projects
+                            Projets
                             <span className="text-[color:var(--cv-primary)] font-mono">{'/>'}</span>
                         </h2>
                         <div className="grid grid-cols-2 gap-2">
-                            {projects.map((project, i) => (
+                            {limitedProjects.map((project, i) => (
                                 <div
                                     key={i}
                                     className="p-2 bg-slate-50 border border-slate-200 rounded-lg"

@@ -11,7 +11,8 @@ export default function ModernTemplate({
     data,
     includePhoto = true,
     jobContext,
-    dense = false
+    dense = false,
+    displayLimits: dl
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
@@ -22,12 +23,12 @@ export default function ModernTemplate({
     const renderRealisation = (r: string): string => sanitizeText(r);
     const renderSkill = (s: string): string => sanitizeText(s);
 
-    // Data is pre-adapted by the CDC Pipeline (adaptive-algorithm.ts)
-    // Templates only render, no slicing or limits here
     const limitedExperiences = experiences || [];
-    const limitedSkills = competences?.techniques || [];
-    const limitedSoftSkills = competences?.soft_skills || [];
-    const limitedFormations = formations || [];
+    const limitedSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
+    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
+    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
+    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10);
+    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
 
     // Sanitize elevator pitch
     const cleanElevatorPitch = sanitizeText(profil?.elevator_pitch);
@@ -40,9 +41,7 @@ export default function ModernTemplate({
             className="cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex text-[9pt]"
             style={{
                 width: '210mm',
-                height: '297mm',
-                maxHeight: '297mm',
-                overflow: 'hidden',
+                minHeight: '297mm',
                 boxSizing: 'border-box',
                 fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8pt' : '8.5pt',
@@ -244,7 +243,7 @@ export default function ModernTemplate({
                             return (
                                 <div
                                     key={i}
-                                    className="relative pl-5 pr-3 py-3 border-l-[3px] border-l-neon-purple group rounded-r-lg bg-gradient-to-r from-neon-purple/5 to-transparent"
+                                    className="relative pl-5 pr-3 py-3 border-l-[3px] border-l-neon-purple group rounded-r-lg bg-gradient-to-r from-neon-purple/5 to-transparent break-inside-avoid"
                                 >
                                     {/* Timeline dot */}
                                     <div
@@ -261,16 +260,20 @@ export default function ModernTemplate({
                                             )}
                                         </div>
                                         <span className="text-[color:var(--cv-primary)] font-bold bg-[var(--cv-primary-light)] px-2 py-0.5 rounded text-[7pt]">
-                                            {sanitizeText(exp.date_debut)} - {exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}
+                                            {exp.date_debut ? `${sanitizeText(exp.date_debut)} - ${exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}` : (exp.date_fin ? sanitizeText(exp.date_fin) : "")}
                                         </span>
                                     </div>
-                                    <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
-                                        {sanitizeText(exp.entreprise)}
-                                        {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
-                                    </p>
+                                    {(exp.entreprise && exp.entreprise !== "—") ? (
+                                        <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
+                                            {sanitizeText(exp.entreprise)}
+                                            {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}
+                                        </p>
+                                    ) : exp.lieu ? (
+                                        <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">{sanitizeText(exp.lieu)}</p>
+                                    ) : null}
                                     {exp.clients && exp.clients.length > 0 && (
                                         <p className="text-slate-500 text-[7pt] mb-1">
-                                            Clients : {exp.clients.map(sanitizeText).join(", ")}
+                                            Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).map(sanitizeText).join(", ")}
                                         </p>
                                     )}
                                     {/* Solution 6.2: Afficher contexte opérationnel */}
@@ -292,7 +295,7 @@ export default function ModernTemplate({
                                     {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <ul className="text-slate-700 space-y-0.5 list-disc list-outside pl-5 text-[8pt] leading-relaxed">
-                                            {exp.realisations.map((r, j) => (
+                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
                                                 <li key={j} className="pl-1">{renderRealisation(r)}</li>
                                             ))}
                                         </ul>
@@ -304,14 +307,14 @@ export default function ModernTemplate({
                 </section>
 
                 {/* Certifications */}
-                {certifications && certifications.length > 0 && (
+                {limitedCertifications.length > 0 && (
                     <section className="mb-2">
                         <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                             <span className="w-4 h-0.5 bg-purple-600 rounded-full" />
                             Certifications
                         </h2>
                         <div className="flex flex-wrap gap-1.5">
-                            {certifications.map((cert, i) => (
+                            {limitedCertifications.map((cert, i) => (
                                 <span
                                     key={i}
                                     className="inline-flex items-center gap-1 px-2 py-1 bg-purple-50 border border-purple-200 rounded text-[7pt] font-semibold text-purple-700"
@@ -350,14 +353,14 @@ export default function ModernTemplate({
                 )}
 
                 {/* [CDC-21] Section Projets ajoutée */}
-                {projects && projects.length > 0 && (
+                {limitedProjects.length > 0 && (
                     <section className="mb-2">
                         <h2 className="text-[10pt] font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
                             <span className="w-4 h-0.5 bg-[var(--cv-primary)] rounded-full" />
                             Projets
                         </h2>
                         <div className="grid grid-cols-2 gap-2">
-                            {projects.map((project, i) => (
+                            {limitedProjects.map((project, i) => (
                                 <div
                                     key={i}
                                     className="pl-3 py-2 border-l-2 border-purple-200 bg-gradient-to-r from-purple-50/50 to-transparent"

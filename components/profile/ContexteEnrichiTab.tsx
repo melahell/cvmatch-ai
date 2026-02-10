@@ -76,7 +76,7 @@ export function ContexteEnrichiTab({
                             className="pl-10"
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         <Button
                             variant={filter === "all" ? "primary" : "outline"}
                             size="sm"

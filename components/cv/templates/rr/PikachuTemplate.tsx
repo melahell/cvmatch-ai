@@ -181,12 +181,13 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                             <h3 className="font-bold text-base">
                                                 {sanitizeText(exp.poste)}
                                             </h3>
-                                            <p 
-                                                className="font-semibold"
-                                                style={{ color: colors.secondary }}
-                                            >
-                                                {sanitizeText(exp.entreprise)}
-                                            </p>
+                                            {(exp.entreprise && exp.entreprise !== "—") ? (
+                                                <p className="font-semibold" style={{ color: colors.secondary }}>
+                                                    {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
+                                                </p>
+                                            ) : exp.lieu ? (
+                                                <p className="font-semibold" style={{ color: colors.secondary }}>{exp.lieu}</p>
+                                            ) : null}
                                         </div>
                                         <span 
                                             className={`${textSize} px-3 py-1 rounded-full`}
@@ -195,11 +196,10 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                                 color: colors.muted,
                                             }}
                                         >
-                                            {exp.date_debut}
-                                            {exp.date_fin ? ` - ${exp.date_fin}` : " - Présent"}
+                                            {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` - ${exp.date_fin}` : " - Présent"}` : (exp.date_fin || "")}
                                         </span>
                                     </div>
-                                    
+
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <ul className={`space-y-1.5 ${textSize} text-gray-600`}>
                                             {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 4).map((real: string, ridx: number) => (
