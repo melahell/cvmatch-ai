@@ -785,7 +785,7 @@ function buildExperiences(
                 debugLog(`[buildExperiences] FALLBACK: exp RAG "${ragPoste} @ ${ragEntreprise}" non couverte par Gemini, création depuis RAG`);
 
                 const poste = ragExp.poste || ragExp.titre || "Expérience";
-                const entreprise = ragExp.entreprise || ragExp.client || "—";
+                const entreprise = ragExp.entreprise || ragExp.client || "";
                 const realisations: string[] = [];
 
                 if (Array.isArray(ragExp.realisations)) {

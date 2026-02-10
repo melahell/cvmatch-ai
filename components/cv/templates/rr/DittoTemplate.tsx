@@ -139,11 +139,13 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                                     <div className="flex justify-between items-baseline">
                                         <div>
                                             <h3 className="font-bold text-sm">{sanitizeText(exp.poste)}</h3>
-                                            {exp.entreprise && exp.entreprise !== "—" && (
+                                            {(exp.entreprise && exp.entreprise !== "—") ? (
                                                 <p className="text-xs font-medium" style={{ color: c.accent }}>
                                                     {sanitizeText(exp.entreprise)}{exp.lieu ? ` — ${exp.lieu}` : ""}
                                                 </p>
-                                            )}
+                                            ) : exp.lieu ? (
+                                                <p className="text-xs font-medium" style={{ color: c.accent }}>{exp.lieu}</p>
+                                            ) : null}
                                         </div>
                                         <span className="text-[10px] text-gray-400 shrink-0 ml-3 whitespace-nowrap">
                                             {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}

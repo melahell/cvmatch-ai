@@ -157,7 +157,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}
                                         </span>
                                     </div>
-                                    {exp.entreprise && exp.entreprise !== "—" && (
+                                    {(exp.entreprise && exp.entreprise !== "—") ? (
                                         <p
                                             className={`${textSize} font-medium mb-2`}
                                             style={{ color: colors.accent }}
@@ -165,7 +165,9 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             {sanitizeText(exp.entreprise)}
                                             {exp.lieu && <span style={{ color: colors.muted }}> • {exp.lieu}</span>}
                                         </p>
-                                    )}
+                                    ) : exp.lieu ? (
+                                        <p className={`${textSize} font-medium mb-2`} style={{ color: colors.muted }}>{exp.lieu}</p>
+                                    ) : null}
                                     
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <ul

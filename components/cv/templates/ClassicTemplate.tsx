@@ -10,7 +10,8 @@ export default function ClassicTemplate({
     data,
     includePhoto = true,
     jobContext,
-    dense = false
+    dense = false,
+    displayLimits: dl
 }: TemplateProps) {
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
@@ -32,9 +33,13 @@ export default function ClassicTemplate({
     };
 
     const limitedExperiences = experiences || [];
-    const rawSkills = competences?.techniques || [];
+    const rawSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
     const limitedSkills = rawSkills.map(safeString);
-    const limitedFormations = formations || [];
+    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
+    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10);
+    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 25);
+    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
+    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
@@ -42,9 +47,7 @@ export default function ClassicTemplate({
             className="cv-page bg-white shadow-2xl overflow-hidden text-[9pt]"
             style={{
                 width: '210mm',
-                height: '297mm',
-                maxHeight: '297mm',
-                overflow: 'hidden',
+                minHeight: '297mm',
                 boxSizing: 'border-box',
                 fontFamily: "var(--cv-font-body)",
                 fontSize: dense ? '8.5pt' : '9pt',
@@ -137,7 +140,7 @@ export default function ClassicTemplate({
                 {profil.elevator_pitch && (
                     <section style={{ marginBottom: "var(--spacing-section)" }} className="text-center">
                         <p className="text-slate-700 leading-relaxed text-[9pt] max-w-3xl mx-auto italic">
-                            "{profil.elevator_pitch}"
+                            {profil.elevator_pitch}
                         </p>
                     </section>
                 )}
@@ -163,7 +166,7 @@ export default function ClassicTemplate({
 
                     <div className="flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                         {limitedExperiences.map((exp, i) => (
-                            <div key={i} className="border-l-4 border-slate-400 pl-4 py-2">
+                            <div key={i} className="border-l-4 border-slate-400 pl-4 py-2 break-inside-avoid">
                                 <div className="flex justify-between items-baseline mb-1">
                                     <div className="flex items-center gap-2">
                                         <h4 className="text-[10pt] font-bold text-slate-900">{exp.poste}</h4>
@@ -177,20 +180,21 @@ export default function ClassicTemplate({
                                         {exp.date_debut ? `${exp.date_debut} - ${exp.date_fin || 'Présent'}` : (exp.date_fin || "")}
                                     </span>
                                 </div>
-                                {exp.entreprise && exp.entreprise !== "—" && (
+                                {(exp.entreprise && exp.entreprise !== "—") ? (
                                     <p className="text-[9pt] italic text-slate-600 mb-2">
                                         {exp.entreprise}{exp.lieu && `, ${exp.lieu}`}
                                     </p>
-                                )}
+                                ) : exp.lieu ? (
+                                    <p className="text-[9pt] italic text-slate-600 mb-2">{exp.lieu}</p>
+                                ) : null}
                                 {exp.clients && exp.clients.length > 0 && (
                                     <p className="text-[8pt] text-slate-600 mb-2">
-                                        Clients : {exp.clients.join(", ")}
+                                        Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
                                     </p>
                                 )}
-                                {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-[8pt] text-slate-700 list-disc list-inside" style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-bullet)" }}>
-                                        {exp.realisations.map((r, j) => (
+                                        {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
                                             <li key={j}>{safeString(r)}</li>
                                         ))}
                                     </ul>
@@ -252,32 +256,29 @@ export default function ClassicTemplate({
                             {limitedSkills.join(' • ')}
                         </div>
 
-                        {/* [CDC-21] Soft skills ajoutés */}
-                        {competences?.soft_skills && competences.soft_skills.length > 0 && (
+                        {limitedSoftSkills.length > 0 && (
                             <div className="mt-3 pt-3 border-t border-slate-200">
                                 <h3 className="text-[10pt] uppercase tracking-wider text-slate-700 mb-2">Soft Skills</h3>
                                 <div className="text-[8pt] text-slate-600 leading-relaxed">
-                                    {competences.soft_skills.map(safeString).join(' • ')}
+                                    {limitedSoftSkills.map(safeString).join(' • ')}
                                 </div>
                             </div>
                         )}
 
-                        {/* Clients */}
-                        {clients_references?.clients && clients_references.clients.length > 0 && (
+                        {limitedClients.length > 0 && (
                             <div className="mt-4 pt-3 border-t border-slate-200">
                                 <h3 className="text-[10pt] uppercase tracking-wider text-slate-700 mb-2">Clients</h3>
                                 <div className="text-[8pt] text-slate-600 leading-relaxed">
-                                    {clients_references.clients.join(' • ')}
+                                    {limitedClients.join(' • ')}
                                 </div>
                             </div>
                         )}
 
-                        {/* Certifications */}
-                        {certifications && certifications.length > 0 && (
+                        {limitedCertifications.length > 0 && (
                             <div className="mt-4 pt-3 border-t border-slate-200">
                                 <h3 className="text-[10pt] uppercase tracking-wider text-slate-700 mb-2">Certifications</h3>
                                 <ul className="text-[8pt] text-slate-600 space-y-1">
-                                    {certifications.map((cert, i) => (
+                                    {limitedCertifications.map((cert, i) => (
                                         <li key={i} className="flex items-center gap-1">
                                             <span className="text-slate-600">•</span> {cert}
                                         </li>
@@ -289,7 +290,7 @@ export default function ClassicTemplate({
                 </div>
 
                 {/* [CDC-21] Section Projets ajoutée */}
-                {projects && projects.length > 0 && (
+                {limitedProjects.length > 0 && (
                     <section className="mt-6">
                         <h2
                             className="text-[11pt] uppercase tracking-widest border-b-2 border-slate-300 pb-2 mb-3 text-slate-800"
@@ -298,7 +299,7 @@ export default function ClassicTemplate({
                             Projets
                         </h2>
                         <div className="grid grid-cols-2 gap-4">
-                            {projects.map((project, i) => (
+                            {limitedProjects.map((project, i) => (
                                 <div key={i} className="border-l-2 border-slate-300 pl-3">
                                     <div className="flex items-center gap-2">
                                         <h4 className="text-[9pt] font-bold text-slate-900">{project.nom}</h4>

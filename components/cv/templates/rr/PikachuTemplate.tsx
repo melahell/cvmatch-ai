@@ -181,14 +181,13 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                             <h3 className="font-bold text-base">
                                                 {sanitizeText(exp.poste)}
                                             </h3>
-                                            {exp.entreprise && exp.entreprise !== "—" && (
-                                                <p
-                                                    className="font-semibold"
-                                                    style={{ color: colors.secondary }}
-                                                >
-                                                    {sanitizeText(exp.entreprise)}
+                                            {(exp.entreprise && exp.entreprise !== "—") ? (
+                                                <p className="font-semibold" style={{ color: colors.secondary }}>
+                                                    {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
                                                 </p>
-                                            )}
+                                            ) : exp.lieu ? (
+                                                <p className="font-semibold" style={{ color: colors.secondary }}>{exp.lieu}</p>
+                                            ) : null}
                                         </div>
                                         <span 
                                             className={`${textSize} px-3 py-1 rounded-full`}

@@ -110,11 +110,13 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                                 {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}
                                             </span>
                                         </div>
-                                        {exp.entreprise && exp.entreprise !== "—" && (
+                                        {(exp.entreprise && exp.entreprise !== "—") ? (
                                             <p className="text-xs font-medium mb-1" style={{ color: c.accent }}>
                                                 {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
                                             </p>
-                                        )}
+                                        ) : exp.lieu ? (
+                                            <p className="text-xs font-medium mb-1" style={{ color: c.accent }}>{exp.lieu}</p>
+                                        ) : null}
                                         {exp.realisations?.length > 0 && (
                                             <ul className={`space-y-0.5 ${ts} text-gray-600`}>
                                                 {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 5).map((r: string, ri: number) => (
