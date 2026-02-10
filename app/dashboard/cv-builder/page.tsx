@@ -16,6 +16,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Loader2, Sparkles, RefreshCw, ChevronDown, ChevronUp, SlidersHorizontal, Info } from "lucide-react";
 import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions, type ValidationWarning } from "@/lib/cv/client-bridge";
 import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
@@ -113,6 +114,9 @@ function CVBuilderContent() {
     const [fontId, setFontId] = useState<string>("sans");
     const [templateQuery, setTemplateQuery] = useState<string>("");
     const [favoriteStyles, setFavoriteStyles] = useState<Array<{ templateId: string; colorwayId: string; fontId: string; density: CVDensity }>>([]);
+    const [estimatedPages, setEstimatedPages] = useState<number>(1);
+    const cvPreviewRef = useRef<HTMLDivElement>(null);
+
     const [buildInfo, setBuildInfo] = useState<{
         version: string | null;
         env: string | null;
@@ -334,6 +338,21 @@ function CVBuilderContent() {
         reorderExperienceBullets,
         resetOrder,
     } = useCVReorder(cvData, analysisId);
+
+    // Estimer le nombre de pages à partir de la hauteur du CV rendu
+    useEffect(() => {
+        if (!cvPreviewRef.current) return;
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const height = entry.contentRect.height;
+                // A4 page ≈ 1123px at 96dpi (297mm). Avec marges ~1050px de contenu utile.
+                const pages = Math.max(1, Math.ceil(height / 1050));
+                setEstimatedPages(pages);
+            }
+        });
+        observer.observe(cvPreviewRef.current);
+        return () => observer.disconnect();
+    }, [cvData, reorderedCV, templateId]);
 
     // Charger widgets depuis cache ou API
     const loadWidgets = useCallback(async (forceRefresh = false) => {
@@ -905,14 +924,15 @@ function CVBuilderContent() {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
                             <Button
                                 variant={viewMode === "multi" ? "primary" : "outline"}
                                 size="sm"
                                 onClick={() => setViewMode(viewMode === "single" ? "multi" : "single")}
                                 disabled={!cvData}
+                                className="hidden sm:inline-flex"
                             >
-                                {viewMode === "single" ? "Comparer les modèles" : "Vue unique"}
+                                {viewMode === "single" ? "Comparer" : "Vue unique"}
                             </Button>
                             <Button
                                 variant={showEditor ? "primary" : "outline"}
@@ -1156,8 +1176,8 @@ function CVBuilderContent() {
                                 />
                             ) : (
                                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-                                    {/* Sidebar : Contrôles (scrollable) */}
-                                    <aside className="space-y-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1">
+                                    {/* Sidebar : Contrôles (scrollable) — ordre inversé sur mobile pour voir le CV d'abord */}
+                                    <aside className="space-y-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1 order-2 lg:order-1">
                                         <Card>
                                             <CardHeader>
                                                 <CardTitle className="text-sm">Modèle</CardTitle>
@@ -1223,13 +1243,13 @@ function CVBuilderContent() {
                                                     </div>
                                                     <div className="space-y-1">
                                                         <div className="text-xs text-slate-600">Couleurs</div>
-                                                        <div className="flex flex-wrap gap-1">
+                                                        <div className="flex flex-wrap gap-1.5 sm:gap-1">
                                                             <button
                                                                 key="default"
                                                                 type="button"
                                                                 onClick={() => setColorwayId("default")}
                                                                 title="Défaut"
-                                                                className={`h-6 w-6 rounded-full border bg-white text-[9px] font-semibold ${colorwayId === "default" ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                                className={`h-7 w-7 sm:h-6 sm:w-6 rounded-full border bg-white text-[9px] font-semibold ${colorwayId === "default" ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
                                                             >
                                                                 D
                                                             </button>
@@ -1239,7 +1259,7 @@ function CVBuilderContent() {
                                                                     type="button"
                                                                     onClick={() => setColorwayId(c.id)}
                                                                     title={c.name}
-                                                                    className={`h-6 w-6 rounded-full border bg-[var(--swatch)] ${colorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                                    className={`h-7 w-7 sm:h-6 sm:w-6 rounded-full border bg-[var(--swatch)] ${colorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
                                                                     style={{ ["--swatch" as any]: c.primary } as any}
                                                                 />
                                                             ))}
@@ -1714,16 +1734,21 @@ function CVBuilderContent() {
                                     </aside>
 
                                     {/* Main : Preview CV (sticky - toujours visible) */}
-                                    <div className="lg:col-span-3 lg:sticky lg:top-[8.5rem] self-start">
+                                    <div className="lg:col-span-3 lg:sticky lg:top-[8.5rem] self-start order-1 lg:order-2">
                                         <Card>
                                             <CardHeader>
-                                                <CardTitle className="text-base">
-                                                    Prévisualisation
+                                                <CardTitle className="text-base flex items-center justify-between">
+                                                    <span>Prévisualisation</span>
+                                                    {(reorderedCV || cvData) && (
+                                                        <Badge variant="outline" className="text-xs font-normal">
+                                                            ~{estimatedPages} page{estimatedPages > 1 ? "s" : ""}
+                                                        </Badge>
+                                                    )}
                                                 </CardTitle>
                                             </CardHeader>
-                                            <CardContent className="bg-slate-100 flex items-center justify-center p-4 min-h-[800px]">
+                                            <CardContent className="bg-slate-100 flex items-center justify-center p-2 sm:p-4 min-h-[400px] sm:min-h-[800px] overflow-x-auto">
                                                 {reorderedCV || cvData ? (
-                                                    <div id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
+                                                    <div ref={cvPreviewRef} id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
                                                         <CVRenderer
                                                             data={reorderedCV || cvData}
                                                             templateId={templateId}

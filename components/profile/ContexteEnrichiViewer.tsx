@@ -41,10 +41,10 @@ export function ContexteEnrichiViewer({
     };
 
     const getConfidenceLabel = (confidence: number) => {
-        if (confidence >= 95) return "Très élevé";
-        if (confidence >= 80) return "Élevé";
-        if (confidence >= 60) return "Moyen";
-        return "Faible";
+        if (confidence >= 95) return "Très fiable";
+        if (confidence >= 80) return "Fiable";
+        if (confidence >= 60) return "Probable";
+        return "Incertain";
     };
 
     const stats = {
@@ -63,7 +63,7 @@ export function ContexteEnrichiViewer({
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Sparkles className="w-5 h-5" />
-                        Statistiques Contexte Enrichi
+                        Déductions IA
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -85,6 +85,9 @@ export function ContexteEnrichiViewer({
                             <div className="text-sm text-slate-600">En attente</div>
                         </div>
                     </div>
+                    <p className="text-xs text-slate-500 mt-3 text-center">
+                        Les scores de confiance reflètent la certitude de l'IA dans ses déductions, pas la pertinence par rapport à une offre d'emploi.
+                    </p>
                 </CardContent>
             </Card>
 
@@ -110,7 +113,7 @@ export function ContexteEnrichiViewer({
                                         )}
                                     </div>
                                     <Badge className={getConfidenceColor(resp.confidence)}>
-                                        {resp.confidence}% - {getConfidenceLabel(resp.confidence)}
+                                        Confiance IA : {resp.confidence}% ({getConfidenceLabel(resp.confidence)})
                                     </Badge>
                                 </div>
                                 {(resp as any).impact_match_score && (
@@ -147,7 +150,7 @@ export function ContexteEnrichiViewer({
                                         )}
                                     </div>
                                     <Badge className={getConfidenceColor(comp.confidence)}>
-                                        {comp.confidence}% - {getConfidenceLabel(comp.confidence)}
+                                        Confiance IA : {comp.confidence}% ({getConfidenceLabel(comp.confidence)})
                                     </Badge>
                                 </div>
                                 {(comp as any).impact_match_score && (
@@ -184,7 +187,7 @@ export function ContexteEnrichiViewer({
                                 </div>
                                 {(contexteEnrichi.environnement_travail as any).confidence && (
                                     <Badge className={getConfidenceColor((contexteEnrichi.environnement_travail as any).confidence)}>
-                                        {(contexteEnrichi.environnement_travail as any).confidence}% - {getConfidenceLabel((contexteEnrichi.environnement_travail as any).confidence)}
+                                        Confiance IA : {(contexteEnrichi.environnement_travail as any).confidence}% ({getConfidenceLabel((contexteEnrichi.environnement_travail as any).confidence)})
                                     </Badge>
                                 )}
                             </div>
