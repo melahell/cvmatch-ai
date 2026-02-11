@@ -354,6 +354,25 @@ function CVBuilderContent() {
         return () => observer.disconnect();
     }, [cvData, reorderedCV, templateId]);
 
+    // Compteurs réels pour capper les sliders aux données disponibles
+    const dataCounts = useMemo(() => {
+        const d = reorderedCV || cvData;
+        if (!d) return null;
+        const maxRealisations = Math.max(0, ...(d.experiences || []).map(e => (e.realisations || []).length));
+        const maxClientsPerExp = Math.max(0, ...(d.experiences || []).map(e => (e.clients || []).length));
+        return {
+            experiences: (d.experiences || []).length,
+            skills: (d.competences?.techniques || []).length + (d.competences?.soft_skills || []).length,
+            formations: (d.formations || []).length,
+            langues: (d.langues || []).length,
+            certifications: (d.certifications || []).length,
+            projects: (d.projects || []).length,
+            clientsReferences: (d.clients_references?.clients || []).length,
+            maxRealisationsPerExp: maxRealisations,
+            maxClientsPerExp: maxClientsPerExp,
+        };
+    }, [cvData, reorderedCV]);
+
     // Charger widgets depuis cache ou API
     const loadWidgets = useCallback(async (forceRefresh = false) => {
         if (!analysisId) {
@@ -1429,7 +1448,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Expériences affichées : {convertOptions.maxExperiences}
+                                                            Expériences : {Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)} / {dataCounts?.experiences || 20}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1455,8 +1474,8 @@ function CVBuilderContent() {
                                                     <input
                                                         type="range"
                                                         min="1"
-                                                        max="20"
-                                                        value={convertOptions.maxExperiences}
+                                                        max={dataCounts?.experiences || 20}
+                                                        value={Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)}
                                                         onChange={(e) =>
                                                             setConvertOptions((prev) => ({
                                                                 ...prev,
@@ -1466,13 +1485,13 @@ function CVBuilderContent() {
                                                         className="w-full"
                                                     />
                                                     <p className="text-slate-500 mt-1">
-                                                        {cvData && `Affichera ${Math.min(convertOptions.maxExperiences ?? 10, cvData.experiences.length)} expérience(s) sur ${cvData.experiences.length} disponible(s)`}
+                                                        {dataCounts && `${Math.min(convertOptions.maxExperiences ?? 20, dataCounts.experiences)} / ${dataCounts.experiences} expériences`}
                                                     </p>
                                                 </div>
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Réalisations par expérience : {convertOptions.maxBulletsPerExperience}
+                                                            Réalisations par exp : {Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)} / {dataCounts?.maxRealisationsPerExp || 10}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1498,8 +1517,8 @@ function CVBuilderContent() {
                                                     <input
                                                         type="range"
                                                         min="1"
-                                                        max="10"
-                                                        value={convertOptions.maxBulletsPerExperience}
+                                                        max={dataCounts?.maxRealisationsPerExp || 10}
+                                                        value={Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)}
                                                         onChange={(e) =>
                                                             setConvertOptions((prev) => ({
                                                                 ...prev,
@@ -1514,10 +1533,11 @@ function CVBuilderContent() {
                                                                 "CV très détaillé"}
                                                     </p>
                                                 </div>
+                                                {(dataCounts?.maxClientsPerExp ?? 0) > 0 && (
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Clients par expérience : {convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                            Clients par exp : {Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)} / {dataCounts!.maxClientsPerExp}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1541,8 +1561,8 @@ function CVBuilderContent() {
                                                     <input
                                                         type="range"
                                                         min="0"
-                                                        max="10"
-                                                        value={convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                        max={dataCounts!.maxClientsPerExp}
+                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)}
                                                         onChange={(e) =>
                                                             setConvertOptions((prev) => ({
                                                                 ...prev,
@@ -1555,10 +1575,12 @@ function CVBuilderContent() {
                                                         className="w-full"
                                                     />
                                                 </div>
+                                                )}
+                                                {(dataCounts?.clientsReferences ?? 0) > 0 && (
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Clients références : {convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                            Clients références : {Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)} / {dataCounts!.clientsReferences}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1569,7 +1591,7 @@ function CVBuilderContent() {
                                                                     <div className="space-y-1 text-xs">
                                                                         <p className="font-semibold">Clients & Références</p>
                                                                         <p className="text-slate-600">
-                                                                            Limite le nombre de clients affichés dans la zone globale “Clients & Références”.
+                                                                            Limite le nombre de clients affichés dans la zone globale "Clients & Références".
                                                                         </p>
                                                                         <p className="text-slate-600">
                                                                             Mets 0 pour masquer complètement la zone clients (références).
@@ -1582,8 +1604,8 @@ function CVBuilderContent() {
                                                     <input
                                                         type="range"
                                                         min="0"
-                                                        max="30"
-                                                        value={convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                        max={dataCounts!.clientsReferences}
+                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)}
                                                         onChange={(e) =>
                                                             setConvertOptions((prev) => ({
                                                                 ...prev,
@@ -1596,6 +1618,7 @@ function CVBuilderContent() {
                                                         className="w-full"
                                                     />
                                                 </div>
+                                                )}
                                                 {/* [CDC-23] Toggles photo et mode dense */}
                                                 <div className="flex items-center justify-between">
                                                     <label className="text-slate-600">Inclure photo</label>
@@ -1604,112 +1627,122 @@ function CVBuilderContent() {
                                                         onCheckedChange={setIncludePhoto}
                                                     />
                                                 </div>
-                                                {/* [CDC-23] Sliders manquants ajoutés */}
-                                                <div>
-                                                    <label className="block text-slate-600 mb-1">
-                                                        Compétences affichées : {convertOptions.limitsBySection?.maxSkills ?? 20}
-                                                    </label>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="30"
-                                                        value={convertOptions.limitsBySection?.maxSkills ?? 20}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                limitsBySection: {
-                                                                    ...(prev.limitsBySection || {}),
-                                                                    maxSkills: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-slate-600 mb-1">
-                                                        Formations affichées : {convertOptions.limitsBySection?.maxFormations ?? 5}
-                                                    </label>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="10"
-                                                        value={convertOptions.limitsBySection?.maxFormations ?? 5}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                limitsBySection: {
-                                                                    ...(prev.limitsBySection || {}),
-                                                                    maxFormations: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-slate-600 mb-1">
-                                                        Langues affichées : {convertOptions.limitsBySection?.maxLanguages ?? 5}
-                                                    </label>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="10"
-                                                        value={convertOptions.limitsBySection?.maxLanguages ?? 5}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                limitsBySection: {
-                                                                    ...(prev.limitsBySection || {}),
-                                                                    maxLanguages: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-slate-600 mb-1">
-                                                        Certifications affichées : {convertOptions.limitsBySection?.maxCertifications ?? 10}
-                                                    </label>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="15"
-                                                        value={convertOptions.limitsBySection?.maxCertifications ?? 10}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                limitsBySection: {
-                                                                    ...(prev.limitsBySection || {}),
-                                                                    maxCertifications: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-slate-600 mb-1">
-                                                        Projets affichés : {convertOptions.limitsBySection?.maxProjects ?? 5}
-                                                    </label>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="10"
-                                                        value={convertOptions.limitsBySection?.maxProjects ?? 5}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                limitsBySection: {
-                                                                    ...(prev.limitsBySection || {}),
-                                                                    maxProjects: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                </div>
+                                                {/* Sliders conditionnels — cachés si données ≤ 1 */}
+                                                {(dataCounts?.skills ?? 0) > 1 && (
+                                                    <div>
+                                                        <label className="block text-slate-600 mb-1">
+                                                            Compétences : {Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)} / {dataCounts!.skills}
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max={dataCounts!.skills}
+                                                            value={Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)}
+                                                            onChange={(e) =>
+                                                                setConvertOptions((prev) => ({
+                                                                    ...prev,
+                                                                    limitsBySection: {
+                                                                        ...(prev.limitsBySection || {}),
+                                                                        maxSkills: Number(e.target.value),
+                                                                    },
+                                                                }))
+                                                            }
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {(dataCounts?.formations ?? 0) > 1 && (
+                                                    <div>
+                                                        <label className="block text-slate-600 mb-1">
+                                                            Formations : {Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)} / {dataCounts!.formations}
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max={dataCounts!.formations}
+                                                            value={Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)}
+                                                            onChange={(e) =>
+                                                                setConvertOptions((prev) => ({
+                                                                    ...prev,
+                                                                    limitsBySection: {
+                                                                        ...(prev.limitsBySection || {}),
+                                                                        maxFormations: Number(e.target.value),
+                                                                    },
+                                                                }))
+                                                            }
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {(dataCounts?.langues ?? 0) > 1 && (
+                                                    <div>
+                                                        <label className="block text-slate-600 mb-1">
+                                                            Langues : {Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)} / {dataCounts!.langues}
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max={dataCounts!.langues}
+                                                            value={Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)}
+                                                            onChange={(e) =>
+                                                                setConvertOptions((prev) => ({
+                                                                    ...prev,
+                                                                    limitsBySection: {
+                                                                        ...(prev.limitsBySection || {}),
+                                                                        maxLanguages: Number(e.target.value),
+                                                                    },
+                                                                }))
+                                                            }
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {(dataCounts?.certifications ?? 0) > 1 && (
+                                                    <div>
+                                                        <label className="block text-slate-600 mb-1">
+                                                            Certifications : {Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)} / {dataCounts!.certifications}
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max={dataCounts!.certifications}
+                                                            value={Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)}
+                                                            onChange={(e) =>
+                                                                setConvertOptions((prev) => ({
+                                                                    ...prev,
+                                                                    limitsBySection: {
+                                                                        ...(prev.limitsBySection || {}),
+                                                                        maxCertifications: Number(e.target.value),
+                                                                    },
+                                                                }))
+                                                            }
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {(dataCounts?.projects ?? 0) > 1 && (
+                                                    <div>
+                                                        <label className="block text-slate-600 mb-1">
+                                                            Projets : {Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)} / {dataCounts!.projects}
+                                                        </label>
+                                                        <input
+                                                            type="range"
+                                                            min="0"
+                                                            max={dataCounts!.projects}
+                                                            value={Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)}
+                                                            onChange={(e) =>
+                                                                setConvertOptions((prev) => ({
+                                                                    ...prev,
+                                                                    limitsBySection: {
+                                                                        ...(prev.limitsBySection || {}),
+                                                                        maxProjects: Number(e.target.value),
+                                                                    },
+                                                                }))
+                                                            }
+                                                            className="w-full"
+                                                        />
+                                                    </div>
+                                                )}
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -1719,7 +1752,7 @@ function CVBuilderContent() {
                                                             minScore: 0,
                                                             maxExperiences: 20,
                                                             maxBulletsPerExperience: 10,
-                                                            limitsBySection: { maxClientsPerExperience: 6, maxClientsReferences: 25 },
+                                                            limitsBySection: {},
                                                         });
                                                         setIncludePhoto(true);
                                                         setAdvancedFiltersEnabled(false);
@@ -1759,13 +1792,13 @@ function CVBuilderContent() {
                                                             includePhoto={includePhoto}
                                                             displayLimits={{
                                                                 maxSkills: convertOptions.limitsBySection?.maxSkills,
-                                                                maxSoftSkills: convertOptions.limitsBySection?.maxSkills ? Math.ceil((convertOptions.limitsBySection.maxSkills) / 3) : undefined,
                                                                 maxRealisationsPerExp: convertOptions.maxBulletsPerExperience,
                                                                 maxClientsPerExp: convertOptions.limitsBySection?.maxClientsPerExperience,
                                                                 maxClientsReferences: convertOptions.limitsBySection?.maxClientsReferences,
                                                                 maxCertifications: convertOptions.limitsBySection?.maxCertifications,
                                                                 maxProjects: convertOptions.limitsBySection?.maxProjects,
                                                                 maxFormations: convertOptions.limitsBySection?.maxFormations,
+                                                                maxLangues: convertOptions.limitsBySection?.maxLanguages,
                                                             }}
                                                         />
                                                     </div>

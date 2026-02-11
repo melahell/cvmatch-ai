@@ -16,7 +16,7 @@ import { INDUCED_DATA_PRESETS } from "@/types/rag-contexte-enrichi";
 // [CDC Phase 4] Flag pour désactiver les logs de debug en production
 const DEBUG_AI_ADAPTER = process.env.NODE_ENV === "development" && process.env.DEBUG_AI_ADAPTER === "true";
 const debugLog = (...args: any[]) => {
-    if (DEBUG_AI_ADAPTER) debugLog(...args);
+    if (DEBUG_AI_ADAPTER) console.log(...args);
 };
 
 export interface ConvertOptions {

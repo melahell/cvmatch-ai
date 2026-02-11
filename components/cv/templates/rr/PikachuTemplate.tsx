@@ -8,7 +8,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise, withDL } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -42,14 +42,11 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
     const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
-    // Extraire les skills
-    const technicalSkills = Array.isArray(competences) 
-        ? competences.map((c: any) => c.nom || c.name || c).filter(Boolean)
-        : competences.techniques || [];
-    const softSkills = Array.isArray(competences) 
-        ? [] 
-        : competences.soft_skills || [];
-    const allSkills = [...technicalSkills, ...softSkills];
+    const technicalSkills = competences.techniques || [];
+    const softSkills = competences.soft_skills || [];
+    const limitedTech = technicalSkills.slice(0, dl?.maxSkills ?? 20);
+    const limitedSoft = softSkills.slice(0, dl?.maxSoftSkills ?? 8);
+    const allSkills = [...limitedTech, ...limitedSoft];
 
     return (
         <div 
@@ -134,7 +131,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                             Compétences
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {allSkills.slice(0, dl?.maxSkills ?? 20).map((skill: string, idx: number) => (
+                            {allSkills.map((skill: string, idx: number) => (
                                 <span
                                     key={idx}
                                     className={`px-3 py-1.5 rounded-full ${textSize} font-medium`}
@@ -181,7 +178,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                             <h3 className="font-bold text-base">
                                                 {sanitizeText(exp.poste)}
                                             </h3>
-                                            {(exp.entreprise && exp.entreprise !== "—") ? (
+                                            {isValidEntreprise(exp.entreprise) ? (
                                                 <p className="font-semibold" style={{ color: colors.secondary }}>
                                                     {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
                                                 </p>
@@ -202,7 +199,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
 
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <ul className={`space-y-1.5 ${textSize} text-gray-600`}>
-                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 4).map((real: string, ridx: number) => (
+                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((real: string, ridx: number) => (
                                                 <li key={ridx} className="flex items-start gap-2">
                                                     <span 
                                                         className="mt-1.5"
@@ -219,7 +216,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                     {exp.clients && exp.clients.length > 0 && (
                                         <p className={`mt-2 ${textSize} text-gray-500`}>
                                             <span className="font-medium">Clients : </span>
-                                            {exp.clients.slice(0, dl?.maxClientsPerExp ?? 4).join(", ")}
+                                            {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
                                         </p>
                                     )}
                                 </article>
@@ -244,7 +241,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                 Formation
                             </h2>
                             <div className="space-y-3">
-                                {formations.map((form: any, idx: number) => (
+                                {formations.slice(0, dl?.maxFormations ?? 5).map((form: any, idx: number) => (
                                     <article key={idx}>
                                         <h3 className="font-bold text-sm">
                                             {sanitizeText(form.diplome)}
@@ -276,7 +273,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                     Langues
                                 </h2>
                                 <div className="space-y-2">
-                                    {langues.map((lang: any, idx: number) => (
+                                    {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
                                         <div key={idx} className="flex items-center justify-between">
                                             <span className="font-medium text-sm">{lang.langue}</span>
                                             <span 
@@ -307,7 +304,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                     Certifications
                                 </h2>
                                 <ul className={`space-y-1 ${textSize}`}>
-                                    {certifications.slice(0, dl?.maxCertifications ?? 5).map((cert: string, idx: number) => (
+                                    {certifications.slice(0, dl?.maxCertifications ?? 10).map((cert: string, idx: number) => (
                                         <li key={idx} className="flex items-center gap-2">
                                             <span style={{ color: colors.primary }}>✓</span>
                                             {sanitizeText(cert)}
@@ -333,7 +330,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                             Projets
                         </h2>
                         <div className="grid grid-cols-2 gap-4">
-                            {projects.slice(0, dl?.maxProjects ?? 4).map((proj: any, idx: number) => (
+                            {projects.slice(0, dl?.maxProjects ?? 5).map((proj: any, idx: number) => (
                                 <article 
                                     key={idx} 
                                     className="p-4 rounded-lg break-inside-avoid"
@@ -380,7 +377,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                             Clients Références
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 10).map((client: string, idx: number) => (
+                            {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, idx: number) => (
                                 <span
                                     key={idx}
                                     className={`px-3 py-1 rounded-full ${textSize} border-2`}

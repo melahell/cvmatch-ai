@@ -10,7 +10,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise, withDL } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -110,7 +110,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                                 {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}
                                             </span>
                                         </div>
-                                        {(exp.entreprise && exp.entreprise !== "—") ? (
+                                        {isValidEntreprise(exp.entreprise) ? (
                                             <p className="text-xs font-medium mb-1" style={{ color: c.accent }}>
                                                 {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
                                             </p>
@@ -119,7 +119,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                         ) : null}
                                         {exp.realisations?.length > 0 && (
                                             <ul className={`space-y-0.5 ${ts} text-gray-600`}>
-                                                {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 5).map((r: string, ri: number) => (
+                                                {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r: string, ri: number) => (
                                                     <li key={ri} className="flex items-start gap-1.5">
                                                         <span style={{ color: c.primary }}>›</span>
                                                         <span>{sanitizeText(r)}</span>
@@ -129,7 +129,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                         )}
                                         {exp.clients?.length > 0 && (
                                             <p className="mt-1 text-[10px] text-gray-400">
-                                                Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 4).join(", ")}
+                                                Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
                                             </p>
                                         )}
                                     </article>
@@ -145,7 +145,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                 Projets
                             </h2>
                             <div className="space-y-2">
-                                {projects.slice(0, dl?.maxProjects ?? 4).map((p: any, i: number) => (
+                                {projects.slice(0, dl?.maxProjects ?? 5).map((p: any, i: number) => (
                                     <div key={i}>
                                         <h3 className="font-semibold text-xs">{sanitizeText(p.nom)}</h3>
                                         {p.description && <p className="text-[10px] text-gray-500">{sanitizeText(p.description)}</p>}
@@ -162,7 +162,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                 Références Clients
                             </h2>
                             <div className="flex flex-wrap gap-1.5">
-                                {clients.clients.slice(0, dl?.maxClientsReferences ?? 8).map((cl: string, i: number) => (
+                                {clients.clients.slice(0, dl?.maxClientsReferences ?? 30).map((cl: string, i: number) => (
                                     <span key={i} className="px-2 py-0.5 rounded text-xs border" style={{ borderColor: c.primary }}>
                                         {cl}
                                     </span>
@@ -185,7 +185,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                     Compétences Techniques
                                 </h3>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {techSkills.slice(0, dl?.maxSkills ?? 12).map((skill: string, i: number) => (
+                                    {techSkills.slice(0, dl?.maxSkills ?? 20).map((skill: string, i: number) => (
                                         <span key={i} className="px-2 py-0.5 rounded text-xs bg-white/15">
                                             {sanitizeText(skill)}
                                         </span>
@@ -218,7 +218,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                     Formation
                                 </h3>
                                 <div className="space-y-2.5">
-                                    {formations.map((f: any, i: number) => (
+                                    {formations.slice(0, dl?.maxFormations ?? 5).map((f: any, i: number) => (
                                         <div key={i}>
                                             <p className="text-xs font-semibold">{sanitizeText(f.diplome)}</p>
                                             <p className="text-[10px] text-white/70">{sanitizeText(f.etablissement)}</p>
@@ -236,7 +236,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                     Langues
                                 </h3>
                                 <div className="space-y-1.5">
-                                    {langues.map((l: any, i: number) => (
+                                    {langues.slice(0, dl?.maxLangues ?? 10).map((l: any, i: number) => (
                                         <div key={i} className="flex justify-between items-center text-xs">
                                             <span>{l.langue}</span>
                                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/15">{l.niveau}</span>
@@ -253,7 +253,7 @@ export default function ChikoritaTemplate({ data, includePhoto = true, dense = f
                                     Certifications
                                 </h3>
                                 <ul className="space-y-1 text-xs text-white/85">
-                                    {certifications.slice(0, dl?.maxCertifications ?? 5).map((cert: string, i: number) => (
+                                    {certifications.slice(0, dl?.maxCertifications ?? 10).map((cert: string, i: number) => (
                                         <li key={i} className="flex items-start gap-1.5">
                                             <span className="text-white/60">✓</span>
                                             {sanitizeText(cert)}

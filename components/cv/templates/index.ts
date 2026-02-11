@@ -68,6 +68,34 @@ export interface DisplayLimits {
     maxCertifications?: number;
     maxProjects?: number;
     maxFormations?: number;
+    maxLangues?: number;
+}
+
+/** Centralized defaults — single source of truth for all templates */
+export const DL_DEFAULTS: Required<DisplayLimits> = {
+    maxSkills: 20,
+    maxSoftSkills: 8,
+    maxRealisationsPerExp: 6,
+    maxClientsPerExp: 6,
+    maxClientsReferences: 30,
+    maxCertifications: 10,
+    maxProjects: 5,
+    maxFormations: 5,
+    maxLangues: 10,
+};
+
+/** Merge user displayLimits with centralized defaults */
+export function withDL(dl?: DisplayLimits): Required<DisplayLimits> {
+    return { ...DL_DEFAULTS, ...(dl || {}) };
+}
+
+/** Returns true if entreprise is a real company name (not a placeholder like "—" or "Entreprise non précisée") */
+export function isValidEntreprise(e: string | undefined | null): boolean {
+    if (!e || !e.trim()) return false;
+    const lower = e.toLowerCase().trim();
+    if (lower === "—" || lower === "-" || lower === "n/a") return false;
+    if (lower.includes("non précisé") || lower.includes("non spécifié")) return false;
+    return true;
 }
 
 export interface TemplateProps {

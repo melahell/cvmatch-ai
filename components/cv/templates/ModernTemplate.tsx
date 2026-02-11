@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TemplateProps } from "./index";
+import { TemplateProps, isValidEntreprise, withDL } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
@@ -163,7 +163,7 @@ export default function ModernTemplate({
                             Langues
                         </h3>
                         <div className="space-y-1.5 text-[8pt]">
-                            {langues.map((lang, i) => (
+                            {(langues || []).slice(0, dl?.maxLangues ?? 10).map((lang, i) => (
                                 <div key={i} className="flex justify-between items-center">
                                     <span className="text-slate-100 font-medium">{lang.langue}</span>
                                     <span className="text-[6pt] bg-[var(--cv-sidebar-accent)] text-white px-1.5 py-0.5 rounded uppercase font-semibold">
@@ -198,7 +198,7 @@ export default function ModernTemplate({
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
-                                {clients_references.clients.map((client: string, i: number) => (
+                                {clients_references.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, i: number) => (
                                     <span key={i} className="truncate">• {client}</span>
                                 ))}
                             </div>
@@ -263,7 +263,7 @@ export default function ModernTemplate({
                                             {exp.date_debut ? `${sanitizeText(exp.date_debut)} - ${exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}` : (exp.date_fin ? sanitizeText(exp.date_fin) : "")}
                                         </span>
                                     </div>
-                                    {(exp.entreprise && exp.entreprise !== "—") ? (
+                                    {isValidEntreprise(exp.entreprise) ? (
                                         <p className="text-purple-600 font-bold mb-1.5 text-[9pt]">
                                             {sanitizeText(exp.entreprise)}
                                             {exp.lieu && ` • ${sanitizeText(exp.lieu)}`}

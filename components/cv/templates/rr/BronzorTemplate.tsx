@@ -8,7 +8,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise, withDL } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -51,13 +51,8 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
     const initials = `${(profil.prenom || "N").charAt(0)}${(profil.nom || "P").charAt(0)}`.toUpperCase();
     const titre = profil.titre_principal || "";
 
-    // Extraire les skills
-    const technicalSkills = Array.isArray(competences) 
-        ? competences.map((c: any) => c.nom || c.name || c).filter(Boolean)
-        : competences.techniques || [];
-    const softSkills = Array.isArray(competences) 
-        ? [] 
-        : competences.soft_skills || [];
+    const technicalSkills = competences.techniques || [];
+    const softSkills = competences.soft_skills || [];
 
     return (
         <div 
@@ -157,7 +152,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}
                                         </span>
                                     </div>
-                                    {(exp.entreprise && exp.entreprise !== "—") ? (
+                                    {isValidEntreprise(exp.entreprise) ? (
                                         <p
                                             className={`${textSize} font-medium mb-2`}
                                             style={{ color: colors.accent }}
@@ -174,7 +169,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             className={`space-y-1 ${textSize}`}
                                             style={{ color: colors.muted }}
                                         >
-                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 4).map((real: string, ridx: number) => (
+                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((real: string, ridx: number) => (
                                                 <li key={ridx} className="flex items-start">
                                                     <span className="mr-2">—</span>
                                                     <span>{sanitizeText(real)}</span>
@@ -189,7 +184,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             style={{ color: colors.muted }}
                                         >
                                             <span className="font-medium">Clients : </span>
-                                            {exp.clients.slice(0, dl?.maxClientsPerExp ?? 4).join(", ")}
+                                            {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
                                         </p>
                                     )}
                                 </article>
@@ -208,7 +203,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Formation
                         </h2>
                         <div className="space-y-3">
-                            {formations.map((form: any, idx: number) => (
+                            {formations.slice(0, dl?.maxFormations ?? 5).map((form: any, idx: number) => (
                                 <article key={idx} className="flex justify-between items-baseline break-inside-avoid">
                                     <div>
                                         <span className="font-semibold">{sanitizeText(form.diplome)}</span>
@@ -241,7 +236,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Compétences
                         </h2>
                         <div className="grid grid-cols-3 gap-x-8 gap-y-2">
-                            {[...technicalSkills, ...softSkills].slice(0, dl?.maxSkills ?? 18).map((skill: string, idx: number) => (
+                            {[...technicalSkills.slice(0, dl?.maxSkills ?? 20), ...softSkills.slice(0, dl?.maxSoftSkills ?? 8)].map((skill: string, idx: number) => (
                                 <span 
                                     key={idx}
                                     className={`${textSize}`}
@@ -265,7 +260,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                 Langues
                             </h2>
                             <div className="space-y-1">
-                                {langues.map((lang: any, idx: number) => (
+                                {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
                                     <div 
                                         key={idx} 
                                         className={`flex justify-between ${textSize}`}
@@ -287,7 +282,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                 Certifications
                             </h2>
                             <div className="space-y-1">
-                                {certifications.slice(0, dl?.maxCertifications ?? 5).map((cert: string, idx: number) => (
+                                {certifications.slice(0, dl?.maxCertifications ?? 10).map((cert: string, idx: number) => (
                                     <p 
                                         key={idx}
                                         className={`${textSize}`}
@@ -311,7 +306,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Projets
                         </h2>
                         <div className="space-y-4">
-                            {projects.slice(0, dl?.maxProjects ?? 3).map((proj: any, idx: number) => (
+                            {projects.slice(0, dl?.maxProjects ?? 5).map((proj: any, idx: number) => (
                                 <article key={idx} className="break-inside-avoid">
                                     <div className="flex items-baseline gap-2 mb-1">
                                         <h3 className="font-semibold">{sanitizeText(proj.nom)}</h3>
@@ -348,7 +343,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Clients Références
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 10).map((client: string, idx: number, arr: string[]) => (
+                            {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, idx: number, arr: string[]) => (
                                 <span
                                     key={idx}
                                     className={`${textSize}`}
@@ -361,18 +356,6 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                     </section>
                 )}
 
-                {/* Footer minimal */}
-                <footer 
-                    className="pt-4 mt-8 border-t"
-                    style={{ borderColor: colors.line }}
-                >
-                    <p 
-                        className="text-xs text-center"
-                        style={{ color: colors.muted }}
-                    >
-                        Références disponibles sur demande
-                    </p>
-                </footer>
             </div>
         </div>
     );
