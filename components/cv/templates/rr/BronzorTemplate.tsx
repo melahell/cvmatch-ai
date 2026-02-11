@@ -8,7 +8,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -157,7 +157,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}
                                         </span>
                                     </div>
-                                    {(exp.entreprise && exp.entreprise !== "—") ? (
+                                    {isValidEntreprise(exp.entreprise) ? (
                                         <p
                                             className={`${textSize} font-medium mb-2`}
                                             style={{ color: colors.accent }}
@@ -265,7 +265,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                 Langues
                             </h2>
                             <div className="space-y-1">
-                                {langues.map((lang: any, idx: number) => (
+                                {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
                                     <div 
                                         key={idx} 
                                         className={`flex justify-between ${textSize}`}

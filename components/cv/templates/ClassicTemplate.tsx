@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TemplateProps } from "./index";
+import { TemplateProps, isValidEntreprise } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Github, Globe, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
@@ -180,7 +180,7 @@ export default function ClassicTemplate({
                                         {exp.date_debut ? `${exp.date_debut} - ${exp.date_fin || 'Présent'}` : (exp.date_fin || "")}
                                     </span>
                                 </div>
-                                {(exp.entreprise && exp.entreprise !== "—") ? (
+                                {isValidEntreprise(exp.entreprise) ? (
                                     <p className="text-[9pt] italic text-slate-600 mb-2">
                                         {exp.entreprise}{exp.lieu && `, ${exp.lieu}`}
                                     </p>
@@ -233,7 +233,7 @@ export default function ClassicTemplate({
                             <div className="mt-4 pt-3 border-t border-slate-200">
                                 <h3 className="text-[10pt] uppercase tracking-wider text-slate-700 mb-2">Langues</h3>
                                 <div className="text-[8pt] text-slate-600">
-                                    {langues.map((l, i) => (
+                                    {(langues || []).slice(0, dl?.maxLangues ?? 10).map((l, i) => (
                                         <span key={i}>
                                             <strong>{l.langue}</strong>: {l.niveau}
                                             {i < langues.length - 1 && ' • '}

@@ -68,6 +68,16 @@ export interface DisplayLimits {
     maxCertifications?: number;
     maxProjects?: number;
     maxFormations?: number;
+    maxLangues?: number;
+}
+
+/** Returns true if entreprise is a real company name (not a placeholder like "—" or "Entreprise non précisée") */
+export function isValidEntreprise(e: string | undefined | null): boolean {
+    if (!e || !e.trim()) return false;
+    const lower = e.toLowerCase().trim();
+    if (lower === "—" || lower === "-" || lower === "n/a") return false;
+    if (lower.includes("non précisé") || lower.includes("non spécifié")) return false;
+    return true;
 }
 
 export interface TemplateProps {

@@ -10,7 +10,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -133,7 +133,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                 Langues
                             </h3>
                             <div className="space-y-2">
-                                {langues.map((l: any, i: number) => (
+                                {langues.slice(0, dl?.maxLangues ?? 10).map((l: any, i: number) => (
                                     <div key={i} className="flex justify-between items-center text-xs">
                                         <span>{l.langue}</span>
                                         <span className="px-1.5 py-0.5 rounded bg-white/15 text-[10px]">{l.niveau}</span>
@@ -206,7 +206,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                             {exp.date_debut ? `${exp.date_debut}${exp.date_fin ? ` — ${exp.date_fin}` : " — Présent"}` : (exp.date_fin || "")}
                                         </span>
                                     </div>
-                                    {(exp.entreprise && exp.entreprise !== "—") ? (
+                                    {isValidEntreprise(exp.entreprise) ? (
                                         <p className="text-xs font-medium mb-1.5" style={{ color: c.accent }}>
                                             {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
                                         </p>

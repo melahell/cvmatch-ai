@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TemplateProps } from "./index";
+import { TemplateProps, isValidEntreprise } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Sparkles, Github, Globe, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
@@ -242,7 +242,7 @@ export default function CreativeTemplate({
                                                 </span>
                                             )}
                                         </div>
-                                        {(exp.entreprise && exp.entreprise !== "—") ? (
+                                        {isValidEntreprise(exp.entreprise) ? (
                                             <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}{exp.lieu && ` · ${exp.lieu}`}</p>
                                         ) : exp.lieu ? (
                                             <p className="text-[8pt] text-slate-600 mb-1.5">{exp.lieu}</p>
@@ -350,7 +350,7 @@ export default function CreativeTemplate({
                             >
                                 🌍 Langues
                             </h3>
-                            {langues.map((lang, i) => (
+                            {(langues || []).slice(0, dl?.maxLangues ?? 10).map((lang, i) => (
                                 <div key={i} className="text-[8pt] mb-1">
                                     <span className="font-bold text-slate-900">{lang.langue}</span>
                                     <span className="text-slate-600"> – {lang.niveau}</span>

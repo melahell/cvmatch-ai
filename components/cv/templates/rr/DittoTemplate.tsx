@@ -11,7 +11,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -139,7 +139,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                                     <div className="flex justify-between items-baseline">
                                         <div>
                                             <h3 className="font-bold text-sm">{sanitizeText(exp.poste)}</h3>
-                                            {(exp.entreprise && exp.entreprise !== "—") ? (
+                                            {isValidEntreprise(exp.entreprise) ? (
                                                 <p className="text-xs font-medium" style={{ color: c.accent }}>
                                                     {sanitizeText(exp.entreprise)}{exp.lieu ? ` — ${exp.lieu}` : ""}
                                                 </p>
@@ -200,7 +200,7 @@ export default function DittoTemplate({ data, includePhoto = true, dense = false
                                     Langues
                                 </h2>
                                 <div className="space-y-1">
-                                    {langues.map((l: any, i: number) => (
+                                    {langues.slice(0, dl?.maxLangues ?? 10).map((l: any, i: number) => (
                                         <div key={i} className="flex justify-between items-center text-xs">
                                             <span>{l.langue}</span>
                                             <span className="text-[10px] text-gray-500">{l.niveau}</span>

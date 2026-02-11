@@ -8,7 +8,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -181,7 +181,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                             <h3 className="font-bold text-base">
                                                 {sanitizeText(exp.poste)}
                                             </h3>
-                                            {(exp.entreprise && exp.entreprise !== "—") ? (
+                                            {isValidEntreprise(exp.entreprise) ? (
                                                 <p className="font-semibold" style={{ color: colors.secondary }}>
                                                     {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
                                                 </p>
@@ -276,7 +276,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                     Langues
                                 </h2>
                                 <div className="space-y-2">
-                                    {langues.map((lang: any, idx: number) => (
+                                    {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
                                         <div key={idx} className="flex items-center justify-between">
                                             <span className="font-medium text-sm">{lang.langue}</span>
                                             <span 

@@ -8,7 +8,7 @@
  */
 
 import React from "react";
-import { TemplateProps } from "../index";
+import { TemplateProps, isValidEntreprise } from "../index";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
@@ -131,7 +131,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                         <div className="flex justify-between items-start mb-1">
                                             <div>
                                                 <h3 className="font-bold">{sanitizeText(exp.poste)}</h3>
-                                                {(exp.entreprise && exp.entreprise !== "—") ? (
+                                                {isValidEntreprise(exp.entreprise) ? (
                                                     <p className="font-medium text-sm" style={{ color: colors.secondary }}>
                                                         {sanitizeText(exp.entreprise)}{exp.lieu ? ` · ${exp.lieu}` : ""}
                                                     </p>
@@ -230,7 +230,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                 Langues
                             </h3>
                             <div className="space-y-2">
-                                {langues.map((lang: any, idx: number) => (
+                                {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className="text-xs font-medium">{lang.langue}</span>
                                         <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: colors.primary15, color: colors.secondary }}>

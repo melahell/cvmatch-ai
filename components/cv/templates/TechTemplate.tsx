@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TemplateProps } from "./index";
+import { TemplateProps, isValidEntreprise } from "./index";
 import { Mail, Phone, MapPin, Github, Linkedin, Globe, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
@@ -280,7 +280,7 @@ export default function TechTemplate({
                     <div className="pt-3 border-t border-slate-700 mt-auto">
                         <div className="text-[color:var(--cv-primary)] text-[6pt] font-mono mb-1">{'// languages'}</div>
                         <div className="flex flex-wrap gap-2">
-                            {langues.map((lang, i) => (
+                            {(langues || []).slice(0, dl?.maxLangues ?? 10).map((lang, i) => (
                                 <span key={i} className="text-[7pt] text-slate-300">
                                     {lang.langue}: <span className="text-[color:var(--cv-primary)]">{lang.niveau.split(' ')[0]}</span>
                                 </span>
@@ -346,7 +346,7 @@ export default function TechTemplate({
                                         {exp.date_debut ? `${exp.date_debut} → ${exp.date_fin || 'now'}` : (exp.date_fin || "")}
                                     </span>
                                 </div>
-                                {(exp.entreprise && exp.entreprise !== "—") ? (
+                                {isValidEntreprise(exp.entreprise) ? (
                                     <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
                                         {exp.entreprise}{exp.lieu && ` · ${exp.lieu}`}
                                     </p>
