@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TemplateProps, isValidEntreprise } from "./index";
+import { TemplateProps, isValidEntreprise, withDL } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
@@ -198,7 +198,7 @@ export default function ModernTemplate({
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
-                                {clients_references.clients.slice(0, dl?.maxClientsReferences ?? 25).map((client: string, i: number) => (
+                                {clients_references.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, i: number) => (
                                     <span key={i} className="truncate">• {client}</span>
                                 ))}
                             </div>

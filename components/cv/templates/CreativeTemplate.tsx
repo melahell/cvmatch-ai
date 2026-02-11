@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TemplateProps, isValidEntreprise } from "./index";
+import { TemplateProps, isValidEntreprise, withDL } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Sparkles, Github, Globe, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
@@ -48,7 +48,7 @@ export default function CreativeTemplate({
     const limitedSoftSkills = rawSoftSkills.map(safeString);
     const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
     const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10).map(safeString);
-    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 25).map(safeString);
+    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 30).map(safeString);
     const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
@@ -172,7 +172,7 @@ export default function CreativeTemplate({
                                 className="text-slate-700 text-[9pt] leading-relaxed pl-4 italic"
                                 style={{ borderLeft: `4px solid ${COLORS.primary}` }}
                             >
-                                {profil.elevator_pitch}
+                                {sanitizeText(profil.elevator_pitch)}
                             </p>
                         </section>
                     )}
@@ -232,7 +232,7 @@ export default function CreativeTemplate({
                                             {exp.date_debut ? `${exp.date_debut} - ${exp.date_fin || 'Présent'}` : (exp.date_fin || "")}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <h4 className="text-[10pt] font-extrabold text-slate-900">{exp.poste}</h4>
+                                            <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
                                             {(exp as any)._relevance_score >= 50 && (
                                                 <span
                                                     className="text-[6pt] px-1.5 py-0.5 rounded font-bold text-white"

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { TemplateProps, isValidEntreprise } from "./index";
+import { TemplateProps, isValidEntreprise, withDL } from "./index";
 import { Mail, Phone, MapPin, Github, Linkedin, Globe, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
@@ -50,7 +50,7 @@ export default function TechTemplate({
     const limitedSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
     const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
     const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10);
-    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 25);
+    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 30);
     const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
 
     // Categorize skills
@@ -257,6 +257,23 @@ export default function TechTemplate({
                             </div>
                         </div>
                     )}
+
+                    {skillCategories.other.length > 0 && (
+                        <div>
+                            <div className="text-[6pt] text-slate-600 mb-1">other:</div>
+                            <div className="flex flex-wrap gap-1">
+                                {skillCategories.other.map((skill, i) => (
+                                    <span
+                                        key={i}
+                                        className="px-1.5 py-0.5 text-[6pt] rounded font-mono"
+                                        style={{ background: COLORS.primary30, color: COLORS.primary }}
+                                    >
+                                        {skill}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {limitedSoftSkills.length > 0 && (
@@ -313,7 +330,7 @@ export default function TechTemplate({
                 {profil.elevator_pitch && (
                     <section style={{ marginBottom: "var(--spacing-section)" }}>
                         <p className="text-slate-700 text-[9pt] leading-relaxed border-l-3 border-[color:var(--cv-primary)] pl-3 italic">
-                            {profil.elevator_pitch}
+                            {sanitizeText(profil.elevator_pitch)}
                         </p>
                     </section>
                 )}
@@ -335,7 +352,7 @@ export default function TechTemplate({
                             >
                                 <div className="flex justify-between items-start">
                                     <div className="flex items-center gap-2">
-                                        <h4 className="text-[9pt] font-bold text-slate-900">{exp.poste}</h4>
+                                        <h4 className="text-[9pt] font-bold text-slate-900">{sanitizeText(exp.poste)}</h4>
                                         {(exp as any)._relevance_score >= 50 && (
                                             <span className="bg-[var(--cv-primary-light)] text-[color:var(--cv-primary)] text-[6pt] px-1.5 py-0.5 rounded font-bold font-sans">
                                                 ★ Match
@@ -348,7 +365,7 @@ export default function TechTemplate({
                                 </div>
                                 {isValidEntreprise(exp.entreprise) ? (
                                     <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>
-                                        {exp.entreprise}{exp.lieu && ` · ${exp.lieu}`}
+                                        {sanitizeText(exp.entreprise)}{exp.lieu && ` · ${sanitizeText(exp.lieu)}`}
                                     </p>
                                 ) : exp.lieu ? (
                                     <p className="text-[8pt] font-semibold" style={{ color: COLORS.primary }}>{exp.lieu}</p>

@@ -1448,7 +1448,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Expériences affichées : {convertOptions.maxExperiences}
+                                                            Expériences : {Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)} / {dataCounts?.experiences || 20}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1491,7 +1491,7 @@ function CVBuilderContent() {
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Réalisations par expérience : {convertOptions.maxBulletsPerExperience}
+                                                            Réalisations par exp : {Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)} / {dataCounts?.maxRealisationsPerExp || 10}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1533,10 +1533,11 @@ function CVBuilderContent() {
                                                                 "CV très détaillé"}
                                                     </p>
                                                 </div>
+                                                {(dataCounts?.maxClientsPerExp ?? 0) > 0 && (
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Clients par expérience : {convertOptions.limitsBySection?.maxClientsPerExperience ?? 6}
+                                                            Clients par exp : {Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)} / {dataCounts!.maxClientsPerExp}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1560,8 +1561,8 @@ function CVBuilderContent() {
                                                     <input
                                                         type="range"
                                                         min="0"
-                                                        max={dataCounts?.maxClientsPerExp || 10}
-                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? 6, dataCounts?.maxClientsPerExp || 10)}
+                                                        max={dataCounts!.maxClientsPerExp}
+                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)}
                                                         onChange={(e) =>
                                                             setConvertOptions((prev) => ({
                                                                 ...prev,
@@ -1574,10 +1575,12 @@ function CVBuilderContent() {
                                                         className="w-full"
                                                     />
                                                 </div>
+                                                )}
+                                                {(dataCounts?.clientsReferences ?? 0) > 0 && (
                                                 <div>
                                                     <div className="flex items-center justify-between mb-1">
                                                         <label className="block text-slate-600">
-                                                            Clients références : {convertOptions.limitsBySection?.maxClientsReferences ?? 25}
+                                                            Clients références : {Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)} / {dataCounts!.clientsReferences}
                                                         </label>
                                                         <TooltipProvider>
                                                             <Tooltip>
@@ -1588,7 +1591,7 @@ function CVBuilderContent() {
                                                                     <div className="space-y-1 text-xs">
                                                                         <p className="font-semibold">Clients & Références</p>
                                                                         <p className="text-slate-600">
-                                                                            Limite le nombre de clients affichés dans la zone globale “Clients & Références”.
+                                                                            Limite le nombre de clients affichés dans la zone globale "Clients & Références".
                                                                         </p>
                                                                         <p className="text-slate-600">
                                                                             Mets 0 pour masquer complètement la zone clients (références).
@@ -1601,8 +1604,8 @@ function CVBuilderContent() {
                                                     <input
                                                         type="range"
                                                         min="0"
-                                                        max={dataCounts?.clientsReferences || 30}
-                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? 25, dataCounts?.clientsReferences || 30)}
+                                                        max={dataCounts!.clientsReferences}
+                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)}
                                                         onChange={(e) =>
                                                             setConvertOptions((prev) => ({
                                                                 ...prev,
@@ -1615,6 +1618,7 @@ function CVBuilderContent() {
                                                         className="w-full"
                                                     />
                                                 </div>
+                                                )}
                                                 {/* [CDC-23] Toggles photo et mode dense */}
                                                 <div className="flex items-center justify-between">
                                                     <label className="text-slate-600">Inclure photo</label>
@@ -1748,7 +1752,7 @@ function CVBuilderContent() {
                                                             minScore: 0,
                                                             maxExperiences: 20,
                                                             maxBulletsPerExperience: 10,
-                                                            limitsBySection: { maxClientsPerExperience: 6, maxClientsReferences: 25 },
+                                                            limitsBySection: {},
                                                         });
                                                         setIncludePhoto(true);
                                                         setAdvancedFiltersEnabled(false);
@@ -1788,7 +1792,6 @@ function CVBuilderContent() {
                                                             includePhoto={includePhoto}
                                                             displayLimits={{
                                                                 maxSkills: convertOptions.limitsBySection?.maxSkills,
-                                                                maxSoftSkills: convertOptions.limitsBySection?.maxSkills ? Math.ceil((convertOptions.limitsBySection.maxSkills) / 3) : undefined,
                                                                 maxRealisationsPerExp: convertOptions.maxBulletsPerExperience,
                                                                 maxClientsPerExp: convertOptions.limitsBySection?.maxClientsPerExperience,
                                                                 maxClientsReferences: convertOptions.limitsBySection?.maxClientsReferences,
