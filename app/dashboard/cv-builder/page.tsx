@@ -46,8 +46,7 @@ import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
 import { useCVReorder } from "@/hooks/useCVReorder";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle } from "lucide-react";
+
 import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { logger } from "@/lib/utils/logger";
@@ -112,8 +111,7 @@ function CVBuilderContent() {
     const [density, setDensity] = useState<CVDensity>("normal");
     const [colorwayId, setColorwayId] = useState<string>("indigo");
     const [fontId, setFontId] = useState<string>("sans");
-    const [templateQuery, setTemplateQuery] = useState<string>("");
-    const [favoriteStyles, setFavoriteStyles] = useState<Array<{ templateId: string; colorwayId: string; fontId: string; density: CVDensity }>>([]);
+
     const [estimatedPages, setEstimatedPages] = useState<number>(1);
     const cvPreviewRef = useRef<HTMLDivElement>(null);
 
@@ -153,24 +151,7 @@ function CVBuilderContent() {
     }, [qualityMetrics]);
 
     const filteredTemplates = useMemo(() => {
-        const q = templateQuery.trim().toLowerCase();
-        return TEMPLATES
-            .filter((t) => t.available)
-            .filter((t) => (q ? `${t.name} ${t.category} ${t.source} ${t.description}`.toLowerCase().includes(q) : true));
-    }, [templateQuery]);
-
-    const presets = useMemo(() => {
-        const base = [
-            { templateId: "modern", colorwayId: "indigo", fontId: "sans", density: "normal" as CVDensity },
-            { templateId: "modern", colorwayId: "navy", fontId: "sans", density: "normal" as CVDensity },
-            { templateId: "tech", colorwayId: "emerald", fontId: "mono", density: "normal" as CVDensity },
-            { templateId: "tech", colorwayId: "cyan", fontId: "mono", density: "compact" as CVDensity },
-            { templateId: "classic", colorwayId: "slate", fontId: "serif", density: "normal" as CVDensity },
-            { templateId: "classic", colorwayId: "charcoal", fontId: "serif", density: "airy" as CVDensity },
-            { templateId: "creative", colorwayId: "amber", fontId: "display", density: "normal" as CVDensity },
-            { templateId: "creative", colorwayId: "rose", fontId: "display", density: "compact" as CVDensity },
-        ];
-        return base.filter((p) => TEMPLATES.some((t) => t.id === p.templateId && t.available));
+        return TEMPLATES.filter((t) => t.available);
     }, []);
 
     // Récupérer RAG profile pour validation
@@ -195,24 +176,7 @@ function CVBuilderContent() {
         run();
     }, []);
 
-    useEffect(() => {
-        try {
-            const raw = localStorage.getItem("cvcrush:styleFavorites");
-            if (!raw) return;
-            const parsed = JSON.parse(raw);
-            if (!Array.isArray(parsed)) return;
-            setFavoriteStyles(
-                parsed
-                    .map((x: any) => ({
-                        templateId: String(x?.templateId || ""),
-                        colorwayId: String(x?.colorwayId || ""),
-                        fontId: String(x?.fontId || "sans"),
-                        density: (x?.density === "compact" || x?.density === "normal" || x?.density === "airy") ? x.density : "normal",
-                    }))
-                    .filter((x: any) => x.templateId && x.colorwayId)
-            );
-        } catch { }
-    }, []);
+
 
     useEffect(() => {
         try {
@@ -841,55 +805,7 @@ function CVBuilderContent() {
         // Conversion automatique via useEffect
     };
 
-    const isFavoriteCurrent = useMemo(() => {
-        return favoriteStyles.some((f) =>
-            f.templateId === templateId &&
-            f.colorwayId === colorwayId &&
-            f.fontId === fontId &&
-            f.density === density
-        );
-    }, [favoriteStyles, templateId, colorwayId, fontId, density]);
 
-    useEffect(() => {
-        try {
-            localStorage.setItem("cvcrush:styleFavorites", JSON.stringify(favoriteStyles));
-        } catch { }
-    }, [favoriteStyles]);
-
-    const toggleFavoriteCurrent = () => {
-        setFavoriteStyles((prev) => {
-            const exists = prev.some((f) =>
-                f.templateId === templateId &&
-                f.colorwayId === colorwayId &&
-                f.fontId === fontId &&
-                f.density === density
-            );
-            if (exists) {
-                return prev.filter((f) => !(
-                    f.templateId === templateId &&
-                    f.colorwayId === colorwayId &&
-                    f.fontId === fontId &&
-                    f.density === density
-                ));
-            }
-            const next = [...prev, { templateId, colorwayId, fontId, density }];
-            return next.slice(-10);
-        });
-    };
-
-    const applyStyle = (style: { templateId: string; colorwayId: string; fontId: string; density: CVDensity }) => {
-        setTemplateId(style.templateId);
-        setColorwayId(style.colorwayId);
-        setFontId(style.fontId);
-        setDensity(style.density);
-        setViewMode("single");
-    };
-
-    const applyRandomPreset = () => {
-        if (presets.length === 0) return;
-        const picked = presets[Math.floor(Math.random() * presets.length)];
-        applyStyle(picked);
-    };
 
     const handleMultiPreviewSelect = (selectedTemplateId: string) => {
         setTemplateId(selectedTemplateId);
@@ -928,378 +844,314 @@ function CVBuilderContent() {
 
     return (
         <DashboardLayout>
-        <div className="pb-12">
-            <header className="border-b bg-white z-30 sticky top-16">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-indigo-600" />
-                            <div>
-                                <h1 className="text-base sm:text-lg font-semibold text-slate-900">
-                                    CV Builder
-                                </h1>
-                                <p className="text-xs sm:text-sm text-slate-600">
-                                    Personnalisez et exportez votre CV
-                                </p>
+            <div className="pb-12">
+                <header className="border-b bg-white z-30 sticky top-16">
+                    <div className="container mx-auto px-4 py-4">
+                        <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-indigo-600" />
+                                <div>
+                                    <h1 className="text-base sm:text-lg font-semibold text-slate-900">
+                                        CV Builder
+                                    </h1>
+                                    <p className="text-xs sm:text-sm text-slate-600">
+                                        Personnalisez et exportez votre CV
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap justify-end">
-                            <Button
-                                variant={viewMode === "multi" ? "primary" : "outline"}
-                                size="sm"
-                                onClick={() => setViewMode(viewMode === "single" ? "multi" : "single")}
-                                disabled={!cvData}
-                                className="hidden sm:inline-flex"
-                            >
-                                {viewMode === "single" ? "Comparer" : "Vue unique"}
-                            </Button>
-                            <Button
-                                variant={showEditor ? "primary" : "outline"}
-                                size="sm"
-                                onClick={() => setShowEditor(!showEditor)}
-                                disabled={!cvData}
-                            >
-                                {showEditor ? "Masquer" : "Réorganiser"}
-                            </Button>
-                            {cvData && (
-                                <>
-                                    <ExportMenu
-                                        cvData={reorderedCV || cvData || {} as RendererResumeSchema}
-                                        widgets={state.widgets ?? undefined}
-                                        template={templateId}
-                                        filename="CV"
-                                        jobAnalysisId={analysisId}
-                                        onWidgetsExport={state.widgets ? async () => {
-                                            const validation = validateAIWidgetsEnvelope(state.widgets!);
-                                            if (!validation.success) { toast.error("Format widgets invalide"); return; }
-                                            const dataStr = JSON.stringify(state.widgets, null, 2);
-                                            const dataBlob = new Blob([dataStr], { type: "application/json" });
-                                            const url = URL.createObjectURL(dataBlob);
-                                            const link = document.createElement("a");
-                                            link.href = url;
-                                            link.download = `widgets_${analysisId}_${new Date().toISOString().split("T")[0]}.json`;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-                                            URL.revokeObjectURL(url);
-                                            toast.success("Widgets JSON exportés", { duration: 2000 });
-                                        } : undefined}
-                                        onPDFDownload={async () => {
-                                            const authHeaders = await getSupabaseAuthHeader();
-                                            const headers: Record<string, string> = {
-                                                "Content-Type": "application/json",
-                                                ...authHeaders,
-                                            };
+                            <div className="flex items-center gap-2 flex-wrap justify-end">
+                                <Button
+                                    variant={viewMode === "multi" ? "primary" : "outline"}
+                                    size="sm"
+                                    onClick={() => setViewMode(viewMode === "single" ? "multi" : "single")}
+                                    disabled={!cvData}
+                                    className="hidden sm:inline-flex"
+                                >
+                                    {viewMode === "single" ? "Comparer" : "Vue unique"}
+                                </Button>
+                                <Button
+                                    variant={showEditor ? "primary" : "outline"}
+                                    size="sm"
+                                    onClick={() => setShowEditor(!showEditor)}
+                                    disabled={!cvData}
+                                >
+                                    {showEditor ? "Masquer" : "Réorganiser"}
+                                </Button>
+                                {cvData && (
+                                    <>
+                                        <ExportMenu
+                                            cvData={reorderedCV || cvData || {} as RendererResumeSchema}
+                                            widgets={state.widgets ?? undefined}
+                                            template={templateId}
+                                            filename="CV"
+                                            jobAnalysisId={analysisId}
+                                            onWidgetsExport={state.widgets ? async () => {
+                                                const validation = validateAIWidgetsEnvelope(state.widgets!);
+                                                if (!validation.success) { toast.error("Format widgets invalide"); return; }
+                                                const dataStr = JSON.stringify(state.widgets, null, 2);
+                                                const dataBlob = new Blob([dataStr], { type: "application/json" });
+                                                const url = URL.createObjectURL(dataBlob);
+                                                const link = document.createElement("a");
+                                                link.href = url;
+                                                link.download = `widgets_${analysisId}_${new Date().toISOString().split("T")[0]}.json`;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                                URL.revokeObjectURL(url);
+                                                toast.success("Widgets JSON exportés", { duration: 2000 });
+                                            } : undefined}
+                                            onPDFDownload={async () => {
+                                                const authHeaders = await getSupabaseAuthHeader();
+                                                const headers: Record<string, string> = {
+                                                    "Content-Type": "application/json",
+                                                    ...authHeaders,
+                                                };
 
-                                            const payload = {
-                                                data: reorderedCV || cvData || {},
-                                                templateId,
-                                                colorwayId,
-                                                fontId,
-                                                density,
-                                                includePhoto,
-                                                format: "A4" as const,
-                                            };
+                                                const payload = {
+                                                    data: reorderedCV || cvData || {},
+                                                    templateId,
+                                                    colorwayId,
+                                                    fontId,
+                                                    density,
+                                                    includePhoto,
+                                                    format: "A4" as const,
+                                                };
 
-                                            const res = await fetch("/api/print-jobs", {
-                                                method: "POST",
-                                                headers,
-                                                credentials: "include",
-                                                body: JSON.stringify({ payload }),
-                                            });
+                                                const res = await fetch("/api/print-jobs", {
+                                                    method: "POST",
+                                                    headers,
+                                                    credentials: "include",
+                                                    body: JSON.stringify({ payload }),
+                                                });
 
-                                            if (!res.ok) {
-                                                throw new Error(`Erreur génération PDF (${res.status})`);
-                                            }
-
-                                            const json = await res.json();
-                                            const token = json?.token as string | undefined;
-                                            if (!token) throw new Error("Token manquant");
-
-                                            const pdfRes = await fetch(`/api/print-jobs/${encodeURIComponent(token)}/pdf`, {
-                                                method: "GET",
-                                                headers: { ...authHeaders },
-                                                credentials: "include",
-                                            });
-                                            if (!pdfRes.ok) {
-                                                let details = "";
-                                                let requestId = "";
-                                                try {
-                                                    const json = await pdfRes.json();
-                                                    details = typeof json?.details === "string" ? `: ${json.details}` : "";
-                                                    requestId = typeof json?.requestId === "string" ? json.requestId : "";
-                                                } catch {
-                                                    details = "";
-                                                    requestId = "";
+                                                if (!res.ok) {
+                                                    throw new Error(`Erreur génération PDF (${res.status})`);
                                                 }
-                                                const rid = requestId ? ` (requestId: ${requestId})` : "";
-                                                throw new Error(`Export PDF serveur indisponible (${pdfRes.status})${details}${rid}`);
-                                            }
-                                            const blob = await pdfRes.blob();
-                                            const url = URL.createObjectURL(blob);
-                                            const link = document.createElement("a");
-                                            link.href = url;
-                                            link.download = `CV.pdf`;
-                                            document.body.appendChild(link);
-                                            link.click();
-                                            document.body.removeChild(link);
-                                            URL.revokeObjectURL(url);
-                                        }}
-                                        onPDFExport={async () => {
-                                            const authHeaders = await getSupabaseAuthHeader();
-                                            const headers: Record<string, string> = {
-                                                "Content-Type": "application/json",
-                                                ...authHeaders,
-                                            };
 
-                                            const payload = {
-                                                data: reorderedCV || cvData || {},
-                                                templateId,
-                                                colorwayId,
-                                                fontId,
-                                                density,
-                                                includePhoto,
-                                                format: "A4" as const,
-                                            };
+                                                const json = await res.json();
+                                                const token = json?.token as string | undefined;
+                                                if (!token) throw new Error("Token manquant");
 
-                                            const res = await fetch("/api/print-jobs", {
-                                                method: "POST",
-                                                headers,
-                                                credentials: "include",
-                                                body: JSON.stringify({ payload }),
-                                            });
+                                                const pdfRes = await fetch(`/api/print-jobs/${encodeURIComponent(token)}/pdf`, {
+                                                    method: "GET",
+                                                    headers: { ...authHeaders },
+                                                    credentials: "include",
+                                                });
+                                                if (!pdfRes.ok) {
+                                                    let details = "";
+                                                    let requestId = "";
+                                                    try {
+                                                        const json = await pdfRes.json();
+                                                        details = typeof json?.details === "string" ? `: ${json.details}` : "";
+                                                        requestId = typeof json?.requestId === "string" ? json.requestId : "";
+                                                    } catch {
+                                                        details = "";
+                                                        requestId = "";
+                                                    }
+                                                    const rid = requestId ? ` (requestId: ${requestId})` : "";
+                                                    throw new Error(`Export PDF serveur indisponible (${pdfRes.status})${details}${rid}`);
+                                                }
+                                                const blob = await pdfRes.blob();
+                                                const url = URL.createObjectURL(blob);
+                                                const link = document.createElement("a");
+                                                link.href = url;
+                                                link.download = `CV.pdf`;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                                URL.revokeObjectURL(url);
+                                            }}
+                                            onPDFExport={async () => {
+                                                const authHeaders = await getSupabaseAuthHeader();
+                                                const headers: Record<string, string> = {
+                                                    "Content-Type": "application/json",
+                                                    ...authHeaders,
+                                                };
 
-                                            if (!res.ok) {
-                                                throw new Error(`Erreur création lien impression (${res.status})`);
-                                            }
-                                            const json = await res.json();
-                                            const token = json?.token as string | undefined;
-                                            if (!token) throw new Error("Token manquant");
+                                                const payload = {
+                                                    data: reorderedCV || cvData || {},
+                                                    templateId,
+                                                    colorwayId,
+                                                    fontId,
+                                                    density,
+                                                    includePhoto,
+                                                    format: "A4" as const,
+                                                };
 
-                                            const url = `/dashboard/cv-builder/print?token=${encodeURIComponent(token)}&autoprint=1&format=A4`;
-                                            const win = window.open(url, "_blank", "noopener,noreferrer");
-                                            if (!win) {
-                                                window.location.href = url;
-                                            }
-                                        }}
-                                    />
-                                </>
-                            )}
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleRefresh}
-                                disabled={state.isLoading}
-                                title="Relancer la génération IA et vider le cache"
-                            >
-                                <RefreshCw className={`w-4 h-4 mr-1 ${state.isLoading ? "animate-spin" : ""}`} />
-                                Régénérer
-                            </Button>
+                                                const res = await fetch("/api/print-jobs", {
+                                                    method: "POST",
+                                                    headers,
+                                                    credentials: "include",
+                                                    body: JSON.stringify({ payload }),
+                                                });
+
+                                                if (!res.ok) {
+                                                    throw new Error(`Erreur création lien impression (${res.status})`);
+                                                }
+                                                const json = await res.json();
+                                                const token = json?.token as string | undefined;
+                                                if (!token) throw new Error("Token manquant");
+
+                                                const url = `/dashboard/cv-builder/print?token=${encodeURIComponent(token)}&autoprint=1&format=A4`;
+                                                const win = window.open(url, "_blank", "noopener,noreferrer");
+                                                if (!win) {
+                                                    window.location.href = url;
+                                                }
+                                            }}
+                                        />
+                                    </>
+                                )}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleRefresh}
+                                    disabled={state.isLoading}
+                                    title="Relancer la génération IA et vider le cache"
+                                >
+                                    <RefreshCw className={`w-4 h-4 mr-1 ${state.isLoading ? "animate-spin" : ""}`} />
+                                    Régénérer
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <main className="container mx-auto px-4 pt-6">
-                {state.isLoading && (
-                    <ContextualLoader
-                        context="generating-cv"
-                        progress={generationProgress}
-                        currentStep={generationCurrentStep}
-                        onCancel={() => generationAbortRef.current?.abort()}
-                        isOverlay
-                    />
-                )}
+                <main className="container mx-auto px-4 pt-6">
+                    {state.isLoading && (
+                        <ContextualLoader
+                            context="generating-cv"
+                            progress={generationProgress}
+                            currentStep={generationCurrentStep}
+                            onCancel={() => generationAbortRef.current?.abort()}
+                            isOverlay
+                        />
+                    )}
 
-                {state.error && (
-                    <Card className="mb-6 border-red-200 bg-red-50">
-                        <CardContent className="pt-6">
-                            <div className="flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="text-sm font-semibold text-red-900 mb-2">
-                                        Erreur
-                                    </h3>
-                                    <p className="text-sm text-red-700 mb-3">{state.error}</p>
-                                    {errorAction && (
-                                        <div className="flex gap-2 flex-wrap">
-                                            {errorAction.action && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => router.push(errorAction.action!)}
-                                                    className="text-xs"
-                                                >
-                                                    {errorAction.actionLabel || "Aller à la page"}
-                                                </Button>
-                                            )}
-                                            {errorAction.actionLabel === "Réessayer" && (
-                                                <Button
-                                                    variant="primary"
-                                                    size="sm"
-                                                    onClick={() => loadWidgets(true)}
-                                                    className="text-xs"
-                                                >
-                                                    Réessayer
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Validation warnings */}
-                {validationResult && (
-                    <div className="mb-6">
-                        <ValidationWarnings validation={validationResult} />
-                    </div>
-                )}
-
-                {/* Avertissement quand pas de contexte d'offre d'emploi */}
-                {state.widgets && !state.jobOfferContext && (
-                    <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        <p>Aucune offre d'emploi associée — le CV affiche tout votre profil. Les filtres par pertinence n'auront pas d'effet.</p>
-                    </div>
-                )}
-
-                {state.widgets && cvData && (
-                    <DraggableCV
-                        cvData={reorderedCV || cvData}
-                        onReorderExperiences={reorderExperiences}
-                        onReorderTechniques={reorderTechniques}
-                        onReorderSoftSkills={reorderSoftSkills}
-                        onReorderBullets={reorderExperienceBullets}
-                    >
-                        <>
-                            {showEditor && (
-                                <div className="mb-6">
-                                    <ExperienceEditor
-                                        experiences={(reorderedCV || cvData).experiences}
-                                        onReorder={(newOrder) => {
-                                            reorderExperiences(newOrder);
-                                            toast.success("Ordre sauvegardé", { duration: 2000 });
-                                        }}
-                                        onReorderBullets={reorderExperienceBullets}
-                                        onReset={resetOrder}
-                                    />
-                                </div>
-                            )}
-                            {viewMode === "multi" ? (
-                                <MultiTemplatePreview
-                                    cvData={reorderedCV || cvData}
-                                    onTemplateSelect={handleMultiPreviewSelect}
-                                />
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
-                                    {/* Sidebar : Contrôles (scrollable) — ordre inversé sur mobile pour voir le CV d'abord */}
-                                    <aside className="space-y-4 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1 order-2 lg:order-1">
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle className="text-sm">Modèle</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="space-y-2">
-                                                {/* Reactive Resume */}
-                                                {filteredTemplates.filter((t) => t.source === "reactive-resume").length > 0 && (
-                                                    <div className="space-y-1.5">
-                                                        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                            Reactive Resume ({filteredTemplates.filter((t) => t.source === "reactive-resume").length})
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-1.5">
-                                                            {filteredTemplates.filter((t) => t.source === "reactive-resume").map((template) => (
-                                                                <Button
-                                                                    key={template.id}
-                                                                    variant={templateId === template.id ? "primary" : "outline"}
-                                                                    size="sm"
-                                                                    className="justify-start text-xs"
-                                                                    onClick={() => handleTemplateChange(template.id)}
-                                                                    onMouseEnter={() => preloadCVTemplate(template.id)}
-                                                                    title={template.description}
-                                                                >
-                                                                    {template.name}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {/* CV-Crush */}
-                                                {filteredTemplates.filter((t) => t.source === "cv-crush").length > 0 && (
-                                                    <div className="space-y-1.5">
-                                                        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                                            CV-Crush ({filteredTemplates.filter((t) => t.source === "cv-crush").length})
-                                                        </div>
-                                                        <div className="grid grid-cols-2 gap-1.5">
-                                                            {filteredTemplates.filter((t) => t.source === "cv-crush").map((template) => (
-                                                                <Button
-                                                                    key={template.id}
-                                                                    variant={templateId === template.id ? "primary" : "outline"}
-                                                                    size="sm"
-                                                                    className="justify-start text-xs"
-                                                                    onClick={() => handleTemplateChange(template.id)}
-                                                                    onMouseEnter={() => preloadCVTemplate(template.id)}
-                                                                    title={template.description}
-                                                                >
-                                                                    {template.name}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <div className="pt-2 space-y-3">
+                    {state.error && (
+                        <Card className="mb-6 border-red-200 bg-red-50">
+                            <CardContent className="pt-6">
+                                <div className="flex items-start gap-3">
+                                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-sm font-semibold text-red-900 mb-2">
+                                            Erreur
+                                        </h3>
+                                        <p className="text-sm text-red-700 mb-3">{state.error}</p>
+                                        {errorAction && (
+                                            <div className="flex gap-2 flex-wrap">
+                                                {errorAction.action && (
                                                     <Button
-                                                        variant={isFavoriteCurrent ? "primary" : "outline"}
+                                                        variant="outline"
                                                         size="sm"
-                                                        className="w-full"
-                                                        onClick={toggleFavoriteCurrent}
+                                                        onClick={() => router.push(errorAction.action!)}
+                                                        className="text-xs"
                                                     >
-                                                        {isFavoriteCurrent ? "Retirer des favoris" : "Ajouter aux favoris"}
+                                                        {errorAction.actionLabel || "Aller à la page"}
                                                     </Button>
-                                                    {favoriteStyles.length > 0 && (
-                                                        <div className="space-y-1">
-                                                            {favoriteStyles.slice().reverse().map((f) => (
-                                                                <Button
-                                                                    key={`${f.templateId}:${f.colorwayId}:${f.fontId}:${f.density}`}
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="w-full justify-start"
-                                                                    onClick={() => applyStyle(f)}
-                                                                >
-                                                                    {TEMPLATES.find(t => t.id === f.templateId)?.name ?? f.templateId} · {f.colorwayId}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                    <div className="space-y-2">
-                                                        <div className="text-xs text-slate-600">Styles suggérés</div>
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            {presets.map((p) => (
-                                                                <Button
-                                                                    key={`${p.templateId}:${p.colorwayId}:${p.fontId}:${p.density}`}
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="justify-start"
-                                                                    onClick={() => applyStyle(p)}
-                                                                >
-                                                                    {TEMPLATES.find(t => t.id === p.templateId)?.name ?? p.templateId} · {p.colorwayId}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                        <Button variant="outline" size="sm" className="w-full" onClick={applyRandomPreset}>
-                                                            Style aléatoire
-                                                        </Button>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <div className="text-xs text-slate-600">Couleurs</div>
-                                                        <div className="flex flex-wrap gap-1.5 sm:gap-1">
+                                                )}
+                                                {errorAction.actionLabel === "Réessayer" && (
+                                                    <Button
+                                                        variant="primary"
+                                                        size="sm"
+                                                        onClick={() => loadWidgets(true)}
+                                                        className="text-xs"
+                                                    >
+                                                        Réessayer
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Validation warnings */}
+                    {validationResult && (
+                        <div className="mb-6">
+                            <ValidationWarnings validation={validationResult} />
+                        </div>
+                    )}
+
+                    {/* Avertissement quand pas de contexte d'offre d'emploi */}
+                    {state.widgets && !state.jobOfferContext && (
+                        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            <p>Aucune offre d'emploi associée — le CV affiche tout votre profil. Les filtres par pertinence n'auront pas d'effet.</p>
+                        </div>
+                    )}
+
+                    {state.widgets && cvData && (
+                        <DraggableCV
+                            cvData={reorderedCV || cvData}
+                            onReorderExperiences={reorderExperiences}
+                            onReorderTechniques={reorderTechniques}
+                            onReorderSoftSkills={reorderSoftSkills}
+                            onReorderBullets={reorderExperienceBullets}
+                        >
+                            <>
+                                {showEditor && (
+                                    <div className="mb-6">
+                                        <ExperienceEditor
+                                            experiences={(reorderedCV || cvData).experiences}
+                                            onReorder={(newOrder) => {
+                                                reorderExperiences(newOrder);
+                                                toast.success("Ordre sauvegardé", { duration: 2000 });
+                                            }}
+                                            onReorderBullets={reorderExperienceBullets}
+                                            onReset={resetOrder}
+                                        />
+                                    </div>
+                                )}
+                                {viewMode === "multi" ? (
+                                    <MultiTemplatePreview
+                                        cvData={reorderedCV || cvData}
+                                        onTemplateSelect={handleMultiPreviewSelect}
+                                    />
+                                ) : (
+                                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+                                        {/* Sidebar : Contrôles (scrollable) — ordre inversé sur mobile pour voir le CV d'abord */}
+                                        <aside className="space-y-3 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1 order-2 lg:order-1">
+                                            {/* ── Section 1 : Modèle (dropdown groupé) ── */}
+                                            <Card>
+                                                <CardContent className="pt-4 pb-3 space-y-3">
+                                                    <label className="text-xs font-medium text-slate-700">Modèle</label>
+                                                    <select
+                                                        value={templateId}
+                                                        onChange={(e) => handleTemplateChange(e.target.value)}
+                                                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                                                    >
+                                                        {filteredTemplates.filter((t) => t.source === "reactive-resume").length > 0 && (
+                                                            <optgroup label="Reactive Resume">
+                                                                {filteredTemplates.filter((t) => t.source === "reactive-resume").map((t) => (
+                                                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                                                ))}
+                                                            </optgroup>
+                                                        )}
+                                                        {filteredTemplates.filter((t) => t.source === "cv-crush").length > 0 && (
+                                                            <optgroup label="CV-Crush Premium">
+                                                                {filteredTemplates.filter((t) => t.source === "cv-crush").map((t) => (
+                                                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                                                ))}
+                                                            </optgroup>
+                                                        )}
+                                                    </select>
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* ── Section 2 : Style (compact) ── */}
+                                            <Card>
+                                                <CardContent className="pt-4 pb-3 space-y-3">
+                                                    {/* Couleurs */}
+                                                    <div>
+                                                        <label className="text-xs font-medium text-slate-700 mb-1.5 block">Couleur</label>
+                                                        <div className="flex flex-wrap gap-1.5">
                                                             <button
-                                                                key="default"
                                                                 type="button"
                                                                 onClick={() => setColorwayId("default")}
                                                                 title="Défaut"
-                                                                className={`h-7 w-7 sm:h-6 sm:w-6 rounded-full border bg-white text-[9px] font-semibold ${colorwayId === "default" ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
+                                                                className={`h-6 w-6 rounded-full border bg-white text-[8px] font-bold ${colorwayId === "default" ? "ring-2 ring-indigo-500 ring-offset-1" : "border-slate-300"}`}
                                                             >
                                                                 D
                                                             </button>
@@ -1309,545 +1161,248 @@ function CVBuilderContent() {
                                                                     type="button"
                                                                     onClick={() => setColorwayId(c.id)}
                                                                     title={c.name}
-                                                                    className={`h-7 w-7 sm:h-6 sm:w-6 rounded-full border bg-[var(--swatch)] ${colorwayId === c.id ? "ring-2 ring-blue-500 border-transparent" : "border-slate-300"}`}
-                                                                    style={{ ["--swatch" as any]: c.primary } as any}
+                                                                    className={`h-6 w-6 rounded-full border ${colorwayId === c.id ? "ring-2 ring-indigo-500 ring-offset-1" : "border-slate-300"}`}
+                                                                    style={{ backgroundColor: c.primary }}
                                                                 />
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <div className="text-xs text-slate-600">Espacement</div>
-                                                        <div className="flex gap-2">
-                                                            {CV_DENSITIES.map((d) => (
-                                                                <Button
-                                                                    key={d.id}
-                                                                    variant={density === d.id ? "primary" : "outline"}
-                                                                    size="sm"
-                                                                    className="flex-1"
-                                                                    onClick={() => setDensity(d.id)}
-                                                                >
-                                                                    {d.name}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-1">
-                                                        <div className="text-xs text-slate-600">Police</div>
-                                                        <div className="flex gap-2">
-                                                            {CV_FONTS.map((f) => (
-                                                                <Button
-                                                                    key={f.id}
-                                                                    variant={fontId === f.id ? "primary" : "outline"}
-                                                                    size="sm"
-                                                                    className="flex-1"
-                                                                    onClick={() => setFontId(f.id)}
-                                                                >
-                                                                    {f.name}
-                                                                </Button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
 
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle className="text-sm flex items-center justify-between gap-2">
-                                                    <span className="flex items-center gap-2">
-                                                        <span>Contenu du CV</span>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <HelpCircle className="w-4 h-4 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="right" className="max-w-xs">
-                                                                    <div className="space-y-2 text-xs">
-                                                                        <p className="font-semibold">Ajuster le contenu</p>
-                                                                        <p className="text-slate-600">
-                                                                            Contrôlez combien d'éléments apparaissent dans chaque section du CV. Utilisez les filtres avancés pour un contrôle par section.
-                                                                        </p>
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </span>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="h-7 px-2"
-                                                        onClick={() => setShowAdvancedFilters((v) => !v)}
-                                                    >
-                                                        <SlidersHorizontal className="w-3 h-3 mr-1" />
-                                                        {showAdvancedFilters ? "Masquer" : "Avancé"}
-                                                        {showAdvancedFilters ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
-                                                    </Button>
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4 text-xs">
-                                                {showAdvancedFilters && (
-                                                    <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                                                        <div className="space-y-0.5">
-                                                            <p className="text-slate-800 font-medium">Filtrage par section</p>
-                                                            <p className="text-slate-500">Ajuster la pertinence minimum pour chaque type de contenu.</p>
+                                                    {/* Espacement + Police côte à côte */}
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Espacement</label>
+                                                            <div className="flex gap-1">
+                                                                {CV_DENSITIES.map((d) => (
+                                                                    <button
+                                                                        key={d.id}
+                                                                        onClick={() => setDensity(d.id)}
+                                                                        className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded border transition-colors ${density === d.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}
+                                                                    >
+                                                                        {d.name}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-slate-600">{advancedFiltersEnabled ? "Activés" : "Désactivés"}</span>
-                                                            <Switch checked={advancedFiltersEnabled} onCheckedChange={setAdvancedFiltersEnabled} />
+                                                        <div>
+                                                            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Police</label>
+                                                            <div className="flex gap-1">
+                                                                {CV_FONTS.map((f) => (
+                                                                    <button
+                                                                        key={f.id}
+                                                                        onClick={() => setFontId(f.id)}
+                                                                        className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded border transition-colors ${fontId === f.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}
+                                                                    >
+                                                                        {f.name}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                )}
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="block text-slate-600">
-                                                            Pertinence minimum : {convertOptions.minScore}%
-                                                        </label>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="right" className="max-w-xs">
-                                                                    <div className="space-y-1 text-xs">
-                                                                        <p className="font-semibold">Score de pertinence</p>
-                                                                        <p className="text-slate-600">
-                                                                            Filtre les éléments par pertinence par rapport à l'offre d'emploi.
-                                                                        </p>
-                                                                        <ul className="list-disc list-inside text-slate-600 space-y-0.5">
-                                                                            <li>0-30 : Faible pertinence</li>
-                                                                            <li>50 : Pertinence moyenne (recommandé)</li>
-                                                                            <li>80+ : Très pertinent</li>
-                                                                        </ul>
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
+
+                                                    {/* Toggle photo */}
+                                                    <div className="flex items-center justify-between">
+                                                        <label className="text-xs text-slate-600">Inclure photo</label>
+                                                        <Switch checked={includePhoto} onCheckedChange={setIncludePhoto} />
                                                     </div>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max="100"
-                                                        value={convertOptions.minScore}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                minScore: Number(e.target.value),
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                    <p className="text-slate-500 mt-1">
-                                                        {(convertOptions.minScore ?? 50) < 30 ? "Affiche tous les éléments (peu sélectif)" :
-                                                            (convertOptions.minScore ?? 50) < 70 ? "Affiche les éléments pertinents (recommandé)" :
-                                                                "Affiche uniquement les éléments très pertinents"}
-                                                    </p>
-                                                </div>
-                                                {showAdvancedFilters && (
-                                                    <div className={`space-y-3 rounded-md border px-3 py-3 ${advancedFiltersEnabled ? "border-indigo-200 bg-indigo-50" : "border-slate-200 bg-slate-50"}`}>
-                                                        <div className="grid grid-cols-1 gap-3">
-                                                            {[
-                                                                { key: "experiences", label: "Expériences" },
-                                                                { key: "skills", label: "Compétences" },
-                                                                { key: "education", label: "Formations" },
-                                                                { key: "languages", label: "Langues" },
-                                                                { key: "references", label: "Clients / Références" },
-                                                                { key: "projects", label: "Projets" },
-                                                            ].map((row) => (
-                                                                <div key={row.key}>
-                                                                    <div className="flex items-center justify-between mb-1">
-                                                                        <label className="block text-slate-700">
-                                                                            Pertinence {row.label} : {advancedMinScoreBySection[row.key] ?? 0}%
-                                                                        </label>
-                                                                    </div>
-                                                                    <input
-                                                                        type="range"
-                                                                        min="0"
-                                                                        max="100"
-                                                                        value={advancedMinScoreBySection[row.key] ?? 0}
-                                                                        onChange={(e) => {
-                                                                            const value = Number(e.target.value);
-                                                                            setAdvancedMinScoreBySection((prev) => ({ ...prev, [row.key]: value }));
-                                                                        }}
-                                                                        className="w-full"
-                                                                        disabled={!advancedFiltersEnabled}
-                                                                    />
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="block text-slate-600">
-                                                            Expériences : {Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)} / {dataCounts?.experiences || 20}
-                                                        </label>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="right" className="max-w-xs">
-                                                                    <div className="space-y-1 text-xs">
-                                                                        <p className="font-semibold">Nombre d'expériences</p>
-                                                                        <p className="text-slate-600">
-                                                                            Limite le nombre d'expériences professionnelles affichées dans le CV.
-                                                                        </p>
-                                                                        <ul className="list-disc list-inside text-slate-600 space-y-0.5">
-                                                                            <li>4-6 : Recommandé pour CV 1 page</li>
-                                                                            <li>6-8 : Pour CV 2 pages</li>
-                                                                            <li>8+ : Pour CV détaillé</li>
-                                                                        </ul>
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min="1"
-                                                        max={dataCounts?.experiences || 20}
-                                                        value={Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                maxExperiences: Number(e.target.value),
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                    <p className="text-slate-500 mt-1">
-                                                        {dataCounts && `${Math.min(convertOptions.maxExperiences ?? 20, dataCounts.experiences)} / ${dataCounts.experiences} expériences`}
-                                                    </p>
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="block text-slate-600">
-                                                            Réalisations par exp : {Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)} / {dataCounts?.maxRealisationsPerExp || 10}
-                                                        </label>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="right" className="max-w-xs">
-                                                                    <div className="space-y-1 text-xs">
-                                                                        <p className="font-semibold">Réalisations par expérience</p>
-                                                                        <p className="text-slate-600">
-                                                                            Nombre maximum de réalisations (bullets) affichées pour chaque expérience.
-                                                                        </p>
-                                                                        <ul className="list-disc list-inside text-slate-600 space-y-0.5">
-                                                                            <li>3-4 : CV concis (recommandé)</li>
-                                                                            <li>5-6 : CV détaillé</li>
-                                                                            <li>6+ : CV très détaillé</li>
-                                                                        </ul>
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min="1"
-                                                        max={dataCounts?.maxRealisationsPerExp || 10}
-                                                        value={Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                maxBulletsPerExperience: Number(e.target.value),
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                    <p className="text-slate-500 mt-1">
-                                                        {(convertOptions.maxBulletsPerExperience ?? 6) <= 4 ? "CV concis et impactant" :
-                                                            (convertOptions.maxBulletsPerExperience ?? 6) <= 6 ? "CV détaillé avec contexte" :
-                                                                "CV très détaillé"}
-                                                    </p>
-                                                </div>
-                                                {(dataCounts?.maxClientsPerExp ?? 0) > 0 && (
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="block text-slate-600">
-                                                            Clients par exp : {Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)} / {dataCounts!.maxClientsPerExp}
-                                                        </label>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="right" className="max-w-xs">
-                                                                    <div className="space-y-1 text-xs">
-                                                                        <p className="font-semibold">Clients par expérience</p>
-                                                                        <p className="text-slate-600">
-                                                                            Limite le nombre de clients affichés sous chaque expérience.
-                                                                        </p>
-                                                                        <p className="text-slate-600">
-                                                                            Mets 0 pour masquer complètement les clients dans les expériences.
-                                                                        </p>
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max={dataCounts!.maxClientsPerExp}
-                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                limitsBySection: {
-                                                                    ...(prev.limitsBySection || {}),
-                                                                    maxClientsPerExperience: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                )}
-                                                {(dataCounts?.clientsReferences ?? 0) > 0 && (
-                                                <div>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <label className="block text-slate-600">
-                                                            Clients références : {Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)} / {dataCounts!.clientsReferences}
-                                                        </label>
-                                                        <TooltipProvider>
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <HelpCircle className="w-3 h-3 text-slate-400 hover:text-slate-600 cursor-help" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent side="right" className="max-w-xs">
-                                                                    <div className="space-y-1 text-xs">
-                                                                        <p className="font-semibold">Clients & Références</p>
-                                                                        <p className="text-slate-600">
-                                                                            Limite le nombre de clients affichés dans la zone globale "Clients & Références".
-                                                                        </p>
-                                                                        <p className="text-slate-600">
-                                                                            Mets 0 pour masquer complètement la zone clients (références).
-                                                                        </p>
-                                                                    </div>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </div>
-                                                    <input
-                                                        type="range"
-                                                        min="0"
-                                                        max={dataCounts!.clientsReferences}
-                                                        value={Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)}
-                                                        onChange={(e) =>
-                                                            setConvertOptions((prev) => ({
-                                                                ...prev,
-                                                                limitsBySection: {
-                                                                    ...(prev.limitsBySection || {}),
-                                                                    maxClientsReferences: Number(e.target.value),
-                                                                },
-                                                            }))
-                                                        }
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                                )}
-                                                {/* [CDC-23] Toggles photo et mode dense */}
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-slate-600">Inclure photo</label>
-                                                    <Switch
-                                                        checked={includePhoto}
-                                                        onCheckedChange={setIncludePhoto}
-                                                    />
-                                                </div>
-                                                {/* Sliders conditionnels — cachés si données ≤ 1 */}
-                                                {(dataCounts?.skills ?? 0) > 1 && (
-                                                    <div>
-                                                        <label className="block text-slate-600 mb-1">
-                                                            Compétences : {Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)} / {dataCounts!.skills}
-                                                        </label>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max={dataCounts!.skills}
-                                                            value={Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)}
-                                                            onChange={(e) =>
-                                                                setConvertOptions((prev) => ({
-                                                                    ...prev,
-                                                                    limitsBySection: {
-                                                                        ...(prev.limitsBySection || {}),
-                                                                        maxSkills: Number(e.target.value),
-                                                                    },
-                                                                }))
-                                                            }
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {(dataCounts?.formations ?? 0) > 1 && (
-                                                    <div>
-                                                        <label className="block text-slate-600 mb-1">
-                                                            Formations : {Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)} / {dataCounts!.formations}
-                                                        </label>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max={dataCounts!.formations}
-                                                            value={Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)}
-                                                            onChange={(e) =>
-                                                                setConvertOptions((prev) => ({
-                                                                    ...prev,
-                                                                    limitsBySection: {
-                                                                        ...(prev.limitsBySection || {}),
-                                                                        maxFormations: Number(e.target.value),
-                                                                    },
-                                                                }))
-                                                            }
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {(dataCounts?.langues ?? 0) > 1 && (
-                                                    <div>
-                                                        <label className="block text-slate-600 mb-1">
-                                                            Langues : {Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)} / {dataCounts!.langues}
-                                                        </label>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max={dataCounts!.langues}
-                                                            value={Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)}
-                                                            onChange={(e) =>
-                                                                setConvertOptions((prev) => ({
-                                                                    ...prev,
-                                                                    limitsBySection: {
-                                                                        ...(prev.limitsBySection || {}),
-                                                                        maxLanguages: Number(e.target.value),
-                                                                    },
-                                                                }))
-                                                            }
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {(dataCounts?.certifications ?? 0) > 1 && (
-                                                    <div>
-                                                        <label className="block text-slate-600 mb-1">
-                                                            Certifications : {Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)} / {dataCounts!.certifications}
-                                                        </label>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max={dataCounts!.certifications}
-                                                            value={Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)}
-                                                            onChange={(e) =>
-                                                                setConvertOptions((prev) => ({
-                                                                    ...prev,
-                                                                    limitsBySection: {
-                                                                        ...(prev.limitsBySection || {}),
-                                                                        maxCertifications: Number(e.target.value),
-                                                                    },
-                                                                }))
-                                                            }
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                )}
-                                                {(dataCounts?.projects ?? 0) > 1 && (
-                                                    <div>
-                                                        <label className="block text-slate-600 mb-1">
-                                                            Projets : {Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)} / {dataCounts!.projects}
-                                                        </label>
-                                                        <input
-                                                            type="range"
-                                                            min="0"
-                                                            max={dataCounts!.projects}
-                                                            value={Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)}
-                                                            onChange={(e) =>
-                                                                setConvertOptions((prev) => ({
-                                                                    ...prev,
-                                                                    limitsBySection: {
-                                                                        ...(prev.limitsBySection || {}),
-                                                                        maxProjects: Number(e.target.value),
-                                                                    },
-                                                                }))
-                                                            }
-                                                            className="w-full"
-                                                        />
-                                                    </div>
-                                                )}
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="w-full mt-2"
-                                                    onClick={() => {
-                                                        setConvertOptions({
-                                                            minScore: 0,
-                                                            maxExperiences: 20,
-                                                            maxBulletsPerExperience: 10,
-                                                            limitsBySection: {},
-                                                        });
-                                                        setIncludePhoto(true);
-                                                        setAdvancedFiltersEnabled(false);
-                                                        setAdvancedMinScoreBySection({ header: 0, summary: 0, experiences: 0, skills: 0, education: 0, languages: 0, references: 0, projects: 0 });
-                                                        toast.success("Filtres réinitialisés");
-                                                    }}
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* ── Section 3 : Contenu (collapsible, fermée par défaut) ── */}
+                                            <Card>
+                                                <button
+                                                    type="button"
+                                                    className="w-full flex items-center justify-between px-4 py-3 text-left"
+                                                    onClick={() => setShowAdvancedFilters((v) => !v)}
                                                 >
-                                                    Réinitialiser les filtres
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    </aside>
+                                                    <span className="text-xs font-medium text-slate-700 flex items-center gap-1.5">
+                                                        <SlidersHorizontal className="w-3.5 h-3.5" />
+                                                        Contenu du CV
+                                                    </span>
+                                                    {showAdvancedFilters ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                                                </button>
+                                                {showAdvancedFilters && (
+                                                    <CardContent className="pt-0 pb-3 space-y-3 text-xs">
+                                                        {/* Pertinence minimum */}
+                                                        <div>
+                                                            <label className="text-slate-600 mb-1 block">
+                                                                Pertinence : {convertOptions.minScore}%
+                                                            </label>
+                                                            <input
+                                                                type="range"
+                                                                min="0"
+                                                                max="100"
+                                                                value={convertOptions.minScore}
+                                                                onChange={(e) => setConvertOptions((prev) => ({ ...prev, minScore: Number(e.target.value) }))}
+                                                                className="w-full accent-indigo-600"
+                                                            />
+                                                        </div>
 
-                                    {/* Main : Preview CV (sticky - toujours visible) */}
-                                    <div className="lg:col-span-3 lg:sticky lg:top-[8.5rem] self-start order-1 lg:order-2">
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle className="text-base flex items-center justify-between">
-                                                    <span>Prévisualisation</span>
-                                                    {(reorderedCV || cvData) && (
-                                                        <Badge variant="outline" className="text-xs font-normal">
-                                                            ~{estimatedPages} page{estimatedPages > 1 ? "s" : ""}
-                                                        </Badge>
-                                                    )}
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="bg-slate-100 flex items-center justify-center p-2 sm:p-4 min-h-[400px] sm:min-h-[800px] overflow-x-auto">
-                                                {reorderedCV || cvData ? (
-                                                    <div ref={cvPreviewRef} id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
-                                                        <CVRenderer
-                                                            data={reorderedCV || cvData}
-                                                            templateId={templateId}
-                                                            dynamicCssVariables={cssVariables}
-                                                            colorwayId={colorwayId}
-                                                            fontId={fontId}
-                                                            density={density}
-                                                            includePhoto={includePhoto}
-                                                            displayLimits={{
-                                                                maxSkills: convertOptions.limitsBySection?.maxSkills,
-                                                                maxRealisationsPerExp: convertOptions.maxBulletsPerExperience,
-                                                                maxClientsPerExp: convertOptions.limitsBySection?.maxClientsPerExperience,
-                                                                maxClientsReferences: convertOptions.limitsBySection?.maxClientsReferences,
-                                                                maxCertifications: convertOptions.limitsBySection?.maxCertifications,
-                                                                maxProjects: convertOptions.limitsBySection?.maxProjects,
-                                                                maxFormations: convertOptions.limitsBySection?.maxFormations,
-                                                                maxLangues: convertOptions.limitsBySection?.maxLanguages,
+                                                        {/* Expériences */}
+                                                        <div>
+                                                            <label className="text-slate-600 mb-1 block">
+                                                                Expériences : {Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)} / {dataCounts?.experiences || 20}
+                                                            </label>
+                                                            <input
+                                                                type="range"
+                                                                min="1"
+                                                                max={dataCounts?.experiences || 20}
+                                                                value={Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)}
+                                                                onChange={(e) => setConvertOptions((prev) => ({ ...prev, maxExperiences: Number(e.target.value) }))}
+                                                                className="w-full accent-indigo-600"
+                                                            />
+                                                        </div>
+
+                                                        {/* Réalisations */}
+                                                        <div>
+                                                            <label className="text-slate-600 mb-1 block">
+                                                                Réalisations/exp : {Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)} / {dataCounts?.maxRealisationsPerExp || 10}
+                                                            </label>
+                                                            <input
+                                                                type="range"
+                                                                min="1"
+                                                                max={dataCounts?.maxRealisationsPerExp || 10}
+                                                                value={Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)}
+                                                                onChange={(e) => setConvertOptions((prev) => ({ ...prev, maxBulletsPerExperience: Number(e.target.value) }))}
+                                                                className="w-full accent-indigo-600"
+                                                            />
+                                                        </div>
+
+                                                        {/* Sliders secondaires — cachés derrière "Plus d'options" */}
+                                                        {(
+                                                            (dataCounts?.maxClientsPerExp ?? 0) > 0 ||
+                                                            (dataCounts?.clientsReferences ?? 0) > 0 ||
+                                                            (dataCounts?.skills ?? 0) > 1 ||
+                                                            (dataCounts?.formations ?? 0) > 1 ||
+                                                            (dataCounts?.langues ?? 0) > 1 ||
+                                                            (dataCounts?.certifications ?? 0) > 1 ||
+                                                            (dataCounts?.projects ?? 0) > 1
+                                                        ) && (
+                                                                <details className="group">
+                                                                    <summary className="text-[11px] text-indigo-600 cursor-pointer hover:text-indigo-700 select-none py-1">
+                                                                        Plus d'options…
+                                                                    </summary>
+                                                                    <div className="mt-2 space-y-3 pl-1">
+                                                                        {(dataCounts?.maxClientsPerExp ?? 0) > 0 && (
+                                                                            <div>
+                                                                                <label className="text-slate-600 mb-1 block">
+                                                                                    Clients/exp : {Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)} / {dataCounts!.maxClientsPerExp}
+                                                                                </label>
+                                                                                <input type="range" min="0" max={dataCounts!.maxClientsPerExp} value={Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsPerExperience: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                            </div>
+                                                                        )}
+                                                                        {(dataCounts?.clientsReferences ?? 0) > 0 && (
+                                                                            <div>
+                                                                                <label className="text-slate-600 mb-1 block">
+                                                                                    Clients références : {Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)} / {dataCounts!.clientsReferences}
+                                                                                </label>
+                                                                                <input type="range" min="0" max={dataCounts!.clientsReferences} value={Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsReferences: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                            </div>
+                                                                        )}
+                                                                        {(dataCounts?.skills ?? 0) > 1 && (
+                                                                            <div>
+                                                                                <label className="text-slate-600 mb-1 block">Compétences : {Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)} / {dataCounts!.skills}</label>
+                                                                                <input type="range" min="0" max={dataCounts!.skills} value={Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxSkills: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                            </div>
+                                                                        )}
+                                                                        {(dataCounts?.formations ?? 0) > 1 && (
+                                                                            <div>
+                                                                                <label className="text-slate-600 mb-1 block">Formations : {Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)} / {dataCounts!.formations}</label>
+                                                                                <input type="range" min="0" max={dataCounts!.formations} value={Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxFormations: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                            </div>
+                                                                        )}
+                                                                        {(dataCounts?.langues ?? 0) > 1 && (
+                                                                            <div>
+                                                                                <label className="text-slate-600 mb-1 block">Langues : {Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)} / {dataCounts!.langues}</label>
+                                                                                <input type="range" min="0" max={dataCounts!.langues} value={Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxLanguages: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                            </div>
+                                                                        )}
+                                                                        {(dataCounts?.certifications ?? 0) > 1 && (
+                                                                            <div>
+                                                                                <label className="text-slate-600 mb-1 block">Certifications : {Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)} / {dataCounts!.certifications}</label>
+                                                                                <input type="range" min="0" max={dataCounts!.certifications} value={Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxCertifications: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                            </div>
+                                                                        )}
+                                                                        {(dataCounts?.projects ?? 0) > 1 && (
+                                                                            <div>
+                                                                                <label className="text-slate-600 mb-1 block">Projets : {Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)} / {dataCounts!.projects}</label>
+                                                                                <input type="range" min="0" max={dataCounts!.projects} value={Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxProjects: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </details>
+                                                            )}
+
+                                                        {/* Reset */}
+                                                        <button
+                                                            type="button"
+                                                            className="w-full text-[11px] text-slate-500 hover:text-slate-700 py-1"
+                                                            onClick={() => {
+                                                                setConvertOptions({ minScore: 0, maxExperiences: 20, maxBulletsPerExperience: 10, limitsBySection: {} });
+                                                                setIncludePhoto(true);
+                                                                setAdvancedFiltersEnabled(false);
+                                                                setAdvancedMinScoreBySection({ header: 0, summary: 0, experiences: 0, skills: 0, education: 0, languages: 0, references: 0, projects: 0 });
+                                                                toast.success("Filtres réinitialisés");
                                                             }}
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="w-full">
-                                                        <CVSkeleton />
-                                                    </div>
+                                                        >
+                                                            Réinitialiser
+                                                        </button>
+                                                    </CardContent>
                                                 )}
-                                            </CardContent>
-                                        </Card>
+                                            </Card>
+                                        </aside>
+
+                                        {/* Main : Preview CV (sticky - toujours visible) */}
+                                        <div className="lg:col-span-3 lg:sticky lg:top-[8.5rem] self-start order-1 lg:order-2">
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle className="text-base flex items-center justify-between">
+                                                        <span>Prévisualisation</span>
+                                                        {(reorderedCV || cvData) && (
+                                                            <Badge variant="outline" className="text-xs font-normal">
+                                                                ~{estimatedPages} page{estimatedPages > 1 ? "s" : ""}
+                                                            </Badge>
+                                                        )}
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent className="bg-slate-100 flex items-center justify-center p-2 sm:p-4 min-h-[400px] sm:min-h-[800px] overflow-x-auto">
+                                                    {reorderedCV || cvData ? (
+                                                        <div ref={cvPreviewRef} id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
+                                                            <CVRenderer
+                                                                data={reorderedCV || cvData}
+                                                                templateId={templateId}
+                                                                dynamicCssVariables={cssVariables}
+                                                                colorwayId={colorwayId}
+                                                                fontId={fontId}
+                                                                density={density}
+                                                                includePhoto={includePhoto}
+                                                                displayLimits={{
+                                                                    maxSkills: convertOptions.limitsBySection?.maxSkills,
+                                                                    maxRealisationsPerExp: convertOptions.maxBulletsPerExperience,
+                                                                    maxClientsPerExp: convertOptions.limitsBySection?.maxClientsPerExperience,
+                                                                    maxClientsReferences: convertOptions.limitsBySection?.maxClientsReferences,
+                                                                    maxCertifications: convertOptions.limitsBySection?.maxCertifications,
+                                                                    maxProjects: convertOptions.limitsBySection?.maxProjects,
+                                                                    maxFormations: convertOptions.limitsBySection?.maxFormations,
+                                                                    maxLangues: convertOptions.limitsBySection?.maxLanguages,
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-full">
+                                                            <CVSkeleton />
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </>
-                    </DraggableCV>
-                )}
-            </main>
-        </div>
+                                )}
+                            </>
+                        </DraggableCV>
+                    )}
+                </main>
+            </div>
         </DashboardLayout>
     );
 }

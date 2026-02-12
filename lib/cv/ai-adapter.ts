@@ -933,6 +933,26 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOp
         }
     }
 
+    // [FIX DATA-LOSS] Enrichir TOUJOURS depuis RAG direct (ragProfile.competences)
+    // Avant ce fix, seuls les widgets Gemini + competences_tacites étaient utilisés,
+    // ignorant les 60+ compétences directement dans le profil RAG
+    if (ragProfile?.competences) {
+        const ragTech = Array.isArray(ragProfile.competences.techniques) ? ragProfile.competences.techniques : [];
+        for (const skill of ragTech) {
+            const name = typeof skill === "string" ? skill : skill?.nom || skill?.name;
+            if (name && String(name).trim() && shouldKeep(String(name).trim())) {
+                techniquesSet.add(String(name).trim());
+            }
+        }
+        const ragSoft = Array.isArray(ragProfile.competences.soft_skills) ? ragProfile.competences.soft_skills : [];
+        for (const skill of ragSoft) {
+            const name = typeof skill === "string" ? skill : skill?.nom || skill?.name;
+            if (name && String(name).trim() && shouldKeep(String(name).trim())) {
+                softSkillsSet.add(String(name).trim());
+            }
+        }
+    }
+
     return {
         techniques: Array.from(techniquesSet),
         soft_skills: Array.from(softSkillsSet),
@@ -1098,12 +1118,17 @@ function buildCertificationsAndReferences(
         clientsFromWidgets: clientsRaw.length,
     });
 
-    // [AUDIT FIX] : Enrichir depuis RAG si vide
-    if (certifications.length === 0 && ragProfile?.certifications) {
+    // [FIX DATA-LOSS] Enrichir TOUJOURS depuis RAG (pas seulement quand vide)
+    // Avant ce fix, si Gemini générait même 1 widget certification, les 6+ autres du RAG étaient ignorées
+    if (ragProfile?.certifications) {
+        const existingSet = new Set(certifications.map(c => c.toLowerCase().trim()));
         const ragCerts = Array.isArray(ragProfile.certifications) ? ragProfile.certifications : [];
         ragCerts.forEach((c: any) => {
             const certName = typeof c === "string" ? c : c.nom;
-            if (certName) certifications.push(certName);
+            if (certName && !existingSet.has(certName.toLowerCase().trim())) {
+                certifications.push(certName);
+                existingSet.add(certName.toLowerCase().trim());
+            }
         });
     }
 
