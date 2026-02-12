@@ -96,6 +96,18 @@ function CVBuilderContent() {
 
     const [templateId, setTemplateId] = useState<string>("modern");
     const [cvData, setCvData] = useState<RendererResumeSchema | null>(null);
+    // [FIX #1] Compteurs non-filtrés — calculés une seule fois, jamais verrouillés par les sliders
+    const [unfilteredCounts, setUnfilteredCounts] = useState<{
+        experiences: number;
+        skills: number;
+        formations: number;
+        langues: number;
+        certifications: number;
+        projects: number;
+        clientsReferences: number;
+        maxRealisationsPerExp: number;
+        maxClientsPerExp: number;
+    } | null>(null);
     const [cssVariables, setCssVariables] = useState<Record<string, string>>({});
     const [qualityMetrics, setQualityMetrics] = useState<any>(null);
     const [validationResult, setValidationResult] = useState<any>(null);
@@ -319,6 +331,7 @@ function CVBuilderContent() {
     }, [cvData, reorderedCV, templateId]);
 
     // Compteurs réels pour capper les sliders aux données disponibles
+    // [FIX #1] dataCounts = compteurs de la donnée FILTRÉE (pour affichage X/total)
     const dataCounts = useMemo(() => {
         const d = reorderedCV || cvData;
         if (!d) return null;
@@ -337,8 +350,15 @@ function CVBuilderContent() {
         };
     }, [cvData, reorderedCV]);
 
+    // [FIX #1] maxCounts = le MAXIMUM possible pour les sliders (jamais verrouillé)
+    // Utilise unfilteredCounts (calculé une seule fois) sinon dataCounts en fallback
+    const maxCounts = unfilteredCounts || dataCounts;
+
     // Charger widgets depuis cache ou API
     const loadWidgets = useCallback(async (forceRefresh = false) => {
+        // [FIX #1] Toujours reset les compteurs au début du chargement
+        setUnfilteredCounts(null);
+
         if (!analysisId) {
             setState((prev) => ({
                 ...prev,
@@ -524,6 +544,54 @@ function CVBuilderContent() {
                     maxClientsReferences: options.limitsBySection?.maxClientsReferences ?? 25,
                 },
             };
+
+            // [FIX #1] Initialiser les compteurs non-filtrés
+            // On fait une conversion "dry run" sans limites pour avoir les vrais max
+            // [ROBUSTESSE] Recalcul systématique pour gérer le chargement asynchrone de RAG
+            setUnfilteredCounts(prev => {
+                // Pas de check prev !
+
+                // Options pour tout compter sans limites
+                const unlimitedOptions: ConvertOptions = {
+                    minScore: 0,
+                    maxExperiences: 999,
+                    maxBulletsPerExperience: 999,
+                    limitsBySection: {
+                        maxSkills: 999,
+                        maxFormations: 999,
+                        maxLanguages: 999,
+                        maxProjects: 999,
+                        maxReferences: 999,
+                        maxCertifications: 999,
+                        maxClientsPerExperience: 999,
+                        maxClientsReferences: 999
+                    },
+                    ragProfile: options.ragProfile ?? (ragData || undefined),
+                    advancedFilteringEnabled: false
+                };
+
+                try {
+                    // Conversion synchrone rapide
+                    const fullCv = convertWidgetsToCV(widgets, unlimitedOptions);
+                    const maxR = Math.max(0, ...(fullCv.experiences || []).map((e: any) => (e.realisations || []).length));
+                    const maxC = Math.max(0, ...(fullCv.experiences || []).map((e: any) => (e.clients || []).length));
+
+                    return {
+                        experiences: (fullCv.experiences || []).length,
+                        skills: (fullCv.competences?.techniques || []).length + (fullCv.competences?.soft_skills || []).length,
+                        formations: (fullCv.formations || []).length,
+                        langues: (fullCv.langues || []).length,
+                        certifications: (fullCv.certifications || []).length,
+                        projects: (fullCv.projects || []).length,
+                        clientsReferences: (fullCv.clients_references?.clients || []).length,
+                        maxRealisationsPerExp: maxR,
+                        maxClientsPerExp: maxC,
+                    };
+                } catch (e) {
+                    console.error("Erreur calcul unfilteredCounts", e);
+                    return null;
+                }
+            });
 
             // Options complètes pour la conversion (avec ragProfile)
             const convertOptions: ConvertOptions = {
@@ -735,13 +803,17 @@ function CVBuilderContent() {
         }
     }, [analysisId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Reconvertir quand template ou options changent
+    // [FIX #8] Reconvertir avec debounce 300ms (évite cascade de re-renders quand on glisse un slider)
+    const reconvertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     useEffect(() => {
-        if (state.widgets) {
-            convertWidgetsToCVData(state.widgets, templateId, convertOptions, state.jobOfferContext);
-        }
+        if (!state.widgets) return;
+        if (reconvertTimerRef.current) clearTimeout(reconvertTimerRef.current);
+        reconvertTimerRef.current = setTimeout(() => {
+            convertWidgetsToCVData(state.widgets!, templateId, convertOptions, state.jobOfferContext);
+        }, 300);
+        return () => { if (reconvertTimerRef.current) clearTimeout(reconvertTimerRef.current); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [templateId, convertOptions, state.widgets, state.jobOfferContext, advancedFiltersEnabled, advancedMinScoreBySection]);
+    }, [templateId, convertOptions, state.widgets, state.jobOfferContext, advancedFiltersEnabled, advancedMinScoreBySection, ragData]);
 
     useEffect(() => {
         if (!cvData) return;
@@ -1241,13 +1313,13 @@ function CVBuilderContent() {
                                                         {/* Expériences */}
                                                         <div>
                                                             <label className="text-slate-600 mb-1 block">
-                                                                Expériences : {Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)} / {dataCounts?.experiences || 20}
+                                                                Expériences : {Math.min(convertOptions.maxExperiences ?? 20, maxCounts?.experiences || 20)} / {maxCounts?.experiences || 20}
                                                             </label>
                                                             <input
                                                                 type="range"
                                                                 min="1"
-                                                                max={dataCounts?.experiences || 20}
-                                                                value={Math.min(convertOptions.maxExperiences ?? 20, dataCounts?.experiences || 20)}
+                                                                max={maxCounts?.experiences || 20}
+                                                                value={convertOptions.maxExperiences ?? (maxCounts?.experiences || 20)}
                                                                 onChange={(e) => setConvertOptions((prev) => ({ ...prev, maxExperiences: Number(e.target.value) }))}
                                                                 className="w-full accent-indigo-600"
                                                             />
@@ -1256,13 +1328,13 @@ function CVBuilderContent() {
                                                         {/* Réalisations */}
                                                         <div>
                                                             <label className="text-slate-600 mb-1 block">
-                                                                Réalisations/exp : {Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)} / {dataCounts?.maxRealisationsPerExp || 10}
+                                                                Réalisations/exp : {Math.min(convertOptions.maxBulletsPerExperience ?? 10, maxCounts?.maxRealisationsPerExp || 10)} / {maxCounts?.maxRealisationsPerExp || 10}
                                                             </label>
                                                             <input
                                                                 type="range"
                                                                 min="1"
-                                                                max={dataCounts?.maxRealisationsPerExp || 10}
-                                                                value={Math.min(convertOptions.maxBulletsPerExperience ?? 10, dataCounts?.maxRealisationsPerExp || 10)}
+                                                                max={maxCounts?.maxRealisationsPerExp || 10}
+                                                                value={convertOptions.maxBulletsPerExperience ?? (maxCounts?.maxRealisationsPerExp || 10)}
                                                                 onChange={(e) => setConvertOptions((prev) => ({ ...prev, maxBulletsPerExperience: Number(e.target.value) }))}
                                                                 className="w-full accent-indigo-600"
                                                             />
@@ -1270,63 +1342,63 @@ function CVBuilderContent() {
 
                                                         {/* Sliders secondaires — cachés derrière "Plus d'options" */}
                                                         {(
-                                                            (dataCounts?.maxClientsPerExp ?? 0) > 0 ||
-                                                            (dataCounts?.clientsReferences ?? 0) > 0 ||
-                                                            (dataCounts?.skills ?? 0) > 1 ||
-                                                            (dataCounts?.formations ?? 0) > 1 ||
-                                                            (dataCounts?.langues ?? 0) > 1 ||
-                                                            (dataCounts?.certifications ?? 0) > 1 ||
-                                                            (dataCounts?.projects ?? 0) > 1
+                                                            (maxCounts?.maxClientsPerExp ?? 0) > 0 ||
+                                                            (maxCounts?.clientsReferences ?? 0) > 0 ||
+                                                            (maxCounts?.skills ?? 0) > 1 ||
+                                                            (maxCounts?.formations ?? 0) > 1 ||
+                                                            (maxCounts?.langues ?? 0) > 1 ||
+                                                            (maxCounts?.certifications ?? 0) > 1 ||
+                                                            (maxCounts?.projects ?? 0) > 1
                                                         ) && (
                                                                 <details className="group">
                                                                     <summary className="text-[11px] text-indigo-600 cursor-pointer hover:text-indigo-700 select-none py-1">
                                                                         Plus d'options…
                                                                     </summary>
                                                                     <div className="mt-2 space-y-3 pl-1">
-                                                                        {(dataCounts?.maxClientsPerExp ?? 0) > 0 && (
+                                                                        {(maxCounts?.maxClientsPerExp ?? 0) > 0 && (
                                                                             <div>
                                                                                 <label className="text-slate-600 mb-1 block">
-                                                                                    Clients/exp : {Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)} / {dataCounts!.maxClientsPerExp}
+                                                                                    Clients/exp : {convertOptions.limitsBySection?.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 6)} / {maxCounts?.maxClientsPerExp || 6}
                                                                                 </label>
-                                                                                <input type="range" min="0" max={dataCounts!.maxClientsPerExp} value={Math.min(convertOptions.limitsBySection?.maxClientsPerExperience ?? dataCounts!.maxClientsPerExp, dataCounts!.maxClientsPerExp)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsPerExperience: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                                <input type="range" min="0" max={maxCounts?.maxClientsPerExp || 6} value={convertOptions.limitsBySection?.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 6)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsPerExperience: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
                                                                             </div>
                                                                         )}
-                                                                        {(dataCounts?.clientsReferences ?? 0) > 0 && (
+                                                                        {(maxCounts?.clientsReferences ?? 0) > 0 && (
                                                                             <div>
                                                                                 <label className="text-slate-600 mb-1 block">
-                                                                                    Clients références : {Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)} / {dataCounts!.clientsReferences}
+                                                                                    Clients références : {convertOptions.limitsBySection?.maxClientsReferences ?? (maxCounts?.clientsReferences || 25)} / {maxCounts?.clientsReferences || 25}
                                                                                 </label>
-                                                                                <input type="range" min="0" max={dataCounts!.clientsReferences} value={Math.min(convertOptions.limitsBySection?.maxClientsReferences ?? dataCounts!.clientsReferences, dataCounts!.clientsReferences)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsReferences: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                                <input type="range" min="0" max={maxCounts?.clientsReferences || 25} value={convertOptions.limitsBySection?.maxClientsReferences ?? (maxCounts?.clientsReferences || 25)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsReferences: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
                                                                             </div>
                                                                         )}
-                                                                        {(dataCounts?.skills ?? 0) > 1 && (
+                                                                        {(maxCounts?.skills ?? 0) > 1 && (
                                                                             <div>
-                                                                                <label className="text-slate-600 mb-1 block">Compétences : {Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)} / {dataCounts!.skills}</label>
-                                                                                <input type="range" min="0" max={dataCounts!.skills} value={Math.min(convertOptions.limitsBySection?.maxSkills ?? dataCounts!.skills, dataCounts!.skills)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxSkills: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                                <label className="text-slate-600 mb-1 block">Compétences : {convertOptions.limitsBySection?.maxSkills ?? (maxCounts?.skills || 20)} / {maxCounts?.skills || 20}</label>
+                                                                                <input type="range" min="0" max={maxCounts?.skills || 20} value={convertOptions.limitsBySection?.maxSkills ?? (maxCounts?.skills || 20)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxSkills: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
                                                                             </div>
                                                                         )}
-                                                                        {(dataCounts?.formations ?? 0) > 1 && (
+                                                                        {(maxCounts?.formations ?? 0) > 1 && (
                                                                             <div>
-                                                                                <label className="text-slate-600 mb-1 block">Formations : {Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)} / {dataCounts!.formations}</label>
-                                                                                <input type="range" min="0" max={dataCounts!.formations} value={Math.min(convertOptions.limitsBySection?.maxFormations ?? dataCounts!.formations, dataCounts!.formations)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxFormations: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                                <label className="text-slate-600 mb-1 block">Formations : {convertOptions.limitsBySection?.maxFormations ?? (maxCounts?.formations || 5)} / {maxCounts?.formations || 5}</label>
+                                                                                <input type="range" min="0" max={maxCounts?.formations || 5} value={convertOptions.limitsBySection?.maxFormations ?? (maxCounts?.formations || 5)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxFormations: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
                                                                             </div>
                                                                         )}
-                                                                        {(dataCounts?.langues ?? 0) > 1 && (
+                                                                        {(maxCounts?.langues ?? 0) > 1 && (
                                                                             <div>
-                                                                                <label className="text-slate-600 mb-1 block">Langues : {Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)} / {dataCounts!.langues}</label>
-                                                                                <input type="range" min="0" max={dataCounts!.langues} value={Math.min(convertOptions.limitsBySection?.maxLanguages ?? dataCounts!.langues, dataCounts!.langues)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxLanguages: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                                <label className="text-slate-600 mb-1 block">Langues : {convertOptions.limitsBySection?.maxLanguages ?? (maxCounts?.langues || 10)} / {maxCounts?.langues || 10}</label>
+                                                                                <input type="range" min="0" max={maxCounts?.langues || 10} value={convertOptions.limitsBySection?.maxLanguages ?? (maxCounts?.langues || 10)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxLanguages: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
                                                                             </div>
                                                                         )}
-                                                                        {(dataCounts?.certifications ?? 0) > 1 && (
+                                                                        {(maxCounts?.certifications ?? 0) > 1 && (
                                                                             <div>
-                                                                                <label className="text-slate-600 mb-1 block">Certifications : {Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)} / {dataCounts!.certifications}</label>
-                                                                                <input type="range" min="0" max={dataCounts!.certifications} value={Math.min(convertOptions.limitsBySection?.maxCertifications ?? dataCounts!.certifications, dataCounts!.certifications)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxCertifications: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                                <label className="text-slate-600 mb-1 block">Certifications : {convertOptions.limitsBySection?.maxCertifications ?? (maxCounts?.certifications || 10)} / {maxCounts?.certifications || 10}</label>
+                                                                                <input type="range" min="0" max={maxCounts?.certifications || 10} value={convertOptions.limitsBySection?.maxCertifications ?? (maxCounts?.certifications || 10)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxCertifications: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
                                                                             </div>
                                                                         )}
-                                                                        {(dataCounts?.projects ?? 0) > 1 && (
+                                                                        {(maxCounts?.projects ?? 0) > 1 && (
                                                                             <div>
-                                                                                <label className="text-slate-600 mb-1 block">Projets : {Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)} / {dataCounts!.projects}</label>
-                                                                                <input type="range" min="0" max={dataCounts!.projects} value={Math.min(convertOptions.limitsBySection?.maxProjects ?? dataCounts!.projects, dataCounts!.projects)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxProjects: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
+                                                                                <label className="text-slate-600 mb-1 block">Projets : {convertOptions.limitsBySection?.maxProjects ?? (maxCounts?.projects || 5)} / {maxCounts?.projects || 5}</label>
+                                                                                <input type="range" min="0" max={maxCounts?.projects || 5} value={convertOptions.limitsBySection?.maxProjects ?? (maxCounts?.projects || 5)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxProjects: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -1338,7 +1410,13 @@ function CVBuilderContent() {
                                                             type="button"
                                                             className="w-full text-[11px] text-slate-500 hover:text-slate-700 py-1"
                                                             onClick={() => {
-                                                                setConvertOptions({ minScore: 0, maxExperiences: 20, maxBulletsPerExperience: 10, limitsBySection: {} });
+                                                                // [FIX #2] Reset utilise les vrais max au lieu de valeurs hardcodées
+                                                                setConvertOptions({
+                                                                    minScore: 0,
+                                                                    maxExperiences: maxCounts?.experiences || 20,
+                                                                    maxBulletsPerExperience: maxCounts?.maxRealisationsPerExp || 10,
+                                                                    limitsBySection: {},
+                                                                });
                                                                 setIncludePhoto(true);
                                                                 setAdvancedFiltersEnabled(false);
                                                                 setAdvancedMinScoreBySection({ header: 0, summary: 0, experiences: 0, skills: 0, education: 0, languages: 0, references: 0, projects: 0 });
