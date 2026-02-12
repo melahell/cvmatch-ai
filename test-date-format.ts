@@ -17,7 +17,7 @@ const cases = [
 cases.forEach(c => {
     try {
         console.log(`'${c}' -> '${formatDate(c)}'`);
-    } catch (e) {
+    } catch (e: any) {
         console.error(`'${c}' -> ERROR: ${e.message}`);
     }
 });
