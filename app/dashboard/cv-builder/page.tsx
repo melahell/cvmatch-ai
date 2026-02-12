@@ -172,8 +172,8 @@ function CVBuilderContent() {
         maxExperiences: 20,           // 20 expériences par défaut (slider max=20)
         maxBulletsPerExperience: 10,  // 10 bullets par expérience (ajustable)
         limitsBySection: {
-            maxClientsPerExperience: 6,
-            maxClientsReferences: 25,
+            maxClientsPerExperience: 30, // [FIX] Increased from 6
+            maxClientsReferences: 50,    // [FIX] Increased from 25
         },
     });
 
@@ -1453,7 +1453,7 @@ function CVBuilderContent() {
                                                                 {/* Pertinence */}
                                                                 <div>
                                                                     <label className="text-slate-600 mb-1 block">
-                                                                        Pertinence : {convertOptions.minScore}%
+                                                                        Niveau de détail : {convertOptions.minScore}%
                                                                         <span className="text-xs text-slate-400 ml-2">
                                                                             ({(dataCounts?.experiences || 0) + (dataCounts?.technicalSkills || 0)} éléments)
                                                                         </span>
@@ -1487,7 +1487,7 @@ function CVBuilderContent() {
                                                                 {/* Réalisations */}
                                                                 <div>
                                                                     <label className="text-slate-600 mb-1 block">
-                                                                        Réalisations/exp : {displayLimits.maxBulletsPerExperience ?? (maxCounts?.maxRealisationsPerExp || 99)} / {maxCounts?.maxRealisationsPerExp || 99}
+                                                                        Détails par poste : {displayLimits.maxBulletsPerExperience ?? (maxCounts?.maxRealisationsPerExp || 99)} / {maxCounts?.maxRealisationsPerExp || 99}
                                                                     </label>
                                                                     <input
                                                                         type="range"
@@ -1537,19 +1537,20 @@ function CVBuilderContent() {
                                                                 {(
                                                                     (maxCounts?.maxClientsPerExp ?? 0) > 0 ||
                                                                     (maxCounts?.clientsReferences ?? 0) > 0 ||
-                                                                    (maxCounts?.formations ?? 0) > 1 ||
-                                                                    (maxCounts?.langues ?? 0) > 1 ||
-                                                                    (maxCounts?.certifications ?? 0) > 1 ||
-                                                                    (maxCounts?.projects ?? 0) > 1
+                                                                    (maxCounts?.formations ?? 0) > 2 ||
+                                                                    (maxCounts?.langues ?? 0) > 2 ||
+                                                                    (maxCounts?.certifications ?? 0) > 2 ||
+                                                                    (maxCounts?.projects ?? 0) > 2
                                                                 ) && (
-                                                                        <details className="group mt-2">
-                                                                            <summary className="text-[11px] font-medium text-slate-500 hover:text-indigo-600 cursor-pointer select-none py-1.5 flex items-center gap-1 transition-colors">
-                                                                                <span className="group-open:rotate-90 transition-transform">▸</span> Plus d'options d'ajustement…
+                                                                        <details className="group mt-4">
+                                                                            <summary className="w-full flex items-center justify-between p-2 text-xs font-medium text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-md cursor-pointer transition-colors select-none">
+                                                                                <span>Plus d'options d'ajustement</span>
+                                                                                <span className="group-open:rotate-90 transition-transform">▸</span>
                                                                             </summary>
-                                                                            <div className="mt-2 space-y-3 pl-2 border-l-2 border-slate-100 ml-1">
+                                                                            <div className="mt-3 space-y-4 pl-1">
                                                                                 {(maxCounts?.maxClientsPerExp ?? 0) > 0 && (
                                                                                     <div>
-                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                        <label className="text-slate-600 mb-1 block text-xs">
                                                                                             Clients/exp : {Math.min(displayLimits.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 99), maxCounts?.maxClientsPerExp || 99)} / {maxCounts?.maxClientsPerExp || 99}
                                                                                         </label>
                                                                                         <input type="range" min="0" max={maxCounts?.maxClientsPerExp || 99} value={Math.min(displayLimits.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 99), maxCounts?.maxClientsPerExp || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxClientsPerExperience: Number(e.target.value) }))} className="w-full accent-indigo-600" />
@@ -1557,39 +1558,39 @@ function CVBuilderContent() {
                                                                                 )}
                                                                                 {(maxCounts?.clientsReferences ?? 0) > 0 && (
                                                                                     <div>
-                                                                                        <label className="text-slate-600 mb-1 block">
-                                                                                            Clients références : {Math.min(displayLimits.maxClientsReferences ?? (maxCounts?.clientsReferences || 99), maxCounts?.clientsReferences || 99)} / {maxCounts?.clientsReferences || 99}
+                                                                                        <label className="text-slate-600 mb-1 block text-xs">
+                                                                                            Clients & Références : {Math.min(displayLimits.maxClientsReferences ?? (maxCounts?.clientsReferences || 99), maxCounts?.clientsReferences || 99)} / {maxCounts?.clientsReferences || 99}
                                                                                         </label>
                                                                                         <input type="range" min="0" max={maxCounts?.clientsReferences || 99} value={Math.min(displayLimits.maxClientsReferences ?? (maxCounts?.clientsReferences || 99), maxCounts?.clientsReferences || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxClientsReferences: Number(e.target.value) }))} className="w-full accent-indigo-600" />
                                                                                     </div>
                                                                                 )}
-                                                                                {(maxCounts?.formations ?? 0) > 1 && (
+                                                                                {(maxCounts?.formations ?? 0) > 2 && (
                                                                                     <div>
-                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                        <label className="text-slate-600 mb-1 block text-xs">
                                                                                             Formations : {Math.min(displayLimits.maxFormations ?? (maxCounts?.formations || 99), maxCounts?.formations || 99)} / {maxCounts?.formations || 99}
                                                                                         </label>
                                                                                         <input type="range" min="0" max={maxCounts?.formations || 99} value={Math.min(displayLimits.maxFormations ?? (maxCounts?.formations || 99), maxCounts?.formations || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxFormations: Number(e.target.value) }))} className="w-full accent-indigo-600" />
                                                                                     </div>
                                                                                 )}
-                                                                                {(maxCounts?.langues ?? 0) > 1 && (
+                                                                                {(maxCounts?.langues ?? 0) > 2 && (
                                                                                     <div>
-                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                        <label className="text-slate-600 mb-1 block text-xs">
                                                                                             Langues : {Math.min(displayLimits.maxLanguages ?? (maxCounts?.langues || 99), maxCounts?.langues || 99)} / {maxCounts?.langues || 99}
                                                                                         </label>
                                                                                         <input type="range" min="0" max={maxCounts?.langues || 99} value={Math.min(displayLimits.maxLanguages ?? (maxCounts?.langues || 99), maxCounts?.langues || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxLanguages: Number(e.target.value) }))} className="w-full accent-indigo-600" />
                                                                                     </div>
                                                                                 )}
-                                                                                {(maxCounts?.certifications ?? 0) > 1 && (
+                                                                                {(maxCounts?.certifications ?? 0) > 2 && (
                                                                                     <div>
-                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                        <label className="text-slate-600 mb-1 block text-xs">
                                                                                             Certifications : {Math.min(displayLimits.maxCertifications ?? (maxCounts?.certifications || 99), maxCounts?.certifications || 99)} / {maxCounts?.certifications || 99}
                                                                                         </label>
                                                                                         <input type="range" min="0" max={maxCounts?.certifications || 99} value={Math.min(displayLimits.maxCertifications ?? (maxCounts?.certifications || 99), maxCounts?.certifications || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxCertifications: Number(e.target.value) }))} className="w-full accent-indigo-600" />
                                                                                     </div>
                                                                                 )}
-                                                                                {(maxCounts?.projects ?? 0) > 1 && (
+                                                                                {(maxCounts?.projects ?? 0) > 2 && (
                                                                                     <div>
-                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                        <label className="text-slate-600 mb-1 block text-xs">
                                                                                             Projets : {Math.min(displayLimits.maxProjects ?? (maxCounts?.projects || 99), maxCounts?.projects || 99)} / {maxCounts?.projects || 99}
                                                                                         </label>
                                                                                         <input type="range" min="0" max={maxCounts?.projects || 99} value={Math.min(displayLimits.maxProjects ?? (maxCounts?.projects || 99), maxCounts?.projects || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxProjects: Number(e.target.value) }))} className="w-full accent-indigo-600" />

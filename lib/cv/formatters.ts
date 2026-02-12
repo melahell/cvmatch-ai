@@ -12,6 +12,14 @@ export function formatDate(dateStr: string | undefined | null): string {
         return "Présent";
     }
 
+    // Explicitly handle YYYY-MM format (from AI Adapter)
+    if (/^\d{4}-\d{2}$/.test(dateStr.trim())) {
+        const [y, m] = dateStr.trim().split("-").map(Number);
+        if (m >= 1 && m <= 12) {
+            return `${MONTHS_SHORT[m - 1]} ${y}`;
+        }
+    }
+
     // If it's just a year (4 digits), return as is
     if (/^\d{4}$/.test(dateStr.trim())) {
         return dateStr.trim();
