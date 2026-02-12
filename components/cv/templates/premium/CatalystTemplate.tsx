@@ -4,6 +4,7 @@ import React from "react";
 import { TemplateProps, withDL, isValidEntreprise } from "../index";
 import { CV_THEME_VARS as V } from "@/lib/cv/style/theme-vars";
 import {
+    PageContainer,
     ProfilePicture,
     ContactInfo,
     SummaryBlock,
@@ -18,13 +19,14 @@ import {
 } from "@/components/cv/shared";
 
 /**
- * CATALYST — Header gradient asymétrique + sections en cartes
- * clip-path diagonal header, sections en cards arrondies avec fond léger.
- * Cible : Design, UX/UI, marketing créatif, startup.
+ * CATALYST — Créatif diagonal header + sections en cartes
+ * Header avec gradient diagonal (clip-path), contenu en cartes arrondies.
+ * TEMPLATE_OVERRIDES: --cv-sidebar-bg: #881337 (for header), --cv-sidebar-text: #fce7f3
+ * Cible : Design, UX/UI, Startup.
  */
 export default function CatalystTemplate({
     data,
-    includePhoto = false,
+    includePhoto = true,
     jobContext,
     dense = false,
     displayLimits: dl,
@@ -42,60 +44,55 @@ export default function CatalystTemplate({
     const limitedClients = (clients_references?.clients || []).slice(0, limits.maxClientsReferences);
     const limitedProjects = (projects || []).slice(0, limits.maxProjects);
 
-    const sectionGap = dense ? "gap-3" : "gap-4";
+    const sectionMb = dense ? "mb-3" : "mb-4";
 
-    /** Card wrapper for sections */
+    /** Card wrapper — subtle tinted background + rounded corners */
     const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
         <div
-            className={`rounded-lg px-4 py-3 ${className}`}
-            style={{ backgroundColor: V.primaryA08 }}
+            className={`p-3 rounded-sm ${className}`}
+            style={{ backgroundColor: V.primaryA20, border: `1px solid ${V.primaryA30}` }}
         >
             {children}
         </div>
     );
 
     return (
-        <div
-            className="cv-page bg-white overflow-hidden text-[9pt]"
-            style={{
-                width: "210mm",
-                minHeight: "297mm",
-                maxHeight: "297mm",
-                boxSizing: "border-box",
-                fontFamily: "var(--cv-font-body)",
-                fontSize: dense ? "8.5pt" : "9pt",
-                lineHeight: dense ? "1.3" : "1.4",
-            }}
+        <PageContainer
+            dense={dense}
+            fontSize={dense ? "8.5pt" : "9pt"}
+            lineHeight={dense ? "1.3" : "1.4"}
+            className="shadow-sm"
         >
-            {/* ── HEADER — Gradient avec clip-path diagonal ── */}
+            {/* ── HEADER — diagonal gradient clip-path ── */}
             <header
-                className="relative text-white"
+                className="relative overflow-hidden px-8 pt-6 pb-8"
                 style={{
-                    padding: dense ? "24px 28px 32px" : "28px 32px 40px",
-                    background: `linear-gradient(160deg, ${V.primary} 0%, ${V.sidebarAccent} 70%, ${V.sidebarBg} 100%)`,
-                    clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
+                    background: `linear-gradient(135deg, ${V.sidebarBg} 0%, ${V.primary} 50%, ${V.sidebarAccent} 100%)`,
+                    clipPath: "polygon(0 0, 100% 0, 100% 88%, 0 100%)",
+                    color: V.sidebarText,
                 }}
             >
-                <div className="flex items-center gap-5">
-                    <ProfilePicture
-                        photoUrl={profil?.photo_url}
-                        fullName={`${profil.prenom} ${profil.nom}`}
-                        initials={initials}
-                        includePhoto={includePhoto}
-                        size="lg"
-                        shape="rounded"
-                        borderColor="rgba(255,255,255,0.5)"
-                    />
-                    <div className="flex-1">
-                        <h1 className="text-[22pt] font-bold leading-tight">
+                <div className="relative z-10 flex items-center gap-5">
+                    {includePhoto && (
+                        <ProfilePicture
+                            photoUrl={profil?.photo_url}
+                            fullName={`${profil.prenom} ${profil.nom}`}
+                            initials={initials}
+                            includePhoto={includePhoto}
+                            size="md"
+                            shape="rounded"
+                            borderColor={V.sidebarAccent}
+                        />
+                    )}
+                    <div>
+                        <h1 className="text-[20pt] font-bold leading-tight" style={{ color: V.sidebarText }}>
                             {profil.prenom} {profil.nom}
                         </h1>
-                        <p className="text-[11pt] font-light mt-1 opacity-90">
+                        <p className="text-[10pt] font-medium mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>
                             {profil.titre_principal}
                         </p>
 
-                        {/* Contact inline */}
-                        <div className="mt-3">
+                        <div className="mt-2">
                             <ContactInfo
                                 email={profil.email}
                                 telephone={profil.telephone}
@@ -103,9 +100,9 @@ export default function CatalystTemplate({
                                 linkedin={profil.linkedin}
                                 github={profil.github}
                                 portfolio={profil.portfolio}
-                                layout="inline"
+                                layout="horizontal"
                                 iconColor="rgba(255,255,255,0.7)"
-                                textColor="rgba(255,255,255,0.9)"
+                                textColor="rgba(255,255,255,0.85)"
                                 iconSize={11}
                                 textSize="text-[8pt]"
                             />
@@ -113,175 +110,184 @@ export default function CatalystTemplate({
                     </div>
                 </div>
 
+                {/* Job context */}
                 {jobContext?.job_title && (
-                    <div className="mt-3 inline-block text-[8pt] px-3 py-1 rounded bg-white/15">
+                    <div
+                        className="relative z-10 mt-3 text-[8pt] px-3 py-1 rounded-sm inline-block"
+                        style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.9)" }}
+                    >
                         {jobContext.job_title}
                         {jobContext.company && ` · ${jobContext.company}`}
-                        {jobContext.match_score && ` — ${jobContext.match_score}%`}
+                        {jobContext.match_score != null && ` — ${jobContext.match_score}%`}
                     </div>
                 )}
             </header>
 
-            {/* ── BODY — Sections en cartes ── */}
-            <main
-                className={`flex flex-col ${sectionGap}`}
-                style={{ padding: dense ? "8px 24px 16px" : "4px 28px 20px" }}
-            >
+            {/* ── BODY ── */}
+            <main className="px-6 pt-2 pb-6">
                 {/* Pitch */}
                 {profil.elevator_pitch && (
-                    <Card>
-                        <SummaryBlock
-                            text={profil.elevator_pitch}
-                            primaryColor={V.primary}
-                            variant="plain"
-                            textSize="text-[9pt]"
-                        />
-                    </Card>
+                    <section className={sectionMb}>
+                        <Card>
+                            <SummaryBlock
+                                text={profil.elevator_pitch}
+                                primaryColor={V.primary}
+                                variant="border-left"
+                                textSize="text-[9pt]"
+                            />
+                        </Card>
+                    </section>
                 )}
 
-                {/* Expériences */}
+                {/* Expériences — NOT in cards (too much visual noise) */}
                 {limitedExperiences.length > 0 && (
-                    <section>
+                    <section className={sectionMb}>
                         <SectionTitle
                             title="Expérience Professionnelle"
                             primaryColor={V.primary}
                             variant="accent-line"
                             textSize="text-[10pt]"
                         />
-                        <div className={`flex flex-col ${dense ? "gap-2" : "gap-2.5"}`}>
+                        <div className={`flex flex-col ${dense ? "gap-2" : "gap-3"}`}>
                             {limitedExperiences.map((exp, i) => (
-                                <Card key={i}>
-                                    <ExperienceItem
-                                        poste={exp.poste}
-                                        entreprise={isValidEntreprise(exp.entreprise) ? exp.entreprise : ""}
-                                        date_debut={exp.date_debut}
-                                        date_fin={exp.date_fin}
-                                        lieu={exp.lieu}
-                                        realisations={exp.realisations}
-                                        clients={exp.clients}
-                                        primaryColor={V.primary}
-                                        variant="standard"
-                                        relevanceScore={(exp as any)._relevance_score}
-                                        maxRealisations={limits.maxRealisationsPerExp}
-                                        bulletStyle="dot"
-                                    />
-                                </Card>
+                                <ExperienceItem
+                                    key={i}
+                                    poste={exp.poste}
+                                    entreprise={isValidEntreprise(exp.entreprise) ? exp.entreprise : ""}
+                                    date_debut={exp.date_debut}
+                                    date_fin={exp.date_fin}
+                                    lieu={exp.lieu}
+                                    realisations={exp.realisations}
+                                    clients={exp.clients}
+                                    primaryColor={V.primary}
+                                    variant="standard"
+                                    relevanceScore={(exp as any)._relevance_score}
+                                    maxRealisations={limits.maxRealisationsPerExp}
+                                    bulletStyle="dot"
+                                />
                             ))}
                         </div>
                     </section>
                 )}
 
-                {/* Skills row — Techniques + Soft */}
+                {/* Skills + Soft Skills — in one card */}
                 {(limitedSkills.length > 0 || limitedSoftSkills.length > 0) && (
-                    <div className="flex gap-3">
-                        {limitedSkills.length > 0 && (
-                            <Card className="flex-1">
-                                <SectionTitle
-                                    title="Compétences"
-                                    primaryColor={V.primary}
-                                    variant="simple"
-                                    textSize="text-[9pt]"
-                                />
-                                <SkillsGrid
-                                    skills={limitedSkills.map(s => typeof s === "string" ? s : String(s))}
-                                    primaryColor={V.primary}
-                                    variant="pills"
-                                    textSize="text-[8pt]"
-                                />
-                            </Card>
-                        )}
-                        {limitedSoftSkills.length > 0 && (
-                            <Card className="flex-1">
-                                <SectionTitle
-                                    title="Savoir-être"
-                                    primaryColor={V.primary}
-                                    variant="simple"
-                                    textSize="text-[9pt]"
-                                />
-                                <SkillsGrid
-                                    skills={limitedSoftSkills.map(s => typeof s === "string" ? s : String(s))}
-                                    primaryColor={V.primary}
-                                    variant="pills"
-                                    textSize="text-[8pt]"
-                                />
-                            </Card>
-                        )}
-                    </div>
-                )}
-
-                {/* Formation + Langues + Certifications row */}
-                <div className="flex gap-3">
-                    {limitedFormations.length > 0 && (
-                        <Card className="flex-1">
+                    <section className={sectionMb}>
+                        <Card>
                             <SectionTitle
-                                title="Formation"
+                                title="Compétences"
                                 primaryColor={V.primary}
-                                variant="simple"
-                                textSize="text-[9pt]"
+                                variant="accent-line"
+                                textSize="text-[9.5pt]"
                             />
-                            <div className="space-y-1">
-                                {limitedFormations.map((edu, i) => (
-                                    <EducationItem
-                                        key={i}
-                                        diplome={edu.diplome}
-                                        etablissement={edu.etablissement}
-                                        annee={edu.annee}
-                                        primaryColor={V.primary}
-                                        variant="compact"
-                                    />
-                                ))}
+                            <div className="flex gap-5">
+                                {limitedSkills.length > 0 && (
+                                    <div className="flex-1">
+                                        <p className="text-[7.5pt] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Techniques</p>
+                                        <SkillsGrid
+                                            skills={limitedSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
+                                            primaryColor={V.primary}
+                                            variant="pills"
+                                            textSize="text-[8pt]"
+                                        />
+                                    </div>
+                                )}
+                                {limitedSoftSkills.length > 0 && (
+                                    <div className="flex-1">
+                                        <p className="text-[7.5pt] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Savoir-être</p>
+                                        <SkillsGrid
+                                            skills={limitedSoftSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
+                                            primaryColor={V.primary}
+                                            variant="pills"
+                                            textSize="text-[8pt]"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </Card>
-                    )}
-                    {limitedLangages.length > 0 && (
-                        <Card className="flex-1">
-                            <SectionTitle
-                                title="Langues"
-                                primaryColor={V.primary}
-                                variant="simple"
-                                textSize="text-[9pt]"
-                            />
-                            <LanguageList
-                                langues={limitedLangages}
-                                primaryColor={V.primary}
-                                variant="badge"
-                                textSize="text-[8pt]"
-                            />
+                    </section>
+                )}
+
+                {/* Formations + Langues + Certifications — in one card, side by side */}
+                {(limitedFormations.length > 0 || limitedLangages.length > 0 || limitedCertifications.length > 0) && (
+                    <section className={sectionMb}>
+                        <Card>
+                            <div className="flex gap-5 flex-wrap">
+                                {limitedFormations.length > 0 && (
+                                    <div className="flex-1 min-w-[30%]">
+                                        <SectionTitle
+                                            title="Formation"
+                                            primaryColor={V.primary}
+                                            variant="accent-line"
+                                            textSize="text-[9pt]"
+                                        />
+                                        <div className="space-y-1">
+                                            {limitedFormations.map((edu, i) => (
+                                                <EducationItem
+                                                    key={i}
+                                                    diplome={edu.diplome}
+                                                    etablissement={edu.etablissement}
+                                                    annee={edu.annee}
+                                                    primaryColor={V.primary}
+                                                    variant="compact"
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {limitedLangages.length > 0 && (
+                                    <div className="flex-1 min-w-[25%]">
+                                        <SectionTitle
+                                            title="Langues"
+                                            primaryColor={V.primary}
+                                            variant="accent-line"
+                                            textSize="text-[9pt]"
+                                        />
+                                        <LanguageList
+                                            langues={limitedLangages}
+                                            primaryColor={V.primary}
+                                            variant="badge"
+                                            textSize="text-[8pt]"
+                                        />
+                                    </div>
+                                )}
+                                {limitedCertifications.length > 0 && (
+                                    <div className="flex-1 min-w-[25%]">
+                                        <SectionTitle
+                                            title="Certifications"
+                                            primaryColor={V.primary}
+                                            variant="accent-line"
+                                            textSize="text-[9pt]"
+                                        />
+                                        <CertificationList
+                                            certifications={limitedCertifications}
+                                            primaryColor={V.primary}
+                                            textSize="text-[8pt]"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </Card>
-                    )}
-                    {limitedCertifications.length > 0 && (
-                        <Card className="flex-1">
-                            <SectionTitle
-                                title="Certifications"
-                                primaryColor={V.primary}
-                                variant="simple"
-                                textSize="text-[9pt]"
-                            />
-                            <CertificationList
-                                certifications={limitedCertifications}
-                                primaryColor={V.primary}
-                            />
-                        </Card>
-                    )}
-                </div>
+                    </section>
+                )}
 
                 {/* Clients */}
                 {limitedClients.length > 0 && (
-                    <Card>
+                    <section className={sectionMb}>
                         <SectionTitle
                             title="Clients & Références"
                             primaryColor={V.primary}
-                            variant="simple"
-                            textSize="text-[9pt]"
+                            variant="accent-line"
+                            textSize="text-[10pt]"
                         />
                         <ClientReferences
                             clients={limitedClients}
                             secteurs={clients_references?.secteurs}
                             primaryColor={V.primary}
                             variant="pills"
-                            textSize="text-[8pt]"
+                            textSize="text-[8.5pt]"
                         />
-                    </Card>
+                    </section>
                 )}
 
                 {/* Projets */}
@@ -293,23 +299,22 @@ export default function CatalystTemplate({
                             variant="accent-line"
                             textSize="text-[10pt]"
                         />
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
                             {limitedProjects.map((project, i) => (
-                                <Card key={i}>
-                                    <ProjectItem
-                                        nom={project.nom}
-                                        description={project.description}
-                                        technologies={project.technologies}
-                                        lien={project.lien}
-                                        primaryColor={V.primary}
-                                        variant="compact"
-                                    />
-                                </Card>
+                                <ProjectItem
+                                    key={i}
+                                    nom={project.nom}
+                                    description={project.description}
+                                    technologies={project.technologies}
+                                    lien={project.lien}
+                                    primaryColor={V.primary}
+                                    variant="card"
+                                />
                             ))}
                         </div>
                     </section>
                 )}
             </main>
-        </div>
+        </PageContainer>
     );
 }

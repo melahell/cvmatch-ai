@@ -4,6 +4,7 @@ import React from "react";
 import { TemplateProps, withDL, isValidEntreprise } from "../index";
 import { CV_THEME_VARS as V } from "@/lib/cv/style/theme-vars";
 import {
+    PageContainer,
     ProfilePicture,
     ContactInfo,
     SummaryBlock,
@@ -19,13 +20,14 @@ import {
 
 /**
  * METROPOLIS — Grand header gradient + body 2 colonnes
- * Header pleine largeur avec gradient diagonal, forme SVG décorative.
- * Body : colonne gauche 60% (expériences, projets) / droite 40% (skills, formation, etc.)
- * Cible : Profils polyvalents, marketing, product management.
+ * Header pleine largeur avec gradient diagonal + info personnelle.
+ * Main body en 2 colonnes (60/40).
+ * TEMPLATE_OVERRIDES: --cv-sidebar-bg: #4c1d95, --cv-sidebar-text: #f5f3ff
+ * Cible : Marketing, Product, profils polyvalents.
  */
 export default function MetropolisTemplate({
     data,
-    includePhoto = false,
+    includePhoto = true,
     jobContext,
     dense = false,
     displayLimits: dl,
@@ -43,58 +45,57 @@ export default function MetropolisTemplate({
     const limitedClients = (clients_references?.clients || []).slice(0, limits.maxClientsReferences);
     const limitedProjects = (projects || []).slice(0, limits.maxProjects);
 
-    const gap = dense ? "gap-3" : "gap-4";
+    const sectionMb = dense ? "mb-3" : "mb-4";
 
     return (
-        <div
-            className="cv-page bg-white overflow-hidden text-[9pt]"
-            style={{
-                width: "210mm",
-                minHeight: "297mm",
-                maxHeight: "297mm",
-                boxSizing: "border-box",
-                fontFamily: "var(--cv-font-body)",
-                fontSize: dense ? "8.5pt" : "9pt",
-                lineHeight: dense ? "1.3" : "1.4",
-            }}
+        <PageContainer
+            dense={dense}
+            fontSize={dense ? "8.5pt" : "9pt"}
+            lineHeight={dense ? "1.3" : "1.4"}
+            className="shadow-sm"
         >
-            {/* ── HEADER — Grand gradient avec forme géométrique ── */}
+            {/* ── HEADER with gradient ── */}
             <header
-                className="relative text-white overflow-hidden"
+                className="relative overflow-hidden px-8 py-6"
                 style={{
-                    padding: dense ? "20px 28px 28px" : "28px 32px 36px",
-                    background: `linear-gradient(135deg, ${V.primary} 0%, ${V.sidebarAccent} 100%)`,
+                    background: `linear-gradient(135deg, ${V.sidebarBg} 0%, ${V.primary} 60%, ${V.sidebarAccent} 100%)`,
+                    color: V.sidebarText,
                 }}
             >
-                {/* Decorative triangle SVG */}
+                {/* Decorative SVG — subtle geometric pattern */}
                 <svg
-                    className="absolute bottom-0 right-0 opacity-10"
-                    width="200" height="120" viewBox="0 0 200 120"
+                    className="absolute right-0 top-0 opacity-15"
+                    width="280" height="160"
+                    viewBox="0 0 280 160"
                     fill="none"
+                    style={{ pointerEvents: "none" }}
                 >
-                    <polygon points="200,0 200,120 60,120" fill="white" />
+                    <polygon points="280,0 280,160 120,160" fill="white" />
+                    <polygon points="280,0 200,160 160,0" fill="white" opacity="0.5" />
                 </svg>
 
                 <div className="relative z-10 flex items-center gap-5">
-                    <ProfilePicture
-                        photoUrl={profil?.photo_url}
-                        fullName={`${profil.prenom} ${profil.nom}`}
-                        initials={initials}
-                        includePhoto={includePhoto}
-                        size="lg"
-                        shape="circle"
-                        borderColor="rgba(255,255,255,0.6)"
-                    />
-                    <div className="flex-1">
-                        <h1 className="text-[20pt] font-bold leading-tight">
+                    {includePhoto && (
+                        <ProfilePicture
+                            photoUrl={profil?.photo_url}
+                            fullName={`${profil.prenom} ${profil.nom}`}
+                            initials={initials}
+                            includePhoto={includePhoto}
+                            size="md"
+                            shape="circle"
+                            borderColor="rgba(255,255,255,0.6)"
+                        />
+                    )}
+                    <div>
+                        <h1 className="text-[22pt] font-bold leading-tight" style={{ color: V.sidebarText }}>
                             {profil.prenom} {profil.nom}
                         </h1>
-                        <p className="text-[11pt] font-light mt-1 opacity-90">
+                        <p className="text-[11pt] font-medium mt-1" style={{ color: "rgba(255,255,255,0.85)" }}>
                             {profil.titre_principal}
                         </p>
 
-                        {/* Contact inline */}
-                        <div className="mt-3">
+                        {/* Contact in header */}
+                        <div className="mt-2">
                             <ContactInfo
                                 email={profil.email}
                                 telephone={profil.telephone}
@@ -102,9 +103,9 @@ export default function MetropolisTemplate({
                                 linkedin={profil.linkedin}
                                 github={profil.github}
                                 portfolio={profil.portfolio}
-                                layout="inline"
+                                layout="horizontal"
                                 iconColor="rgba(255,255,255,0.7)"
-                                textColor="rgba(255,255,255,0.9)"
+                                textColor="rgba(255,255,255,0.85)"
                                 iconSize={11}
                                 textSize="text-[8pt]"
                             />
@@ -114,38 +115,40 @@ export default function MetropolisTemplate({
 
                 {/* Job context */}
                 {jobContext?.job_title && (
-                    <div className="relative z-10 mt-3 inline-block text-[8pt] px-3 py-1 rounded bg-white/15">
+                    <div
+                        className="relative z-10 mt-3 text-[8pt] px-3 py-1 rounded-sm inline-block"
+                        style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.9)" }}
+                    >
                         {jobContext.job_title}
                         {jobContext.company && ` · ${jobContext.company}`}
-                        {jobContext.match_score && ` — ${jobContext.match_score}%`}
+                        {jobContext.match_score != null && ` — ${jobContext.match_score}%`}
                     </div>
                 )}
             </header>
 
-            {/* ── BODY — 2 colonnes ── */}
-            <div
-                className="flex flex-1"
-                style={{ padding: dense ? "16px 24px" : "20px 28px" }}
-            >
-                {/* Colonne Gauche 60% — Expériences + Projets */}
-                <div className={`flex-[3] flex flex-col ${gap} pr-5 border-r`} style={{ borderRightColor: V.primaryA20 }}>
+            {/* ── BODY — 2 columns ── */}
+            <main className="flex px-6 py-5 gap-5">
+                {/* Left column — 60% — Experiences */}
+                <div style={{ width: "60%" }}>
                     {/* Pitch */}
                     {profil.elevator_pitch && (
-                        <SummaryBlock
-                            text={profil.elevator_pitch}
-                            primaryColor={V.primary}
-                            variant="quote"
-                            textSize="text-[9pt]"
-                        />
+                        <section className={sectionMb}>
+                            <SummaryBlock
+                                text={profil.elevator_pitch}
+                                primaryColor={V.primary}
+                                variant="border-left"
+                                textSize="text-[9pt]"
+                            />
+                        </section>
                     )}
 
                     {/* Expériences */}
                     {limitedExperiences.length > 0 && (
-                        <section>
+                        <section className={sectionMb}>
                             <SectionTitle
                                 title="Expérience Professionnelle"
                                 primaryColor={V.primary}
-                                variant="underline"
+                                variant="accent-line"
                                 textSize="text-[10pt]"
                             />
                             <div className={`flex flex-col ${dense ? "gap-2" : "gap-3"}`}>
@@ -170,13 +173,32 @@ export default function MetropolisTemplate({
                         </section>
                     )}
 
+                    {/* Clients */}
+                    {limitedClients.length > 0 && (
+                        <section className={sectionMb}>
+                            <SectionTitle
+                                title="Clients & Références"
+                                primaryColor={V.primary}
+                                variant="accent-line"
+                                textSize="text-[10pt]"
+                            />
+                            <ClientReferences
+                                clients={limitedClients}
+                                secteurs={clients_references?.secteurs}
+                                primaryColor={V.primary}
+                                variant="pills"
+                                textSize="text-[8.5pt]"
+                            />
+                        </section>
+                    )}
+
                     {/* Projets */}
                     {limitedProjects.length > 0 && (
                         <section>
                             <SectionTitle
                                 title="Projets"
                                 primaryColor={V.primary}
-                                variant="underline"
+                                variant="accent-line"
                                 textSize="text-[10pt]"
                             />
                             <div className="space-y-2">
@@ -188,48 +210,32 @@ export default function MetropolisTemplate({
                                         technologies={project.technologies}
                                         lien={project.lien}
                                         primaryColor={V.primary}
-                                        variant="card"
+                                        variant="compact"
                                     />
                                 ))}
                             </div>
                         </section>
                     )}
-
-                    {/* Clients */}
-                    {limitedClients.length > 0 && (
-                        <section>
-                            <SectionTitle
-                                title="Clients & Références"
-                                primaryColor={V.primary}
-                                variant="underline"
-                                textSize="text-[10pt]"
-                            />
-                            <ClientReferences
-                                clients={limitedClients}
-                                secteurs={clients_references?.secteurs}
-                                primaryColor={V.primary}
-                                variant="pills"
-                                textSize="text-[8pt]"
-                            />
-                        </section>
-                    )}
                 </div>
 
-                {/* Colonne Droite 40% — Skills, Formation, Langues, Certifications */}
-                <div className={`flex-[2] flex flex-col ${gap} pl-5`}>
-                    {/* Compétences */}
+                {/* Right column — 40% — Skills, Education, Langues */}
+                <div
+                    style={{ width: "40%", borderLeft: `2px solid ${V.primaryA30}` }}
+                    className="pl-5"
+                >
+                    {/* Skills */}
                     {limitedSkills.length > 0 && (
-                        <section>
+                        <section className={sectionMb}>
                             <SectionTitle
                                 title="Compétences"
                                 primaryColor={V.primary}
                                 variant="accent-line"
-                                textSize="text-[10pt]"
+                                textSize="text-[9.5pt]"
                             />
                             <SkillsGrid
-                                skills={limitedSkills.map(s => typeof s === "string" ? s : String(s))}
+                                skills={limitedSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
                                 primaryColor={V.primary}
-                                variant="tags"
+                                variant="pills"
                                 textSize="text-[8pt]"
                             />
                         </section>
@@ -237,30 +243,30 @@ export default function MetropolisTemplate({
 
                     {/* Soft Skills */}
                     {limitedSoftSkills.length > 0 && (
-                        <section>
+                        <section className={sectionMb}>
                             <SectionTitle
                                 title="Savoir-être"
                                 primaryColor={V.primary}
                                 variant="accent-line"
-                                textSize="text-[10pt]"
+                                textSize="text-[9.5pt]"
                             />
                             <SkillsGrid
-                                skills={limitedSoftSkills.map(s => typeof s === "string" ? s : String(s))}
+                                skills={limitedSoftSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
                                 primaryColor={V.primary}
-                                variant="pills"
+                                variant="list"
                                 textSize="text-[8pt]"
                             />
                         </section>
                     )}
 
-                    {/* Formation */}
+                    {/* Formations */}
                     {limitedFormations.length > 0 && (
-                        <section>
+                        <section className={sectionMb}>
                             <SectionTitle
                                 title="Formation"
                                 primaryColor={V.primary}
                                 variant="accent-line"
-                                textSize="text-[10pt]"
+                                textSize="text-[9.5pt]"
                             />
                             <div className="space-y-1.5">
                                 {limitedFormations.map((edu, i) => (
@@ -279,12 +285,12 @@ export default function MetropolisTemplate({
 
                     {/* Langues */}
                     {limitedLangages.length > 0 && (
-                        <section>
+                        <section className={sectionMb}>
                             <SectionTitle
                                 title="Langues"
                                 primaryColor={V.primary}
                                 variant="accent-line"
-                                textSize="text-[10pt]"
+                                textSize="text-[9.5pt]"
                             />
                             <LanguageList
                                 langues={limitedLangages}
@@ -302,16 +308,17 @@ export default function MetropolisTemplate({
                                 title="Certifications"
                                 primaryColor={V.primary}
                                 variant="accent-line"
-                                textSize="text-[10pt]"
+                                textSize="text-[9.5pt]"
                             />
                             <CertificationList
                                 certifications={limitedCertifications}
                                 primaryColor={V.primary}
+                                textSize="text-[8pt]"
                             />
                         </section>
                     )}
                 </div>
-            </div>
-        </div>
+            </main>
+        </PageContainer>
     );
 }
