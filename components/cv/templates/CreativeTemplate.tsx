@@ -213,20 +213,39 @@ export default function CreativeTemplate({
 
                         <div className="flex flex-col" style={{ gap: "var(--spacing-item)" }}>
                             {limitedExperiences.map((exp, i) => {
+                                // [GROUPIING] Check if same company as previous
+                                const isSameCompany = i > 0 && isValidEntreprise(exp.entreprise) && exp.entreprise === limitedExperiences[i - 1].entreprise;
+
+                                // Color logic: use same color if grouped, else cycle
+                                // To do this correctly, we need the index of the *first* item of this group
+                                let groupStartIndex = i;
+                                if (isSameCompany) {
+                                    // Find start of group
+                                    for (let j = i - 1; j >= 0; j--) {
+                                        if (limitedExperiences[j].entreprise !== exp.entreprise) {
+                                            break;
+                                        }
+                                        groupStartIndex = j;
+                                    }
+                                }
+
                                 const colors = [COLORS.primary, COLORS.secondary, COLORS.accent];
-                                const color = colors[i % colors.length];
+                                const color = colors[groupStartIndex % colors.length];
+
                                 return (
                                     <div
                                         key={i}
-                                        className="pl-5 py-3 rounded-r-xl relative break-inside-avoid"
+                                        className={`pl-5 py-3 rounded-r-xl relative break-inside-avoid ${isSameCompany ? 'mt-[-8px]' : ''}`}
                                         style={{
                                             borderLeft: `4px solid ${color}`,
-                                            background: `linear-gradient(90deg, ${color}08, transparent)`
+                                            background: `linear-gradient(90deg, ${color}08, transparent)`,
+                                            // [GROUPIING] Visual distinction for children? Maybe slightly less padding top?
+                                            // For now, relies on shared color + hidden company name
                                         }}
                                     >
-                                        {/* Colorful dot */}
+                                        {/* Colorful dot - Only for Parent? Or smaller for Child? */}
                                         <div
-                                            className="absolute -left-[10px] top-3 w-4 h-4 rounded-full border-4 border-white"
+                                            className={`absolute -left-[10px] top-3 rounded-full border-4 border-white ${isSameCompany ? 'w-3 h-3 left-[-8px] border-2' : 'w-4 h-4'}`}
                                             style={{ background: color, boxShadow: `0 0 10px ${color}60` }}
                                         />
 
@@ -244,11 +263,18 @@ export default function CreativeTemplate({
                                                 </span>
                                             )}
                                         </div>
-                                        {isValidEntreprise(exp.entreprise) ? (
-                                            <p className="text-[8pt] text-slate-600 mb-1.5">{exp.entreprise}{exp.lieu && ` · ${exp.lieu}`}</p>
-                                        ) : exp.lieu ? (
-                                            <p className="text-[8pt] text-slate-600 mb-1.5">{exp.lieu}</p>
-                                        ) : null}
+
+                                        {/* Company info - HIDE if same company */}
+                                        {!isSameCompany && (
+                                            isValidEntreprise(exp.entreprise) ? (
+                                                <p className="text-[8pt] text-slate-600 mb-1.5 font-semibold">
+                                                    {exp.entreprise}{exp.lieu && ` · ${exp.lieu}`}
+                                                </p>
+                                            ) : exp.lieu ? (
+                                                <p className="text-[8pt] text-slate-600 mb-1.5">{exp.lieu}</p>
+                                            ) : null
+                                        )}
+
                                         {exp.clients && exp.clients.length > 0 && (
                                             <p className="text-[7pt] text-slate-600 mb-1.5">
                                                 Clients : {exp.clients.slice(0, limits.maxClientsPerExp).map(safeString).join(", ")}

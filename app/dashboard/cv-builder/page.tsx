@@ -678,6 +678,37 @@ function CVBuilderContent() {
             };
 
             // [FIX #1] Initialiser les compteurs non-filtrés
+            // [FIX #2] Force default filters to MAX (Full Data View)
+            const maxCounts = {
+                experiences: convertOptions.maxExperiences,
+                skills: convertOptions.limitsBySection?.maxSkills ?? 999,
+                technicalSkills: 0, // Calculated inside
+                softSkills: convertOptions.limitsBySection?.maxSoftSkills ?? 999,
+                formations: convertOptions.limitsBySection?.maxFormations ?? 999,
+                langues: convertOptions.limitsBySection?.maxLanguages ?? 999,
+                certifications: convertOptions.limitsBySection?.maxCertifications ?? 999,
+                projects: convertOptions.limitsBySection?.maxProjects ?? 999,
+                clientsReferences: convertOptions.limitsBySection?.maxClientsReferences ?? 999,
+                maxRealisationsPerExp: convertOptions.maxBulletsPerExperience ?? 99,
+                maxClientsPerExperience: convertOptions.limitsBySection?.maxClientsPerExperience ?? 99,
+            };
+
+            // Only update if we don't have counts yet, OR if we want to ensure fresh defaults
+            if (!unfilteredCounts) {
+                setUnfilteredCounts(maxCounts);
+                // [FIX #2] Force UI sliders to these max values immediately
+                setDisplayLimits({
+                    maxSkills: maxCounts.skills,
+                    maxSoftSkills: maxCounts.softSkills,
+                    maxRealisationsPerExp: maxCounts.maxRealisationsPerExp,
+                    maxClientsPerExp: maxCounts.maxClientsPerExperience,
+                    maxClientsReferences: maxCounts.clientsReferences,
+                    maxCertifications: maxCounts.certifications,
+                    maxProjects: maxCounts.projects,
+                    maxFormations: maxCounts.formations,
+                    maxLangues: maxCounts.langues,
+                });
+            }
             // On fait une conversion "dry run" sans limites pour avoir les vrais max
             // [ROBUSTESSE] Recalcul systématique pour gérer le chargement asynchrone de RAG
             setUnfilteredCounts(prev => {
