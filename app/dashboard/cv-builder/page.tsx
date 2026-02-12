@@ -66,6 +66,7 @@ import { useRAGData } from "@/hooks/useRAGData";
 import { useCVPreview } from "@/hooks/useCVPreview";
 import { useCVReorder } from "@/hooks/useCVReorder";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
 
 import { toast } from "sonner";
 import Cookies from "js-cookie";
@@ -204,8 +205,13 @@ function CVBuilderContent() {
     }, []);
 
     // Récupérer RAG profile pour validation
-    const userId = Cookies.get("userId") || null;
-    const { data: ragData } = useRAGData(userId);
+    // Récupérer RAG profile pour validation
+    // [FIX] Utiliser useAuth comme source fiable si le cookie est manquant/expiré
+    const { userId: authUserId } = useAuth({ required: false });
+    const cookieUserId = Cookies.get("userId") || null;
+    const effectiveUserId = cookieUserId || authUserId;
+
+    const { data: ragData } = useRAGData(effectiveUserId);
 
     useEffect(() => {
         const run = async () => {
