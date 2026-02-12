@@ -690,7 +690,7 @@ function CVBuilderContent() {
                 projects: options.limitsBySection?.maxProjects ?? 999,
                 clientsReferences: options.limitsBySection?.maxClientsReferences ?? 999,
                 maxRealisationsPerExp: options.maxBulletsPerExperience ?? 99,
-                maxClientsPerExperience: options.limitsBySection?.maxClientsPerExperience ?? 99,
+                maxClientsPerExp: options.limitsBySection?.maxClientsPerExperience ?? 99,
             };
 
             // Only update if we don't have counts yet, OR if we want to ensure fresh defaults
@@ -701,7 +701,7 @@ function CVBuilderContent() {
                     maxSkills: maxCounts.skills,
                     maxSoftSkills: maxCounts.softSkills,
                     maxRealisationsPerExp: maxCounts.maxRealisationsPerExp,
-                    maxClientsPerExp: maxCounts.maxClientsPerExperience,
+                    maxClientsPerExp: maxCounts.maxClientsPerExp,
                     maxClientsReferences: maxCounts.clientsReferences,
                     maxCertifications: maxCounts.certifications,
                     maxProjects: maxCounts.projects,
