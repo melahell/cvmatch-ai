@@ -706,7 +706,7 @@ function CVBuilderContent() {
                     maxCertifications: maxCounts.certifications,
                     maxProjects: maxCounts.projects,
                     maxFormations: maxCounts.formations,
-                    maxLangues: maxCounts.langues,
+                    maxLanguages: maxCounts.langues,
                 });
             }
             // On fait une conversion "dry run" sans limites pour avoir les vrais max
