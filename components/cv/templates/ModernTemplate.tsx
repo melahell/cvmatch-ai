@@ -5,6 +5,7 @@ import { TemplateProps, isValidEntreprise, withDL } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Globe, Github, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { formatDate } from "@/lib/cv/formatters";
 
 
 export default function ModernTemplate({
@@ -39,7 +40,7 @@ export default function ModernTemplate({
 
     return (
         <div
-            className="cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex text-[9pt]"
+            className="cv-page bg-white shadow-2xl rounded-xl flex text-[9pt]"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
@@ -260,7 +261,7 @@ export default function ModernTemplate({
                                             )}
                                         </div>
                                         <span className="text-[color:var(--cv-primary)] font-bold bg-[var(--cv-primary-light)] px-2 py-0.5 rounded text-[7pt]">
-                                            {exp.date_debut ? `${sanitizeText(exp.date_debut)} - ${exp.date_fin ? sanitizeText(exp.date_fin) : 'Présent'}` : (exp.date_fin ? sanitizeText(exp.date_fin) : "")}
+                                            {exp.date_debut ? `${formatDate(exp.date_debut)} - ${exp.date_fin ? formatDate(exp.date_fin) : 'Présent'}` : (exp.date_fin ? formatDate(exp.date_fin) : "")}
                                         </span>
                                     </div>
                                     {isValidEntreprise(exp.entreprise) ? (

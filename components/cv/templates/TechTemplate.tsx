@@ -5,6 +5,7 @@ import { TemplateProps, isValidEntreprise, withDL } from "./index";
 import { Mail, Phone, MapPin, Github, Linkedin, Globe, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { formatDate } from "@/lib/cv/formatters";
 
 const COLORS = {
     primary: "var(--cv-primary)",
@@ -92,7 +93,7 @@ export default function TechTemplate({
 
     return (
         <div
-            className="cv-page bg-white shadow-2xl rounded-xl overflow-hidden flex text-[9pt]"
+            className="cv-page bg-white shadow-2xl rounded-xl flex text-[9pt]"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
@@ -362,7 +363,7 @@ export default function TechTemplate({
                                         )}
                                     </div>
                                     <span className="text-[7pt] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                                        {exp.date_debut ? `${exp.date_debut} → ${exp.date_fin || 'now'}` : (exp.date_fin || "")}
+                                        {exp.date_debut ? `${formatDate(exp.date_debut)} → ${exp.date_fin ? formatDate(exp.date_fin) : 'Présent'}` : (exp.date_fin ? formatDate(exp.date_fin) : "")}
                                     </span>
                                 </div>
                                 {isValidEntreprise(exp.entreprise) ? (

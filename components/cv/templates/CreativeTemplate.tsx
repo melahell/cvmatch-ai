@@ -5,6 +5,7 @@ import { TemplateProps, isValidEntreprise, withDL } from "./index";
 import { Mail, Phone, MapPin, Linkedin, Sparkles, Github, Globe, ExternalLink } from "lucide-react";
 // [CDC-24] Utiliser utilitaire centralisé
 import { sanitizeText } from "@/lib/cv/sanitize-text";
+import { formatDate } from "@/lib/cv/formatters";
 
 const COLORS = {
     primary: "var(--cv-primary)",
@@ -55,7 +56,7 @@ export default function CreativeTemplate({
 
     return (
         <div
-            className="cv-page bg-white shadow-2xl rounded-2xl overflow-hidden text-[9pt]"
+            className="cv-page bg-white shadow-2xl rounded-2xl text-[9pt]"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
@@ -230,7 +231,7 @@ export default function CreativeTemplate({
                                         />
 
                                         <div className="text-[8pt] font-bold" style={{ color }}>
-                                            {exp.date_debut ? `${exp.date_debut} - ${exp.date_fin || 'Présent'}` : (exp.date_fin || "")}
+                                            {exp.date_debut ? `${formatDate(exp.date_debut)} - ${exp.date_fin ? formatDate(exp.date_fin) : 'Présent'}` : (exp.date_fin ? formatDate(exp.date_fin) : "")}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>
