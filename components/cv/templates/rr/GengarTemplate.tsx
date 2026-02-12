@@ -16,6 +16,7 @@ import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function GengarTemplate({ data, includePhoto = true, dense = false, displayLimits: dl }: TemplateProps) {
+    const limits = withDL(dl);
     const c = {
         primary: CV_THEME_VARS.primary,
         accent: CV_THEME_VARS.sidebarAccent,
@@ -100,7 +101,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                 Compétences
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
-                                {techSkills.slice(0, dl?.maxSkills ?? 20).map((skill: string, i: number) => (
+                                {techSkills.slice(0, limits.maxSkills).map((skill: string, i: number) => (
                                     <span key={i} className="px-2 py-0.5 rounded text-xs bg-white/10">
                                         {sanitizeText(skill)}
                                     </span>
@@ -116,7 +117,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                 Savoir-être
                             </h3>
                             <ul className="space-y-1 text-xs">
-                                {softSkills.slice(0, dl?.maxSoftSkills ?? 6).map((skill: string, i: number) => (
+                                {softSkills.slice(0, limits.maxSoftSkills).map((skill: string, i: number) => (
                                     <li key={i} className="flex items-center gap-2">
                                         <span className="w-1 h-1 rounded-full" style={{ backgroundColor: c.accent }} />
                                         {sanitizeText(skill)}
@@ -133,7 +134,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                 Langues
                             </h3>
                             <div className="space-y-2">
-                                {langues.slice(0, dl?.maxLangues ?? 10).map((l: any, i: number) => (
+                                {langues.slice(0, limits.maxLangues).map((l: any, i: number) => (
                                     <div key={i} className="flex justify-between items-center text-xs">
                                         <span>{l.langue}</span>
                                         <span className="px-1.5 py-0.5 rounded bg-white/15 text-[10px]">{l.niveau}</span>
@@ -150,7 +151,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                 Formation
                             </h3>
                             <div className="space-y-2">
-                                {formations.slice(0, dl?.maxFormations ?? 5).map((f: any, i: number) => (
+                                {formations.slice(0, limits.maxFormations).map((f: any, i: number) => (
                                     <div key={i}>
                                         <p className="text-xs font-semibold">{sanitizeText(f.diplome)}</p>
                                         <p className="text-[10px] opacity-70">{sanitizeText(f.etablissement)}</p>
@@ -168,7 +169,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                 Certifications
                             </h3>
                             <ul className="space-y-1 text-xs">
-                                {certifications.slice(0, dl?.maxCertifications ?? 10).map((cert: string, i: number) => (
+                                {certifications.slice(0, limits.maxCertifications).map((cert: string, i: number) => (
                                     <li key={i} className="flex items-start gap-1.5">
                                         <span style={{ color: c.accent }}>✓</span>
                                         {sanitizeText(cert)}
@@ -215,7 +216,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                     ) : null}
                                     {exp.realisations?.length > 0 && (
                                         <ul className={`space-y-0.5 ${ts} text-gray-600`}>
-                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r: string, ri: number) => (
+                                            {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((r: string, ri: number) => (
                                                 <li key={ri} className="flex items-start gap-1.5">
                                                     <span className="mt-1.5 w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: c.primary }} />
                                                     <span>{sanitizeText(r)}</span>
@@ -225,7 +226,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                                     )}
                                     {exp.clients?.length > 0 && (
                                         <p className="mt-1 text-[10px] text-gray-400">
-                                            Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
+                                            Clients : {exp.clients.slice(0, limits.maxClientsPerExp).join(", ")}
                                         </p>
                                     )}
                                 </article>
@@ -241,7 +242,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                             Projets
                         </h2>
                         <div className="grid grid-cols-2 gap-2">
-                            {projects.slice(0, dl?.maxProjects ?? 5).map((p: any, i: number) => (
+                            {projects.slice(0, limits.maxProjects).map((p: any, i: number) => (
                                 <div key={i} className="p-2.5 rounded border" style={{ borderColor: c.p30 }}>
                                     <h3 className="font-semibold text-xs truncate" title={p.nom}>{sanitizeText(p.nom)}</h3>
                                     {p.description && <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-2">{sanitizeText(p.description)}</p>}
@@ -258,7 +259,7 @@ export default function GengarTemplate({ data, includePhoto = true, dense = fals
                             Références Clients
                         </h2>
                         <div className="flex flex-wrap gap-1.5">
-                            {clients.clients.slice(0, dl?.maxClientsReferences ?? 30).map((cl: string, i: number) => (
+                            {clients.clients.slice(0, limits.maxClientsReferences).map((cl: string, i: number) => (
                                 <span key={i} className="px-2.5 py-1 rounded-full text-xs border" style={{ borderColor: c.primary }}>
                                     {cl}
                                 </span>

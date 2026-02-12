@@ -14,6 +14,7 @@ import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function PikachuTemplate({ data, includePhoto = true, dense = false, displayLimits: dl }: TemplateProps) {
+    const limits = withDL(dl);
     const colors = {
         primary: CV_THEME_VARS.primary,
         secondary: CV_THEME_VARS.sidebarAccent,
@@ -44,8 +45,8 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
 
     const technicalSkills = competences.techniques || [];
     const softSkills = competences.soft_skills || [];
-    const limitedTech = technicalSkills.slice(0, dl?.maxSkills ?? 20);
-    const limitedSoft = softSkills.slice(0, dl?.maxSoftSkills ?? 8);
+    const limitedTech = technicalSkills.slice(0, limits.maxSkills);
+    const limitedSoft = softSkills.slice(0, limits.maxSoftSkills);
     const allSkills = [...limitedTech, ...limitedSoft];
 
     return (
@@ -121,13 +122,9 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                 {allSkills.length > 0 && (
                     <section className="mb-6 break-inside-avoid">
                         <h2 
-                            className="text-lg font-bold mb-3 flex items-center gap-2"
-                            style={{ color: colors.text }}
+                            className="text-sm font-semibold uppercase tracking-wider mb-3"
+                            style={{ color: colors.primary }}
                         >
-                            <span 
-                                className="w-2 h-6 rounded"
-                                style={{ backgroundColor: colors.primary }}
-                            />
                             Compétences
                         </h2>
                         <div className="flex flex-wrap gap-2">
@@ -151,14 +148,10 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                 {experiences.length > 0 && (
                     <section className="mb-6">
                         <h2 
-                            className="text-lg font-bold mb-4 flex items-center gap-2"
-                            style={{ color: colors.text }}
+                            className="text-sm font-semibold uppercase tracking-wider mb-4"
+                            style={{ color: colors.primary }}
                         >
-                            <span 
-                                className="w-2 h-6 rounded"
-                                style={{ backgroundColor: colors.primary }}
-                            />
-                            Expérience Professionnelle
+                            Expérience professionnelle
                         </h2>
                         <div className="space-y-5">
                             {experiences.map((exp: any, idx: number) => (
@@ -199,7 +192,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
 
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <ul className={`space-y-1.5 ${textSize} text-gray-600`}>
-                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((real: string, ridx: number) => (
+                                            {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((real: string, ridx: number) => (
                                                 <li key={ridx} className="flex items-start gap-2">
                                                     <span 
                                                         className="mt-1.5"
@@ -216,7 +209,7 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                                     {exp.clients && exp.clients.length > 0 && (
                                         <p className={`mt-2 ${textSize} text-gray-500`}>
                                             <span className="font-medium">Clients : </span>
-                                            {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
+                                            {exp.clients.slice(0, limits.maxClientsPerExp).join(", ")}
                                         </p>
                                     )}
                                 </article>
@@ -231,17 +224,13 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                     {formations.length > 0 && (
                         <section className="break-inside-avoid">
                             <h2 
-                                className="text-lg font-bold mb-3 flex items-center gap-2"
-                                style={{ color: colors.text }}
-                            >
-                                <span 
-                                    className="w-2 h-6 rounded"
-                                    style={{ backgroundColor: colors.primary }}
-                                />
-                                Formation
+className="text-sm font-semibold uppercase tracking-wider mb-3"
+                            style={{ color: colors.primary }}
+                        >
+                            Formation
                             </h2>
                             <div className="space-y-3">
-                                {formations.slice(0, dl?.maxFormations ?? 5).map((form: any, idx: number) => (
+                                {formations.slice(0, limits.maxFormations).map((form: any, idx: number) => (
                                     <article key={idx}>
                                         <h3 className="font-bold text-sm">
                                             {sanitizeText(form.diplome)}
@@ -263,17 +252,13 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                         {langues.length > 0 && (
                             <section className="break-inside-avoid">
                                 <h2 
-                                    className="text-lg font-bold mb-3 flex items-center gap-2"
-                                    style={{ color: colors.text }}
-                                >
-                                    <span 
-                                        className="w-2 h-6 rounded"
-                                        style={{ backgroundColor: colors.primary }}
-                                    />
-                                    Langues
+className="text-sm font-semibold uppercase tracking-wider mb-3"
+                            style={{ color: colors.primary }}
+                        >
+                            Langues
                                 </h2>
                                 <div className="space-y-2">
-                                    {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
+                                    {langues.slice(0, limits.maxLangues).map((lang: any, idx: number) => (
                                         <div key={idx} className="flex items-center justify-between">
                                             <span className="font-medium text-sm">{lang.langue}</span>
                                             <span 
@@ -294,17 +279,13 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                         {certifications.length > 0 && (
                             <section className="break-inside-avoid">
                                 <h2 
-                                    className="text-lg font-bold mb-3 flex items-center gap-2"
-                                    style={{ color: colors.text }}
-                                >
-                                    <span 
-                                        className="w-2 h-6 rounded"
-                                        style={{ backgroundColor: colors.primary }}
-                                    />
-                                    Certifications
+className="text-sm font-semibold uppercase tracking-wider mb-3"
+                            style={{ color: colors.primary }}
+                        >
+                            Certifications
                                 </h2>
                                 <ul className={`space-y-1 ${textSize}`}>
-                                    {certifications.slice(0, dl?.maxCertifications ?? 10).map((cert: string, idx: number) => (
+                                    {certifications.slice(0, limits.maxCertifications).map((cert: string, idx: number) => (
                                         <li key={idx} className="flex items-center gap-2">
                                             <span style={{ color: colors.primary }}>✓</span>
                                             {sanitizeText(cert)}
@@ -320,17 +301,13 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                 {projects.length > 0 && (
                     <section className="mt-6">
                         <h2 
-                            className="text-lg font-bold mb-4 flex items-center gap-2"
-                            style={{ color: colors.text }}
+                            className="text-sm font-semibold uppercase tracking-wider mb-4"
+                            style={{ color: colors.primary }}
                         >
-                            <span 
-                                className="w-2 h-6 rounded"
-                                style={{ backgroundColor: colors.primary }}
-                            />
                             Projets
                         </h2>
                         <div className="grid grid-cols-2 gap-4">
-                            {projects.slice(0, dl?.maxProjects ?? 5).map((proj: any, idx: number) => (
+                            {projects.slice(0, limits.maxProjects).map((proj: any, idx: number) => (
                                 <article 
                                     key={idx} 
                                     className="p-4 rounded-lg break-inside-avoid"
@@ -367,17 +344,13 @@ export default function PikachuTemplate({ data, includePhoto = true, dense = fal
                 {clientsReferences?.clients && clientsReferences.clients.length > 0 && (
                     <section className="mt-6 break-inside-avoid">
                         <h2 
-                            className="text-lg font-bold mb-3 flex items-center gap-2"
-                            style={{ color: colors.text }}
+                            className="text-sm font-semibold uppercase tracking-wider mb-3"
+                            style={{ color: colors.primary }}
                         >
-                            <span 
-                                className="w-2 h-6 rounded"
-                                style={{ backgroundColor: colors.primary }}
-                            />
-                            Clients Références
+                            Clients références
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, idx: number) => (
+                            {clientsReferences.clients.slice(0, limits.maxClientsReferences).map((client: string, idx: number) => (
                                 <span
                                     key={idx}
                                     className={`px-3 py-1 rounded-full ${textSize} border-2`}

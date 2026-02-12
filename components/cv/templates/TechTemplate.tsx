@@ -25,6 +25,7 @@ export default function TechTemplate({
     dense = false,
     displayLimits: dl
 }: TemplateProps) {
+    const limits = withDL(dl);
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
     const hasValidPhoto =
@@ -45,13 +46,13 @@ export default function TechTemplate({
     };
 
     const limitedExperiences = experiences || [];
-    const rawSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
+    const rawSkills = (competences?.techniques || []).slice(0, limits.maxSkills);
     const limitedSkills = rawSkills.map(safeString);
-    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
-    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
-    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10);
-    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 30);
-    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
+    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, limits.maxSoftSkills);
+    const limitedFormations = (formations || []).slice(0, limits.maxFormations);
+    const limitedCertifications = (certifications || []).slice(0, limits.maxCertifications);
+    const limitedClients = (clients_references?.clients || []).slice(0, limits.maxClientsReferences);
+    const limitedProjects = (projects || []).slice(0, limits.maxProjects);
 
     // Categorize skills
     const categorizeSkills = (skills: string[]) => {
@@ -297,7 +298,7 @@ export default function TechTemplate({
                     <div className="pt-3 border-t border-slate-700 mt-auto">
                         <div className="text-[color:var(--cv-primary)] text-[6pt] font-mono mb-1">{'// languages'}</div>
                         <div className="flex flex-wrap gap-2">
-                            {(langues || []).slice(0, dl?.maxLangues ?? 10).map((lang, i) => (
+                            {(langues || []).slice(0, limits.maxLangues).map((lang, i) => (
                                 <span key={i} className="text-[7pt] text-slate-300">
                                     {lang.langue}: <span className="text-[color:var(--cv-primary)]">{lang.niveau.split(' ')[0]}</span>
                                 </span>
@@ -372,12 +373,12 @@ export default function TechTemplate({
                                 ) : null}
                                 {exp.clients && exp.clients.length > 0 && (
                                     <p className="text-[7pt] text-slate-600 mt-0.5">
-                                        Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
+                                        Clients : {exp.clients.slice(0, limits.maxClientsPerExp).join(", ")}
                                     </p>
                                 )}
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="mt-1.5 space-y-0.5 text-[8pt] text-slate-700">
-                                        {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
+                                        {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((r, j) => (
                                             <li key={j} className="flex items-start gap-1.5">
                                                 <span className="text-[color:var(--cv-primary)] mt-0.5">→</span>
                                                 {safeString(r)}

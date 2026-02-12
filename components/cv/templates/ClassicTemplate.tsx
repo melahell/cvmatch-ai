@@ -13,6 +13,7 @@ export default function ClassicTemplate({
     dense = false,
     displayLimits: dl
 }: TemplateProps) {
+    const limits = withDL(dl);
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
     const hasValidPhoto =
@@ -33,13 +34,13 @@ export default function ClassicTemplate({
     };
 
     const limitedExperiences = experiences || [];
-    const rawSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
+    const rawSkills = (competences?.techniques || []).slice(0, limits.maxSkills);
     const limitedSkills = rawSkills.map(safeString);
-    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
-    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10);
-    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 30);
-    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
-    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
+    const limitedFormations = (formations || []).slice(0, limits.maxFormations);
+    const limitedCertifications = (certifications || []).slice(0, limits.maxCertifications);
+    const limitedClients = (clients_references?.clients || []).slice(0, limits.maxClientsReferences);
+    const limitedProjects = (projects || []).slice(0, limits.maxProjects);
+    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, limits.maxSoftSkills);
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
@@ -189,12 +190,12 @@ export default function ClassicTemplate({
                                 ) : null}
                                 {exp.clients && exp.clients.length > 0 && (
                                     <p className="text-[8pt] text-slate-600 mb-2">
-                                        Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
+                                        Clients : {exp.clients.slice(0, limits.maxClientsPerExp).join(", ")}
                                     </p>
                                 )}
                                 {exp.realisations && exp.realisations.length > 0 && (
                                     <ul className="text-[8pt] text-slate-700 list-disc list-inside" style={{ display: 'flex', flexDirection: 'column', gap: "var(--spacing-bullet)" }}>
-                                        {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
+                                        {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((r, j) => (
                                             <li key={j}>{safeString(r)}</li>
                                         ))}
                                     </ul>
@@ -233,7 +234,7 @@ export default function ClassicTemplate({
                             <div className="mt-4 pt-3 border-t border-slate-200">
                                 <h3 className="text-[10pt] uppercase tracking-wider text-slate-700 mb-2">Langues</h3>
                                 <div className="text-[8pt] text-slate-600">
-                                    {(langues || []).slice(0, dl?.maxLangues ?? 10).map((l, i) => (
+                                    {(langues || []).slice(0, limits.maxLangues).map((l, i) => (
                                         <span key={i}>
                                             <strong>{l.langue}</strong>: {l.niveau}
                                             {i < langues.length - 1 && ' • '}

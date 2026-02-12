@@ -26,6 +26,8 @@ export default function TemplatesStorePage() {
 
     const categories = [
         { id: "all", label: "Tous", icon: Grid3X3 },
+        { id: "reactive-resume", label: "Reactive Resume", icon: LayoutTemplate },
+        { id: "cv-crush", label: "CV-Crush", icon: Sparkles },
         { id: "modern", label: "Moderne", icon: LayoutTemplate },
         { id: "tech", label: "Tech", icon: Sparkles },
         { id: "classic", label: "Classique", icon: LayoutTemplate },
@@ -34,7 +36,9 @@ export default function TemplatesStorePage() {
 
     const filteredTemplates = selectedCategory === "all"
         ? TEMPLATES
-        : TEMPLATES.filter(t => t.category === selectedCategory);
+        : selectedCategory === "reactive-resume" || selectedCategory === "cv-crush"
+            ? TEMPLATES.filter(t => t.source === selectedCategory)
+            : TEMPLATES.filter(t => t.category === selectedCategory);
 
     return (
         <DashboardLayout>
@@ -69,12 +73,37 @@ export default function TemplatesStorePage() {
                     ))}
                 </div>
 
-                {/* Templates Grid */}
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
-                    {filteredTemplates.map((template) => (
-                        <TemplateStoreCard key={template.id} template={template} />
-                    ))}
-                </div>
+                {/* Templates Grid — grouped by source when "Tous" */}
+                {selectedCategory === "all" ? (
+                    <div className="space-y-10 max-w-6xl mx-auto">
+                        <section>
+                            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+                                Reactive Resume ({TEMPLATES.filter(t => t.source === "reactive-resume").length})
+                            </h2>
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {TEMPLATES.filter(t => t.source === "reactive-resume").map((template) => (
+                                    <TemplateStoreCard key={template.id} template={template} />
+                                ))}
+                            </div>
+                        </section>
+                        <section>
+                            <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
+                                CV-Crush ({TEMPLATES.filter(t => t.source === "cv-crush").length})
+                            </h2>
+                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {TEMPLATES.filter(t => t.source === "cv-crush").map((template) => (
+                                    <TemplateStoreCard key={template.id} template={template} />
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+                ) : (
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                        {filteredTemplates.map((template) => (
+                            <TemplateStoreCard key={template.id} template={template} />
+                        ))}
+                    </div>
+                )}
 
                 {/* Premium CTA */}
                 <Card className="max-w-2xl mx-auto bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/30 dark:to-blue-950/30 border-purple-200 dark:border-purple-800">

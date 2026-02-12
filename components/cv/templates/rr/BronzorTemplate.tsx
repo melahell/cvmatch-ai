@@ -32,6 +32,7 @@ const defaultColors: BronzorColors = {
 };
 
 export default function BronzorTemplate({ data, includePhoto = true, dense = false, displayLimits: dl }: TemplateProps) {
+    const limits = withDL(dl);
     const colors = defaultColors;
     const padding = dense ? "px-8 py-6" : "px-12 py-8";
     const gap = dense ? "gap-4" : "gap-6";
@@ -169,7 +170,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             className={`space-y-1 ${textSize}`}
                                             style={{ color: colors.muted }}
                                         >
-                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((real: string, ridx: number) => (
+                                            {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((real: string, ridx: number) => (
                                                 <li key={ridx} className="flex items-start">
                                                     <span className="mr-2">—</span>
                                                     <span>{sanitizeText(real)}</span>
@@ -184,7 +185,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                             style={{ color: colors.muted }}
                                         >
                                             <span className="font-medium">Clients : </span>
-                                            {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
+                                            {exp.clients.slice(0, limits.maxClientsPerExp).join(", ")}
                                         </p>
                                     )}
                                 </article>
@@ -203,7 +204,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Formation
                         </h2>
                         <div className="space-y-3">
-                            {formations.slice(0, dl?.maxFormations ?? 5).map((form: any, idx: number) => (
+                            {formations.slice(0, limits.maxFormations).map((form: any, idx: number) => (
                                 <article key={idx} className="flex justify-between items-baseline break-inside-avoid">
                                     <div>
                                         <span className="font-semibold">{sanitizeText(form.diplome)}</span>
@@ -236,7 +237,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Compétences
                         </h2>
                         <div className="grid grid-cols-3 gap-x-8 gap-y-2">
-                            {[...technicalSkills.slice(0, dl?.maxSkills ?? 20), ...softSkills.slice(0, dl?.maxSoftSkills ?? 8)].map((skill: string, idx: number) => (
+                            {[...technicalSkills.slice(0, limits.maxSkills), ...softSkills.slice(0, limits.maxSoftSkills)].map((skill: string, idx: number) => (
                                 <span 
                                     key={idx}
                                     className={`${textSize}`}
@@ -260,7 +261,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                 Langues
                             </h2>
                             <div className="space-y-1">
-                                {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
+                                {langues.slice(0, limits.maxLangues).map((lang: any, idx: number) => (
                                     <div 
                                         key={idx} 
                                         className={`flex justify-between ${textSize}`}
@@ -282,7 +283,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                                 Certifications
                             </h2>
                             <div className="space-y-1">
-                                {certifications.slice(0, dl?.maxCertifications ?? 10).map((cert: string, idx: number) => (
+                                {certifications.slice(0, limits.maxCertifications).map((cert: string, idx: number) => (
                                     <p 
                                         key={idx}
                                         className={`${textSize}`}
@@ -306,7 +307,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Projets
                         </h2>
                         <div className="space-y-4">
-                            {projects.slice(0, dl?.maxProjects ?? 5).map((proj: any, idx: number) => (
+                            {projects.slice(0, limits.maxProjects).map((proj: any, idx: number) => (
                                 <article key={idx} className="break-inside-avoid">
                                     <div className="flex items-baseline gap-2 mb-1">
                                         <h3 className="font-semibold">{sanitizeText(proj.nom)}</h3>
@@ -343,7 +344,7 @@ export default function BronzorTemplate({ data, includePhoto = true, dense = fal
                             Clients Références
                         </h2>
                         <div className="flex flex-wrap gap-2">
-                            {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, idx: number, arr: string[]) => (
+                            {clientsReferences.clients.slice(0, limits.maxClientsReferences).map((client: string, idx: number, arr: string[]) => (
                                 <span
                                     key={idx}
                                     className={`${textSize}`}

@@ -14,6 +14,7 @@ export default function ModernTemplate({
     dense = false,
     displayLimits: dl
 }: TemplateProps) {
+    const limits = withDL(dl);
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
     const hasValidPhoto =
@@ -24,11 +25,11 @@ export default function ModernTemplate({
     const renderSkill = (s: string): string => sanitizeText(s);
 
     const limitedExperiences = experiences || [];
-    const limitedSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
-    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
-    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
-    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10);
-    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
+    const limitedSkills = (competences?.techniques || []).slice(0, limits.maxSkills);
+    const limitedSoftSkills = (competences?.soft_skills || []).slice(0, limits.maxSoftSkills);
+    const limitedFormations = (formations || []).slice(0, limits.maxFormations);
+    const limitedCertifications = (certifications || []).slice(0, limits.maxCertifications);
+    const limitedProjects = (projects || []).slice(0, limits.maxProjects);
 
     // Sanitize elevator pitch
     const cleanElevatorPitch = sanitizeText(profil?.elevator_pitch);
@@ -163,7 +164,7 @@ export default function ModernTemplate({
                             Langues
                         </h3>
                         <div className="space-y-1.5 text-[8pt]">
-                            {(langues || []).slice(0, dl?.maxLangues ?? 10).map((lang, i) => (
+                            {(langues || []).slice(0, limits.maxLangues).map((lang, i) => (
                                 <div key={i} className="flex justify-between items-center">
                                     <span className="text-slate-100 font-medium">{lang.langue}</span>
                                     <span className="text-[6pt] bg-[var(--cv-sidebar-accent)] text-white px-1.5 py-0.5 rounded uppercase font-semibold">
@@ -198,7 +199,7 @@ export default function ModernTemplate({
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7pt] text-slate-200">
-                                {clients_references.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, i: number) => (
+                                {clients_references.clients.slice(0, limits.maxClientsReferences).map((client: string, i: number) => (
                                     <span key={i} className="truncate">• {client}</span>
                                 ))}
                             </div>
@@ -211,12 +212,11 @@ export default function ModernTemplate({
             <main className="flex-1 p-5 bg-white overflow-hidden">
                 {/* Profil / Résumé */}
                 {cleanElevatorPitch && (
-                    <section style={{ marginBottom: "var(--spacing-section)" }}>
-                        <h2 className="text-base font-extrabold mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-900">
-                            <span className="w-6 h-0.5 bg-[var(--cv-primary)] rounded-full" />
+                    <section className="mb-6">
+                        <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--cv-primary)] mb-3 pb-1.5 border-b-2 border-[var(--cv-primary)]">
                             Profil
                         </h2>
-                        <p className="text-slate-700 leading-relaxed text-[9pt] border-l-4 border-[var(--cv-border)] pl-3 font-medium">
+                        <p className="text-slate-700 leading-relaxed text-[9pt] border-l-4 border-[var(--cv-primary)] pl-4 py-1 font-medium">
                             {cleanElevatorPitch}
                         </p>
                     </section>
@@ -273,7 +273,7 @@ export default function ModernTemplate({
                                     ) : null}
                                     {exp.clients && exp.clients.length > 0 && (
                                         <p className="text-slate-500 text-[7pt] mb-1">
-                                            Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).map(sanitizeText).join(", ")}
+                                            Clients : {exp.clients.slice(0, limits.maxClientsPerExp).map(sanitizeText).join(", ")}
                                         </p>
                                     )}
                                     {/* Solution 6.2: Afficher contexte opérationnel */}
@@ -295,7 +295,7 @@ export default function ModernTemplate({
                                     {/* Realisations are pre-sliced by CDC Pipeline based on _format */}
                                     {exp.realisations && exp.realisations.length > 0 && (
                                         <ul className="text-slate-700 space-y-0.5 list-disc list-outside pl-5 text-[8pt] leading-relaxed">
-                                            {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
+                                            {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((r, j) => (
                                                 <li key={j} className="pl-1">{renderRealisation(r)}</li>
                                             ))}
                                         </ul>

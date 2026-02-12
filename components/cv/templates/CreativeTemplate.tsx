@@ -22,6 +22,7 @@ export default function CreativeTemplate({
     dense = false,
     displayLimits: dl
 }: TemplateProps) {
+    const limits = withDL(dl);
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     // Support HTTP URLs AND base64 data URIs
     const hasValidPhoto =
@@ -42,14 +43,14 @@ export default function CreativeTemplate({
     };
 
     const limitedExperiences = experiences || [];
-    const rawSkills = (competences?.techniques || []).slice(0, dl?.maxSkills ?? 20);
+    const rawSkills = (competences?.techniques || []).slice(0, limits.maxSkills);
     const limitedSkills = rawSkills.map(safeString);
-    const rawSoftSkills = (competences?.soft_skills || []).slice(0, dl?.maxSoftSkills ?? 8);
+    const rawSoftSkills = (competences?.soft_skills || []).slice(0, limits.maxSoftSkills);
     const limitedSoftSkills = rawSoftSkills.map(safeString);
-    const limitedFormations = (formations || []).slice(0, dl?.maxFormations ?? 5);
-    const limitedCertifications = (certifications || []).slice(0, dl?.maxCertifications ?? 10).map(safeString);
-    const limitedClients = (clients_references?.clients || []).slice(0, dl?.maxClientsReferences ?? 30).map(safeString);
-    const limitedProjects = (projects || []).slice(0, dl?.maxProjects ?? 5);
+    const limitedFormations = (formations || []).slice(0, limits.maxFormations);
+    const limitedCertifications = (certifications || []).slice(0, limits.maxCertifications).map(safeString);
+    const limitedClients = (clients_references?.clients || []).slice(0, limits.maxClientsReferences).map(safeString);
+    const limitedProjects = (projects || []).slice(0, limits.maxProjects);
     const initials = `${profil?.prenom?.[0] || ''}${profil?.nom?.[0] || ''}`.toUpperCase();
 
     return (
@@ -249,13 +250,13 @@ export default function CreativeTemplate({
                                         ) : null}
                                         {exp.clients && exp.clients.length > 0 && (
                                             <p className="text-[7pt] text-slate-600 mb-1.5">
-                                                Clients : {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).map(safeString).join(", ")}
+                                                Clients : {exp.clients.slice(0, limits.maxClientsPerExp).map(safeString).join(", ")}
                                             </p>
                                         )}
 
                                         {exp.realisations && exp.realisations.length > 0 && (
                                             <ul className="text-[8pt] text-slate-700 space-y-0.5">
-                                                {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((r, j) => (
+                                                {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((r, j) => (
                                                     <li key={j} className="flex items-start gap-1.5">
                                                         <span style={{ color }}>→</span> {safeString(r)}
                                                     </li>
@@ -350,7 +351,7 @@ export default function CreativeTemplate({
                             >
                                 🌍 Langues
                             </h3>
-                            {(langues || []).slice(0, dl?.maxLangues ?? 10).map((lang, i) => (
+                            {(langues || []).slice(0, limits.maxLangues).map((lang, i) => (
                                 <div key={i} className="text-[8pt] mb-1">
                                     <span className="font-bold text-slate-900">{lang.langue}</span>
                                     <span className="text-slate-600"> – {lang.niveau}</span>

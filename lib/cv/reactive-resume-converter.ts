@@ -206,9 +206,9 @@ export interface RRMetadata {
     notes: string;
 }
 
-export type RRTemplateName = 
+export type RRTemplateName =
     | "azurill" | "bronzor" | "chikorita" | "ditto" | "gengar"
-    | "glalie" | "kakuna" | "leafish" | "nosepass" | "onyx"
+    | "glalie" | "kakuna" | "lapras" | "leafish" | "nosepass" | "onyx"
     | "pikachu" | "rhyhorn";
 
 export interface RRResumeData {

@@ -10,20 +10,46 @@ import { logger } from "@/lib/utils/logger";
 import { resolveCVStyle } from "@/lib/cv/style/resolve-style";
 import type { CVDensity } from "@/lib/cv/style/density";
 
-// Dynamic imports — 10 distinct templates
+// Dynamic imports — all templates
 // Originals (4)
 const ModernTemplate = dynamic(() => import("./templates/ModernTemplate"), { ssr: false });
 const TechTemplate = dynamic(() => import("./templates/TechTemplate"), { ssr: false });
 const ClassicTemplate = dynamic(() => import("./templates/ClassicTemplate"), { ssr: false });
 const CreativeTemplate = dynamic(() => import("./templates/CreativeTemplate"), { ssr: false });
 
-// Reactive Resume inspired (6)
+// Premium (6)
+const ElegantTemplate = dynamic(() => import("./templates/premium/ElegantTemplate"), { ssr: false });
+const ExecutiveTemplate = dynamic(() => import("./templates/premium/ExecutiveTemplate"), { ssr: false });
+const TerminalTemplate = dynamic(() => import("./templates/premium/TerminalTemplate"), { ssr: false });
+const MetropolisTemplate = dynamic(() => import("./templates/premium/MetropolisTemplate"), { ssr: false });
+const HorizonTemplate = dynamic(() => import("./templates/premium/HorizonTemplate"), { ssr: false });
+const CatalystTemplate = dynamic(() => import("./templates/premium/CatalystTemplate"), { ssr: false });
+
+// Reactive Resume (13 total)
 const PikachuTemplate = dynamic(() => import("./templates/rr/PikachuTemplate"), { ssr: false });
 const BronzorTemplate = dynamic(() => import("./templates/rr/BronzorTemplate"), { ssr: false });
 const ChikoritaTemplate = dynamic(() => import("./templates/rr/ChikoritaTemplate"), { ssr: false });
 const DittoTemplate = dynamic(() => import("./templates/rr/DittoTemplate"), { ssr: false });
 const GengarTemplate = dynamic(() => import("./templates/rr/GengarTemplate"), { ssr: false });
 const LaprasTemplate = dynamic(() => import("./templates/rr/LaprasTemplate"), { ssr: false });
+const AzurillTemplate = dynamic(() => import("./templates/rr/AzurillTemplate"), { ssr: false });
+const GlalieTemplate = dynamic(() => import("./templates/rr/GlalieTemplate"), { ssr: false });
+const KakunaTemplate = dynamic(() => import("./templates/rr/KakunaTemplate"), { ssr: false });
+const LeafishTemplate = dynamic(() => import("./templates/rr/LeafishTemplate"), { ssr: false });
+const NosepassTemplate = dynamic(() => import("./templates/rr/NosepassTemplate"), { ssr: false });
+const OnyxTemplate = dynamic(() => import("./templates/rr/OnyxTemplate"), { ssr: false });
+const RhyhornTemplate = dynamic(() => import("./templates/rr/RhyhornTemplate"), { ssr: false });
+// RR Améliorés (10)
+const AuroraTemplate = dynamic(() => import("./templates/rr-improved/AuroraTemplate"), { ssr: false });
+const CarbonTemplate = dynamic(() => import("./templates/rr-improved/CarbonTemplate"), { ssr: false });
+const SlateTemplate = dynamic(() => import("./templates/rr-improved/SlateTemplate"), { ssr: false });
+const IvoryTemplate = dynamic(() => import("./templates/rr-improved/IvoryTemplate"), { ssr: false });
+const ApexTemplate = dynamic(() => import("./templates/rr-improved/ApexTemplate"), { ssr: false });
+const VertexTemplate = dynamic(() => import("./templates/rr-improved/VertexTemplate"), { ssr: false });
+const PrismTemplate = dynamic(() => import("./templates/rr-improved/PrismTemplate"), { ssr: false });
+const LumenTemplate = dynamic(() => import("./templates/rr-improved/LumenTemplate"), { ssr: false });
+const HelixTemplate = dynamic(() => import("./templates/rr-improved/HelixTemplate"), { ssr: false });
+const NovaTemplate = dynamic(() => import("./templates/rr-improved/NovaTemplate"), { ssr: false });
 
 export interface CVRendererProps {
     data: any; // Accept raw data from API, will normalize
@@ -52,13 +78,37 @@ const TEMPLATE_COMPONENTS: Record<string, React.ComponentType<TemplateProps>> = 
     tech: TechTemplate,
     classic: ClassicTemplate,
     creative: CreativeTemplate,
-    // Reactive Resume inspired (6)
+    // Premium (6)
+    elegant: ElegantTemplate,
+    executive: ExecutiveTemplate,
+    terminal: TerminalTemplate,
+    metropolis: MetropolisTemplate,
+    horizon: HorizonTemplate,
+    catalyst: CatalystTemplate,
+    // Reactive Resume (13)
     pikachu: PikachuTemplate,
     bronzor: BronzorTemplate,
     chikorita: ChikoritaTemplate,
     ditto: DittoTemplate,
     gengar: GengarTemplate,
     lapras: LaprasTemplate,
+    azurill: AzurillTemplate,
+    glalie: GlalieTemplate,
+    kakuna: KakunaTemplate,
+    leafish: LeafishTemplate,
+    nosepass: NosepassTemplate,
+    onyx: OnyxTemplate,
+    rhyhorn: RhyhornTemplate,
+    aurora: AuroraTemplate,
+    carbon: CarbonTemplate,
+    slate: SlateTemplate,
+    ivory: IvoryTemplate,
+    apex: ApexTemplate,
+    vertex: VertexTemplate,
+    prism: PrismTemplate,
+    lumen: LumenTemplate,
+    helix: HelixTemplate,
+    nova: NovaTemplate,
 };
 
 /** All available template IDs */
@@ -69,12 +119,35 @@ const TEMPLATE_IMPORTERS: Record<string, () => Promise<unknown>> = {
     tech: () => import("./templates/TechTemplate"),
     classic: () => import("./templates/ClassicTemplate"),
     creative: () => import("./templates/CreativeTemplate"),
+    elegant: () => import("./templates/premium/ElegantTemplate"),
+    executive: () => import("./templates/premium/ExecutiveTemplate"),
+    terminal: () => import("./templates/premium/TerminalTemplate"),
+    metropolis: () => import("./templates/premium/MetropolisTemplate"),
+    horizon: () => import("./templates/premium/HorizonTemplate"),
+    catalyst: () => import("./templates/premium/CatalystTemplate"),
     pikachu: () => import("./templates/rr/PikachuTemplate"),
     bronzor: () => import("./templates/rr/BronzorTemplate"),
     chikorita: () => import("./templates/rr/ChikoritaTemplate"),
     ditto: () => import("./templates/rr/DittoTemplate"),
     gengar: () => import("./templates/rr/GengarTemplate"),
     lapras: () => import("./templates/rr/LaprasTemplate"),
+    azurill: () => import("./templates/rr/AzurillTemplate"),
+    glalie: () => import("./templates/rr/GlalieTemplate"),
+    kakuna: () => import("./templates/rr/KakunaTemplate"),
+    leafish: () => import("./templates/rr/LeafishTemplate"),
+    nosepass: () => import("./templates/rr/NosepassTemplate"),
+    onyx: () => import("./templates/rr/OnyxTemplate"),
+    rhyhorn: () => import("./templates/rr/RhyhornTemplate"),
+    aurora: () => import("./templates/rr-improved/AuroraTemplate"),
+    carbon: () => import("./templates/rr-improved/CarbonTemplate"),
+    slate: () => import("./templates/rr-improved/SlateTemplate"),
+    ivory: () => import("./templates/rr-improved/IvoryTemplate"),
+    apex: () => import("./templates/rr-improved/ApexTemplate"),
+    vertex: () => import("./templates/rr-improved/VertexTemplate"),
+    prism: () => import("./templates/rr-improved/PrismTemplate"),
+    lumen: () => import("./templates/rr-improved/LumenTemplate"),
+    helix: () => import("./templates/rr-improved/HelixTemplate"),
+    nova: () => import("./templates/rr-improved/NovaTemplate"),
 };
 
 export function preloadCVTemplate(templateId: string) {
@@ -181,6 +254,8 @@ export default function CVRenderer({
 // Export all template components for direct use
 export {
     ModernTemplate, TechTemplate, ClassicTemplate, CreativeTemplate,
+    ElegantTemplate, ExecutiveTemplate, TerminalTemplate,
+    MetropolisTemplate, HorizonTemplate, CatalystTemplate,
     PikachuTemplate, BronzorTemplate, ChikoritaTemplate,
     DittoTemplate, GengarTemplate, LaprasTemplate,
 };

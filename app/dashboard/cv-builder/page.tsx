@@ -156,7 +156,7 @@ function CVBuilderContent() {
         const q = templateQuery.trim().toLowerCase();
         return TEMPLATES
             .filter((t) => t.available)
-            .filter((t) => (q ? `${t.name} ${t.category}`.toLowerCase().includes(q) : true));
+            .filter((t) => (q ? `${t.name} ${t.category} ${t.source} ${t.description}`.toLowerCase().includes(q) : true));
     }, [templateQuery]);
 
     const presets = useMemo(() => {
@@ -1202,21 +1202,52 @@ function CVBuilderContent() {
                                                 <CardTitle className="text-sm">Modèle</CardTitle>
                                             </CardHeader>
                                             <CardContent className="space-y-2">
-                                                <div className="grid grid-cols-2 gap-1.5">
-                                                    {filteredTemplates.map((template) => (
-                                                        <Button
-                                                            key={template.id}
-                                                            variant={templateId === template.id ? "primary" : "outline"}
-                                                            size="sm"
-                                                            className="justify-start text-xs"
-                                                            onClick={() => handleTemplateChange(template.id)}
-                                                            onMouseEnter={() => preloadCVTemplate(template.id)}
-                                                            title={template.description}
-                                                        >
-                                                            {template.name}
-                                                        </Button>
-                                                    ))}
-                                                </div>
+                                                {/* Reactive Resume */}
+                                                {filteredTemplates.filter((t) => t.source === "reactive-resume").length > 0 && (
+                                                    <div className="space-y-1.5">
+                                                        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                            Reactive Resume ({filteredTemplates.filter((t) => t.source === "reactive-resume").length})
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-1.5">
+                                                            {filteredTemplates.filter((t) => t.source === "reactive-resume").map((template) => (
+                                                                <Button
+                                                                    key={template.id}
+                                                                    variant={templateId === template.id ? "primary" : "outline"}
+                                                                    size="sm"
+                                                                    className="justify-start text-xs"
+                                                                    onClick={() => handleTemplateChange(template.id)}
+                                                                    onMouseEnter={() => preloadCVTemplate(template.id)}
+                                                                    title={template.description}
+                                                                >
+                                                                    {template.name}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {/* CV-Crush */}
+                                                {filteredTemplates.filter((t) => t.source === "cv-crush").length > 0 && (
+                                                    <div className="space-y-1.5">
+                                                        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                                            CV-Crush ({filteredTemplates.filter((t) => t.source === "cv-crush").length})
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-1.5">
+                                                            {filteredTemplates.filter((t) => t.source === "cv-crush").map((template) => (
+                                                                <Button
+                                                                    key={template.id}
+                                                                    variant={templateId === template.id ? "primary" : "outline"}
+                                                                    size="sm"
+                                                                    className="justify-start text-xs"
+                                                                    onClick={() => handleTemplateChange(template.id)}
+                                                                    onMouseEnter={() => preloadCVTemplate(template.id)}
+                                                                    title={template.description}
+                                                                >
+                                                                    {template.name}
+                                                                </Button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <div className="pt-2 space-y-3">
                                                     <Button
                                                         variant={isFavoriteCurrent ? "primary" : "outline"}

@@ -14,6 +14,7 @@ import { ContactInfo, ProfilePicture } from "@/components/cv/shared";
 import { CV_THEME_VARS } from "@/lib/cv/style/theme-vars";
 
 export default function LaprasTemplate({ data, includePhoto = true, dense = false, displayLimits: dl }: TemplateProps) {
+    const limits = withDL(dl);
     const colors = {
         primary: CV_THEME_VARS.primary,
         secondary: CV_THEME_VARS.sidebarAccent,
@@ -43,8 +44,8 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
 
     const technicalSkills = competences.techniques || [];
     const softSkills = competences.soft_skills || [];
-    const limitedTech = technicalSkills.slice(0, dl?.maxSkills ?? 20);
-    const limitedSoft = softSkills.slice(0, dl?.maxSoftSkills ?? 8);
+    const limitedTech = technicalSkills.slice(0, limits.maxSkills);
+    const limitedSoft = softSkills.slice(0, limits.maxSoftSkills);
     const allSkills = [...limitedTech, ...limitedSoft];
 
     return (
@@ -144,7 +145,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
 
                                         {exp.realisations && exp.realisations.length > 0 && (
                                             <ul className={`mt-2 space-y-1 ${textSize} text-gray-600`}>
-                                                {exp.realisations.slice(0, dl?.maxRealisationsPerExp ?? 6).map((real: string, ridx: number) => (
+                                                {exp.realisations.slice(0, limits.maxRealisationsPerExp).map((real: string, ridx: number) => (
                                                     <li key={ridx} className="flex items-start gap-2">
                                                         <span style={{ color: colors.primary }}>▸</span>
                                                         <span>{sanitizeText(real)}</span>
@@ -156,7 +157,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                         {exp.clients && exp.clients.length > 0 && (
                                             <p className="mt-1.5 text-xs text-gray-500">
                                                 <span className="font-medium">Clients : </span>
-                                                {exp.clients.slice(0, dl?.maxClientsPerExp ?? 6).join(", ")}
+                                                {exp.clients.slice(0, limits.maxClientsPerExp).join(", ")}
                                             </p>
                                         )}
                                     </article>
@@ -172,7 +173,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                 Projets
                             </h2>
                             <div className="grid grid-cols-2 gap-3">
-                                {projects.slice(0, dl?.maxProjects ?? 5).map((proj: any, idx: number) => (
+                                {projects.slice(0, limits.maxProjects).map((proj: any, idx: number) => (
                                     <article key={idx} className="p-3 rounded-lg" style={{ backgroundColor: colors.primary08 }}>
                                         <h3 className="font-semibold text-sm">{sanitizeText(proj.nom)}</h3>
                                         {proj.description && (
@@ -210,7 +211,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                 Formation
                             </h3>
                             <div className="space-y-2.5">
-                                {formations.slice(0, dl?.maxFormations ?? 5).map((form: any, idx: number) => (
+                                {formations.slice(0, limits.maxFormations).map((form: any, idx: number) => (
                                     <article key={idx}>
                                         <h4 className="font-semibold text-xs">{sanitizeText(form.diplome)}</h4>
                                         <p className="text-xs text-gray-600">{sanitizeText(form.etablissement)}</p>
@@ -228,7 +229,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                 Langues
                             </h3>
                             <div className="space-y-2">
-                                {langues.slice(0, dl?.maxLangues ?? 10).map((lang: any, idx: number) => (
+                                {langues.slice(0, limits.maxLangues).map((lang: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center">
                                         <span className="text-xs font-medium">{lang.langue}</span>
                                         <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: colors.primary15, color: colors.secondary }}>
@@ -247,7 +248,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                 Certifications
                             </h3>
                             <ul className="space-y-1 text-xs">
-                                {certifications.slice(0, dl?.maxCertifications ?? 10).map((cert: string, idx: number) => (
+                                {certifications.slice(0, limits.maxCertifications).map((cert: string, idx: number) => (
                                     <li key={idx} className="flex items-start gap-1.5">
                                         <span style={{ color: colors.primary }}>✓</span>
                                         {sanitizeText(cert)}
@@ -264,7 +265,7 @@ export default function LaprasTemplate({ data, includePhoto = true, dense = fals
                                 Clients
                             </h3>
                             <div className="flex flex-wrap gap-1.5">
-                                {clientsReferences.clients.slice(0, dl?.maxClientsReferences ?? 30).map((client: string, idx: number) => (
+                                {clientsReferences.clients.slice(0, limits.maxClientsReferences).map((client: string, idx: number) => (
                                     <span key={idx} className="px-2 py-0.5 rounded text-xs border" style={{ borderColor: colors.primary }}>
                                         {client}
                                     </span>
