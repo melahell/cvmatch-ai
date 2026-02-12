@@ -680,7 +680,7 @@ function CVBuilderContent() {
             // [FIX #1] Initialiser les compteurs non-filtrés
             // [FIX #2] Force default filters to MAX (Full Data View)
             const maxCounts = {
-                experiences: options.maxExperiences,
+                experiences: options.maxExperiences ?? 99,
                 skills: options.limitsBySection?.maxSkills ?? 999,
                 technicalSkills: 0, // Calculated inside
                 softSkills: options.limitsBySection?.maxSoftSkills ?? 999,
