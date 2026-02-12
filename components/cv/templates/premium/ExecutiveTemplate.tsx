@@ -19,10 +19,10 @@ import {
 } from "@/components/cv/shared";
 
 /**
- * EXECUTIVE — Corporate Premium
- * Dark sidebar (70mm) avec photo, contact, skills. Main content avec timeline.
- * TEMPLATE_OVERRIDES: --cv-sidebar-bg: #1e293b, --cv-sidebar-text: #f1f5f9
- * Cible : Management, Consulting, Business.
+ * EXECUTIVE — Sidebar corporate sombre + main content blanc
+ * Sidebar (35%) : header primaire + contenu en dark bg
+ * Main (65%) : expériences + projets + clients en blanc propre.
+ * Cible : Management, Consulting, Finance, Direction.
  */
 export default function ExecutiveTemplate({
     data,
@@ -34,6 +34,7 @@ export default function ExecutiveTemplate({
     const limits = withDL(dl);
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     const initials = `${profil?.prenom?.[0] || ""}${profil?.nom?.[0] || ""}`.toUpperCase();
+    const fullName = `${profil?.prenom || ""} ${profil?.nom || ""}`.trim();
 
     const limitedExperiences = experiences || [];
     const limitedSkills = (competences?.techniques || []).slice(0, limits.maxSkills);
@@ -44,196 +45,159 @@ export default function ExecutiveTemplate({
     const limitedClients = (clients_references?.clients || []).slice(0, limits.maxClientsReferences);
     const limitedProjects = (projects || []).slice(0, limits.maxProjects);
 
-    const sidebarGap = dense ? "gap-3" : "gap-4";
-    const mainGap = dense ? "gap-3" : "gap-5";
-
-    /** Sidebar section divider — subtle white line */
-    const SidebarDivider = () => (
-        <div style={{ borderBottom: "1px solid rgba(255,255,255,0.12)", margin: dense ? "4px 0" : "6px 0" }} />
-    );
+    const sectionMb = dense ? "mb-2" : "mb-3";
+    const sidebarPad = dense ? "px-3 py-2" : "px-4 py-3";
 
     return (
         <PageContainer
             dense={dense}
-            fontSize={dense ? "8.5pt" : "9pt"}
-            lineHeight={dense ? "1.3" : "1.4"}
+            fontSize={dense ? "8pt" : "9pt"}
+            lineHeight={dense ? "1.25" : "1.35"}
             className="shadow-sm"
         >
-            <div className="flex h-full min-h-full">
-                {/* ── SIDEBAR ── */}
-                <aside
-                    className="flex flex-col px-5 py-6 shrink-0"
-                    style={{
-                        width: "70mm",
-                        backgroundColor: V.sidebarBg,
-                        color: V.sidebarText,
-                    }}
-                >
-                    {/* Photo */}
-                    {includePhoto && (
-                        <div className="flex justify-center mb-4">
-                            <ProfilePicture
-                                photoUrl={profil?.photo_url}
-                                fullName={`${profil.prenom} ${profil.nom}`}
-                                initials={initials}
-                                includePhoto={includePhoto}
-                                size="lg"
-                                shape="circle"
-                                borderColor={V.sidebarAccent}
-                            />
-                        </div>
-                    )}
-
-                    {/* Name in sidebar */}
-                    <div className="text-center mb-1">
-                        <h2 className="text-[14pt] font-bold leading-tight" style={{ color: V.sidebarText }}>
-                            {profil.prenom} {profil.nom}
-                        </h2>
-                        <p className="text-[9pt] font-medium mt-1" style={{ color: V.sidebarAccent }}>
-                            {profil.titre_principal}
-                        </p>
+            <div className="flex h-full">
+                {/* ── SIDEBAR (35%) ── */}
+                <aside className="w-[35%] flex flex-col" style={{ backgroundColor: V.sidebarBg }}>
+                    {/* Header — primary block */}
+                    <div className={`${sidebarPad} pb-4`} style={{ backgroundColor: V.primary }}>
+                        {includePhoto && (
+                            <div className="flex justify-center mb-2">
+                                <ProfilePicture
+                                    photoUrl={profil?.photo_url}
+                                    fullName={fullName}
+                                    initials={initials}
+                                    includePhoto={includePhoto}
+                                    size="md"
+                                    shape="circle"
+                                    borderColor="rgba(255,255,255,0.3)"
+                                />
+                            </div>
+                        )}
+                        <h1 className="text-[14pt] font-bold text-white text-center leading-tight">{fullName}</h1>
+                        {profil?.titre_principal && (
+                            <p className="text-[8pt] text-white/80 text-center mt-0.5">{profil.titre_principal}</p>
+                        )}
                     </div>
 
-                    <SidebarDivider />
-
-                    {/* Contact */}
-                    <div className={sidebarGap}>
+                    {/* Contact — transition zone */}
+                    <div className={`${sidebarPad} py-2`} style={{ backgroundColor: V.primary, opacity: 0.9 }}>
                         <ContactInfo
-                            email={profil.email}
-                            telephone={profil.telephone}
-                            localisation={profil.localisation}
-                            linkedin={profil.linkedin}
-                            github={profil.github}
-                            portfolio={profil.portfolio}
+                            email={profil?.email}
+                            telephone={profil?.telephone}
+                            localisation={profil?.localisation}
+                            linkedin={profil?.linkedin}
+                            github={profil?.github}
+                            portfolio={profil?.portfolio}
                             layout="vertical"
-                            iconColor={V.sidebarAccent}
-                            textColor={V.sidebarText}
-                            iconSize={12}
-                            textSize="text-[8pt]"
+                            textColor="rgba(255,255,255,0.85)"
+                            iconColor="rgba(255,255,255,0.7)"
+                            iconSize={10}
+                            textSize="text-[7.5pt]"
+                            className="space-y-1"
                         />
                     </div>
 
-                    <SidebarDivider />
+                    {/* Sidebar content */}
+                    <div className={`${sidebarPad} flex-1 space-y-3`} style={{ color: V.sidebarText }}>
+                        {/* Skills */}
+                        {limitedSkills.length > 0 && (
+                            <section>
+                                <SectionTitle title="Compétences" primaryColor={V.sidebarAccent} variant="sidebar" textSize="text-[7pt]" />
+                                <SkillsGrid
+                                    skills={limitedSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
+                                    primaryColor={V.sidebarAccent}
+                                    variant="pills"
+                                    textSize="text-[7pt]"
+                                />
+                            </section>
+                        )}
 
-                    {/* Skills */}
-                    {limitedSkills.length > 0 && (
-                        <div>
-                            <h3
-                                className="text-[8.5pt] font-bold uppercase tracking-wider mb-2"
-                                style={{ color: V.sidebarAccent }}
-                            >
-                                Compétences
-                            </h3>
-                            <SkillsGrid
-                                skills={limitedSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
-                                primaryColor={V.sidebarAccent}
-                                variant="tags"
-                                textSize="text-[7.5pt]"
-                                className="text-white/90"
-                            />
-                        </div>
-                    )}
-
-                    {/* Soft Skills */}
-                    {limitedSoftSkills.length > 0 && (
-                        <>
-                            <SidebarDivider />
-                            <div>
-                                <h3
-                                    className="text-[8.5pt] font-bold uppercase tracking-wider mb-2"
-                                    style={{ color: V.sidebarAccent }}
-                                >
-                                    Savoir-être
-                                </h3>
+                        {/* Soft Skills */}
+                        {limitedSoftSkills.length > 0 && (
+                            <section>
+                                <SectionTitle title="Savoir-être" primaryColor={V.sidebarAccent} variant="sidebar" textSize="text-[7pt]" />
                                 <SkillsGrid
                                     skills={limitedSoftSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
                                     primaryColor={V.sidebarAccent}
-                                    variant="tags"
-                                    textSize="text-[7.5pt]"
-                                    className="text-white/90"
+                                    variant="list"
+                                    textSize="text-[7pt]"
                                 />
-                            </div>
-                        </>
-                    )}
+                            </section>
+                        )}
 
-                    {/* Langues */}
-                    {limitedLangages.length > 0 && (
-                        <>
-                            <SidebarDivider />
-                            <div>
-                                <h3
-                                    className="text-[8.5pt] font-bold uppercase tracking-wider mb-2"
-                                    style={{ color: V.sidebarAccent }}
-                                >
-                                    Langues
-                                </h3>
-                                <LanguageList
-                                    langues={limitedLangages}
-                                    primaryColor={V.sidebarAccent}
-                                    variant="bar"
-                                    textSize="text-[8pt]"
-                                    className="text-white/90"
-                                />
-                            </div>
-                        </>
-                    )}
+                        {/* Langues */}
+                        {limitedLangages.length > 0 && (
+                            <section>
+                                <SectionTitle title="Langues" primaryColor={V.sidebarAccent} variant="sidebar" textSize="text-[7pt]" />
+                                <LanguageList langues={limitedLangages} primaryColor={V.sidebarAccent} variant="badge" textSize="text-[7pt]" />
+                            </section>
+                        )}
 
-                    {/* Certifications */}
-                    {limitedCertifications.length > 0 && (
-                        <>
-                            <SidebarDivider />
-                            <div>
-                                <h3
-                                    className="text-[8.5pt] font-bold uppercase tracking-wider mb-2"
-                                    style={{ color: V.sidebarAccent }}
-                                >
-                                    Certifications
-                                </h3>
-                                <CertificationList
-                                    certifications={limitedCertifications}
-                                    primaryColor={V.sidebarAccent}
-                                    textSize="text-[8pt]"
-                                    className="text-white/80"
-                                />
-                            </div>
-                        </>
-                    )}
+                        {/* Formation */}
+                        {limitedFormations.length > 0 && (
+                            <section>
+                                <SectionTitle title="Formation" primaryColor={V.sidebarAccent} variant="sidebar" textSize="text-[7pt]" />
+                                <div className="space-y-1">
+                                    {limitedFormations.map((edu, i) => (
+                                        <EducationItem
+                                            key={i}
+                                            diplome={edu.diplome}
+                                            etablissement={edu.etablissement}
+                                            annee={edu.annee}
+                                            primaryColor={V.sidebarAccent}
+                                            variant="compact"
+                                        />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Certifications */}
+                        {limitedCertifications.length > 0 && (
+                            <section>
+                                <SectionTitle title="Certifications" primaryColor={V.sidebarAccent} variant="sidebar" textSize="text-[7pt]" />
+                                <CertificationList certifications={limitedCertifications} primaryColor={V.sidebarAccent} textSize="text-[7pt]" />
+                            </section>
+                        )}
+                    </div>
                 </aside>
 
-                {/* ── MAIN CONTENT ── */}
-                <main className={`flex-1 flex flex-col ${mainGap} px-6 py-6`}>
+                {/* ── MAIN (65%) ── */}
+                <main className="flex-1 px-5 pt-5 pb-5 space-y-3">
                     {/* Job context */}
                     {jobContext?.job_title && (
                         <div
-                            className="text-[8pt] px-3 py-1.5 rounded-sm font-medium self-start"
-                            style={{ backgroundColor: V.primaryA20, color: V.primary }}
+                            className="text-[7pt] px-2 py-0.5 rounded inline-block mb-1"
+                            style={{ backgroundColor: V.primaryA10, color: V.primary }}
                         >
-                            Optimisé pour : {jobContext.job_title}
+                            {jobContext.job_title}
                             {jobContext.company && ` · ${jobContext.company}`}
                             {jobContext.match_score != null && ` — ${jobContext.match_score}%`}
                         </div>
                     )}
 
                     {/* Pitch */}
-                    {profil.elevator_pitch && (
-                        <SummaryBlock
-                            text={profil.elevator_pitch}
-                            primaryColor={V.primary}
-                            variant="border-left"
-                            textSize="text-[9pt]"
-                        />
+                    {profil?.elevator_pitch && (
+                        <section className={sectionMb}>
+                            <SummaryBlock
+                                text={profil.elevator_pitch}
+                                primaryColor={V.primary}
+                                variant="border-left"
+                                textSize="text-[8.5pt]"
+                            />
+                        </section>
                     )}
 
                     {/* Expériences */}
                     {limitedExperiences.length > 0 && (
-                        <section>
+                        <section className={sectionMb}>
                             <SectionTitle
                                 title="Expérience Professionnelle"
                                 primaryColor={V.primary}
                                 variant="accent-line"
                                 textSize="text-[10pt]"
                             />
-                            <div className={`flex flex-col ${dense ? "gap-2" : "gap-3"} mt-2`}>
+                            <div className={`flex flex-col ${dense ? "gap-1.5" : "gap-2"}`}>
                                 {limitedExperiences.map((exp, i) => (
                                     <ExperienceItem
                                         key={i}
@@ -245,7 +209,7 @@ export default function ExecutiveTemplate({
                                         realisations={exp.realisations}
                                         clients={exp.clients}
                                         primaryColor={V.primary}
-                                        variant="timeline"
+                                        variant="standard"
                                         relevanceScore={(exp as any)._relevance_score}
                                         maxRealisations={limits.maxRealisationsPerExp}
                                         bulletStyle="dot"
@@ -255,25 +219,13 @@ export default function ExecutiveTemplate({
                         </section>
                     )}
 
-                    {/* Formations */}
-                    {limitedFormations.length > 0 && (
-                        <section>
-                            <SectionTitle
-                                title="Formation"
-                                primaryColor={V.primary}
-                                variant="accent-line"
-                                textSize="text-[10pt]"
-                            />
-                            <div className="space-y-1 mt-2">
-                                {limitedFormations.map((edu, i) => (
-                                    <EducationItem
-                                        key={i}
-                                        diplome={edu.diplome}
-                                        etablissement={edu.etablissement}
-                                        annee={edu.annee}
-                                        primaryColor={V.primary}
-                                        variant="compact"
-                                    />
+                    {/* Projets */}
+                    {limitedProjects.length > 0 && (
+                        <section className={sectionMb}>
+                            <SectionTitle title="Projets" primaryColor={V.primary} variant="accent-line" textSize="text-[10pt]" />
+                            <div className="space-y-1.5">
+                                {limitedProjects.map((project, i) => (
+                                    <ProjectItem key={i} nom={project.nom} description={project.description} technologies={project.technologies} lien={project.lien} primaryColor={V.primary} variant="card" />
                                 ))}
                             </div>
                         </section>
@@ -282,44 +234,8 @@ export default function ExecutiveTemplate({
                     {/* Clients */}
                     {limitedClients.length > 0 && (
                         <section>
-                            <SectionTitle
-                                title="Clients & Références"
-                                primaryColor={V.primary}
-                                variant="accent-line"
-                                textSize="text-[10pt]"
-                            />
-                            <ClientReferences
-                                clients={limitedClients}
-                                secteurs={clients_references?.secteurs}
-                                primaryColor={V.primary}
-                                variant="pills"
-                                textSize="text-[8.5pt]"
-                            />
-                        </section>
-                    )}
-
-                    {/* Projets */}
-                    {limitedProjects.length > 0 && (
-                        <section>
-                            <SectionTitle
-                                title="Projets"
-                                primaryColor={V.primary}
-                                variant="accent-line"
-                                textSize="text-[10pt]"
-                            />
-                            <div className="space-y-2 mt-2">
-                                {limitedProjects.map((project, i) => (
-                                    <ProjectItem
-                                        key={i}
-                                        nom={project.nom}
-                                        description={project.description}
-                                        technologies={project.technologies}
-                                        lien={project.lien}
-                                        primaryColor={V.primary}
-                                        variant="compact"
-                                    />
-                                ))}
-                            </div>
+                            <SectionTitle title="Clients & Références" primaryColor={V.primary} variant="accent-line" textSize="text-[10pt]" />
+                            <ClientReferences clients={limitedClients} secteurs={clients_references?.secteurs} primaryColor={V.primary} variant="pills" textSize="text-[8pt]" />
                         </section>
                     )}
                 </main>

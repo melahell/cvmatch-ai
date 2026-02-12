@@ -19,14 +19,14 @@ import {
 } from "@/components/cv/shared";
 
 /**
- * ÉLÉGANT — Minimaliste luxe
- * Full-width, typographie raffinée serif, séparateurs fins, beaucoup de blanc.
- * Font override: Libre Baskerville (via TEMPLATE_OVERRIDES).
- * Cible : Cadres supérieurs, finance, consulting, direction.
+ * ÉLÉGANT — Classique raffiné, full-width, serif headings
+ * Pas de sidebar. Header sobre avec ligne d'accent. Typographie distinguée.
+ * Sections secondaires groupées en cartes (compétences, formation + langues + certifs).
+ * Cible : Juridique, Académique, Conseil stratégique, Profils seniors.
  */
 export default function ElegantTemplate({
     data,
-    includePhoto = false,
+    includePhoto = true,
     jobContext,
     dense = false,
     displayLimits: dl,
@@ -34,6 +34,7 @@ export default function ElegantTemplate({
     const limits = withDL(dl);
     const { profil, experiences, competences, formations, langues, certifications, clients_references, projects } = data;
     const initials = `${profil?.prenom?.[0] || ""}${profil?.nom?.[0] || ""}`.toUpperCase();
+    const fullName = `${profil?.prenom || ""} ${profil?.nom || ""}`.trim();
 
     const limitedExperiences = experiences || [];
     const limitedSkills = (competences?.techniques || []).slice(0, limits.maxSkills);
@@ -44,27 +45,22 @@ export default function ElegantTemplate({
     const limitedClients = (clients_references?.clients || []).slice(0, limits.maxClientsReferences);
     const limitedProjects = (projects || []).slice(0, limits.maxProjects);
 
-    const sectionMb = dense ? "mb-3" : "mb-5";
-
-    /** Thin separator line between major sections */
-    const Divider = () => (
-        <div className={sectionMb} style={{ borderBottom: `1px solid ${V.border}` }} />
-    );
+    const sectionMb = dense ? "mb-2" : "mb-3";
 
     return (
         <PageContainer
             dense={dense}
-            fontSize={dense ? "8.5pt" : "9pt"}
-            lineHeight={dense ? "1.3" : "1.45"}
+            fontSize={dense ? "8pt" : "9pt"}
+            lineHeight={dense ? "1.3" : "1.4"}
             className="shadow-sm"
         >
-            {/* ── HEADER ── */}
-            <header className="px-10 pt-10 pb-5">
+            {/* ── HEADER — sobre classique ── */}
+            <header className="px-7 pt-6 pb-4">
                 <div className="flex items-center gap-5">
                     {includePhoto && (
                         <ProfilePicture
                             photoUrl={profil?.photo_url}
-                            fullName={`${profil.prenom} ${profil.nom}`}
+                            fullName={fullName}
                             initials={initials}
                             includePhoto={includePhoto}
                             size="lg"
@@ -72,165 +68,141 @@ export default function ElegantTemplate({
                             borderColor={V.primary}
                         />
                     )}
-                    <div>
+                    <div className="flex-1">
                         <h1
-                            className="text-[24pt] leading-tight text-gray-900"
+                            className="text-[22pt] font-bold tracking-tight text-gray-900"
                             style={{ fontFamily: "var(--cv-font-heading)" }}
                         >
-                            <span className="font-light">{profil.prenom}</span>{" "}
-                            <span className="font-bold">{profil.nom}</span>
+                            {fullName}
                         </h1>
-                        <p
-                            className="text-[11pt] font-normal tracking-wide mt-1"
-                            style={{ color: V.primary, fontFamily: "var(--cv-font-heading)" }}
-                        >
-                            {profil.titre_principal}
+                        <p className="text-[10pt] font-medium mt-0.5" style={{ color: V.primary }}>
+                            {profil?.titre_principal}
                         </p>
+                        {/* Accent double line */}
+                        <div className="mt-2 mb-1.5 flex">
+                            <div className="h-[2px] w-14 rounded-full" style={{ backgroundColor: V.primary }} />
+                            <div className="h-[2px] w-6 ml-1 rounded-full" style={{ backgroundColor: V.primaryA30 }} />
+                        </div>
+                        <ContactInfo
+                            email={profil?.email}
+                            telephone={profil?.telephone}
+                            localisation={profil?.localisation}
+                            linkedin={profil?.linkedin}
+                            github={profil?.github}
+                            portfolio={profil?.portfolio}
+                            layout="horizontal"
+                            iconColor={V.primary}
+                            textColor="#64748b"
+                            iconSize={11}
+                            textSize="text-[8pt]"
+                        />
                     </div>
                 </div>
 
-                {/* Accent line under name — thicker, more visible */}
-                <div
-                    className="mt-4 h-[2.5px] w-full"
-                    style={{ background: `linear-gradient(90deg, ${V.primary}, ${V.primaryA50})` }}
-                />
-
-                {/* Contact — inline horizontal */}
-                <div className="mt-3 flex items-center justify-between">
-                    <ContactInfo
-                        email={profil.email}
-                        telephone={profil.telephone}
-                        localisation={profil.localisation}
-                        linkedin={profil.linkedin}
-                        github={profil.github}
-                        portfolio={profil.portfolio}
-                        layout="inline"
-                        iconColor={V.primary}
-                        textColor="#475569"
-                        iconSize={12}
-                        textSize="text-[8.5pt]"
-                    />
-
-                    {/* Job context badge — positioned subtly */}
-                    {jobContext?.job_title && (
-                        <div
-                            className="text-[8pt] px-3 py-1.5 rounded-sm font-medium"
-                            style={{ backgroundColor: V.primaryA20, color: V.primary }}
-                        >
-                            {jobContext.job_title}
-                            {jobContext.company && ` · ${jobContext.company}`}
-                            {jobContext.match_score != null && ` — ${jobContext.match_score}%`}
-                        </div>
-                    )}
-                </div>
+                {/* Job context */}
+                {jobContext?.job_title && (
+                    <div
+                        className="mt-2 text-[7pt] px-2 py-0.5 rounded inline-block"
+                        style={{ backgroundColor: V.primaryA10, color: V.primary }}
+                    >
+                        {jobContext.job_title}
+                        {jobContext.company && ` · ${jobContext.company}`}
+                        {jobContext.match_score != null && ` — ${jobContext.match_score}%`}
+                    </div>
+                )}
             </header>
 
             {/* ── BODY ── */}
-            <main className="px-10 pb-10">
+            <main className="px-7 pt-1 pb-5">
                 {/* Pitch */}
-                {profil.elevator_pitch && (
-                    <>
-                        <section className={sectionMb}>
+                {profil?.elevator_pitch && (
+                    <section className={sectionMb}>
+                        <div className="p-3 rounded-sm border-l-[3px]" style={{ backgroundColor: V.primaryA10, borderColor: V.primary }}>
                             <SummaryBlock
                                 text={profil.elevator_pitch}
                                 primaryColor={V.primary}
                                 variant="border-left"
-                                textSize="text-[9pt]"
+                                textSize="text-[8.5pt]"
                             />
-                        </section>
-                        <Divider />
-                    </>
+                        </div>
+                    </section>
                 )}
 
                 {/* Expériences */}
                 {limitedExperiences.length > 0 && (
-                    <>
-                        <section className={sectionMb}>
-                            <SectionTitle
-                                title="Expérience Professionnelle"
-                                primaryColor={V.primary}
-                                variant="accent-line"
-                                textSize="text-[10pt]"
-                            />
-                            <div className={`flex flex-col ${dense ? "gap-2" : "gap-3"}`}>
-                                {limitedExperiences.map((exp, i) => (
-                                    <ExperienceItem
-                                        key={i}
-                                        poste={exp.poste}
-                                        entreprise={isValidEntreprise(exp.entreprise) ? exp.entreprise : ""}
-                                        date_debut={exp.date_debut}
-                                        date_fin={exp.date_fin}
-                                        lieu={exp.lieu}
-                                        realisations={exp.realisations}
-                                        clients={exp.clients}
-                                        primaryColor={V.primary}
-                                        variant="standard"
-                                        relevanceScore={(exp as any)._relevance_score}
-                                        maxRealisations={limits.maxRealisationsPerExp}
-                                        bulletStyle="dot"
-                                    />
-                                ))}
-                            </div>
-                        </section>
-                        <Divider />
-                    </>
+                    <section className={sectionMb}>
+                        <SectionTitle
+                            title="Expérience Professionnelle"
+                            primaryColor={V.primary}
+                            variant="accent-line"
+                            textSize="text-[10pt]"
+                        />
+                        <div className={`flex flex-col ${dense ? "gap-1.5" : "gap-2"}`}>
+                            {limitedExperiences.map((exp, i) => (
+                                <ExperienceItem
+                                    key={i}
+                                    poste={exp.poste}
+                                    entreprise={isValidEntreprise(exp.entreprise) ? exp.entreprise : ""}
+                                    date_debut={exp.date_debut}
+                                    date_fin={exp.date_fin}
+                                    lieu={exp.lieu}
+                                    realisations={exp.realisations}
+                                    clients={exp.clients}
+                                    primaryColor={V.primary}
+                                    variant="standard"
+                                    relevanceScore={(exp as any)._relevance_score}
+                                    maxRealisations={limits.maxRealisationsPerExp}
+                                    bulletStyle="dash"
+                                />
+                            ))}
+                        </div>
+                    </section>
                 )}
 
-                {/* Compétences + Soft Skills — side by side with visible contrast */}
+                {/* Compétences — en 2 colonnes dans un bloc teinté */}
                 {(limitedSkills.length > 0 || limitedSoftSkills.length > 0) && (
-                    <>
-                        <section className={sectionMb}>
-                            <SectionTitle
-                                title="Compétences"
-                                primaryColor={V.primary}
-                                variant="accent-line"
-                                textSize="text-[10pt]"
-                            />
-                            <div
-                                className="flex gap-6 p-4 rounded-sm"
-                                style={{ backgroundColor: V.primaryA10 }}
-                            >
-                                {limitedSkills.length > 0 && (
-                                    <div className="flex-1">
-                                        <p className="text-[8pt] font-semibold text-gray-500 uppercase tracking-wider mb-2">Techniques</p>
-                                        <SkillsGrid
-                                            skills={limitedSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
-                                            primaryColor={V.primary}
-                                            variant="pills"
-                                            textSize="text-[8pt]"
-                                        />
-                                    </div>
-                                )}
-                                {limitedSoftSkills.length > 0 && (
-                                    <div className="flex-1">
-                                        <p className="text-[8pt] font-semibold text-gray-500 uppercase tracking-wider mb-2">Savoir-être</p>
-                                        <SkillsGrid
-                                            skills={limitedSoftSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
-                                            primaryColor={V.primary}
-                                            variant="pills"
-                                            textSize="text-[8pt]"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-                        <Divider />
-                    </>
+                    <section className={sectionMb}>
+                        <SectionTitle
+                            title="Compétences"
+                            primaryColor={V.primary}
+                            variant="accent-line"
+                            textSize="text-[9.5pt]"
+                        />
+                        <div className="flex gap-5 p-3 rounded-sm" style={{ backgroundColor: V.primaryA10, border: `1px solid ${V.primaryA20}` }}>
+                            {limitedSkills.length > 0 && (
+                                <div className="flex-1">
+                                    <p className="text-[7pt] font-semibold text-gray-400 uppercase tracking-wider mb-1">Techniques</p>
+                                    <SkillsGrid
+                                        skills={limitedSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
+                                        primaryColor={V.primary}
+                                        variant="pills"
+                                        textSize="text-[8pt]"
+                                    />
+                                </div>
+                            )}
+                            {limitedSoftSkills.length > 0 && (
+                                <div className="flex-1">
+                                    <p className="text-[7pt] font-semibold text-gray-400 uppercase tracking-wider mb-1">Savoir-être</p>
+                                    <SkillsGrid
+                                        skills={limitedSoftSkills.map(s => typeof s === "string" ? s : (s as any).name || String(s))}
+                                        primaryColor={V.primary}
+                                        variant="pills"
+                                        textSize="text-[8pt]"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </section>
                 )}
 
-                {/* Formations + Certifications — côte à côte */}
-                {(limitedFormations.length > 0 || limitedCertifications.length > 0) && (
-                    <>
-                        <section className={`flex gap-8 ${sectionMb}`}>
+                {/* Formation + Langues + Certifications — groupées côte-à-côte */}
+                {(limitedFormations.length > 0 || limitedLangages.length > 0 || limitedCertifications.length > 0) && (
+                    <section className={sectionMb}>
+                        <div className="flex gap-5 flex-wrap">
                             {limitedFormations.length > 0 && (
-                                <div className="flex-1">
-                                    <SectionTitle
-                                        title="Formation"
-                                        primaryColor={V.primary}
-                                        variant="accent-line"
-                                        textSize="text-[10pt]"
-                                    />
-                                    <div className="space-y-1.5">
+                                <div className="flex-1 min-w-[30%]">
+                                    <SectionTitle title="Formation" primaryColor={V.primary} variant="accent-line" textSize="text-[9pt]" />
+                                    <div className="space-y-1">
                                         {limitedFormations.map((edu, i) => (
                                             <EducationItem
                                                 key={i}
@@ -244,72 +216,35 @@ export default function ElegantTemplate({
                                     </div>
                                 </div>
                             )}
-                            {limitedCertifications.length > 0 && (
-                                <div className="flex-1">
-                                    <SectionTitle
-                                        title="Certifications"
-                                        primaryColor={V.primary}
-                                        variant="accent-line"
-                                        textSize="text-[10pt]"
-                                    />
-                                    <CertificationList
-                                        certifications={limitedCertifications}
-                                        primaryColor={V.primary}
-                                    />
+                            {limitedLangages.length > 0 && (
+                                <div className="flex-1 min-w-[20%]">
+                                    <SectionTitle title="Langues" primaryColor={V.primary} variant="accent-line" textSize="text-[9pt]" />
+                                    <LanguageList langues={limitedLangages} primaryColor={V.primary} variant="badge" textSize="text-[8pt]" />
                                 </div>
                             )}
-                        </section>
-                        <Divider />
-                    </>
-                )}
-
-                {/* Langues */}
-                {limitedLangages.length > 0 && (
-                    <section className={sectionMb}>
-                        <SectionTitle
-                            title="Langues"
-                            primaryColor={V.primary}
-                            variant="accent-line"
-                            textSize="text-[10pt]"
-                        />
-                        <LanguageList
-                            langues={limitedLangages}
-                            primaryColor={V.primary}
-                            variant="inline"
-                            textSize="text-[8.5pt]"
-                        />
+                            {limitedCertifications.length > 0 && (
+                                <div className="flex-1 min-w-[20%]">
+                                    <SectionTitle title="Certifications" primaryColor={V.primary} variant="accent-line" textSize="text-[9pt]" />
+                                    <CertificationList certifications={limitedCertifications} primaryColor={V.primary} textSize="text-[8pt]" />
+                                </div>
+                            )}
+                        </div>
                     </section>
                 )}
 
-                {/* Clients & Références */}
+                {/* Clients */}
                 {limitedClients.length > 0 && (
                     <section className={sectionMb}>
-                        <SectionTitle
-                            title="Clients & Références"
-                            primaryColor={V.primary}
-                            variant="accent-line"
-                            textSize="text-[10pt]"
-                        />
-                        <ClientReferences
-                            clients={limitedClients}
-                            secteurs={clients_references?.secteurs}
-                            primaryColor={V.primary}
-                            variant="pills"
-                            textSize="text-[8.5pt]"
-                        />
+                        <SectionTitle title="Clients & Références" primaryColor={V.primary} variant="accent-line" textSize="text-[10pt]" />
+                        <ClientReferences clients={limitedClients} secteurs={clients_references?.secteurs} primaryColor={V.primary} variant="pills" textSize="text-[8pt]" />
                     </section>
                 )}
 
                 {/* Projets */}
                 {limitedProjects.length > 0 && (
                     <section>
-                        <SectionTitle
-                            title="Projets"
-                            primaryColor={V.primary}
-                            variant="accent-line"
-                            textSize="text-[10pt]"
-                        />
-                        <div className="space-y-2">
+                        <SectionTitle title="Projets" primaryColor={V.primary} variant="accent-line" textSize="text-[10pt]" />
+                        <div className="space-y-1.5">
                             {limitedProjects.map((project, i) => (
                                 <ProjectItem
                                     key={i}
