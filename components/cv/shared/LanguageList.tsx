@@ -1,6 +1,4 @@
-"use client";
-
-import React from "react";
+import { normalizeLanguage } from "@/lib/cv/formatters";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 
 export interface LanguageListProps {
@@ -25,7 +23,7 @@ export default function LanguageList({
             <div className={`space-y-1.5 ${textSize} ${className}`}>
                 {langues.map((lang, i) => (
                     <div key={i} className="flex justify-between items-center">
-                        <span className="font-medium">{sanitizeText(lang.langue)}</span>
+                        <span className="font-medium">{sanitizeText(normalizeLanguage(lang.langue))}</span>
                         <span
                             className="text-[6pt] px-1.5 py-0.5 rounded uppercase font-semibold text-white"
                             style={{ backgroundColor: primaryColor }}
@@ -43,7 +41,7 @@ export default function LanguageList({
             <div className={`flex flex-wrap gap-x-3 gap-y-0.5 ${textSize} ${className}`}>
                 {langues.map((lang, i) => (
                     <span key={i}>
-                        <span className="font-semibold">{sanitizeText(lang.langue)}</span>
+                        <span className="font-semibold">{sanitizeText(normalizeLanguage(lang.langue))}</span>
                         <span className="text-gray-500"> ({sanitizeText(lang.niveau)})</span>
                     </span>
                 ))}
@@ -70,7 +68,7 @@ export default function LanguageList({
                 {langues.map((lang, i) => (
                     <div key={i}>
                         <div className="flex justify-between mb-0.5">
-                            <span className="font-medium">{sanitizeText(lang.langue)}</span>
+                            <span className="font-medium">{sanitizeText(normalizeLanguage(lang.langue))}</span>
                             <span className="text-gray-500 text-[7pt]">{sanitizeText(lang.niveau)}</span>
                         </div>
                         <div className="w-full h-1.5 bg-gray-200 rounded-full">
@@ -90,7 +88,7 @@ export default function LanguageList({
         <div className={`space-y-1 ${textSize} ${className}`}>
             {langues.map((lang, i) => (
                 <div key={i} className="flex justify-between items-center">
-                    <span className="font-medium">{sanitizeText(lang.langue)}</span>
+                    <span className="font-medium">{sanitizeText(normalizeLanguage(lang.langue))}</span>
                     <span className="text-gray-500">{sanitizeText(lang.niveau)}</span>
                 </div>
             ))}

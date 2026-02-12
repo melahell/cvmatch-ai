@@ -1,6 +1,4 @@
-"use client";
-
-import React from "react";
+import { formatDate } from "@/lib/cv/formatters";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 
 export interface EducationItemProps {
@@ -20,12 +18,14 @@ export default function EducationItem({
     variant = "standard",
     className = "",
 }: EducationItemProps) {
+    const formattedYear = formatDate(annee);
+
     if (variant === "inline") {
         return (
             <div className={`cv-item break-inside-avoid ${className}`}>
                 <span className="font-bold text-[8pt]">{sanitizeText(diplome)}</span>
                 {etablissement && <span className="text-[8pt] text-gray-500"> — {sanitizeText(etablissement)}</span>}
-                {annee && <span className="text-[7pt] text-gray-400 ml-1">({sanitizeText(annee)})</span>}
+                {formattedYear && <span className="text-[7pt] text-gray-400 ml-1">({formattedYear})</span>}
             </div>
         );
     }
@@ -35,7 +35,7 @@ export default function EducationItem({
             <div className={`cv-item break-inside-avoid mb-1.5 ${className}`}>
                 <div className="flex justify-between items-baseline">
                     <span className="font-bold text-[8pt]">{sanitizeText(diplome)}</span>
-                    {annee && <span className="text-[7pt] text-gray-500">{sanitizeText(annee)}</span>}
+                    {formattedYear && <span className="text-[7pt] text-gray-500">{formattedYear}</span>}
                 </div>
                 {etablissement && <p className="text-[7pt]" style={{ color: primaryColor }}>{sanitizeText(etablissement)}</p>}
             </div>
@@ -47,7 +47,7 @@ export default function EducationItem({
         <div className={`cv-item break-inside-avoid mb-2 pl-3 py-1.5 border-l-2 ${className}`} style={{ borderLeftColor: `${primaryColor}40` }}>
             <h4 className="font-bold text-[9pt] text-gray-900">{sanitizeText(diplome)}</h4>
             {etablissement && <p className="text-[8pt] font-medium" style={{ color: primaryColor }}>{sanitizeText(etablissement)}</p>}
-            {annee && <p className="text-[7pt] text-gray-500 mt-0.5">{sanitizeText(annee)}</p>}
+            {formattedYear && <p className="text-[7pt] text-gray-500 mt-0.5">{formattedYear}</p>}
         </div>
     );
 }

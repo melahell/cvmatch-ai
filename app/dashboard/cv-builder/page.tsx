@@ -17,7 +17,27 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, Loader2, Sparkles, RefreshCw, ChevronDown, ChevronUp, SlidersHorizontal, Info } from "lucide-react";
+import {
+    AlertCircle,
+    Loader2,
+    Sparkles,
+    RefreshCw,
+    ChevronDown,
+    ChevronUp,
+    SlidersHorizontal,
+    Info,
+    Download,
+    Eye,
+    LayoutTemplate,
+    Palette,
+    Printer,
+    Save,
+    Share2,
+    Type,
+    Undo2,
+    Wand2,
+    Equal
+} from "lucide-react";
 import { convertWidgetsToCV, convertWidgetsToCVWithValidation, convertWidgetsToCVWithAdvancedScoring, type ConvertOptions, type ValidationWarning } from "@/lib/cv/client-bridge";
 import type { JobOfferContext } from "@/lib/cv/relevance-scoring";
 import { validateAIWidgetsEnvelope } from "@/lib/cv/ai-widgets";
@@ -100,6 +120,8 @@ function CVBuilderContent() {
     const [unfilteredCounts, setUnfilteredCounts] = useState<{
         experiences: number;
         skills: number;
+        technicalSkills: number; // [Sprint 2]
+        softSkills: number;      // [Sprint 2]
         formations: number;
         langues: number;
         certifications: number;
@@ -154,6 +176,21 @@ function CVBuilderContent() {
             maxClientsReferences: 25,
         },
     });
+
+    const updateOption = useCallback((key: keyof ConvertOptions, value: number) => {
+        setConvertOptions(prev => ({ ...prev, [key]: value }));
+    }, []);
+
+    const resetFilters = useCallback(() => {
+        setConvertOptions((prev) => ({
+            ...prev,
+            minScore: 0
+        }));
+        setDisplayLimits({});
+        setHiddenItems({});
+        setExpertMode(false);
+        toast.success("Filtres réinitialisés");
+    }, []);
 
     // Diagnostique automatique si qualité faible
     useEffect(() => {
@@ -332,14 +369,19 @@ function CVBuilderContent() {
 
     // Compteurs réels pour capper les sliders aux données disponibles
     // [FIX #1] dataCounts = compteurs de la donnée FILTRÉE (pour affichage X/total)
+    // [FIX #1 update] dataCounts avec split techniques/soft
     const dataCounts = useMemo(() => {
         const d = reorderedCV || cvData;
         if (!d) return null;
         const maxRealisations = Math.max(0, ...(d.experiences || []).map(e => (e.realisations || []).length));
         const maxClientsPerExp = Math.max(0, ...(d.experiences || []).map(e => (e.clients || []).length));
+        const tech = (d.competences?.techniques || []).length;
+        const soft = (d.competences?.soft_skills || []).length;
         return {
             experiences: (d.experiences || []).length,
-            skills: (d.competences?.techniques || []).length + (d.competences?.soft_skills || []).length,
+            skills: tech + soft, // Compatibilité
+            technicalSkills: tech, // [Sprint 2]
+            softSkills: soft,      // [Sprint 2]
             formations: (d.formations || []).length,
             langues: (d.langues || []).length,
             certifications: (d.certifications || []).length,
@@ -349,6 +391,90 @@ function CVBuilderContent() {
             maxClientsPerExp: maxClientsPerExp,
         };
     }, [cvData, reorderedCV]);
+
+    // [Sprint 2] État pour les limites d'affichage (filtres instantanés)
+    type DisplayLimits = NonNullable<ConvertOptions['limitsBySection']> & Pick<ConvertOptions, 'maxExperiences' | 'maxBulletsPerExperience'>;
+    const [displayLimits, setDisplayLimits] = useState<DisplayLimits>({});
+
+    // [Sprint 3] Mode Expert (Checkboxes vs Sliders)
+    const [expertMode, setExpertMode] = useState(false);
+
+    // [Sprint 3] État pour les éléments masqués manuellement (Expert Mode)
+    // Clé = ID unique ou hash du contenu. Valeur = true si masqué.
+    const [hiddenItems, setHiddenItems] = useState<Record<string, boolean>>({});
+
+    // Helper pour générer un ID unique stable pour chaque item
+    const getItemId = useCallback((item: any, index: number, prefix: string) => {
+        if (item.id) return item.id;
+        // Fallback stable basé sur le contenu
+        const content = JSON.stringify(item);
+        let hash = 0;
+        for (let i = 0; i < content.length; i++) {
+            const char = content.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32bit integer
+        }
+        return `${prefix}_${index}_${Math.abs(hash).toString(16)}`;
+    }, []);
+
+    const toggleItemVisibility = useCallback((id: string) => {
+        setHiddenItems(prev => ({
+            ...prev,
+            [id]: !prev[id]
+        }));
+    }, []);
+
+    // [Sprint 2] visibleCVData: Applique displayLimits ET hiddenItems
+    const visibleCVData = useMemo(() => {
+        const source = reorderedCV || cvData;
+        if (!source) return null;
+
+        // Cloner et appliquer les filtres
+        const limits = displayLimits || {};
+
+        // Filtrage manuel + Sliders
+        const filterList = <T extends any>(list: T[], prefix: string, max?: number) => {
+            if (!list) return [];
+            return list
+                .filter((item, i) => !hiddenItems[getItemId(item, i, prefix)])
+                .slice(0, max ?? 999);
+        };
+
+        return {
+            ...source,
+            experiences: (source.experiences || [])
+                .filter((e, i) => !hiddenItems[getItemId(e, i, 'exp')])
+                .slice(0, limits.maxExperiences ?? 999)
+                .map((e, i) => ({
+                    ...e,
+                    realisations: (e.realisations || [])
+                        .filter((r, j) => !hiddenItems[getItemId(r, j, `exp_${i}_bull`)])
+                        .slice(0, limits.maxBulletsPerExperience ?? 999),
+                    clients: (e.clients || [])
+                        .filter((c, j) => !hiddenItems[getItemId(c, j, `exp_${i}_cli`)])
+                        .slice(0, limits.maxClientsPerExperience ?? 999)
+                })),
+            competences: {
+                techniques: (source.competences?.techniques || [])
+                    .filter((s, i) => !hiddenItems[getItemId(s, i, 'skill_tech')])
+                    .slice(0, limits.maxSkills ?? 999),
+                soft_skills: (source.competences?.soft_skills || [])
+                    .filter((s, i) => !hiddenItems[getItemId(s, i, 'skill_soft')])
+                    .slice(0, limits.maxSoftSkills ?? 999),
+                categories: source.competences?.categories // [Sprint 3]
+            },
+            formations: filterList(source.formations || [], 'edu', limits.maxFormations),
+            langues: filterList(source.langues || [], 'lang', limits.maxLanguages),
+            certifications: filterList(source.certifications || [], 'cert', limits.maxCertifications),
+            projects: filterList(source.projects || [], 'proj', limits.maxProjects),
+            clients_references: {
+                ...source.clients_references,
+                clients: filterList(source.clients_references?.clients || [], 'cli_ref', limits.maxClientsReferences)
+            },
+            maxRealisationsPerExp: limits.maxBulletsPerExperience,
+            maxClientsPerExp: limits.maxClientsPerExperience,
+        };
+    }, [cvData, reorderedCV, displayLimits, hiddenItems, getItemId]);
 
     // [FIX #1] maxCounts = le MAXIMUM possible pour les sliders (jamais verrouillé)
     // Utilise unfilteredCounts (calculé une seule fois) sinon dataCounts en fallback
@@ -534,14 +660,14 @@ function CVBuilderContent() {
                 advancedFilteringEnabled: advancedFiltersEnabled,
                 minScoreBySection: advancedFiltersEnabled ? advancedMinScoreBySection : undefined,
                 limitsBySection: {
-                    maxSkills: options.limitsBySection?.maxSkills,
-                    maxFormations: options.limitsBySection?.maxFormations,
-                    maxLanguages: options.limitsBySection?.maxLanguages,
-                    maxProjects: options.limitsBySection?.maxProjects,
-                    maxReferences: options.limitsBySection?.maxReferences,
-                    maxCertifications: options.limitsBySection?.maxCertifications,
-                    maxClientsPerExperience: options.limitsBySection?.maxClientsPerExperience ?? 6,
-                    maxClientsReferences: options.limitsBySection?.maxClientsReferences ?? 25,
+                    maxSkills: 999, // [Sprint 2] Force unlimited pipeline
+                    maxFormations: 999,
+                    maxLanguages: 999,
+                    maxProjects: 999,
+                    maxReferences: 999,
+                    maxCertifications: 999,
+                    maxClientsPerExperience: 999,
+                    maxClientsReferences: 999,
                 },
             };
 
@@ -575,10 +701,14 @@ function CVBuilderContent() {
                     const fullCv = convertWidgetsToCV(widgets, unlimitedOptions);
                     const maxR = Math.max(0, ...(fullCv.experiences || []).map((e: any) => (e.realisations || []).length));
                     const maxC = Math.max(0, ...(fullCv.experiences || []).map((e: any) => (e.clients || []).length));
+                    const tech = (fullCv.competences?.techniques || []).length;
+                    const soft = (fullCv.competences?.soft_skills || []).length;
 
                     return {
                         experiences: (fullCv.experiences || []).length,
-                        skills: (fullCv.competences?.techniques || []).length + (fullCv.competences?.soft_skills || []).length,
+                        skills: tech + soft,
+                        technicalSkills: tech,
+                        softSkills: soft,
                         formations: (fullCv.formations || []).length,
                         langues: (fullCv.langues || []).length,
                         certifications: (fullCv.certifications || []).length,
@@ -738,49 +868,13 @@ function CVBuilderContent() {
                     setValidationResult(finalValidation);
                     saveCVDataToCache(analysisId, template, cv, cacheOptions);
 
-                    // [Sprint 1.2] Apply Layout Engine (Client Side)
-                    try {
-                        const adapted = adaptCVToThemeUnits({
-                            cvData: cv,
-                            templateName: template,
-                            includePhoto: includePhoto,
-                            jobOffer: jobContext
-                        });
-                        setCvData(adapted.cvData);
-                        if (adapted.cssVariables) {
-                            setCssVariables(adapted.cssVariables);
-                        }
-                        if (adapted.quality) {
-                            setQualityMetrics(adapted.quality);
-                        }
-                    } catch (e) {
-                        // Fallback if adaptation fails
-                        logger.warn("Layout engine adaptation failed", e);
-                        setCvData(cv);
-                    }
+                    setCvData(cv);
 
                 } else {
                     // Fallback sans validation si RAG non disponible
                     const cv = convertWidgetsToCV(widgets, convertOptions);
 
-                    // [Sprint 1.2] Apply Layout Engine (Client Side)
-                    try {
-                        const adapted = adaptCVToThemeUnits({
-                            cvData: cv,
-                            templateName: template,
-                            includePhoto: includePhoto,
-                            jobOffer: jobContext
-                        });
-                        setCvData(adapted.cvData);
-                        if (adapted.cssVariables) {
-                            setCssVariables(adapted.cssVariables);
-                        }
-                        if (adapted.quality) {
-                            setQualityMetrics(adapted.quality);
-                        }
-                    } catch (e) {
-                        setCvData(cv);
-                    }
+                    setCvData(cv);
 
                     setValidationResult(null);
                     saveCVDataToCache(analysisId, template, cv, cacheOptions);
@@ -814,6 +908,33 @@ function CVBuilderContent() {
         return () => { if (reconvertTimerRef.current) clearTimeout(reconvertTimerRef.current); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [templateId, convertOptions, state.widgets, state.jobOfferContext, advancedFiltersEnabled, advancedMinScoreBySection, ragData]);
+
+    // [Sprint 2] Layout Engine Effect (Instant Updates)
+    useEffect(() => {
+        if (!visibleCVData) return;
+
+        // Calculer includePhoto ici pour l'effet
+        // On suppose que si ragProfile a une photo, on l'inclut (ou via option UI si elle existait)
+        // Mais convertOptions.ragProfile est-il dispo ? Oui.
+        const includePhoto = convertOptions.ragProfile?.profil?.photo_url ? true : false;
+
+        try {
+            // L'algo adaptatif tourne sur la donnée VISIBLE (filtrée)
+            const adapted = adaptCVToThemeUnits({
+                cvData: visibleCVData,
+                templateName: templateId,
+                includePhoto: includePhoto,
+                jobOffer: state.jobOfferContext
+            });
+
+            // On met à jour UNIQUEMENT les props de rendu, pas cvData (qui est source)
+            if (adapted.cssVariables) setCssVariables(adapted.cssVariables);
+            if (adapted.quality) setQualityMetrics(adapted.quality);
+
+        } catch (e) {
+            console.error("Layout engine error", e);
+        }
+    }, [visibleCVData, templateId, state.jobOfferContext, convertOptions.ragProfile]);
 
     useEffect(() => {
         if (!cvData) return;
@@ -1184,7 +1305,14 @@ function CVBuilderContent() {
                                 ) : (
                                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
                                         {/* Sidebar : Contrôles (scrollable) — ordre inversé sur mobile pour voir le CV d'abord */}
-                                        <aside className="space-y-3 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1 order-2 lg:order-1">
+                                        <aside className="space-y-3 lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto lg:pr-1 order-2 lg:order-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                                            {/* Link to Edit Profile */}
+                                            <div className="flex justify-end">
+                                                <a href="/dashboard/profile/rag" className="text-[10px] text-indigo-600 hover:underline flex items-center gap-1">
+                                                    <span className="text-xs">✏️</span> Modifier mes données (Profil)
+                                                </a>
+                                            </div>
+
                                             {/* ── Section 1 : Modèle (dropdown groupé) ── */}
                                             <Card>
                                                 <CardContent className="pt-4 pb-3 space-y-3">
@@ -1280,8 +1408,21 @@ function CVBuilderContent() {
                                                 </CardContent>
                                             </Card>
 
-                                            {/* ── Section 3 : Contenu (collapsible, fermée par défaut) ── */}
-                                            <Card>
+                                            {/* --- SECTION 2 : CONTENU (FILTRES) --- */}
+                                            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                                                        <Equal className="w-4 h-4 text-indigo-600" />
+                                                        Affiner le contenu
+                                                    </h3>
+                                                    <button
+                                                        onClick={resetFilters}
+                                                        className="text-[10px] font-medium text-slate-400 hover:text-red-600 hover:bg-red-50 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                                                        title="Réinitialiser tous les filtres"
+                                                    >
+                                                        <span className="text-xs">↺</span> Réinitialiser
+                                                    </button>
+                                                </div>
                                                 <button
                                                     type="button"
                                                     className="w-full flex items-center justify-between px-4 py-3 text-left"
@@ -1295,131 +1436,279 @@ function CVBuilderContent() {
                                                 </button>
                                                 {showAdvancedFilters && (
                                                     <CardContent className="pt-0 pb-3 space-y-3 text-xs">
-                                                        {/* Pertinence minimum */}
-                                                        <div>
-                                                            <label className="text-slate-600 mb-1 block">
-                                                                Pertinence : {convertOptions.minScore}%
-                                                            </label>
-                                                            <input
-                                                                type="range"
-                                                                min="0"
-                                                                max="100"
-                                                                value={convertOptions.minScore}
-                                                                onChange={(e) => setConvertOptions((prev) => ({ ...prev, minScore: Number(e.target.value) }))}
-                                                                className="w-full accent-indigo-600"
-                                                            />
+                                                        {/* [Sprint 3] Mode Expert Toggle */}
+                                                        <div className="flex items-center justify-between mt-2 mb-4 px-1">
+                                                            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Filtres</span>
+                                                            <button
+                                                                onClick={() => setExpertMode(!expertMode)}
+                                                                className={`text-xs px-2 py-1 rounded border transition-colors ${expertMode ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-medium' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-700'}`}
+                                                            >
+                                                                {expertMode ? 'Mode Expert' : 'Mode Simple'}
+                                                            </button>
                                                         </div>
 
-                                                        {/* Expériences */}
-                                                        <div>
-                                                            <label className="text-slate-600 mb-1 block">
-                                                                Expériences : {Math.min(convertOptions.maxExperiences ?? 20, maxCounts?.experiences || 20)} / {maxCounts?.experiences || 20}
-                                                            </label>
-                                                            <input
-                                                                type="range"
-                                                                min="1"
-                                                                max={maxCounts?.experiences || 20}
-                                                                value={convertOptions.maxExperiences ?? (maxCounts?.experiences || 20)}
-                                                                onChange={(e) => setConvertOptions((prev) => ({ ...prev, maxExperiences: Number(e.target.value) }))}
-                                                                className="w-full accent-indigo-600"
-                                                            />
-                                                        </div>
+                                                        {!expertMode ? (
+                                                            /* --- MODE SIMPLE (SLIDERS) --- */
+                                                            <div className="space-y-6">
+                                                                {/* Pertinence */}
+                                                                <div>
+                                                                    <label className="text-slate-600 mb-1 block">
+                                                                        Pertinence : {convertOptions.minScore}%
+                                                                        <span className="text-xs text-slate-400 ml-2">
+                                                                            ({(dataCounts?.experiences || 0) + (dataCounts?.technicalSkills || 0)} éléments)
+                                                                        </span>
+                                                                    </label>
+                                                                    <input
+                                                                        type="range"
+                                                                        min="0"
+                                                                        max="100"
+                                                                        step="5"
+                                                                        value={convertOptions.minScore}
+                                                                        onChange={(e) => updateOption('minScore', Number(e.target.value))}
+                                                                        className="w-full accent-indigo-600"
+                                                                    />
+                                                                </div>
 
-                                                        {/* Réalisations */}
-                                                        <div>
-                                                            <label className="text-slate-600 mb-1 block">
-                                                                Réalisations/exp : {Math.min(convertOptions.maxBulletsPerExperience ?? 10, maxCounts?.maxRealisationsPerExp || 10)} / {maxCounts?.maxRealisationsPerExp || 10}
-                                                            </label>
-                                                            <input
-                                                                type="range"
-                                                                min="1"
-                                                                max={maxCounts?.maxRealisationsPerExp || 10}
-                                                                value={convertOptions.maxBulletsPerExperience ?? (maxCounts?.maxRealisationsPerExp || 10)}
-                                                                onChange={(e) => setConvertOptions((prev) => ({ ...prev, maxBulletsPerExperience: Number(e.target.value) }))}
-                                                                className="w-full accent-indigo-600"
-                                                            />
-                                                        </div>
+                                                                {/* Expériences */}
+                                                                <div>
+                                                                    <label className="text-slate-600 mb-1 block">
+                                                                        Expériences : {displayLimits.maxExperiences ?? (maxCounts?.experiences || 99)} / {maxCounts?.experiences || 99}
+                                                                    </label>
+                                                                    <input
+                                                                        type="range"
+                                                                        min="1"
+                                                                        max={maxCounts?.experiences || 99}
+                                                                        value={displayLimits.maxExperiences ?? (maxCounts?.experiences || 99)}
+                                                                        onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxExperiences: Number(e.target.value) }))}
+                                                                        className="w-full accent-indigo-600"
+                                                                    />
+                                                                </div>
 
-                                                        {/* Sliders secondaires — cachés derrière "Plus d'options" */}
-                                                        {(
-                                                            (maxCounts?.maxClientsPerExp ?? 0) > 0 ||
-                                                            (maxCounts?.clientsReferences ?? 0) > 0 ||
-                                                            (maxCounts?.skills ?? 0) > 1 ||
-                                                            (maxCounts?.formations ?? 0) > 1 ||
-                                                            (maxCounts?.langues ?? 0) > 1 ||
-                                                            (maxCounts?.certifications ?? 0) > 1 ||
-                                                            (maxCounts?.projects ?? 0) > 1
-                                                        ) && (
-                                                                <details className="group">
-                                                                    <summary className="text-[11px] text-indigo-600 cursor-pointer hover:text-indigo-700 select-none py-1">
-                                                                        Plus d'options…
-                                                                    </summary>
-                                                                    <div className="mt-2 space-y-3 pl-1">
-                                                                        {(maxCounts?.maxClientsPerExp ?? 0) > 0 && (
-                                                                            <div>
-                                                                                <label className="text-slate-600 mb-1 block">
-                                                                                    Clients/exp : {convertOptions.limitsBySection?.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 6)} / {maxCounts?.maxClientsPerExp || 6}
-                                                                                </label>
-                                                                                <input type="range" min="0" max={maxCounts?.maxClientsPerExp || 6} value={convertOptions.limitsBySection?.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 6)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsPerExperience: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
-                                                                            </div>
-                                                                        )}
-                                                                        {(maxCounts?.clientsReferences ?? 0) > 0 && (
-                                                                            <div>
-                                                                                <label className="text-slate-600 mb-1 block">
-                                                                                    Clients références : {convertOptions.limitsBySection?.maxClientsReferences ?? (maxCounts?.clientsReferences || 25)} / {maxCounts?.clientsReferences || 25}
-                                                                                </label>
-                                                                                <input type="range" min="0" max={maxCounts?.clientsReferences || 25} value={convertOptions.limitsBySection?.maxClientsReferences ?? (maxCounts?.clientsReferences || 25)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxClientsReferences: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
-                                                                            </div>
-                                                                        )}
-                                                                        {(maxCounts?.skills ?? 0) > 1 && (
-                                                                            <div>
-                                                                                <label className="text-slate-600 mb-1 block">Compétences : {convertOptions.limitsBySection?.maxSkills ?? (maxCounts?.skills || 20)} / {maxCounts?.skills || 20}</label>
-                                                                                <input type="range" min="0" max={maxCounts?.skills || 20} value={convertOptions.limitsBySection?.maxSkills ?? (maxCounts?.skills || 20)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxSkills: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
-                                                                            </div>
-                                                                        )}
-                                                                        {(maxCounts?.formations ?? 0) > 1 && (
-                                                                            <div>
-                                                                                <label className="text-slate-600 mb-1 block">Formations : {convertOptions.limitsBySection?.maxFormations ?? (maxCounts?.formations || 5)} / {maxCounts?.formations || 5}</label>
-                                                                                <input type="range" min="0" max={maxCounts?.formations || 5} value={convertOptions.limitsBySection?.maxFormations ?? (maxCounts?.formations || 5)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxFormations: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
-                                                                            </div>
-                                                                        )}
-                                                                        {(maxCounts?.langues ?? 0) > 1 && (
-                                                                            <div>
-                                                                                <label className="text-slate-600 mb-1 block">Langues : {convertOptions.limitsBySection?.maxLanguages ?? (maxCounts?.langues || 10)} / {maxCounts?.langues || 10}</label>
-                                                                                <input type="range" min="0" max={maxCounts?.langues || 10} value={convertOptions.limitsBySection?.maxLanguages ?? (maxCounts?.langues || 10)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxLanguages: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
-                                                                            </div>
-                                                                        )}
-                                                                        {(maxCounts?.certifications ?? 0) > 1 && (
-                                                                            <div>
-                                                                                <label className="text-slate-600 mb-1 block">Certifications : {convertOptions.limitsBySection?.maxCertifications ?? (maxCounts?.certifications || 10)} / {maxCounts?.certifications || 10}</label>
-                                                                                <input type="range" min="0" max={maxCounts?.certifications || 10} value={convertOptions.limitsBySection?.maxCertifications ?? (maxCounts?.certifications || 10)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxCertifications: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
-                                                                            </div>
-                                                                        )}
-                                                                        {(maxCounts?.projects ?? 0) > 1 && (
-                                                                            <div>
-                                                                                <label className="text-slate-600 mb-1 block">Projets : {convertOptions.limitsBySection?.maxProjects ?? (maxCounts?.projects || 5)} / {maxCounts?.projects || 5}</label>
-                                                                                <input type="range" min="0" max={maxCounts?.projects || 5} value={convertOptions.limitsBySection?.maxProjects ?? (maxCounts?.projects || 5)} onChange={(e) => setConvertOptions((prev) => ({ ...prev, limitsBySection: { ...(prev.limitsBySection || {}), maxProjects: Number(e.target.value) } }))} className="w-full accent-indigo-600" />
-                                                                            </div>
-                                                                        )}
+                                                                {/* Réalisations */}
+                                                                <div>
+                                                                    <label className="text-slate-600 mb-1 block">
+                                                                        Réalisations/exp : {displayLimits.maxBulletsPerExperience ?? (maxCounts?.maxRealisationsPerExp || 99)} / {maxCounts?.maxRealisationsPerExp || 99}
+                                                                    </label>
+                                                                    <input
+                                                                        type="range"
+                                                                        min="0"
+                                                                        max={maxCounts?.maxRealisationsPerExp || 99}
+                                                                        value={displayLimits.maxBulletsPerExperience ?? (maxCounts?.maxRealisationsPerExp || 99)}
+                                                                        onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxBulletsPerExperience: Number(e.target.value) }))}
+                                                                        className="w-full accent-indigo-600"
+                                                                    />
+                                                                </div>
+
+                                                                {/* Compétences Techniques */}
+                                                                {(maxCounts?.technicalSkills || 0) > 0 && (
+                                                                    <div>
+                                                                        <label className="text-slate-600 mb-1 block">
+                                                                            Comp. Techniques : {displayLimits.maxSkills ?? (maxCounts?.technicalSkills || 99)} / {maxCounts?.technicalSkills || 99}
+                                                                        </label>
+                                                                        <input
+                                                                            type="range"
+                                                                            min="0"
+                                                                            max={maxCounts?.technicalSkills || 99}
+                                                                            value={displayLimits.maxSkills ?? (maxCounts?.technicalSkills || 99)}
+                                                                            onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxSkills: Number(e.target.value) }))}
+                                                                            className="w-full accent-indigo-600"
+                                                                        />
                                                                     </div>
-                                                                </details>
-                                                            )}
+                                                                )}
+
+                                                                {/* Soft Skills */}
+                                                                {(maxCounts?.softSkills || 0) > 0 && (
+                                                                    <div>
+                                                                        <label className="text-slate-600 mb-1 block">
+                                                                            Soft Skills : {displayLimits.maxSoftSkills ?? (maxCounts?.softSkills || 99)} / {maxCounts?.softSkills || 99}
+                                                                        </label>
+                                                                        <input
+                                                                            type="range"
+                                                                            min="0"
+                                                                            max={maxCounts?.softSkills || 99}
+                                                                            value={displayLimits.maxSoftSkills ?? (maxCounts?.softSkills || 99)}
+                                                                            onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxSoftSkills: Number(e.target.value) }))}
+                                                                            className="w-full accent-indigo-600"
+                                                                        />
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Sliders secondaires — cachés derrière "Plus d'options" */}
+                                                                {(
+                                                                    (maxCounts?.maxClientsPerExp ?? 0) > 0 ||
+                                                                    (maxCounts?.clientsReferences ?? 0) > 0 ||
+                                                                    (maxCounts?.formations ?? 0) > 1 ||
+                                                                    (maxCounts?.langues ?? 0) > 1 ||
+                                                                    (maxCounts?.certifications ?? 0) > 1 ||
+                                                                    (maxCounts?.projects ?? 0) > 1
+                                                                ) && (
+                                                                        <details className="group mt-2">
+                                                                            <summary className="text-[11px] font-medium text-slate-500 hover:text-indigo-600 cursor-pointer select-none py-1.5 flex items-center gap-1 transition-colors">
+                                                                                <span className="group-open:rotate-90 transition-transform">▸</span> Plus d'options d'ajustement…
+                                                                            </summary>
+                                                                            <div className="mt-2 space-y-3 pl-2 border-l-2 border-slate-100 ml-1">
+                                                                                {(maxCounts?.maxClientsPerExp ?? 0) > 0 && (
+                                                                                    <div>
+                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                            Clients/exp : {Math.min(displayLimits.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 99), maxCounts?.maxClientsPerExp || 99)} / {maxCounts?.maxClientsPerExp || 99}
+                                                                                        </label>
+                                                                                        <input type="range" min="0" max={maxCounts?.maxClientsPerExp || 99} value={Math.min(displayLimits.maxClientsPerExperience ?? (maxCounts?.maxClientsPerExp || 99), maxCounts?.maxClientsPerExp || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxClientsPerExperience: Number(e.target.value) }))} className="w-full accent-indigo-600" />
+                                                                                    </div>
+                                                                                )}
+                                                                                {(maxCounts?.clientsReferences ?? 0) > 0 && (
+                                                                                    <div>
+                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                            Clients références : {Math.min(displayLimits.maxClientsReferences ?? (maxCounts?.clientsReferences || 99), maxCounts?.clientsReferences || 99)} / {maxCounts?.clientsReferences || 99}
+                                                                                        </label>
+                                                                                        <input type="range" min="0" max={maxCounts?.clientsReferences || 99} value={Math.min(displayLimits.maxClientsReferences ?? (maxCounts?.clientsReferences || 99), maxCounts?.clientsReferences || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxClientsReferences: Number(e.target.value) }))} className="w-full accent-indigo-600" />
+                                                                                    </div>
+                                                                                )}
+                                                                                {(maxCounts?.formations ?? 0) > 1 && (
+                                                                                    <div>
+                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                            Formations : {Math.min(displayLimits.maxFormations ?? (maxCounts?.formations || 99), maxCounts?.formations || 99)} / {maxCounts?.formations || 99}
+                                                                                        </label>
+                                                                                        <input type="range" min="0" max={maxCounts?.formations || 99} value={Math.min(displayLimits.maxFormations ?? (maxCounts?.formations || 99), maxCounts?.formations || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxFormations: Number(e.target.value) }))} className="w-full accent-indigo-600" />
+                                                                                    </div>
+                                                                                )}
+                                                                                {(maxCounts?.langues ?? 0) > 1 && (
+                                                                                    <div>
+                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                            Langues : {Math.min(displayLimits.maxLanguages ?? (maxCounts?.langues || 99), maxCounts?.langues || 99)} / {maxCounts?.langues || 99}
+                                                                                        </label>
+                                                                                        <input type="range" min="0" max={maxCounts?.langues || 99} value={Math.min(displayLimits.maxLanguages ?? (maxCounts?.langues || 99), maxCounts?.langues || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxLanguages: Number(e.target.value) }))} className="w-full accent-indigo-600" />
+                                                                                    </div>
+                                                                                )}
+                                                                                {(maxCounts?.certifications ?? 0) > 1 && (
+                                                                                    <div>
+                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                            Certifications : {Math.min(displayLimits.maxCertifications ?? (maxCounts?.certifications || 99), maxCounts?.certifications || 99)} / {maxCounts?.certifications || 99}
+                                                                                        </label>
+                                                                                        <input type="range" min="0" max={maxCounts?.certifications || 99} value={Math.min(displayLimits.maxCertifications ?? (maxCounts?.certifications || 99), maxCounts?.certifications || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxCertifications: Number(e.target.value) }))} className="w-full accent-indigo-600" />
+                                                                                    </div>
+                                                                                )}
+                                                                                {(maxCounts?.projects ?? 0) > 1 && (
+                                                                                    <div>
+                                                                                        <label className="text-slate-600 mb-1 block">
+                                                                                            Projets : {Math.min(displayLimits.maxProjects ?? (maxCounts?.projects || 99), maxCounts?.projects || 99)} / {maxCounts?.projects || 99}
+                                                                                        </label>
+                                                                                        <input type="range" min="0" max={maxCounts?.projects || 99} value={Math.min(displayLimits.maxProjects ?? (maxCounts?.projects || 99), maxCounts?.projects || 99)} onChange={(e) => setDisplayLimits((prev) => ({ ...prev, maxProjects: Number(e.target.value) }))} className="w-full accent-indigo-600" />
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </details>
+                                                                    )}
+                                                            </div>
+                                                        ) : (
+                                                            /* --- MODE EXPERT (CHECKBOXES) --- */
+                                                            <div className="space-y-6">
+                                                                {/* Expériences */}
+                                                                <div>
+                                                                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Expériences</h4>
+                                                                    {(cvData?.experiences || []).map((exp, i) => {
+                                                                        const id = getItemId(exp, i, 'exp');
+                                                                        return (
+                                                                            <div key={id} className="flex items-start gap-2 mb-2">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={!hiddenItems[id]}
+                                                                                    onChange={() => toggleItemVisibility(id)}
+                                                                                    className="mt-1 h-3 w-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                                                />
+                                                                                <div>
+                                                                                    <div className="text-xs font-medium text-slate-800">{exp.poste}</div>
+                                                                                    <div className="text-[10px] text-slate-500">{exp.entreprise}</div>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                {/* Compétences (avec Catégories si dispo) */}
+                                                                <div>
+                                                                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Compétences</h4>
+
+                                                                    {/* Si on a des catégories, on les affiche */}
+                                                                    {cvData?.competences?.categories ? (
+                                                                        cvData.competences.categories.map((cat, catIdx) => (
+                                                                            <div key={catIdx} className="mb-4">
+                                                                                <div className="text-xs font-medium text-indigo-600 mb-1">{cat.name}</div>
+                                                                                <div className="pl-2 border-l-2 border-slate-100">
+                                                                                    {cat.skills.map((skill, skillIdx) => {
+                                                                                        const id = getItemId(skill, skillIdx, `cat_${catIdx}_skill`);
+                                                                                        return (
+                                                                                            <label key={id} className="flex items-center gap-2 mb-1 cursor-pointer hover:bg-slate-50 rounded p-0.5">
+                                                                                                <input
+                                                                                                    type="checkbox"
+                                                                                                    checked={!hiddenItems[id]}
+                                                                                                    onChange={() => toggleItemVisibility(id)}
+                                                                                                    className="h-3 w-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                                                                />
+                                                                                                <span className="text-xs text-slate-700">{skill}</span>
+                                                                                            </label>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))
+                                                                    ) : (
+                                                                        /* Fallback si pas de catégories : liste plate */
+                                                                        <div className="grid grid-cols-1 gap-1">
+                                                                            {(cvData?.competences?.techniques || []).map((skill, i) => {
+                                                                                const id = getItemId(skill, i, 'skill_tech');
+                                                                                return (
+                                                                                    <label key={id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 rounded p-0.5">
+                                                                                        <input
+                                                                                            type="checkbox"
+                                                                                            checked={!hiddenItems[id]}
+                                                                                            onChange={() => toggleItemVisibility(id)}
+                                                                                            className="h-3 w-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                                                        />
+                                                                                        <div className="text-xs text-slate-700 truncate" title={skill}>{skill}</div>
+                                                                                    </label>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Formations */}
+                                                                <div>
+                                                                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Formations</h4>
+                                                                    {(cvData?.formations || []).map((edu, i) => {
+                                                                        const id = getItemId(edu, i, 'edu');
+                                                                        return (
+                                                                            <label key={id} className="flex items-start gap-2 mb-2 cursor-pointer">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={!hiddenItems[id]}
+                                                                                    onChange={() => toggleItemVisibility(id)}
+                                                                                    className="mt-1 h-3 w-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                                                                />
+                                                                                <div>
+                                                                                    <div className="text-xs font-medium text-slate-800">{edu.diplome}</div>
+                                                                                    <div className="text-[10px] text-slate-500">{edu.etablissement}</div>
+                                                                                </div>
+                                                                            </label>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
 
                                                         {/* Reset */}
                                                         <button
                                                             type="button"
                                                             className="w-full text-[11px] text-slate-500 hover:text-slate-700 py-1"
                                                             onClick={() => {
-                                                                // [FIX #2] Reset utilise les vrais max au lieu de valeurs hardcodées
-                                                                setConvertOptions({
-                                                                    minScore: 0,
-                                                                    maxExperiences: maxCounts?.experiences || 20,
-                                                                    maxBulletsPerExperience: maxCounts?.maxRealisationsPerExp || 10,
-                                                                    limitsBySection: {},
-                                                                });
-                                                                setIncludePhoto(true);
-                                                                setAdvancedFiltersEnabled(false);
-                                                                setAdvancedMinScoreBySection({ header: 0, summary: 0, experiences: 0, skills: 0, education: 0, languages: 0, references: 0, projects: 0 });
+                                                                // Reset global
+                                                                setConvertOptions((prev) => ({
+                                                                    ...prev,
+                                                                    minScore: 0
+                                                                }));
+                                                                setDisplayLimits({});
+                                                                setHiddenItems({});
+                                                                setExpertMode(false);
                                                                 toast.success("Filtres réinitialisés");
                                                             }}
                                                         >
@@ -1427,7 +1716,7 @@ function CVBuilderContent() {
                                                         </button>
                                                     </CardContent>
                                                 )}
-                                            </Card>
+                                            </div>
                                         </aside>
 
                                         {/* Main : Preview CV (sticky - toujours visible) */}
@@ -1447,23 +1736,14 @@ function CVBuilderContent() {
                                                     {reorderedCV || cvData ? (
                                                         <div ref={cvPreviewRef} id="cv-preview-container" className="w-full max-w-[900px] bg-white shadow-lg">
                                                             <CVRenderer
-                                                                data={reorderedCV || cvData}
+                                                                data={visibleCVData}
                                                                 templateId={templateId}
                                                                 dynamicCssVariables={cssVariables}
                                                                 colorwayId={colorwayId}
                                                                 fontId={fontId}
                                                                 density={density}
                                                                 includePhoto={includePhoto}
-                                                                displayLimits={{
-                                                                    maxSkills: convertOptions.limitsBySection?.maxSkills,
-                                                                    maxRealisationsPerExp: convertOptions.maxBulletsPerExperience,
-                                                                    maxClientsPerExp: convertOptions.limitsBySection?.maxClientsPerExperience,
-                                                                    maxClientsReferences: convertOptions.limitsBySection?.maxClientsReferences,
-                                                                    maxCertifications: convertOptions.limitsBySection?.maxCertifications,
-                                                                    maxProjects: convertOptions.limitsBySection?.maxProjects,
-                                                                    maxFormations: convertOptions.limitsBySection?.maxFormations,
-                                                                    maxLangues: convertOptions.limitsBySection?.maxLanguages,
-                                                                }}
+                                                            // displayLimits non requis car visibleCVData est déjà filtré
                                                             />
                                                         </div>
                                                     ) : (
@@ -1481,7 +1761,7 @@ function CVBuilderContent() {
                     )}
                 </main>
             </div>
-        </DashboardLayout>
+        </DashboardLayout >
     );
 }
 

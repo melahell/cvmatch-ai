@@ -7,7 +7,7 @@ export interface ProfilePictureProps {
     fullName: string;
     initials: string;
     includePhoto?: boolean;
-    size?: "sm" | "md" | "lg";
+    size?: "sm" | "md" | "lg" | "xl";
     shape?: "circle" | "rounded" | "square";
     borderColor?: string;
     className?: string;
@@ -17,6 +17,7 @@ const SIZE_MAP = {
     sm: { container: "w-16 h-16", text: "text-lg" },
     md: { container: "w-24 h-24", text: "text-2xl" },
     lg: { container: "w-32 h-32", text: "text-3xl" },
+    xl: { container: "w-40 h-40", text: "text-4xl" },
 };
 
 export default function ProfilePicture({

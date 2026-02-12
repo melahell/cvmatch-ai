@@ -27,6 +27,11 @@ export interface CVData {
     competences: {
         techniques: string[];
         soft_skills?: string[];
+        /** [Sprint 3] Catégories de compétences (ex: "Backend", "DevOps") */
+        categories?: Array<{
+            name: string;
+            skills: string[];
+        }>;
     };
     formations: Array<{
         diplome: string;

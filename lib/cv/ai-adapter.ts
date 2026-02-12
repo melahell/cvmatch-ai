@@ -52,6 +52,7 @@ export interface ConvertOptions {
      */
     limitsBySection?: {
         maxSkills?: number;
+        maxSoftSkills?: number; // [Sprint 2] Limite dédiée soft skills
         maxFormations?: number;
         maxLanguages?: number;
         maxProjects?: number;
@@ -398,8 +399,9 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
         experienceWidgets: experienceWidgets.length,
     });
     const skillsWidgets = sortedWidgets
-        .filter((w) => w.section === "skills")
-        .slice(0, opts.limitsBySection?.maxSkills ?? 999);
+        .filter((w) => w.section === "skills");
+    // [Sprint 2] Ne pas slicer les widgets ici, on slice le résultat final (tech vs soft)
+    // .slice(0, opts.limitsBySection?.maxSkills ?? 999);
     const educationWidgets = sortedWidgets
         .filter((w) => w.section === "education")
         .slice(0, opts.limitsBySection?.maxFormations ?? 999);
@@ -516,7 +518,7 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
     }
 
     // 5) Construire les compétences (avec filtre induced)
-    const competences = buildCompetences(skillsWidgets, opts.ragProfile, inducedOpts);
+    const competences = buildCompetences(skillsWidgets, opts.ragProfile, inducedOpts, opts);
 
     // 6) Formations - [AUDIT FIX] : Enrichir depuis RAG si disponible
     const formations = buildFormations(educationWidgets, opts.ragProfile);
@@ -895,7 +897,7 @@ const GENERIC_SOFT_SKILLS = new Set([
     "polyvalence", "réactivité", "persévérance", "assiduité",
 ]);
 
-function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOpts?: InducedDataOptions): RendererResumeSchema["competences"] {
+function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOpts?: InducedDataOptions, opts?: ConvertOptions): RendererResumeSchema["competences"] {
     const techniquesSet = new Set<string>();
     const softSkillsSet = new Set<string>();
     const rejectedKeys = new Set<string>(Array.isArray(ragProfile?.rejected_inferred) ? ragProfile.rejected_inferred.map(normalizeKey).filter(Boolean) : []);
@@ -1018,9 +1020,30 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOp
         }
     }
 
+    // [Sprint 3] Construction des catégories
+    const categories: { name: string; skills: string[] }[] = [];
+    if (ragProfile?.competences?.par_domaine) {
+        for (const [domain, skills] of Object.entries(ragProfile.competences.par_domaine)) {
+            if (Array.isArray(skills) && skills.length > 0) {
+                // Filtrer les skills vides ou doublons
+                const validSkills = skills
+                    .map(s => String(s).trim())
+                    .filter(s => s && shouldKeep(s));
+
+                if (validSkills.length > 0) {
+                    categories.push({
+                        name: domain,
+                        skills: Array.from(new Set(validSkills)) // Dedup interne
+                    });
+                }
+            }
+        }
+    }
+
     return {
-        techniques: Array.from(techniquesSet),
-        soft_skills: Array.from(softSkillsSet),
+        techniques: Array.from(techniquesSet).slice(0, opts?.limitsBySection?.maxSkills ?? 999),
+        soft_skills: Array.from(softSkillsSet).slice(0, opts?.limitsBySection?.maxSoftSkills ?? 999),
+        categories: categories.length > 0 ? categories : undefined
     };
 }
 

@@ -124,6 +124,7 @@ export default function TechTemplate({
                         <div
                             className="w-20 h-20 rounded-lg border-2 border-[color:var(--cv-primary)] p-0.5 mb-3 overflow-hidden shadow-level-3"
                         >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                                 src={profil.photo_url}
                                 alt={`Photo professionnelle de ${profil.prenom} ${profil.nom}`}

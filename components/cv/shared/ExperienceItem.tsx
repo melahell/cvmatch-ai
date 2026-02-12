@@ -1,6 +1,4 @@
-"use client";
-
-import React from "react";
+import { formatDate } from "@/lib/cv/formatters";
 import { sanitizeText } from "@/lib/cv/sanitize-text";
 
 export interface ExperienceItemProps {
@@ -44,7 +42,9 @@ export default function ExperienceItem({
     className = "",
 }: ExperienceItemProps) {
     const displayRealisations = maxRealisations > 0 ? realisations.slice(0, maxRealisations) : realisations;
-    const dateStr = `${date_debut} - ${date_fin || "Présent"}`;
+    const start = formatDate(date_debut);
+    const end = date_fin ? formatDate(date_fin) : "Présent";
+    const dateStr = `${start} - ${end}`;
 
     const bulletChar = bulletStyle === "dash" ? "—" : bulletStyle === "arrow" ? "→" : bulletStyle === "disc" ? "•" : "";
 
