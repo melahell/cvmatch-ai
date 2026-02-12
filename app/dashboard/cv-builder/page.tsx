@@ -680,17 +680,17 @@ function CVBuilderContent() {
             // [FIX #1] Initialiser les compteurs non-filtrés
             // [FIX #2] Force default filters to MAX (Full Data View)
             const maxCounts = {
-                experiences: convertOptions.maxExperiences,
-                skills: convertOptions.limitsBySection?.maxSkills ?? 999,
+                experiences: options.maxExperiences,
+                skills: options.limitsBySection?.maxSkills ?? 999,
                 technicalSkills: 0, // Calculated inside
-                softSkills: convertOptions.limitsBySection?.maxSoftSkills ?? 999,
-                formations: convertOptions.limitsBySection?.maxFormations ?? 999,
-                langues: convertOptions.limitsBySection?.maxLanguages ?? 999,
-                certifications: convertOptions.limitsBySection?.maxCertifications ?? 999,
-                projects: convertOptions.limitsBySection?.maxProjects ?? 999,
-                clientsReferences: convertOptions.limitsBySection?.maxClientsReferences ?? 999,
-                maxRealisationsPerExp: convertOptions.maxBulletsPerExperience ?? 99,
-                maxClientsPerExperience: convertOptions.limitsBySection?.maxClientsPerExperience ?? 99,
+                softSkills: options.limitsBySection?.maxSoftSkills ?? 999,
+                formations: options.limitsBySection?.maxFormations ?? 999,
+                langues: options.limitsBySection?.maxLanguages ?? 999,
+                certifications: options.limitsBySection?.maxCertifications ?? 999,
+                projects: options.limitsBySection?.maxProjects ?? 999,
+                clientsReferences: options.limitsBySection?.maxClientsReferences ?? 999,
+                maxRealisationsPerExp: options.maxBulletsPerExperience ?? 99,
+                maxClientsPerExperience: options.limitsBySection?.maxClientsPerExperience ?? 99,
             };
 
             // Only update if we don't have counts yet, OR if we want to ensure fresh defaults
