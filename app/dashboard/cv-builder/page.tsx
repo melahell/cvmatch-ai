@@ -700,8 +700,8 @@ function CVBuilderContent() {
                 setDisplayLimits({
                     maxSkills: maxCounts.skills,
                     maxSoftSkills: maxCounts.softSkills,
-                    maxRealisationsPerExp: maxCounts.maxRealisationsPerExp,
-                    maxClientsPerExp: maxCounts.maxClientsPerExp,
+                    maxBulletsPerExperience: maxCounts.maxRealisationsPerExp,
+                    maxClientsPerExperience: maxCounts.maxClientsPerExp,
                     maxClientsReferences: maxCounts.clientsReferences,
                     maxCertifications: maxCounts.certifications,
                     maxProjects: maxCounts.projects,
