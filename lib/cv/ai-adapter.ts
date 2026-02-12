@@ -235,7 +235,29 @@ const isBadClientName = (name: string): boolean => {
 const cleanClientList = (items: unknown[], options?: { exclude?: string[]; max?: number }) => {
     const excludeKeys = new Set((options?.exclude || []).map(normalizeKey).filter(Boolean));
     const counts = new Map<string, { label: string; count: number }>();
+
+    // [FIX DATA-LOSS] Splitter les strings concatenés type "Grands Comptes : X, Y, Z"
+    const expandedItems: unknown[] = [];
     for (const item of items) {
+        const raw = typeof item === "string" ? item : (item as any)?.nom ?? (item as any)?.name;
+        if (typeof raw === "string" && (raw.includes(",") || raw.includes(":")) && raw.length > 30) {
+            // Retirer le préfixe avant ":" (ex: "Grands Comptes : ")
+            let cleanStr = raw;
+            const colonIdx = raw.indexOf(":");
+            if (colonIdx !== -1 && colonIdx < 25) {
+                cleanStr = raw.slice(colonIdx + 1).trim();
+            }
+            // Splitter par virgule 
+            const parts = cleanStr.split(/\s*,\s*/).map(s => s.trim()).filter(Boolean);
+            if (parts.length > 1) {
+                for (const part of parts) expandedItems.push(part);
+                continue;
+            }
+        }
+        expandedItems.push(item);
+    }
+
+    for (const item of expandedItems) {
         const label = normalizeClientName(typeof item === "string" ? item : (item as any)?.nom ?? (item as any)?.name);
         if (!label) continue;
         if (isBadClientName(label)) continue;
@@ -866,6 +888,13 @@ function buildExperiences(
     return limited;
 }
 
+// [FIX DATA-LOSS] Blacklist des soft skills trop génériques (n'apportent rien dans un CV)
+const GENERIC_SOFT_SKILLS = new Set([
+    "autonomie", "rigueur", "motivation", "dynamisme",
+    "ponctualité", "sérieux", "patience", "curiosité",
+    "polyvalence", "réactivité", "persévérance", "assiduité",
+]);
+
 function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOpts?: InducedDataOptions): RendererResumeSchema["competences"] {
     const techniquesSet = new Set<string>();
     const softSkillsSet = new Set<string>();
@@ -875,6 +904,21 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOp
         const key = normalizeKey(name);
         if (!key) return false;
         if (rejectedKeys.has(key)) return false;
+        return true;
+    };
+
+    // [FIX DATA-LOSS] Filtre soft skills génériques
+    const shouldKeepSoftSkill = (name: string) => {
+        if (!shouldKeep(name)) return false;
+        const lower = name.toLowerCase().trim();
+        if (GENERIC_SOFT_SKILLS.has(lower)) return false;
+        // Aussi filtrer les combinaisons type "Autonomie & Rigueur"
+        for (const generic of GENERIC_SOFT_SKILLS) {
+            if (lower === generic) return false;
+        }
+        // Filtrer les strings composites genre "Autonomie & Rigueur"
+        const parts = lower.split(/\s*[&,\/]\s*/);
+        if (parts.length > 1 && parts.every(p => GENERIC_SOFT_SKILLS.has(p.trim()))) return false;
         return true;
     };
 
@@ -894,7 +938,7 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOp
             lower.includes("collaboration");
 
         if (isSoft) {
-            softSkillsSet.add(text);
+            if (shouldKeepSoftSkill(text)) softSkillsSet.add(text);
         } else {
             techniquesSet.add(text);
         }
@@ -915,11 +959,10 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOp
             const confidence = typeof (item as any)?.confidence === "number" ? (item as any).confidence : undefined;
             const type = typeof (item as any)?.type === "string" ? String((item as any).type) : "";
 
-            // [AUDIT-FIX P1-2] Utiliser le seuil unifié du filtre induit au lieu de seuils codés en dur
             if (confidence !== undefined && confidence < minConf) continue;
 
             if (type === "soft_skill") {
-                softSkillsSet.add(name);
+                if (shouldKeepSoftSkill(name)) softSkillsSet.add(name);
                 continue;
             }
 
@@ -929,25 +972,47 @@ function buildCompetences(skillsWidgets: AIWidget[], ragProfile?: any, inducedOp
         const softDeduites = Array.isArray(contexte?.soft_skills_deduites) ? contexte.soft_skills_deduites : [];
         for (const item of softDeduites) {
             const name = typeof item === "string" ? item : item?.nom || item?.name;
-            if (name && String(name).trim() && shouldKeep(String(name).trim())) softSkillsSet.add(String(name).trim());
+            if (name && String(name).trim() && shouldKeepSoftSkill(String(name).trim())) softSkillsSet.add(String(name).trim());
         }
     }
 
-    // [FIX DATA-LOSS] Enrichir TOUJOURS depuis RAG direct (ragProfile.competences)
-    // Avant ce fix, seuls les widgets Gemini + competences_tacites étaient utilisés,
-    // ignorant les 60+ compétences directement dans le profil RAG
+    // [FIX DATA-LOSS] Enrichir TOUJOURS depuis RAG direct
+    // Le RAG peut stocker les skills à competences.explicit.* OU competences.* selon la version
     if (ragProfile?.competences) {
-        const ragTech = Array.isArray(ragProfile.competences.techniques) ? ragProfile.competences.techniques : [];
+        const comp = ragProfile.competences;
+        // Chemin 1 (v2): competences.explicit.techniques
+        // Chemin 2 (v1): competences.techniques
+        const ragTech = Array.isArray(comp.explicit?.techniques) ? comp.explicit.techniques
+            : Array.isArray(comp.techniques) ? comp.techniques : [];
         for (const skill of ragTech) {
             const name = typeof skill === "string" ? skill : skill?.nom || skill?.name;
             if (name && String(name).trim() && shouldKeep(String(name).trim())) {
                 techniquesSet.add(String(name).trim());
             }
         }
-        const ragSoft = Array.isArray(ragProfile.competences.soft_skills) ? ragProfile.competences.soft_skills : [];
+        const ragSoft = Array.isArray(comp.explicit?.soft_skills) ? comp.explicit.soft_skills
+            : Array.isArray(comp.soft_skills) ? comp.soft_skills : [];
         for (const skill of ragSoft) {
             const name = typeof skill === "string" ? skill : skill?.nom || skill?.name;
-            if (name && String(name).trim() && shouldKeep(String(name).trim())) {
+            if (name && String(name).trim() && shouldKeepSoftSkill(String(name).trim())) {
+                softSkillsSet.add(String(name).trim());
+            }
+        }
+
+        // [FIX DATA-LOSS] Inferred skills (confidence >= 80 uniquement, pas les génériques)
+        const inferredTech = Array.isArray(comp.inferred?.techniques) ? comp.inferred.techniques : [];
+        for (const item of inferredTech) {
+            const name = typeof item === "string" ? item : item?.name || item?.nom;
+            const confidence = typeof item?.confidence === "number" ? item.confidence : 100;
+            if (name && confidence >= 80 && shouldKeep(String(name).trim())) {
+                techniquesSet.add(String(name).trim());
+            }
+        }
+        const inferredSoft = Array.isArray(comp.inferred?.soft_skills) ? comp.inferred.soft_skills : [];
+        for (const item of inferredSoft) {
+            const name = typeof item === "string" ? item : item?.name || item?.nom;
+            const confidence = typeof item?.confidence === "number" ? item.confidence : 100;
+            if (name && confidence >= 80 && shouldKeepSoftSkill(String(name).trim())) {
                 softSkillsSet.add(String(name).trim());
             }
         }
@@ -1118,16 +1183,25 @@ function buildCertificationsAndReferences(
         clientsFromWidgets: clientsRaw.length,
     });
 
-    // [FIX DATA-LOSS] Enrichir TOUJOURS depuis RAG (pas seulement quand vide)
-    // Avant ce fix, si Gemini générait même 1 widget certification, les 6+ autres du RAG étaient ignorées
+    // [FIX DATA-LOSS] Enrichir TOUJOURS depuis RAG avec dédoublonnage intelligent
     if (ragProfile?.certifications) {
-        const existingSet = new Set(certifications.map(c => c.toLowerCase().trim()));
+        // Dédupliquer par normalizeKey (insensible à la casse/ponctuation)
+        // Ex: "TOEIC Listening and Reading - Score: 585/990 (Niveau B1)" et
+        //     "TOEIC Listening and Reading (Score 585/990 - Niveau B1)" → même cert
+        const existingKeys = new Set(certifications.map(c => {
+            // Extraire juste le nom principal avant les détails (score, niveau, etc.)
+            const base = c.replace(/\s*[-(/].*$/, "").trim();
+            return normalizeKey(base.length > 5 ? base : c);
+        }));
         const ragCerts = Array.isArray(ragProfile.certifications) ? ragProfile.certifications : [];
         ragCerts.forEach((c: any) => {
             const certName = typeof c === "string" ? c : c.nom;
-            if (certName && !existingSet.has(certName.toLowerCase().trim())) {
+            if (!certName) return;
+            const base = certName.replace(/\s*[-(/].*$/, "").trim();
+            const key = normalizeKey(base.length > 5 ? base : certName);
+            if (!existingKeys.has(key)) {
                 certifications.push(certName);
-                existingSet.add(certName.toLowerCase().trim());
+                existingKeys.add(key);
             }
         });
     }
