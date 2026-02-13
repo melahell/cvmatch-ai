@@ -823,7 +823,7 @@ function buildExperiences(
             ragExperiences: ragProfile.experiences.map((e: any) => `${normalizeKey(e.poste || e.titre || "")}|${normalizeKey(e.entreprise || e.client || "")}`),
         });
 
-        for (const ragExp of ragProfile.experiences) {
+        for (const [i, ragExp] of ragProfile.experiences.entries()) {
             // [FIX] Skip if ID already used
             if (ragExp.id && usedRagIds.has(ragExp.id)) continue;
 
