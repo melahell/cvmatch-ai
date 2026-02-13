@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseUserClient, requireSupabaseUser } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 import { mergeRAGUserUpdate } from "@/lib/rag/merge-user-update";
+import { sanitizeRAGExperiences } from "@/lib/rag/sanitize-experiences";
 
 export async function POST(req: Request) {
     try {
@@ -27,11 +28,12 @@ export async function POST(req: Request) {
 
         const existingDetails = (existingRow?.completeness_details as any) || {};
         const merged = mergeRAGUserUpdate(existingDetails, ragData);
+        const sanitized = sanitizeRAGExperiences(merged);
 
         const { error } = await supabase
             .from("rag_metadata")
             .update({
-                completeness_details: merged,
+                completeness_details: sanitized,
                 custom_notes: customNotes,
                 last_updated: new Date().toISOString()
             })

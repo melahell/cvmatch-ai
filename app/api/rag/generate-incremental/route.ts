@@ -14,6 +14,7 @@ import { checkRateLimit, createRateLimitError, getRateLimitConfig } from "@/lib/
 import { generateContexteEnrichi } from "@/lib/rag/contexte-enrichi";
 import { preserveUserFieldsOnRegeneration } from "@/lib/rag/preserve-user-fields";
 import { normalizeDocumentType } from "@/lib/rag/document-type";
+import { sanitizeRAGExperiences } from "@/lib/rag/sanitize-experiences";
 
 // Use Node.js runtime for env vars and libraries
 export const runtime = "nodejs";
@@ -410,6 +411,7 @@ export async function POST(req: Request) {
         // 8. Post-process: consolidate clients + lightweight enrichment + score
         const postProcessStart = Date.now();
         mergedRAG = consolidateClients(mergedRAG);
+        mergedRAG = sanitizeRAGExperiences(mergedRAG);
 
         // Enrichissement contextuel: amélioré pour être plus systématique
         // Tentative d'enrichissement même si ce n'est pas le dernier document (budget limité)
