@@ -617,9 +617,11 @@ function buildExperiences(
     }
 
     // ÉTAPE 1: Grouper les widgets par rag_experience_id
+    // ÉTAPE 1: Grouper les widgets par rag_experience_id
     // Les widgets sans rag_experience_id sont groupés individuellement
     // Normalisation: exp_0, exp_1, etc. sont les IDs canoniques
     const grouped = new Map<string, AIWidget[]>();
+    const usedRagIds = new Set<string>(); // [FIX] Track used RAG IDs to prevent duplicates
     let orphanCounter = 0;
 
     // Construire une map de normalisation des IDs d'expérience
@@ -688,7 +690,14 @@ function buildExperiences(
 
         // Essayer de trouver l'expérience RAG correspondante
         // [FIX 6.4.15] Passer headerText pour fallback par poste/entreprise
+        // Essayer de trouver l'expérience RAG correspondante
+        // [FIX 6.4.15] Passer headerText pour fallback par poste/entreprise
         const ragExp = findRAGExperience(expId, ragProfile, headerText);
+
+        // [FIX] Mark as used immediately if found
+        if (ragExp && ragExp.id) {
+            usedRagIds.add(ragExp.id);
+        }
 
         // Déterminer poste et entreprise
         let poste = "";
@@ -709,20 +718,32 @@ function buildExperiences(
             }
         }
 
-        // [FIX] Détecter les types de contrat mis comme nom d'entreprise
-        // Ex: "(CDI)", "CDD", "Freelance", "(Contract)" → pas un nom d'entreprise
-        const CONTRACT_KEYWORDS = ["cdi", "cdd", "cdic", "freelance", "stage", "alternance", "interim", "consultant", "contractuel", "contract", "full-time", "part-time"];
+        // [FIX] Détecter les types de contrat ou lieux mis comme nom d'entreprise
+        const BAD_COMPANY_KEYWORDS = [
+            "cdi", "cdd", "cdic", "freelance", "stage", "alternance", "interim",
+            "consultant", "contractuel", "contract", "full-time", "part-time",
+            "france", "paris", "remote", "télétravail", "teletravail", "ile-de-france", "idf"
+        ];
         if (entreprise) {
             const cleanEntreprise = entreprise.replace(/[()]/g, "").trim().toLowerCase();
-            if (CONTRACT_KEYWORDS.includes(cleanEntreprise) || /^\([^)]*\)$/.test(entreprise.trim())) {
+            if (
+                BAD_COMPANY_KEYWORDS.includes(cleanEntreprise) ||
+                /^\([^)]*\)$/.test(entreprise.trim()) ||
+                cleanEntreprise.length < 2
+            ) {
                 entreprise = ""; // Reset — will be enriched from RAG below
             }
         }
 
         // Enrichir depuis RAG si disponible
         if (ragExp) {
+            // [FIX] Force RAG company name for consistency and grouping
+            // Unless the parsed company is very specific and different (rare)
+            // We prioritize RAG company to ensure "Volkswagen" and "Volkswagen FS" group together
+            if (ragExp.entreprise || ragExp.client) {
+                entreprise = ragExp.entreprise || ragExp.client;
+            }
             if (!poste) poste = ragExp.poste || ragExp.titre || "";
-            if (!entreprise) entreprise = ragExp.entreprise || ragExp.client || "";
         }
 
         // Fallback si toujours vide
@@ -788,24 +809,32 @@ function buildExperiences(
     // - Gemini utilise des IDs séquentiels (exp_0, exp_1...) assignés par buildRAGForCVPrompt
     // - Le ragProfile ici vient de useRAGData() avec des IDs hash (exp_a7f3b2)
     // → On compare par poste+entreprise normalisés (robuste et indépendant des IDs)
+    // [FIX] Check against usedRagIds first (100% reliable), fall back to fuzzy string match
     if (ragProfile?.experiences && Array.isArray(ragProfile.experiences)) {
         // Construire un Set des expériences déjà couvertes (poste|entreprise normalisés)
+        // Kept as secondary check
         const coveredKeys = new Set(
             experiences.map(e => `${normalizeKey(e.poste)}|${normalizeKey(e.entreprise)}`)
         );
 
         debugLog("[buildExperiences] FALLBACK check:", {
+            usedRagIds: Array.from(usedRagIds),
             coveredKeys: Array.from(coveredKeys),
             ragExperiences: ragProfile.experiences.map((e: any) => `${normalizeKey(e.poste || e.titre || "")}|${normalizeKey(e.entreprise || e.client || "")}`),
         });
 
-        for (let i = 0; i < ragProfile.experiences.length; i++) {
-            const ragExp = ragProfile.experiences[i];
+        for (const ragExp of ragProfile.experiences) {
+            // [FIX] Skip if ID already used
+            if (ragExp.id && usedRagIds.has(ragExp.id)) continue;
+
             const ragPoste = normalizeKey(ragExp.poste || ragExp.titre || "");
             const ragEntreprise = normalizeKey(ragExp.entreprise || ragExp.client || "");
             const ragKey = `${ragPoste}|${ragEntreprise}`;
 
-            if (!coveredKeys.has(ragKey) && (ragPoste || ragEntreprise)) {
+            // Skip if key already covered (secondary check)
+            if (coveredKeys.has(ragKey)) continue;
+
+            if (ragPoste || ragEntreprise) {
                 debugLog(`[buildExperiences] FALLBACK: exp RAG "${ragPoste} @ ${ragEntreprise}" non couverte par Gemini, création depuis RAG`);
 
                 const poste = ragExp.poste || ragExp.titre || "Expérience";
