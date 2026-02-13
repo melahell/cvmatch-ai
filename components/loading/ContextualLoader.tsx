@@ -30,6 +30,13 @@ interface ContextualLoaderProps {
     currentStep?: number;
     totalSteps?: number;
     currentItem?: string;
+    currentItemIndex?: number;
+    totalItems?: number;
+    timelineStep?: number;
+    statusLabel?: string;
+    statusHint?: string;
+    showTimeEstimate?: boolean;
+    estimatedSeconds?: number;
     onCancel?: () => void;
     isOverlay?: boolean; // New: show as overlay instead of full screen
 }
@@ -296,6 +303,13 @@ export function ContextualLoader({
     currentStep = 0,
     totalSteps,
     currentItem,
+    currentItemIndex,
+    totalItems,
+    timelineStep,
+    statusLabel,
+    statusHint,
+    showTimeEstimate = true,
+    estimatedSeconds,
     onCancel,
     isOverlay = true, // Default to overlay mode
 }: ContextualLoaderProps) {
@@ -303,7 +317,7 @@ export function ContextualLoader({
     const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
     const [currentFactIndex, setCurrentFactIndex] = useState(0);
     const [internalProgress, setInternalProgress] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(ESTIMATED_TIMES[context]);
+    const [timeLeft, setTimeLeft] = useState(estimatedSeconds ?? ESTIMATED_TIMES[context]);
     const [isComplete, setIsComplete] = useState(false);
 
     const messages = LOADING_MESSAGES[context];
@@ -312,18 +326,19 @@ export function ContextualLoader({
     const steps = CONTEXT_STEPS[context];
     const progress = externalProgress ?? internalProgress;
 
-    // Calculate current step based on progress if not provided
-    const calculatedStep = totalSteps
-        ? currentStep
-        : Math.min(Math.floor((progress / 100) * steps.length), steps.length - 1);
+    const calculatedStep =
+        typeof timelineStep === "number"
+            ? Math.max(0, Math.min(timelineStep, steps.length - 1))
+            : Math.min(Math.floor((progress / 100) * steps.length), steps.length - 1);
 
     // Rotate messages every 3 seconds
     useEffect(() => {
+        if (statusLabel) return;
         const interval = setInterval(() => {
             setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
         }, 3000);
         return () => clearInterval(interval);
-    }, [messages.length]);
+    }, [messages.length, statusLabel]);
 
     // Rotate fun facts every 6 seconds
     useEffect(() => {
@@ -333,14 +348,20 @@ export function ContextualLoader({
         return () => clearInterval(interval);
     }, []);
 
-    // Countdown timer
     useEffect(() => {
+        if (!showTimeEstimate) return;
+        if (estimatedSeconds !== undefined) {
+            const remaining = Math.max(0, Math.round(estimatedSeconds * (1 - progress / 100)));
+            setTimeLeft(remaining);
+            return;
+        }
+        if (externalProgress !== undefined) return;
         if (timeLeft <= 0) return;
         const interval = setInterval(() => {
             setTimeLeft((prev) => Math.max(0, prev - 1));
         }, 1000);
         return () => clearInterval(interval);
-    }, [timeLeft]);
+    }, [showTimeEstimate, estimatedSeconds, externalProgress, progress, timeLeft]);
 
     // Simulate progress if not provided externally
     useEffect(() => {
@@ -368,9 +389,12 @@ export function ContextualLoader({
     }, [progress, isComplete]);
 
     // Personalized message
-    const personalizedMessage = userName
-        ? `${userName}, ${messages[currentMessageIndex].toLowerCase()}`
-        : messages[currentMessageIndex];
+    const personalizedMessage = statusLabel
+        ? (userName ? `${userName}, ${statusLabel.toLowerCase()}` : statusLabel)
+        : (userName ? `${userName}, ${messages[currentMessageIndex].toLowerCase()}` : messages[currentMessageIndex]);
+
+    const itemIndex = currentItemIndex ?? (totalSteps ? currentStep : undefined);
+    const itemsCount = totalItems ?? totalSteps;
 
     return (
         <AnimatePresence>
@@ -461,9 +485,9 @@ export function ContextualLoader({
                         )}
 
                         {/* Step counter */}
-                        {totalSteps && (
+                        {itemsCount !== undefined && itemIndex !== undefined && (
                             <p className="text-white/80 text-sm mb-4">
-                                Document {currentStep + 1}/{totalSteps}
+                                Document {itemIndex + 1}/{itemsCount}
                             </p>
                         )}
 
@@ -490,14 +514,20 @@ export function ContextualLoader({
                         <StepTimeline steps={steps} currentStep={calculatedStep} />
 
                         {/* Time estimate */}
-                        {timeLeft > 0 && (
+                        {showTimeEstimate && timeLeft > 0 && (
                             <p className="text-white/60 text-xs mt-4">
                                 ⏱ Environ {timeLeft}s restantes
                             </p>
                         )}
-                        {timeLeft === 0 && progress < 100 && (
+                        {showTimeEstimate && timeLeft === 0 && progress < 100 && (
                             <p className="text-white/70 text-xs mt-4">
                                 Ça prend un peu plus longtemps que prévu…
+                            </p>
+                        )}
+
+                        {statusHint && (
+                            <p className="text-white/70 text-xs mt-4">
+                                {statusHint}
                             </p>
                         )}
 

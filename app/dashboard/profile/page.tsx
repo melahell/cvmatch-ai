@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +56,11 @@ function ProfileContent() {
     const [uploading, setUploading] = useState(false);
     const [customNotes, setCustomNotes] = useState("");
     const [showModeDialog, setShowModeDialog] = useState(false);
+    const [regenMode, setRegenMode] = useState<"completion" | "regeneration" | null>(null);
+    const [regenStatusLabel, setRegenStatusLabel] = useState<string>("");
+    const [regenStatusHint, setRegenStatusHint] = useState<string>("");
+    const [regenTimelineStep, setRegenTimelineStep] = useState<number>(0);
+    const regenAbortRef = useRef<AbortController | null>(null);
 
     // Progress tracking for ContextualLoader
     const [currentDocName, setCurrentDocName] = useState("");
@@ -180,7 +185,11 @@ function ProfileContent() {
 
         setShowModeDialog(false);
 
+        setRegenMode(mode);
         setRegenerating(true);
+        setRegenTimelineStep(0);
+        setRegenStatusLabel(mode === "regeneration" ? "Redémarrage depuis zéro…" : "Préparation…");
+        setRegenStatusHint("");
         const totalDocs = documents.length;
         setTotalDocsCount(totalDocs);
         let processed = 0;
@@ -200,6 +209,9 @@ function ProfileContent() {
                 setCurrentDocIndex(processed);
                 setCurrentDocName(doc.filename);
                 setRegenProgress(Math.round((processed / totalDocs) * 100));
+                setRegenTimelineStep(1);
+                setRegenStatusLabel("Analyse IA du document…");
+                setRegenStatusHint("Extraction du texte + analyse IA + fusion et sauvegarde.");
                 logger.info(`[INCREMENTAL] Processing ${processed}/${totalDocs}: ${doc.filename}`, { mode, isFirstDocument });
 
                 const authHeaders = await getSupabaseAuthHeader();
@@ -217,6 +229,11 @@ function ProfileContent() {
                             isFirstDocument,
                             isLastDocument: i === documents.length - 1,
                         }),
+                        signal: (() => {
+                            regenAbortRef.current?.abort();
+                            regenAbortRef.current = new AbortController();
+                            return regenAbortRef.current.signal;
+                        })(),
                     });
 
                     if (res.ok) break;
@@ -270,6 +287,9 @@ function ProfileContent() {
                 const result = await res.json();
                 logger.success(`[INCREMENTAL] ${doc.filename} processed - Score: ${result.qualityScore}`);
                 successCount++;
+                setRegenTimelineStep(3);
+                setRegenStatusLabel("Finalisation…");
+                setRegenStatusHint("");
 
                 // Store validation data from last document (will have merged all previous)
                 if (processed === totalDocs && result.validation) {
@@ -306,11 +326,25 @@ function ProfileContent() {
 
             toast.success(`Profil régénéré avec succès! ${successCount}/${totalDocs} document(s) traité(s)`);
 
-        } catch (e) {
+        } catch (e: any) {
+            if (e?.name === "AbortError") {
+                toast.message("Régénération annulée");
+                return;
+            }
             logger.error("Error in incremental regeneration:", e);
             toast.error(`Erreur après traitement de ${successCount}/${totalDocs} documents`);
         } finally {
+            regenAbortRef.current?.abort();
+            regenAbortRef.current = null;
             setRegenerating(false);
+            setCurrentDocName("");
+            setCurrentDocIndex(0);
+            setTotalDocsCount(0);
+            setRegenProgress(0);
+            setRegenMode(null);
+            setRegenStatusLabel("");
+            setRegenStatusHint("");
+            setRegenTimelineStep(0);
         }
 
     };
@@ -487,13 +521,21 @@ function ProfileContent() {
             {/* Overlay loader - renders ON TOP of page content */}
             {regenerating && (
                 <ContextualLoader
-                    context="refreshing-profile"
+                    context="generating-rag"
                     userName={(ragData as any)?.prenom || (ragData as any)?.nom || undefined}
-                    currentStep={currentDocIndex - 1}
-                    totalSteps={totalDocsCount}
+                    jobTitle={regenMode === "regeneration" ? "Régénération du profil IA" : "Complétion du profil IA"}
+                    currentItemIndex={Math.max(0, currentDocIndex - 1)}
+                    totalItems={totalDocsCount}
                     currentItem={currentDocName}
                     progress={regenProgress}
-                    onCancel={() => setRegenerating(false)}
+                    timelineStep={regenTimelineStep}
+                    statusLabel={regenStatusLabel}
+                    statusHint={regenStatusHint}
+                    showTimeEstimate={false}
+                    onCancel={() => {
+                        regenAbortRef.current?.abort();
+                        setRegenerating(false);
+                    }}
                 />
             )}
 
