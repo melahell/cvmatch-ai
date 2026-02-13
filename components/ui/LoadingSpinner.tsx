@@ -23,14 +23,14 @@ export function LoadingSpinner({
 }: LoadingSpinnerProps) {
     const spinner = (
         <div className={`flex flex-col items-center justify-center gap-2 ${className}`} role="status" aria-live="polite" aria-busy="true">
-            <Loader2 className={`${sizeClasses[size]} animate-spin motion-reduce:animate-none text-blue-600`} aria-hidden="true" />
-            {text && <span className="text-sm text-slate-600">{text}</span>}
+            <Loader2 className={`${sizeClasses[size]} animate-spin motion-reduce:animate-none text-neon-purple`} aria-hidden="true" />
+            {text && <span className="text-sm text-cvText-secondary">{text}</span>}
         </div>
     );
 
     if (fullScreen) {
         return (
-            <div className="flex h-screen items-center justify-center">
+            <div className="flex h-screen items-center justify-center bg-surface-secondary">
                 {spinner}
             </div>
         );
