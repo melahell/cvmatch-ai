@@ -144,7 +144,7 @@ function CVBuilderContent() {
     // [CDC-23] Toggles pour photo et mode dense
     const [includePhoto, setIncludePhoto] = useState<boolean>(true);
     const [density, setDensity] = useState<CVDensity>("normal");
-    const [colorwayId, setColorwayId] = useState<string>("indigo");
+    const [colorwayId, setColorwayId] = useState<string>("default");
     const [fontId, setFontId] = useState<string>("sans");
 
     const [estimatedPages, setEstimatedPages] = useState<number>(1);
@@ -1357,7 +1357,7 @@ function CVBuilderContent() {
                                                     <select
                                                         value={templateId}
                                                         onChange={(e) => handleTemplateChange(e.target.value)}
-                                                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                                                        className="w-full rounded-md border border-cvBorder-light bg-surface-primary px-3 py-2 text-sm text-cvText-primary shadow-sm focus:ring-2 focus:ring-neon-purple focus:ring-offset-2 focus:ring-offset-background outline-none"
                                                     >
                                                         {filteredTemplates.filter((t) => t.source === "reactive-resume").length > 0 && (
                                                             <optgroup label="Reactive Resume">
@@ -1382,13 +1382,13 @@ function CVBuilderContent() {
                                                 <CardContent className="pt-4 pb-3 space-y-3">
                                                     {/* Couleurs */}
                                                     <div>
-                                                        <label className="text-xs font-medium text-slate-700 mb-1.5 block">Couleur</label>
+                                                        <label className="text-xs font-medium text-cvText-secondary mb-1.5 block">Couleur</label>
                                                         <div className="flex flex-wrap gap-1.5">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => setColorwayId("default")}
-                                                                title="Défaut"
-                                                                className={`h-6 w-6 rounded-full border bg-white text-[8px] font-bold ${colorwayId === "default" ? "ring-2 ring-indigo-500 ring-offset-1" : "border-slate-300"}`}
+                                                                title="Palette globale"
+                                                                className={`h-6 w-6 rounded-full border bg-gradient-neon text-[8px] font-bold ${colorwayId === "default" ? "ring-2 ring-neon-purple ring-offset-1 ring-offset-background border-transparent" : "border-cvBorder-light"}`}
                                                             >
                                                                 D
                                                             </button>
@@ -1398,7 +1398,7 @@ function CVBuilderContent() {
                                                                     type="button"
                                                                     onClick={() => setColorwayId(c.id)}
                                                                     title={c.name}
-                                                                    className={`h-6 w-6 rounded-full border ${colorwayId === c.id ? "ring-2 ring-indigo-500 ring-offset-1" : "border-slate-300"}`}
+                                                                    className={`h-6 w-6 rounded-full border ${colorwayId === c.id ? "ring-2 ring-neon-purple ring-offset-1 ring-offset-background border-transparent" : "border-cvBorder-light"}`}
                                                                     style={{ backgroundColor: c.primary }}
                                                                 />
                                                             ))}
@@ -1408,13 +1408,13 @@ function CVBuilderContent() {
                                                     {/* Espacement + Police côte à côte */}
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <div>
-                                                            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Espacement</label>
+                                                            <label className="text-xs font-medium text-cvText-secondary mb-1.5 block">Espacement</label>
                                                             <div className="flex gap-1">
                                                                 {CV_DENSITIES.map((d) => (
                                                                     <button
                                                                         key={d.id}
                                                                         onClick={() => setDensity(d.id)}
-                                                                        className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded border transition-colors ${density === d.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}
+                                                                        className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded border transition-colors ${density === d.id ? "bg-neon-purple text-white border-neon-purple" : "bg-surface-primary text-cvText-secondary border-cvBorder-light hover:border-cvBorder-dark"}`}
                                                                     >
                                                                         {d.name}
                                                                     </button>
@@ -1422,13 +1422,13 @@ function CVBuilderContent() {
                                                             </div>
                                                         </div>
                                                         <div>
-                                                            <label className="text-xs font-medium text-slate-700 mb-1.5 block">Police</label>
+                                                            <label className="text-xs font-medium text-cvText-secondary mb-1.5 block">Police</label>
                                                             <div className="flex gap-1">
                                                                 {CV_FONTS.map((f) => (
                                                                     <button
                                                                         key={f.id}
                                                                         onClick={() => setFontId(f.id)}
-                                                                        className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded border transition-colors ${fontId === f.id ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-300 hover:border-slate-400"}`}
+                                                                        className={`flex-1 px-1.5 py-1 text-[10px] font-medium rounded border transition-colors ${fontId === f.id ? "bg-neon-purple text-white border-neon-purple" : "bg-surface-primary text-cvText-secondary border-cvBorder-light hover:border-cvBorder-dark"}`}
                                                                     >
                                                                         {f.name}
                                                                     </button>

@@ -63,6 +63,7 @@ export interface CVRendererProps {
     dense?: boolean;
     format?: "A4" | "Letter";
     customCSS?: string;
+    containerId?: string;
     unitStats?: {
         total: number;
         remaining: number;
@@ -169,6 +170,7 @@ export default function CVRenderer({
     dense = false,
     format = "A4",
     customCSS,
+    containerId = "cv-container",
     unitStats,
     dynamicCssVariables,
     displayLimits,
@@ -230,7 +232,7 @@ export default function CVRenderer({
     };
 
     return (
-        <div id="cv-container" style={mergedStyle}>
+        <div id={containerId} style={mergedStyle}>
             <TemplateComponent
                 data={normalizedData}
                 includePhoto={includePhoto}
@@ -243,7 +245,7 @@ export default function CVRenderer({
                     __html: customCSS.replace(/([^{}]*\{)/g, (match) => {
                         // Scope custom CSS to #cv-container
                         if (match.trim().startsWith("@")) return match;
-                        return `#cv-container ${match}`;
+                        return `#${containerId} ${match}`;
                     }),
                 }} />
             )}
