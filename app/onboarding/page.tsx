@@ -196,22 +196,22 @@ export default function OnboardingPage() {
                 {/* Step Indicator */}
                 <div className="flex items-center justify-center mb-8">
                     <div className="flex items-center gap-2">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${files.length > 0 ? "bg-green-500 text-white" : "bg-blue-600 text-white"}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${files.length > 0 ? "bg-green-500 text-white" : "bg-neon-purple text-white"}`}>
                             {files.length > 0 ? <CheckCircle className="w-5 h-5" /> : "1"}
                         </div>
                         <span className="text-sm font-medium">Documents</span>
                     </div>
-                    <div className="w-12 h-0.5 bg-slate-200 mx-2" />
+                    <div className="w-12 h-0.5 bg-cvBorder-light mx-2" />
                     <div className="flex items-center gap-2">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${processing ? "bg-blue-600 text-white" : "bg-slate-200 text-slate-600"}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${processing ? "bg-neon-purple text-white" : "bg-surface-secondary text-cvText-secondary"}`}>
                             {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : "2"}
                         </div>
-                        <span className="text-sm font-medium text-slate-600">Analyse IA</span>
+                        <span className="text-sm font-medium text-cvText-secondary">Analyse IA</span>
                     </div>
-                    <div className="w-12 h-0.5 bg-slate-200 mx-2" />
+                    <div className="w-12 h-0.5 bg-cvBorder-light mx-2" />
                     <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold">3</div>
-                        <span className="text-sm font-medium text-slate-600">Terminé</span>
+                        <div className="w-10 h-10 rounded-full bg-surface-secondary text-cvText-secondary flex items-center justify-center font-bold">3</div>
+                        <span className="text-sm font-medium text-cvText-secondary">Terminé</span>
                     </div>
                 </div>
 
@@ -228,28 +228,28 @@ export default function OnboardingPage() {
                         {/* LinkedIn Export Guide Modal */}
                         {showLinkedInGuide && (
                             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-xl max-w-md w-full p-6 relative">
-                                    <button onClick={() => setShowLinkedInGuide(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
+                                <div className="bg-surface-primary rounded-xl max-w-md w-full p-6 relative border border-cvBorder-light">
+                                    <button onClick={() => setShowLinkedInGuide(false)} className="absolute top-4 right-4 text-cvText-secondary hover:text-cvText-primary">
                                         <X className="w-5 h-5" />
                                     </button>
                                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                                        <Info className="w-5 h-5 text-blue-600" /> Comment exporter ton profil LinkedIn ?
+                                        <Info className="w-5 h-5 text-neon-purple" /> Comment exporter ton profil LinkedIn ?
                                     </h3>
                                     <ol className="space-y-3 text-sm">
                                         <li className="flex gap-2">
-                                            <span className="font-bold text-blue-600">1.</span>
-                                            <span>Va sur <a href="https://www.linkedin.com/in/" target="_blank" className="text-blue-600 underline">ton profil LinkedIn</a></span>
+                                            <span className="font-bold text-neon-purple">1.</span>
+                                            <span>Va sur <a href="https://www.linkedin.com/in/" target="_blank" className="text-neon-purple underline">ton profil LinkedIn</a></span>
                                         </li>
                                         <li className="flex gap-2">
-                                            <span className="font-bold text-blue-600">2.</span>
+                                            <span className="font-bold text-neon-purple">2.</span>
                                             <span>Clique sur le bouton <strong>"Plus"</strong> (sous ta photo)</span>
                                         </li>
                                         <li className="flex gap-2">
-                                            <span className="font-bold text-blue-600">3.</span>
+                                            <span className="font-bold text-neon-purple">3.</span>
                                             <span>Sélectionne <strong>"Enregistrer au format PDF"</strong></span>
                                         </li>
                                         <li className="flex gap-2">
-                                            <span className="font-bold text-blue-600">4.</span>
+                                            <span className="font-bold text-neon-purple">4.</span>
                                             <span>Uploade le PDF ici !</span>
                                         </li>
                                     </ol>
@@ -261,26 +261,26 @@ export default function OnboardingPage() {
                         )}
 
                         {/* Guidance Section */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                            <h3 className="font-semibold text-blue-800 flex items-center gap-2">
+                        <div className="bg-surface-secondary border border-cvBorder-light rounded-lg p-4 mb-6">
+                            <h3 className="font-semibold text-cvText-primary flex items-center gap-2">
                                 <FileText className="w-4 h-4" /> Quels documents uploader ?
                             </h3>
                             <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                                <div className="text-blue-700">✅ CV (PDF, DOCX)</div>
+                                <div className="text-cvText-secondary">✅ CV (PDF, DOCX)</div>
                                 <button
                                     onClick={() => setShowLinkedInGuide(true)}
-                                    className="text-blue-700 text-left hover:underline flex items-center gap-1"
+                                    className="text-cvText-secondary text-left hover:underline flex items-center gap-1"
                                 >
                                     ✅ Profil LinkedIn <Info className="w-3 h-3" />
                                 </button>
-                                <div className="text-blue-600 opacity-75">💡 Certifications</div>
-                                <div className="text-blue-600 opacity-75">💡 Portfolio</div>
+                                <div className="text-cvText-secondary opacity-75">💡 Certifications</div>
+                                <div className="text-cvText-secondary opacity-75">💡 Portfolio</div>
                             </div>
                         </div>
 
                         {/* Photo Upload Section */}
                         <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-sm font-medium text-cvText-secondary mb-2">
                                 📷 Photo de profil (optionnel - pour ton CV)
                             </label>
                             <div className="flex items-center gap-4">
@@ -291,7 +291,7 @@ export default function OnboardingPage() {
                                             alt="Preview"
                                             width={80}
                                             height={80}
-                                            className="w-20 h-20 rounded-full object-cover border-2 border-blue-500"
+                                            className="w-20 h-20 rounded-full object-cover border-2 border-neon-purple"
                                         />
                                         <button
                                             onClick={removePhoto}
@@ -301,8 +301,8 @@ export default function OnboardingPage() {
                                         </button>
                                     </div>
                                 ) : (
-                                    <label className="w-20 h-20 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
-                                        <Camera className="w-6 h-6 text-gray-400" />
+                                    <label className="w-20 h-20 rounded-full border-2 border-dashed border-cvBorder-light flex items-center justify-center cursor-pointer hover:border-neon-purple transition-colors">
+                                        <Camera className="w-6 h-6 text-cvText-tertiary" />
                                         <input
                                             type="file"
                                             accept="image/*"
@@ -311,7 +311,7 @@ export default function OnboardingPage() {
                                         />
                                     </label>
                                 )}
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-cvText-secondary">
                                     {photoPreview ? "Photo ajoutée ✓" : "Clique pour ajouter ta photo"}
                                 </div>
                             </div>
@@ -319,8 +319,8 @@ export default function OnboardingPage() {
 
                         <div
                             className={`border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${dragActive
-                                ? "border-blue-500 bg-blue-50 scale-[1.02] shadow-lg"
-                                : "border-slate-300 hover:border-blue-400 hover:bg-slate-50"
+                                ? "border-neon-purple bg-surface-secondary scale-[1.02] shadow-lg"
+                                : "border-cvBorder-light hover:border-neon-purple hover:bg-surface-secondary"
                                 }`}
                             onDragEnter={handleDrag}
                             onDragLeave={handleDrag}
@@ -337,34 +337,34 @@ export default function OnboardingPage() {
                             />
 
                             <div className="flex flex-col items-center gap-4">
-                                <div className="p-4 bg-slate-100 rounded-full">
-                                    <Upload className="w-8 h-8 text-slate-600" />
+                                <div className="p-4 bg-surface-secondary rounded-full">
+                                    <Upload className="w-8 h-8 text-cvText-secondary" />
                                 </div>
                                 <div>
                                     <label
                                         htmlFor="file-upload"
-                                        className="font-medium text-blue-600 cursor-pointer hover:underline"
+                                        className="font-medium text-neon-purple cursor-pointer hover:underline"
                                     >
                                         Clique pour uploader
                                     </label>
-                                    <span className="text-slate-600"> ou glisse tes fichiers ici</span>
+                                    <span className="text-cvText-secondary"> ou glisse tes fichiers ici</span>
                                 </div>
-                                <p className="text-xs text-slate-600">PDF, DOCX, TXT, MD acceptés (Max 4.5 MB)</p>
+                                <p className="text-xs text-cvText-secondary">PDF, DOCX, TXT, MD acceptés (Max 4.5 MB)</p>
                             </div>
                         </div>
 
                         {files.length > 0 && (
                             <div className="mt-6 space-y-3">
-                                <h4 className="text-sm font-medium text-slate-700">Fichiers sélectionnés :</h4>
+                                <h4 className="text-sm font-medium text-cvText-primary">Fichiers sélectionnés :</h4>
                                 {files.map((file, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+                                    <div key={i} className="flex items-center justify-between p-3 bg-surface-secondary rounded-lg border border-cvBorder-light">
                                         <div className="flex items-center gap-3">
-                                            <FileText className="w-5 h-5 text-blue-500" />
+                                            <FileText className="w-5 h-5 text-neon-purple" />
                                             <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-                                            <span className="text-xs text-slate-600">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                                            <span className="text-xs text-cvText-secondary">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
                                         </div>
                                         {!uploading && !processing && (
-                                            <button onClick={() => removeFile(i)} className="text-slate-600 hover:text-red-500">
+                                            <button onClick={() => removeFile(i)} className="text-cvText-secondary hover:text-red-500">
                                                 &times;
                                             </button>
                                         )}

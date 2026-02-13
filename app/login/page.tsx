@@ -127,7 +127,7 @@ export default function LoginPage() {
         <div className="min-h-screen flex w-full">
 
             {/* LEFT COLUMN: Visual */}
-            <div className="hidden lg:flex w-1/2 bg-slate-900 relative items-center justify-center p-12 overflow-hidden">
+            <div className="hidden lg:flex w-1/2 bg-[hsl(var(--cv-logo-bg))] relative items-center justify-center p-12 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-neon-purple to-neon-indigo opacity-50" />
                 <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20" />
 
