@@ -6,6 +6,7 @@ export interface ExperienceItemProps {
     entreprise: string;
     date_debut: string;
     date_fin?: string;
+    actuel?: boolean;
     lieu?: string;
     realisations?: string[];
     clients?: string[];
@@ -29,6 +30,7 @@ export default function ExperienceItem({
     entreprise,
     date_debut,
     date_fin,
+    actuel,
     lieu,
     realisations = [],
     clients = [],
@@ -43,8 +45,9 @@ export default function ExperienceItem({
 }: ExperienceItemProps) {
     const displayRealisations = maxRealisations > 0 ? realisations.slice(0, maxRealisations) : realisations;
     const start = formatDate(date_debut);
-    const end = date_fin ? formatDate(date_fin) : "Présent";
-    const dateStr = `${start} - ${end}`;
+    const isCurrent = actuel === true;
+    const end = date_fin ? formatDate(date_fin) : (isCurrent ? "Présent" : "");
+    const dateStr = start && end ? `${start} - ${end}` : start ? start : end;
 
     const bulletChar = bulletStyle === "dash" ? "—" : bulletStyle === "arrow" ? "→" : bulletStyle === "disc" ? "•" : "";
 

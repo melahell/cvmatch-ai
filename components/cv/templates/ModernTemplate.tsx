@@ -261,7 +261,12 @@ export default function ModernTemplate({
                                             )}
                                         </div>
                                         <span className="text-[color:var(--cv-primary)] font-bold bg-[var(--cv-primary-light)] px-2 py-0.5 rounded text-[7pt]">
-                                            {exp.date_debut ? `${formatDate(exp.date_debut)} - ${exp.date_fin ? formatDate(exp.date_fin) : 'Présent'}` : (exp.date_fin ? formatDate(exp.date_fin) : "")}
+                                            {(() => {
+                                                const start = exp.date_debut ? formatDate(exp.date_debut) : "";
+                                                const isCurrent = exp.actuel === true;
+                                                const end = exp.date_fin ? formatDate(exp.date_fin) : (isCurrent ? "Présent" : "");
+                                                return start && end ? `${start} - ${end}` : start || end;
+                                            })()}
                                         </span>
                                     </div>
                                     {isValidEntreprise(exp.entreprise) ? (

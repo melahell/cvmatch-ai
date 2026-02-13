@@ -205,6 +205,7 @@ export default function ExecutiveTemplate({
                                         entreprise={isValidEntreprise(exp.entreprise) ? exp.entreprise : ""}
                                         date_debut={exp.date_debut}
                                         date_fin={exp.date_fin}
+                                        actuel={exp.actuel}
                                         lieu={exp.lieu}
                                         realisations={exp.realisations}
                                         clients={exp.clients}

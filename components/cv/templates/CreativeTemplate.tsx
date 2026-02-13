@@ -250,7 +250,12 @@ export default function CreativeTemplate({
                                         />
 
                                         <div className="text-[8pt] font-bold" style={{ color }}>
-                                            {exp.date_debut ? `${formatDate(exp.date_debut)} - ${exp.date_fin ? formatDate(exp.date_fin) : 'Présent'}` : (exp.date_fin ? formatDate(exp.date_fin) : "")}
+                                            {(() => {
+                                                const start = exp.date_debut ? formatDate(exp.date_debut) : "";
+                                                const isCurrent = exp.actuel === true;
+                                                const end = exp.date_fin ? formatDate(exp.date_fin) : (isCurrent ? "Présent" : "");
+                                                return start && end ? `${start} - ${end}` : start || end;
+                                            })()}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <h4 className="text-[10pt] font-extrabold text-slate-900">{sanitizeText(exp.poste)}</h4>

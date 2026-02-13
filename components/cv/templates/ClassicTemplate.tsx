@@ -179,7 +179,12 @@ export default function ClassicTemplate({
                                         )}
                                     </div>
                                     <span className="text-[8pt] text-slate-600 italic">
-                                        {exp.date_debut ? `${formatDate(exp.date_debut)} - ${exp.date_fin ? formatDate(exp.date_fin) : 'Présent'}` : (exp.date_fin ? formatDate(exp.date_fin) : "")}
+                                        {(() => {
+                                            const start = exp.date_debut ? formatDate(exp.date_debut) : "";
+                                            const isCurrent = exp.actuel === true;
+                                            const end = exp.date_fin ? formatDate(exp.date_fin) : (isCurrent ? "Présent" : "");
+                                            return start && end ? `${start} - ${end}` : start || end;
+                                        })()}
                                     </span>
                                 </div>
                                 {isValidEntreprise(exp.entreprise) ? (

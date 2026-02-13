@@ -9,6 +9,7 @@
 import type { AIWidget } from "../ai-widgets";
 import type { RendererResumeSchema } from "../renderer-schema";
 import { findRAGExperience, formatDate, normalizeKey, cleanClientList } from "./utils";
+import { coerceBoolean } from "@/lib/utils/coerce-boolean";
 
 // Type pour les options (copié de ai-adapter.ts pour éviter import circulaire)
 interface BuildExperiencesOptions {
@@ -144,7 +145,8 @@ export function buildExperiences(
         const ragDateDebut = ragExp ? (ragExp.debut || ragExp.date_debut || ragExp.start_date) : undefined;
         const ragDateFin = ragExp ? (ragExp.fin || ragExp.date_fin || ragExp.end_date) : undefined;
         const ragLieu = ragExp?.lieu || ragExp?.location;
-        const ragActuel = ragExp?.actuel || ragExp?.current;
+        // IMPORTANT: ne pas utiliser `||` ici (false -> fallback / "false" string -> truthy)
+        const ragActuel = coerceBoolean(ragExp?.actuel ?? ragExp?.current);
 
         // 3. Fallback Regex (si tout le reste échoue)
         let regexStart = "";
@@ -165,7 +167,12 @@ export function buildExperiences(
         const date_fin = formatDate(widgetMeta?.date_end || ragDateFin || regexEnd);
         const lieu = widgetMeta?.location || ragLieu || undefined;
         // La logique actuel est: soit explicite dans widget, soit explicit dans RAG, soit déduit si date_fin est "Présent" ou vide avec actuel=true
-        const isCurrent = widgetMeta?.is_current ?? ragActuel ?? (date_fin?.toLowerCase().includes("présent") || date_fin?.toLowerCase().includes("present"));
+        const inferredCurrent =
+            (date_fin?.toLowerCase().includes("présent") || date_fin?.toLowerCase().includes("present")) === true;
+        const isCurrent =
+            (coerceBoolean(widgetMeta?.is_current) ??
+                ragActuel ??
+                inferredCurrent) === true;
         const clientsRaw =
             (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
             (Array.isArray(ragExp?.clients) && ragExp.clients) ||
@@ -231,7 +238,7 @@ export function buildExperiences(
                 const date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date || "");
                 const date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
                 const lieu = ragExp.lieu || ragExp.location || undefined;
-                const actuel = ragExp.actuel || ragExp.current || false;
+                const actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current) ?? false) === true;
                 const clientsRaw =
                     (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
                     (Array.isArray(ragExp?.clients) && ragExp.clients) ||

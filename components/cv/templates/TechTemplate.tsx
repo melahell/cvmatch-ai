@@ -363,7 +363,12 @@ export default function TechTemplate({
                                         )}
                                     </div>
                                     <span className="text-[7pt] font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">
-                                        {exp.date_debut ? `${formatDate(exp.date_debut)} → ${exp.date_fin ? formatDate(exp.date_fin) : 'Présent'}` : (exp.date_fin ? formatDate(exp.date_fin) : "")}
+                                        {(() => {
+                                            const start = exp.date_debut ? formatDate(exp.date_debut) : "";
+                                            const isCurrent = exp.actuel === true;
+                                            const end = exp.date_fin ? formatDate(exp.date_fin) : (isCurrent ? "Présent" : "");
+                                            return start && end ? `${start} → ${end}` : start || end;
+                                        })()}
                                     </span>
                                 </div>
                                 {isValidEntreprise(exp.entreprise) ? (

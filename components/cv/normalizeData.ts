@@ -2,6 +2,7 @@
 
 import { CVData } from "./templates";
 import { logger } from "@/lib/utils/logger";
+import { coerceBoolean } from "@/lib/utils/coerce-boolean";
 
 interface RAGData {
     profil?: {
@@ -388,11 +389,34 @@ export function normalizeRAGToCV(raw: any): CVData {
         // Phase 2 Diagnostic: Log après sanitize
         logger.debug(`[normalizeRAGToCV] Exp ${i}: ${realisations.length} realisations after sanitize`);
 
+        const endCandidate =
+            exp.date_fin ||
+            exp.fin ||
+            exp.end_date ||
+            exp.endDate ||
+            exp.dateFin ||
+            exp.date_end ||
+            undefined;
+
+        const endLower = typeof endCandidate === "string" ? endCandidate.trim().toLowerCase() : "";
+        const endIsPresent =
+            endLower === "présent" ||
+            endLower === "present" ||
+            endLower === "now" ||
+            endLower === "aujourd'hui";
+
+        const actuel =
+            (coerceBoolean(exp.actuel ?? exp.current ?? exp.is_current) ??
+                (endIsPresent ? true : undefined) ??
+                false) === true;
+
         return {
             poste: sanitizeText(exp.poste),
             entreprise: sanitizeText(exp.entreprise),
             date_debut: exp.date_debut || exp.debut || exp.start_date || exp.startDate || exp.dateDebut || exp.date_start || '',
-            date_fin: exp.actuel ? undefined : (exp.date_fin || exp.fin || exp.end_date || exp.endDate || exp.dateFin || exp.date_end || undefined),
+            // IMPORTANT: `actuel` peut venir en string ("false") depuis RAG/IA → normaliser avant décision
+            actuel,
+            date_fin: actuel ? undefined : endCandidate,
             lieu: sanitizeText(exp.lieu || exp.localisation),
             realisations,
             // Solution 6.1: Extraire contexte opérationnel

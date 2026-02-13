@@ -6,6 +6,8 @@
  * tout en conservant l'information essentielle.
  */
 
+import { coerceBoolean } from "@/lib/utils/coerce-boolean";
+
 /**
  * Convertit une réalisation atomisée en texte narratif fluide
  */
@@ -200,7 +202,7 @@ export function buildRAGForCVPrompt(profile: any): any {
                     entreprise: mission.client || mission.entreprise || mission.nom || exp.entreprise,
                     debut: mission.debut || mission.date_debut || mission.start,
                     fin: mission.fin || mission.date_fin || mission.end,
-                    actuel: mission.actuel || mission.current,
+                    actuel: (coerceBoolean(mission.actuel ?? mission.current) ?? false) === true,
                     lieu: mission.lieu || exp.lieu,
                     secteur: mission.secteur || exp.secteur,
                     contexte: mission.contexte || mission.description || exp.contexte,
@@ -233,7 +235,7 @@ export function buildRAGForCVPrompt(profile: any): any {
                     entreprise: exp.entreprise,
                     debut: exp.debut || exp.date_debut,
                     fin: exp.fin || exp.date_fin,
-                    actuel: exp.actuel,
+                    actuel: (coerceBoolean(exp.actuel ?? exp.current ?? exp.is_current) ?? false) === true,
                     lieu: exp.lieu,
                     secteur: exp.secteur,
                     contexte: exp.contexte,
@@ -254,7 +256,7 @@ export function buildRAGForCVPrompt(profile: any): any {
                 entreprise: exp.entreprise,
                 debut: exp.debut || exp.date_debut,
                 fin: exp.fin || exp.date_fin,
-                actuel: exp.actuel,
+                actuel: (coerceBoolean(exp.actuel ?? exp.current ?? exp.is_current) ?? false) === true,
                 lieu: exp.lieu,
                 secteur: exp.secteur,
                 contexte: exp.contexte,

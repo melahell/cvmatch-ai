@@ -10,6 +10,7 @@ import { aiWidgetsEnvelopeSchema, AIWidgetsEnvelope, AIWidget, type AIWidgetSect
 import type { RendererResumeSchema } from "./renderer-schema";
 import type { InducedDataOptions } from "@/types/rag-contexte-enrichi";
 import { INDUCED_DATA_PRESETS } from "@/types/rag-contexte-enrichi";
+import { coerceBoolean } from "@/lib/utils/coerce-boolean";
 // [CDC Sprint 2.6] Les helpers client sont disponibles dans ./utils/client-normalizer
 // mais restent définis localement ici pour éviter les imports circulaires
 
@@ -467,7 +468,7 @@ export function convertAndSort(input: unknown, options?: ConvertOptions): Render
                         const fin = formatDate(bestMatch.fin || bestMatch.date_fin || bestMatch.end_date || "");
                         if (fin) exp.date_fin = fin;
                     }
-                    if (bestMatch.actuel || bestMatch.current) {
+                    if ((coerceBoolean(bestMatch.actuel ?? bestMatch.current) ?? false) === true) {
                         (exp as any).actuel = true;
                         exp.date_fin = undefined;
                     }
@@ -758,13 +759,13 @@ function buildExperiences(
         let date_debut = widgetHeader?.date_start || "";
         let date_fin = widgetHeader?.date_end;
         let lieu = widgetHeader?.location;
-        let actuel = widgetHeader?.is_current || false;
+        let actuel = (coerceBoolean(widgetHeader?.is_current) ?? false) === true;
 
         // Si dates manquantes dans widget, fallback sur RAG
         if (!date_debut && ragExp) {
             date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date);
             date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date);
-            actuel = ragExp.actuel || ragExp.current || false;
+            actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current) ?? false) === true;
             if (actuel) date_fin = undefined;
         }
 
@@ -854,7 +855,7 @@ function buildExperiences(
                 const date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date || "");
                 const date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
                 const lieu = ragExp.lieu || ragExp.location || undefined;
-                const actuel = ragExp.actuel || ragExp.current || false;
+                const actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current ?? ragExp.is_current) ?? false) === true;
                 const clientsRaw =
                     (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
                     (Array.isArray(ragExp?.clients) && ragExp.clients) ||

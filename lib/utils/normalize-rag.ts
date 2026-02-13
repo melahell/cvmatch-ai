@@ -1,9 +1,12 @@
 // [CDC-22] Helper pour extraire les dates de façon uniforme
 // Supporte: date_debut/date_fin, debut/fin, start_date/end_date
+import { coerceBoolean } from "@/lib/utils/coerce-boolean";
+
 export function getExperienceDates(exp: any): { start: string | null; end: string | null; isCurrent: boolean } {
     const start = exp?.date_debut ?? exp?.debut ?? exp?.start_date ?? exp?.startDate ?? exp?.dateDebut ?? null;
     const end = exp?.date_fin ?? exp?.fin ?? exp?.end_date ?? exp?.endDate ?? exp?.dateFin ?? null;
-    const isCurrent = Boolean(exp?.actuel ?? exp?.current ?? exp?.is_current);
+    // IMPORTANT: ne pas utiliser Boolean() directement (ex: "false" -> true)
+    const isCurrent = coerceBoolean(exp?.actuel ?? exp?.current ?? exp?.is_current) === true;
     return { start, end, isCurrent };
 }
 
@@ -96,7 +99,8 @@ export function normalizeRAGData(data: any): any {
             const poste = stableKey(exp?.poste);
             const entreprise = stableKey(exp?.entreprise);
             const debut = stableKey(getStart(exp));
-            const fin = stableKey(getEnd(exp) ?? (exp?.actuel ? "present" : ""));
+            const isCurrent = coerceBoolean(exp?.actuel ?? exp?.current ?? exp?.is_current) === true;
+            const fin = stableKey(getEnd(exp) ?? (isCurrent ? "present" : ""));
             const base = `${poste}|${entreprise}|${debut}|${fin}`;
             const expId = exp?.id || `exp_${stableHash(base)}`;
 
@@ -130,7 +134,8 @@ export function normalizeRAGData(data: any): any {
             const poste = stableKey(exp?.poste);
             const entreprise = stableKey(exp?.entreprise);
             const debut = stableKey(getStart(exp));
-            const fin = stableKey(getEnd(exp) ?? (exp?.actuel ? "present" : ""));
+            const isCurrent = coerceBoolean(exp?.actuel ?? exp?.current ?? exp?.is_current) === true;
+            const fin = stableKey(getEnd(exp) ?? (isCurrent ? "present" : ""));
             const baseKey = `${poste}|${entreprise}|${debut}|${fin}`;
             const hasTime = Boolean(debut) || Boolean(fin);
             const realSig = Array.isArray(exp?.realisations)
