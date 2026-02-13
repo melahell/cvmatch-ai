@@ -169,10 +169,13 @@ export function buildExperiences(
         // La logique actuel est: soit explicite dans widget, soit explicit dans RAG, soit déduit si date_fin est "Présent" ou vide avec actuel=true
         const inferredCurrent =
             (date_fin?.toLowerCase().includes("présent") || date_fin?.toLowerCase().includes("present")) === true;
-        const isCurrent =
+        const isCurrentRaw =
             (coerceBoolean(widgetMeta?.is_current) ??
                 ragActuel ??
                 inferredCurrent) === true;
+        const endLower = String(date_fin ?? "").trim().toLowerCase();
+        const endIsPresent = endLower === "présent" || endLower === "present" || endLower === "now" || endLower === "aujourd'hui";
+        const isCurrent = date_fin && !endIsPresent ? false : isCurrentRaw;
         const clientsRaw =
             (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
             (Array.isArray(ragExp?.clients) && ragExp.clients) ||

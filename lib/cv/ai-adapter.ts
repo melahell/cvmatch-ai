@@ -766,8 +766,13 @@ function buildExperiences(
             date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date);
             date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date);
             actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current) ?? false) === true;
-            if (actuel) date_fin = undefined;
         }
+
+        const endLower = String(date_fin ?? "").trim().toLowerCase();
+        const endIsPresent = endLower === "présent" || endLower === "present" || endLower === "now" || endLower === "aujourd'hui";
+        if (date_fin && !endIsPresent) actuel = false;
+        if (endIsPresent) actuel = true;
+        if (actuel) date_fin = undefined;
 
         if (!lieu && ragExp) {
             lieu = ragExp.lieu || ragExp.location || undefined;
@@ -853,9 +858,14 @@ function buildExperiences(
                 }
 
                 const date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date || "");
-                const date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
+                let date_fin: string | undefined = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date || "");
                 const lieu = ragExp.lieu || ragExp.location || undefined;
-                const actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current ?? ragExp.is_current) ?? false) === true;
+                let actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current ?? ragExp.is_current) ?? false) === true;
+                const endLower = String(date_fin ?? "").trim().toLowerCase();
+                const endIsPresent = endLower === "présent" || endLower === "present" || endLower === "now" || endLower === "aujourd'hui";
+                if (date_fin && !endIsPresent) actuel = false;
+                if (endIsPresent) actuel = true;
+                if (actuel) date_fin = undefined;
                 const clientsRaw =
                     (Array.isArray(ragExp?.clients_references) && ragExp.clients_references) ||
                     (Array.isArray(ragExp?.clients) && ragExp.clients) ||

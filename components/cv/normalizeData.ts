@@ -415,8 +415,8 @@ export function normalizeRAGToCV(raw: any): CVData {
             entreprise: sanitizeText(exp.entreprise),
             date_debut: exp.date_debut || exp.debut || exp.start_date || exp.startDate || exp.dateDebut || exp.date_start || '',
             // IMPORTANT: `actuel` peut venir en string ("false") depuis RAG/IA → normaliser avant décision
-            actuel,
-            date_fin: actuel ? undefined : endCandidate,
+            actuel: endCandidate && !endIsPresent ? false : actuel,
+            date_fin: (endCandidate && !endIsPresent) ? endCandidate : (actuel ? undefined : endCandidate),
             lieu: sanitizeText(exp.lieu || exp.localisation),
             realisations,
             // Solution 6.1: Extraire contexte opérationnel
