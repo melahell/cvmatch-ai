@@ -2,11 +2,11 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 export function ThemeToggle() {
     const [mounted, setMounted] = useState(false);
-    const { theme, setTheme } = useTheme();
+    const { theme, resolvedTheme, setTheme } = useTheme();
 
     // Avoid hydration mismatch
     useEffect(() => {
@@ -15,28 +15,28 @@ export function ThemeToggle() {
 
     if (!mounted) {
         return (
-            <div className="w-full px-4 py-2 flex items-center gap-2 text-sm text-slate-600">
+            <div className="w-full px-4 py-2 flex items-center gap-2 text-sm text-cvText-secondary">
                 <Sun className="w-4 h-4" />
                 Thème
             </div>
         );
     }
 
-    const isDark = theme === "dark";
+    const effective = resolvedTheme === "dark" ? "dark" : "light";
+    const isDark = effective === "dark";
+    const modeLabel = theme === "system" ? "Auto" : isDark ? "Sombre" : "Clair";
+    const Icon = theme === "system" ? Monitor : isDark ? Moon : Sun;
+    const nextTheme = theme === "system" ? "light" : theme === "light" ? "dark" : "system";
 
     return (
         <button
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors"
+            onClick={() => setTheme(nextTheme)}
+            className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2 transition-colors"
         >
-            {isDark ? (
-                <Moon className="w-4 h-4" />
-            ) : (
-                <Sun className="w-4 h-4" />
-            )}
+            <Icon className="w-4 h-4" />
             <span>Thème</span>
-            <span className="ml-auto text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-600">
-                {isDark ? "Sombre" : "Clair"}
+            <span className="ml-auto text-xs px-2 py-0.5 rounded bg-surface-tertiary text-cvText-secondary">
+                {modeLabel}
             </span>
         </button>
     );

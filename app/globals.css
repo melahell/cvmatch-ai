@@ -43,6 +43,23 @@
     --cv-success: 142 76% 36%;       /* green-600 */
     --cv-warning: 38 92% 50%;        /* amber-500 */
     --cv-danger: 0 84% 60%;          /* red-500 */
+
+    --cv-surface-primary: var(--background);
+    --cv-surface-secondary: var(--secondary);
+    --cv-surface-tertiary: var(--card);
+
+    --cv-text-primary: var(--foreground);
+    --cv-text-secondary: var(--muted-foreground);
+    --cv-text-tertiary: 0 0% 45%;
+    --cv-text-inverse: 0 0% 98%;
+
+    --cv-border-light: var(--border);
+    --cv-border-medium: var(--input);
+    --cv-border-dark: 0 0% 70%;
+    --cv-border-focus: var(--cv-primary);
+
+    --cv-logo-bg: 248 42% 20%;
+    --cv-logo-text-sub: 233 95% 82%;
     
     /* Container widths */
     --container-sm: 672px;   /* max-w-2xl */
@@ -77,7 +94,49 @@
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%}
+    --chart-5: 340 75% 55%;
+
+    --cv-text-tertiary: 0 0% 63.9%;
+    --cv-text-inverse: 0 0% 9%;
+    --cv-border-dark: 0 0% 22%;
+    --cv-logo-bg: 248 42% 16%;
+    --cv-logo-text-sub: 233 95% 82%;
+  }
+}
+
+@layer base {
+  :root[data-accent="neon"] {
+    --cv-neon-pink: 326 100% 65%;
+    --cv-neon-purple: 270 71% 66%;
+    --cv-neon-indigo: 239 84% 67%;
+    --cv-primary: var(--cv-neon-purple);
+    --cv-secondary: var(--cv-neon-pink);
+    --cv-accent: var(--cv-neon-indigo);
+  }
+  :root[data-accent="ocean"] {
+    --cv-neon-pink: 190 95% 55%;
+    --cv-neon-purple: 210 95% 55%;
+    --cv-neon-indigo: 230 95% 60%;
+    --cv-primary: var(--cv-neon-purple);
+    --cv-secondary: var(--cv-neon-pink);
+    --cv-accent: var(--cv-neon-indigo);
+  }
+  :root[data-accent="emerald"] {
+    --cv-neon-pink: 155 75% 45%;
+    --cv-neon-purple: 165 75% 40%;
+    --cv-neon-indigo: 175 75% 45%;
+    --cv-primary: var(--cv-neon-purple);
+    --cv-secondary: var(--cv-neon-pink);
+    --cv-accent: var(--cv-neon-indigo);
+  }
+  :root[data-accent="sunset"] {
+    --cv-neon-pink: 14 95% 60%;
+    --cv-neon-purple: 280 85% 65%;
+    --cv-neon-indigo: 45 95% 55%;
+    --cv-primary: var(--cv-neon-purple);
+    --cv-secondary: var(--cv-neon-pink);
+    --cv-accent: var(--cv-neon-indigo);
+  }
 }
 
 @layer base {
@@ -92,31 +151,31 @@
 @layer utilities {
   /* Gradients néon harmonisés avec le logo */
   .bg-gradient-neon {
-    background: linear-gradient(135deg, #ff4eb3 0%, #a855f7 50%, #6366f1 100%);
+    background: linear-gradient(135deg, hsl(var(--cv-neon-pink)) 0%, hsl(var(--cv-neon-purple)) 50%, hsl(var(--cv-neon-indigo)) 100%);
   }
 
   .bg-gradient-neon-subtle {
-    background: linear-gradient(135deg, rgba(255,78,179,0.1) 0%, rgba(168,85,247,0.1) 50%, rgba(99,102,241,0.1) 100%);
+    background: linear-gradient(135deg, hsl(var(--cv-neon-pink) / 0.1) 0%, hsl(var(--cv-neon-purple) / 0.1) 50%, hsl(var(--cv-neon-indigo) / 0.1) 100%);
   }
 
   .text-gradient-neon {
-    background: linear-gradient(135deg, #ff4eb3 0%, #a855f7 50%, #6366f1 100%);
+    background: linear-gradient(135deg, hsl(var(--cv-neon-pink)) 0%, hsl(var(--cv-neon-purple)) 50%, hsl(var(--cv-neon-indigo)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .border-gradient-neon {
-    border-image: linear-gradient(135deg, #ff4eb3 0%, #a855f7 50%, #6366f1 100%) 1;
+    border-image: linear-gradient(135deg, hsl(var(--cv-neon-pink)) 0%, hsl(var(--cv-neon-purple)) 50%, hsl(var(--cv-neon-indigo)) 100%) 1;
   }
 
   /* Effets glow néon */
   .glow-neon {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+    box-shadow: 0 0 20px hsl(var(--cv-neon-purple) / 0.3);
   }
 
   .glow-neon-hover:hover {
-    box-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 30px hsl(var(--cv-neon-purple) / 0.5);
     transition: box-shadow 0.3s ease;
   }
 
@@ -127,30 +186,30 @@
 
   @keyframes pulse-neon {
     0%, 100% {
-      box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+      box-shadow: 0 0 20px hsl(var(--cv-neon-purple) / 0.3);
     }
     50% {
-      box-shadow: 0 0 40px rgba(168, 85, 247, 0.6);
+      box-shadow: 0 0 40px hsl(var(--cv-neon-purple) / 0.6);
     }
   }
 
   /* Glassmorphism (verre dépoli moderne) */
   .glass-card {
-    background: rgba(255, 255, 255, 0.7);
+    background: hsl(var(--background) / 0.7);
     backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(168, 85, 247, 0.1);
+    border: 1px solid hsl(var(--cv-neon-purple) / 0.1);
     box-shadow:
-      0 8px 32px rgba(168, 85, 247, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+      0 8px 32px hsl(var(--cv-neon-purple) / 0.12),
+      inset 0 1px 0 hsl(var(--background) / 0.6);
   }
 
   .glass-card-dark {
-    background: rgba(30, 27, 75, 0.7);
+    background: hsl(var(--cv-logo-bg) / 0.7);
     backdrop-filter: blur(20px) saturate(180%);
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    border: 1px solid hsl(var(--cv-neon-purple) / 0.2);
     box-shadow:
-      0 8px 32px rgba(168, 85, 247, 0.15),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      0 8px 32px hsl(var(--cv-neon-purple) / 0.15),
+      inset 0 1px 0 hsl(var(--background) / 0.1);
   }
 
   /* Typographie avec hierarchy */

@@ -12,6 +12,7 @@ import { useRAGData } from "@/hooks/useRAGData";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { Footer } from "./Footer";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AccentToggle } from "@/components/ui/AccentToggle";
 import { ExportDataModal } from "@/components/modals/ExportDataModal";
 import { KeyboardShortcutsModal } from "@/components/modals/KeyboardShortcutsModal";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -87,7 +88,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
         : baseNavItems;
 
     return (
-        <div className="min-h-screen bg-surface-secondary dark:bg-slate-950 flex flex-col">
+        <div className="min-h-screen bg-surface-secondary flex flex-col">
             {/* Skip Link for keyboard navigation */}
             <a
                 href="#main-content"
@@ -97,7 +98,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </a>
 
             {/* Top Navigation Bar */}
-            <header role="banner" className="bg-surface-primary dark:bg-slate-900 border-b border-cvBorder-light dark:border-slate-800 sticky top-0 z-50 shadow-level-1">
+            <header role="banner" className="bg-surface-primary border-b border-cvBorder-light sticky top-0 z-50 shadow-level-1">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-8">
                         {/* Logo - Agrandi pour plus d'impact */}
@@ -117,7 +118,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Button
                                             variant={isActive ? "secondary" : "ghost"}
                                             size="sm"
-                                            className={`gap-2 transition-all ${isActive ? "bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 text-neon-purple border-l-2 border-neon-purple" : "dark:text-slate-300"}`}
+                                            className={`gap-2 transition-all ${isActive ? "bg-gradient-to-r from-neon-pink/10 to-neon-purple/10 text-neon-purple border-l-2 border-neon-purple" : "text-cvText-secondary"}`}
                                         >
                                             <item.icon className="w-4 h-4" />
                                             {item.label}
@@ -136,7 +137,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             aria-expanded={menuOpen}
                             aria-haspopup="menu"
                             aria-label="Menu utilisateur"
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-secondary dark:hover:bg-slate-800 transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-surface-secondary transition-colors"
                         >
                             {/* Photo de profil ou initiales */}
                             <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-neon-pink to-neon-indigo shrink-0">
@@ -153,7 +154,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     <span className="text-white text-xs font-bold">{initials}</span>
                                 )}
                             </div>
-                            <span className="text-sm font-medium text-cvText-primary dark:text-slate-300 hidden sm:inline max-w-[120px] truncate">
+                            <span className="text-sm font-medium text-cvText-primary hidden sm:inline max-w-[120px] truncate">
                                 {userName}
                             </span>
                             <ChevronDown className={`w-4 h-4 text-cvText-secondary transition-transform ${menuOpen ? "rotate-180" : ""}`} />
@@ -166,19 +167,20 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     className="fixed inset-0 z-40"
                                     onClick={handleCloseMenu}
                                 />
-                                <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-surface-primary dark:bg-slate-900 rounded-lg shadow-lg border border-cvBorder-light dark:border-slate-700 py-2 z-50">
-                                    <div className="px-4 py-2 border-b border-cvBorder-light dark:border-slate-700">
-                                        <p className="text-sm font-medium text-cvText-primary dark:text-slate-100">{userName}</p>
-                                        <p className="text-xs text-cvText-secondary dark:text-slate-600">Compte {planLabel}</p>
+                                <div role="menu" aria-label="Menu de l'utilisateur" className="absolute right-0 top-full mt-2 w-56 bg-surface-primary rounded-lg shadow-lg border border-cvBorder-light py-2 z-50">
+                                    <div className="px-4 py-2 border-b border-cvBorder-light">
+                                        <p className="text-sm font-medium text-cvText-primary">{userName}</p>
+                                        <p className="text-xs text-cvText-secondary">Compte {planLabel}</p>
                                     </div>
 
                                     {/* Quick Actions */}
                                     <div className="py-1">
                                         <ThemeToggle />
+                                        <AccentToggle />
                                         <Link href="/demo">
                                             <button
                                                 onClick={handleCloseMenu}
-                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                             >
                                                 <Landmark className="w-4 h-4" />
                                                 Démo Museum
@@ -187,7 +189,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/saved-jobs">
                                             <button
                                                 onClick={handleCloseMenu}
-                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                             >
                                                 <BookmarkCheck className="w-4 h-4" />
                                                 Offres sauvegardées
@@ -196,7 +198,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/compare">
                                             <button
                                                 onClick={handleCloseMenu}
-                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                             >
                                                 <GitCompare className="w-4 h-4" />
                                                 Comparer CVs
@@ -205,7 +207,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/templates">
                                             <button
                                                 onClick={handleCloseMenu}
-                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                             >
                                                 <LayoutTemplate className="w-4 h-4" />
                                                 Templates CV
@@ -214,7 +216,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/stats">
                                             <button
                                                 onClick={handleCloseMenu}
-                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                             >
                                                 <BarChart3 className="w-4 h-4" />
                                                 Mes statistiques
@@ -223,7 +225,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         <Link href="/dashboard/settings">
                                             <button
                                                 onClick={handleCloseMenu}
-                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                             >
                                                 <Bell className="w-4 h-4" />
                                                 Paramètres
@@ -233,7 +235,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                             <Link href="/admin">
                                                 <button
                                                     onClick={handleCloseMenu}
-                                                    className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                                    className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                                 >
                                                     <Shield className="w-4 h-4" />
                                                     Backoffice Admin
@@ -242,14 +244,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                         )}
                                         <button
                                             onClick={() => { handleCloseMenu(); setExportModalOpen(true); }}
-                                            className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                            className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                         >
                                             <Download className="w-4 h-4" />
                                             Exporter mes données
                                         </button>
                                         <button
                                             onClick={() => { handleCloseMenu(); setShortcutsModalOpen(true); }}
-                                            className="w-full px-4 py-2 text-left text-sm text-cvText-primary dark:text-slate-300 hover:bg-surface-secondary dark:hover:bg-slate-800 flex items-center gap-2"
+                                            className="w-full px-4 py-2 text-left text-sm text-cvText-primary hover:bg-surface-secondary flex items-center gap-2"
                                         >
                                             <Keyboard className="w-4 h-4" />
                                             Raccourcis clavier
@@ -258,7 +260,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="border-t border-cvBorder-light dark:border-slate-700 mt-1 pt-1">
+                                    <div className="border-t border-cvBorder-light mt-1 pt-1">
                                         <div className="px-4 py-1 text-xs text-cvText-secondary">
                                             CV Crush v5.3.9
                                         </div>
@@ -278,7 +280,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             </header>
 
             {/* Mobile Nav - Enhanced with safe areas and better touch targets */}
-            <nav aria-label="Navigation principale mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-primary dark:bg-slate-900 border-t border-cvBorder-light dark:border-slate-800 z-50 shadow-lg pb-safe">
+            <nav aria-label="Navigation principale mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-surface-primary border-t border-cvBorder-light z-50 shadow-lg pb-safe">
                 <div className="flex justify-around px-2 pt-2 pb-1">
                     {navItems.map((item) => {
                         const isActive = pathname === item.href ||
@@ -287,7 +289,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
                             <Link key={item.href} href={item.href} className="flex-1 max-w-[100px]">
                                 <div className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl transition-all ${isActive
                                     ? "text-neon-purple bg-neon-purple/5 dark:bg-neon-purple/10 scale-105"
-                                    : "text-cvText-secondary dark:text-slate-600 hover:text-cvText-primary active:scale-95"
+                                    : "text-cvText-secondary hover:text-cvText-primary active:scale-95"
                                     }`}>
                                     <div className={`relative ${isActive ? 'animate-[pulse_2s_ease-in-out]' : ''}`}>
                                         <item.icon className="w-5 h-5" />

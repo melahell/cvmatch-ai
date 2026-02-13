@@ -13,32 +13,32 @@ const config: Config = {
     		colors: {
     			// Design System Tokens (CV Crush)
     			neon: {
-    				pink: DESIGN_TOKENS.colors.neon.pink,
-    				purple: DESIGN_TOKENS.colors.neon.purple,
-    				indigo: DESIGN_TOKENS.colors.neon.indigo,
+    				pink: "hsl(var(--cv-neon-pink))",
+    				purple: "hsl(var(--cv-neon-purple))",
+    				indigo: "hsl(var(--cv-neon-indigo))",
     			},
     			semantic: {
-    				success: DESIGN_TOKENS.colors.semantic.success,
-    				warning: DESIGN_TOKENS.colors.semantic.warning,
-    				error: DESIGN_TOKENS.colors.semantic.error,
-    				info: DESIGN_TOKENS.colors.semantic.info,
+    				success: "hsl(var(--cv-success))",
+    				warning: "hsl(var(--cv-warning))",
+    				error: "hsl(var(--cv-danger))",
+    				info: "hsl(var(--cv-accent))",
     			},
     			surface: {
-    				primary: DESIGN_TOKENS.colors.surface.primary,
-    				secondary: DESIGN_TOKENS.colors.surface.secondary,
-    				tertiary: DESIGN_TOKENS.colors.surface.tertiary,
+    				primary: "hsl(var(--cv-surface-primary))",
+    				secondary: "hsl(var(--cv-surface-secondary))",
+    				tertiary: "hsl(var(--cv-surface-tertiary))",
     			},
     			cvText: { // Préfixe pour éviter conflit avec "text" Tailwind
-    				primary: DESIGN_TOKENS.colors.text.primary,
-    				secondary: DESIGN_TOKENS.colors.text.secondary,
-    				tertiary: DESIGN_TOKENS.colors.text.tertiary,
-    				inverse: DESIGN_TOKENS.colors.text.inverse,
+    				primary: "hsl(var(--cv-text-primary))",
+    				secondary: "hsl(var(--cv-text-secondary))",
+    				tertiary: "hsl(var(--cv-text-tertiary))",
+    				inverse: "hsl(var(--cv-text-inverse))",
     			},
     			cvBorder: { // Préfixe pour éviter conflit
-    				light: DESIGN_TOKENS.colors.border.light,
-    				medium: DESIGN_TOKENS.colors.border.medium,
-    				dark: DESIGN_TOKENS.colors.border.dark,
-    				focus: DESIGN_TOKENS.colors.border.focus,
+    				light: "hsl(var(--cv-border-light))",
+    				medium: "hsl(var(--cv-border-medium))",
+    				dark: "hsl(var(--cv-border-dark))",
+    				focus: "hsl(var(--cv-border-focus))",
     			},
 
     			// Shadcn/ui tokens (compatibilité existante)
@@ -122,10 +122,12 @@ const config: Config = {
 
     		// Font family avec design tokens
     		fontFamily: {
-    			display: DESIGN_TOKENS.typography.fontFamily.display.split(','),
+    			sans: ["var(--font-sans)", "ui-sans-serif", "system-ui"],
+    			serif: ["var(--font-serif)", "ui-serif", "Georgia"],
+    			display: ["var(--font-display)", "var(--font-sans)", "ui-sans-serif", "system-ui"],
     			heading: DESIGN_TOKENS.typography.fontFamily.heading.split(','),
     			body: DESIGN_TOKENS.typography.fontFamily.body.split(','),
-    			mono: DESIGN_TOKENS.typography.fontFamily.mono.split(','),
+    			mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular"],
     		},
 
     		// Z-index avec design tokens

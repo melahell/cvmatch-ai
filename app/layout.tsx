@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import VersionOverlay from "@/components/VersionOverlay";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ColorThemeProvider } from "@/components/providers/ColorThemeProvider";
 import { Toaster } from "sonner";
 import { DESIGN_TOKENS } from "@/lib/design-tokens";
 
@@ -61,13 +62,15 @@ export default function RootLayout({
             >
                 <ThemeProvider
                     attribute="class"
-                    defaultTheme="light"
+                    defaultTheme="system"
                     enableSystem
                     disableTransitionOnChange
                 >
-                    <VersionOverlay />
-                    {children}
-                    <Toaster position="top-center" richColors />
+                    <ColorThemeProvider>
+                        <VersionOverlay />
+                        {children}
+                        <Toaster position="top-center" richColors />
+                    </ColorThemeProvider>
                 </ThemeProvider>
                 <script
                     dangerouslySetInnerHTML={{

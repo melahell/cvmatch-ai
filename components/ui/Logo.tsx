@@ -139,9 +139,9 @@ export function Logo({
                     <defs>
                         {/* Gradient Principal Vibrant */}
                         <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="#ff4eb3" />   {/* Rose fluo */}
-                            <stop offset="50%" stopColor="#a855f7" />  {/* Violet vibrant */}
-                            <stop offset="100%" stopColor="#6366f1" /> {/* Indigo */}
+                            <stop offset="0%" stopColor="hsl(var(--cv-neon-pink))" />
+                            <stop offset="50%" stopColor="hsl(var(--cv-neon-purple))" />
+                            <stop offset="100%" stopColor="hsl(var(--cv-neon-indigo))" />
                         </linearGradient>
 
                         {/* Filtre Glow (Néon) */}
@@ -170,7 +170,7 @@ export function Logo({
                         width="140"
                         height="140"
                         rx="35"
-                        fill="#1e1b4b"
+                        fill="hsl(var(--cv-logo-bg))"
                         fillOpacity="0.8"
                         stroke="none"
                         variants={phoneFillVariants}
@@ -221,7 +221,7 @@ export function Logo({
                         width="30"
                         height="4"
                         rx="2"
-                        fill="#e2e8f0"
+                        fill="hsl(var(--cv-text-inverse))"
                         fillOpacity="0.5"
                         variants={phoneFillVariants}
                     />
@@ -247,7 +247,7 @@ export function Logo({
                             x="100"
                             y="140"
                             textAnchor="middle"
-                            fill="#a5b4fc"
+                            fill="hsl(var(--cv-logo-text-sub))"
                             fontSize="18"
                             fontWeight="700"
                             letterSpacing="2"
@@ -296,9 +296,9 @@ export function LogoStatic({ size = 40, className = '' }: { size?: number; class
         >
             <defs>
                 <linearGradient id="logoGradientStatic" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#ff4eb3" />
-                    <stop offset="50%" stopColor="#a855f7" />
-                    <stop offset="100%" stopColor="#6366f1" />
+                    <stop offset="0%" stopColor="hsl(var(--cv-neon-pink))" />
+                    <stop offset="50%" stopColor="hsl(var(--cv-neon-purple))" />
+                    <stop offset="100%" stopColor="hsl(var(--cv-neon-indigo))" />
                 </linearGradient>
                 <filter id="glow-static" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
@@ -309,18 +309,18 @@ export function LogoStatic({ size = 40, className = '' }: { size?: number; class
                 </filter>
             </defs>
 
-            <rect x="30" y="30" width="140" height="140" rx="35" fill="#1e1b4b" fillOpacity="0.8" />
+            <rect x="30" y="30" width="140" height="140" rx="35" fill="hsl(var(--cv-logo-bg))" fillOpacity="0.8" />
             <rect
                 x="30" y="30" width="140" height="140" rx="35"
                 stroke="url(#logoGradientStatic)" strokeWidth="8" fill="none"
                 filter="url(#glow-static)"
             />
-            <rect x="85" y="42" width="30" height="4" rx="2" fill="#e2e8f0" fillOpacity="0.5" />
+            <rect x="85" y="42" width="30" height="4" rx="2" fill="hsl(var(--cv-text-inverse))" fillOpacity="0.5" />
 
             <text x="100" y="110" textAnchor="middle" fill="white" fontSize="58" fontWeight="900" letterSpacing="-3">
                 CV
             </text>
-            <text x="100" y="140" textAnchor="middle" fill="#a5b4fc" fontSize="18" fontWeight="700" letterSpacing="2">
+            <text x="100" y="140" textAnchor="middle" fill="hsl(var(--cv-logo-text-sub))" fontSize="18" fontWeight="700" letterSpacing="2">
                 CRUSH
             </text>
         </svg>
