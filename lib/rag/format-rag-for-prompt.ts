@@ -36,9 +36,25 @@ export function formatRAGForPrompt(ragData: any): string {
         parts.push("═══════════════════════════════════════════════════════════════");
         
         ragData.experiences.forEach((exp: any, idx: number) => {
+            const startRaw =
+                exp?.debut ??
+                exp?.date_debut ??
+                exp?.start_date ??
+                exp?.startDate ??
+                exp?.dateDebut ??
+                "?";
+            const endRaw =
+                exp?.fin ??
+                exp?.date_fin ??
+                exp?.end_date ??
+                exp?.endDate ??
+                exp?.dateFin ??
+                "?";
+            const isCurrent = exp?.actuel === true || exp?.current === true || exp?.is_current === true;
+            const period = `${startRaw} - ${isCurrent ? "Présent" : endRaw}`;
             parts.push(`${idx + 1}. ${exp.poste || "Poste non spécifié"}`);
             parts.push(`   Entreprise: ${exp.entreprise || "Non spécifiée"}`);
-            parts.push(`   Période: ${exp.debut || "?"} - ${exp.fin || exp.actuel ? "Présent" : "?"}`);
+            parts.push(`   Période: ${period}`);
             
             if (exp.realisations && exp.realisations.length > 0) {
                 parts.push(`   Réalisations (${exp.realisations.length}):`);

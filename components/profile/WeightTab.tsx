@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, Wrench, GraduationCap } from "lucide-react";
+import { getExperienceDates } from "@/lib/utils/normalize-rag";
 
 type WeightValue = "important" | "inclus" | "exclu";
 
@@ -102,7 +103,16 @@ export function WeightTab({ ragData, onWeightChange }: WeightTabProps) {
                                 <div>
                                     <div className="font-medium">{exp.poste}</div>
                                     <div className="text-sm text-slate-600">
-                                        {exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}
+                                        {(() => {
+                                            const { start, end, isCurrent } = getExperienceDates(exp);
+                                            const startLabel = start || "—";
+                                            const endLabel = isCurrent ? "Présent" : (end || "—");
+                                            return (
+                                                <>
+                                                    {exp.entreprise} • {startLabel} - {endLabel}
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                                 <WeightBadge

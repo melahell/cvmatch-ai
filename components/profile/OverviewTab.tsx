@@ -10,6 +10,7 @@ import { InferredSkillCard } from "./InferredSkillCard";
 import { EditableField } from "@/components/ui/EditableField";
 import type { InferredSkill } from "@/types/rag";
 import { normalizeCompetences } from "@/lib/utils/normalize-competences";
+import { getExperienceDates } from "@/lib/utils/normalize-rag";
 import { getSupabaseAuthHeader } from "@/lib/supabase";
 import { logger } from "@/lib/utils/logger";
 
@@ -561,7 +562,16 @@ export function OverviewTab({ ragData, userId, onWeightChange, onRefetch }: Over
                                         <div className="flex-1">
                                             <div className="font-semibold text-lg">{exp.poste}</div>
                                             <div className="text-sm text-slate-600">
-                                                {exp.entreprise} • {exp.debut} - {exp.fin || "Présent"}
+                                                {(() => {
+                                                    const { start, end, isCurrent } = getExperienceDates(exp);
+                                                    const startLabel = start || "—";
+                                                    const endLabel = isCurrent ? "Présent" : (end || "—");
+                                                    return (
+                                                        <>
+                                                            {exp.entreprise} • {startLabel} - {endLabel}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                         <WeightBadge

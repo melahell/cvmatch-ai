@@ -12,6 +12,7 @@
 
 import { normalizeCompanyName } from './normalize-company';
 import { combinedSimilarity, areStringsSimilar } from './string-similarity';
+import { getExperienceDates } from '@/lib/utils/normalize-rag';
 import { 
     areExperiencesSimilar as fuzzyAreExperiencesSimilar,
     areSkillsSimilar,
@@ -86,6 +87,20 @@ function areRealisationsSimilar(real1: any, real2: any): boolean {
  * Uses 75% similarity threshold to avoid near-duplicate realisations
  */
 function mergeExperiences(existing: any, incoming: any): any {
+    const isFilled = (v: unknown) => {
+        if (v === null || v === undefined) return false;
+        if (typeof v === "string") return v.trim().length > 0;
+        return true;
+    };
+
+    // Dates: ne jamais écraser une fin renseignée par null/"" (cas fréquent si un doc est moins précis)
+    const existingDates = getExperienceDates(existing);
+    const incomingDates = getExperienceDates(incoming);
+
+    const finalStart = isFilled(incomingDates.start) ? incomingDates.start : (existingDates.start ?? null);
+    const finalEnd = isFilled(incomingDates.end) ? incomingDates.end : (existingDates.end ?? null);
+    const finalIsCurrent = finalEnd ? false : (incomingDates.isCurrent || existingDates.isCurrent);
+
     // Deduplicate realisations with 75% similarity
     const existingRealisations = existing.realisations || [];
     const incomingRealisations = incoming.realisations || [];
@@ -113,6 +128,10 @@ function mergeExperiences(existing: any, incoming: any): any {
         // Use preferred (longer) names
         entreprise: preferredCompanyName,
         poste: preferredPosition,
+        // Canonicaliser les dates au format attendu par le RAG (debut/fin/actuel)
+        debut: finalStart ?? existing.debut ?? incoming.debut,
+        fin: finalEnd ?? existing.fin ?? incoming.fin ?? null,
+        actuel: finalIsCurrent,
         // Merge realisations (unique by similarity)
         realisations: [...existingRealisations, ...uniqueNewRealisations],
         // Merge technologies (union)
