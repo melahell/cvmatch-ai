@@ -761,11 +761,16 @@ function buildExperiences(
         let lieu = widgetHeader?.location;
         let actuel = (coerceBoolean(widgetHeader?.is_current) ?? false) === true;
 
-        // Si dates manquantes dans widget, fallback sur RAG
-        if (!date_debut && ragExp) {
-            date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date);
-            date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date);
-            actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current) ?? false) === true;
+        if (ragExp) {
+            if (!date_debut) {
+                date_debut = formatDate(ragExp.debut || ragExp.date_debut || ragExp.start_date);
+            }
+            if (!date_fin) {
+                date_fin = formatDate(ragExp.fin || ragExp.date_fin || ragExp.end_date);
+            }
+            if (!actuel) {
+                actuel = (coerceBoolean(ragExp.actuel ?? ragExp.current ?? ragExp.is_current) ?? false) === true;
+            }
         }
 
         const endLower = String(date_fin ?? "").trim().toLowerCase();
